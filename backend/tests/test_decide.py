@@ -163,9 +163,14 @@ def test_watching_alone_does_not_interrupt(engine, world):
     assert r["tier"] in ("T0", "T1")
 
 
-def test_dismissed_episode_still_alerts_on_a_listed_payee(engine, world):
+def test_dismissed_episode_still_alerts_on_a_listed_payee(engine, mock, world):
     rep = world[1]["reports"]
     listed = rep[(rep.identifier_type == "upi_id") & ~rep.is_false & (rep.listed_at <= CFG.end)].identifier.iloc[0]
+    # Warm the mock's first (slowest) answers for this payee, as a prefetch would.
+    mock[1].get(f"/i4c/registry?upi_id={listed}")
+    bank = mock[1].get(f"/npci/resolve/{listed}").json().get("bank_code")
+    if bank:
+        mock[1].get(f"/banks/{bank}/payee-risk/{listed}")
     user = users_in(world)[0]
     ep = {**WATCHING_EPISODE, "state": "dismissed", "age_days": None}
     r = engine.post("/v1/decide", json=req(user=user, payee=listed, amount=5_000, context=episode_ctx(ep))).json()
