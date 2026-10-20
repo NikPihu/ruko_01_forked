@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RUKO demo</string>
+
+    <!-- Home -->
+    <string name="demo_banner">RUKO demo, not a real payment app. No real money moves.</string>
+    <string name="home_pay">Pay someone</string>
+    <string name="home_check_server">Check server</string>
+    <string name="home_api_address">API: %1$s</string>
+
+    <!-- Pay -->
+    <string name="pay_title">Pay</string>
+    <string name="pay_upi_label">UPI ID</string>
+    <string name="pay_amount_label">Amount</string>
+    <string name="pay_button">Pay</string>
+    <string name="back">Back</string>
+
+    <!-- Decision (placeholder until the T1 to T4 alert screens exist) -->
+    <string name="decision_tier">RUKO decision: %1$s</string>
+    <string name="decision_unavailable">Safety check unavailable</string>
+    <string name="decision_placeholder">Placeholder screen. The T1 to T4 alert screens replace this in step 7.</string>
+    <string name="decision_continue">Continue to PIN</string>
+    <string name="decision_cancel">Cancel payment</string>
+
+    <!-- PIN -->
+    <string name="pin_title">Enter UPI PIN</string>
+    <string name="pin_note">Demo PIN: any 4 or 6 digits. It is never stored or sent.</string>
+    <string name="pin_to">%1$s to %2$s</string>
+    <string name="pin_confirm">Confirm</string>
+
+    <!-- Success -->
+    <string name="success_title">Payment simulated</string>
+    <string name="success_note">No real money moved.</string>
+    <string name="success_done">Done</string>
+
+    <!-- Reason codes, wording fixed by the team contract. Never show a score. -->
+    <string name="reason_R1_live_unknown_call">You are on a call, or just ended one, with a number not in your contacts</string>
+    <string name="reason_R2_remote_control">An app that can see or control your screen is active or newly installed</string>
+    <string name="reason_R3_mule_like_payee">This account is new and is receiving money from many unrelated people</string>
+    <string name="reason_R4_unusual_amount">This is much larger than your usual payments</string>
+    <string name="reason_R5_lure_message">You recently received a message that matches a known scam script</string>
+    <string name="reason_R6_new_payee_typed">You typed this UPI ID by hand and have never paid it before</string>
+    <string name="reason_R7_tranche_pattern">You are making several payments in a short time</string>
+    <string name="reason_R8_intel_hit">This account or number has been reported for fraud</string>
+</resources>

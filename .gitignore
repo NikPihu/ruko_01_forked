@@ -1,0 +1,24 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Generated data (too big for git); the small sample in data/sample_v0 is committed
+data/*.parquet
+data/external/*
+!data/external/.gitkeep
+
+# Runtime output
+logs/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

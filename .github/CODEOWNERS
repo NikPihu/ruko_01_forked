@@ -1,0 +1,13 @@
+# Each folder's owner reviews its pull requests.
+# Replace the placeholders with real GitHub usernames, then uncomment.
+
+# /android/                     @manjeet-github-username
+# /backend/                     @jagdeep-github-username
+# /ml/                          @diwansu-github-username
+# /data/                        @nikunj-github-username
+
+# Shared files: the owner plus the people who depend on them
+# /backend/schema/              @jagdeep-github-username @manjeet-github-username @diwansu-github-username @nikunj-github-username
+# /backend/features/feature_list.json  @jagdeep-github-username @diwansu-github-username
+# /backend/intel_mock/data/     @nikunj-github-username @jagdeep-github-username
+# /data/sim/playbooks.yaml      @nikunj-github-username @diwansu-github-username
