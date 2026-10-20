@@ -25,3 +25,28 @@ Written by others but served from here:
 
 Reads: `../data/*.parquet` (Nikunj), `../ml/model/predict.py` and `../ml/model/artifacts/` (Diwansu).
 Timing logs go to `../logs/decide.jsonl` (git ignored).
+
+## Run it (current MVP)
+
+```bash
+pip install -r backend/requirements.txt
+export PYTHONPATH=backend:ml:data          # Windows PowerShell: $env:PYTHONPATH="backend;ml;data"
+
+python -m sim.generate --users 2000 --days 30 --out data/     # synthetic world -> data/*.parquet
+python -m intel_mock.app --data data --port 8001              # mock NPCI, banks, DoT FRI, I4C registry
+python -m api.main --data data --port 8000                    # RUKO risk engine (POST /v1/decide)
+python -m sim.mule_pump --payers 40                           # pump the demo mule before the demo
+pytest backend/tests
+```
+
+Use `127.0.0.1`, not `localhost`, between services on Windows: `localhost` tries IPv6 first and
+adds ~200 ms per new connection, which alone breaks the 150 ms intel budget.
+
+What is here so far:
+- `api/main.py` decide path: tracker -> intel (150 ms, parallel) -> build_features -> score -> policy -> evidence; 200 ms deadline, fails open.
+- `api/rule_scorer.py` rule-based fallback with the same `score()` output shape as `ml/model/predict.py`.
+- `intel_mock/` one mock per real organisation, reproducing their blind spots (lag, coverage, false entries).
+- `docs/` notes on how the real systems work and how the mocks copy them.
+
+Not done yet: `schema/events.py` still differs from the Android request (`payee_vpa_hash`, flat
+context flags); feedback, report, prefetch and pause enforcement endpoints; Redis/Postgres; docker-compose.

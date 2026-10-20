@@ -1,0 +1,36 @@
+# RUKO policy: turns the scorer's output into a tier. Numbers live here, not in code.
+version: policy-0.1
+
+family_threshold: 0.5            # a family "lights" at this score
+corroboration_min_families: 2    # fewer lit families -> T0, whatever p_scam says
+
+# Walked from T4 down; the first match wins.
+tiers:
+  T4: {min_p: 0.90, min_families: 3, requires_intel_hit: true}   # analyst review
+  T3: {min_p: 0.75, min_families: 2}                             # pause + trusted contact
+  T2: {min_p: 0.50, min_families: 2}                             # explain card, slide to pay
+  T1: {min_p: 0.30, min_families: 2}                             # inline tip
+
+amount_caps:
+  - {below: 200, max_tier: T1}
+
+trusted_payee:
+  # "I know this person" drops to T0 unless one of these holds (coached victims tap it too).
+  overridden_by: [intel_hit, stage_ge_S3]
+
+alert_budget:
+  max_interruptive_per_30d: 2    # T2+ alerts already shown in the last 30 days
+  drop_to: T1
+  bypass_if_p_ge: 0.90
+  # Never throttle while a journey is under way: someone has control of the screen (S3) or the
+  # user is paying a new payee after being contacted (S4/S5). Fatigue control is for calm days.
+  never_applies_in_stages: [S3, S4, S5]
+
+pause_minutes: {T0: 0, T1: 0, T2: 0, T3: 30, T4: 60}
+
+message_keys:
+  T1: t1_tip
+  T2: t2_generic
+  T3: t3_generic
+  T4: t3_generic
+  playbook_tiers: [T2, T3, T4]   # these use "<tier>_<playbook>" when a playbook matched
