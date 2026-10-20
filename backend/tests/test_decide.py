@@ -220,3 +220,14 @@ def test_evidence_chain_detects_tampering(engine, mock, world):
     db.execute("UPDATE evidence SET tier = 'T0' WHERE seq = 2")
     v = engine.get("/v1/evidence/verify").json()
     assert not v["ok"] and v["first_bad_id"]
+
+
+def test_evidence_file_in_missing_folder(tmp_path):
+    """A fresh clone has no logs/ folder; the store must create it, not crash the engine."""
+    from evidence.store import EvidenceStore
+    store = EvidenceStore(str(tmp_path / "logs" / "evidence.db"))
+    store.write({"id": "e_1", "ts": "2026-11-07T10:40:00+05:30", "user_hash": "u", "payee_hash": "p",
+                 "caller_hash": None, "tier": "T3", "p_scam": 0.9, "reasons": [], "playbook": None,
+                 "family_scores": {}, "features": {}, "intel_status": {}, "stage_path": [],
+                 "model_version": "m", "policy_version": "p"})
+    assert store.verify() == {"ok": True, "rows_checked": 1, "first_bad_id": None}

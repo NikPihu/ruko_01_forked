@@ -10,6 +10,7 @@ import json
 import os
 import sqlite3
 import threading
+from pathlib import Path
 
 GENESIS = "0" * 64
 SALT = os.environ.get("PAYEE_SALT") or "ruko-dev-salt"  # team salt from .env
@@ -31,6 +32,8 @@ def _digest(prev_hash: str, row: dict) -> str:
 
 class EvidenceStore:
     def __init__(self, path: str = ":memory:"):
+        if path != ":memory:":
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(path, check_same_thread=False)
         self.lock = threading.Lock()
         self.db.execute(f"CREATE TABLE IF NOT EXISTS evidence ({', '.join(c + ' TEXT' for c in COLUMNS)},"
