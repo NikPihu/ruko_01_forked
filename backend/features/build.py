@@ -30,6 +30,8 @@ FAMILY = {
     "payee_pass_through_24h": "P", "payee_median_hold_min": "P", "payee_mulehunter": "P",
     "payee_registry_listed": "P", "payee_fri_level": "P", "caller_registry_listed": "P",
     "caller_fri_level": "P", "story_mismatch": "P", "vpa_invalid": "P",
+    # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
+    "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P",
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
@@ -38,7 +40,7 @@ FAMILY = {
 
 
 def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
-                   base: UserBaseline, trusted: bool) -> dict:
+                   base: UserBaseline, trusted: bool, ring: dict | None = None) -> dict:
     ctx = req.context
     call = ctx.call if ctx else None
     dev = ctx.device if ctx else None
@@ -97,6 +99,12 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     # "Government" or "company" should never be a personal account.
     f["story_mismatch"] = (None if req.payer_says is None or f["payee_holder_type"] is None
                            else req.payer_says in ("government", "company") and f["payee_holder_type"] == "person")
+
+    # P — payment graph: many RUKO users got "rewards" from the same account or paid this payee in
+    # their episodes, or the payee forwards to where the "rewards" came from. None = unknown.
+    f["payee_crowd"] = ring["crowd"] if ring else None
+    f["payee_money_loop"] = ring["money_loop"] if ring else None
+    f["payee_forwards_to_cashout"] = ring["forwards_to_known_cashout"] if ring else None
 
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr

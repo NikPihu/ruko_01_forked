@@ -25,8 +25,11 @@ from typing import Optional
 from api.intel import IntelAdapter, IntelResult
 from features.build import FRI_LEVEL
 from evidence.store import EvidenceStore, pseudonym
+from graph.store import user_node
 from schema.events import EpisodeEvent, EpisodeEventResponse
 
+# Episode events are off the payment path, so lookups may take longer than a decide's 150 ms.
+LOOKUP_BUDGET_S = 1.0
 UNREACHED = {"timeout", "error", "skipped"}
 STOP_TRIGGERS = {"dismissed", "closed"}
 
@@ -84,10 +87,15 @@ class EpisodeService:
                 self.graph.add_episode(ev, now)
             return self._reply(ev, EpisodeEventResponse(event_id=ev.event_id, episode_risk="low", reasons=[]))
 
-        results = await asyncio.gather(*(self.intel.lookup(a.upi_id) for a in ev.accounts))
+        results = await asyncio.gather(*(self.intel.lookup(a.upi_id, budget_s=LOOKUP_BUDGET_S) for a in ev.accounts))
         checks = [check_account(a.upi_id.strip().lower(), a.role, r) for a, r in zip(ev.accounts, results)]
-        if self.graph is not None:
-            self.graph.add_episode(ev, now)
+        if self.graph is not None and self.graph.add_episode(ev, now):
+            # Where each account forwards money, when its bank shares (for the money loop).
+            flows = await asyncio.gather(*(self.intel.flows(c.upi_id) for c in checks))
+            for c, f in zip(checks, flows):
+                self.graph.add_bank_flows(c.upi_id, f)
+                self.graph.mark(c.upi_id, flagged=bool(c.mule_like or c.intel_hit) or None,
+                                listed=c.intel_hit or None, role=c.role)
             for c in checks:
                 c.ring = self.graph.account_signals(c.upi_id, now)
 
@@ -115,6 +123,10 @@ class EpisodeService:
         evidence_id = f"e_{uuid.uuid4().hex[:12]}"
         case_id = None
         if risk == "high":
+            if self.graph is not None:
+                for upi in flagged:
+                    self.graph.mark(upi, flagged=True)
+                self.graph.protect([c.upi_id for c in checks] + [user_node(ev.user_id)])
             case_id = f"c_{uuid.uuid4().hex[:12]}"
             self.cases.append({"case_id": case_id, "opened_at": now.isoformat(), "user_hash": pseudonym(ev.user_id),
                                "episode_id": ev.episode_id, "evidence_id": evidence_id, "accounts": flagged,

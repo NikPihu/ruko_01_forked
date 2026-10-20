@@ -34,6 +34,7 @@ from features.build import build_features
 from api.intel import IntelAdapter
 from api.policy import Policy
 from api.episode_events import EpisodeService
+from graph.store import GraphStore
 from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
 from features.tracker import StageTracker
 
@@ -79,7 +80,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     # Swappable: anything with score(features) -> same dict shape (e.g. the trained model).
     app.state.score = scorer.score
     app.state.evidence, app.state.trusted = evidence, trusted
-    episodes = EpisodeService(intel, evidence)
+    graph = GraphStore()
+    app.state.graph = graph
+    episodes = EpisodeService(intel, evidence, graph=graph)
     app.state.episodes = episodes
     if log_path:
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
@@ -101,7 +104,12 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ms["intel"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
-        feats = build_features(req, state, res, base, is_trusted)
+        # The payment graph: this check is an edge, and the payee's crowd / loop signals are read
+        # from what episodes already added (no extra lookups on the payment path).
+        graph.add_payment(req.user_id, upi, req.amount_inr, req.ts)
+        graph.expire(req.ts)
+        ring = graph.account_signals(upi, req.ts)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -202,6 +210,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         evidence.clear()
         trusted.clear()
         episodes.reset()
+        graph.reset()
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()
         return {"ok": True}

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 332" font-family="sans-serif">
-<rect width="760" height="332" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 416" font-family="sans-serif">
+<rect width="760" height="416" fill="#ffffff"/>
 <text x="20" y="32" font-size="18" font-weight="bold" fill="#1f2937">Task-scam rupees interrupted (T2 or higher)</text>
 <text x="20" y="54" font-size="12" fill="#6b7280">28 task-scam journeys (11 visible to the watcher), Rs 1,450,329 paid; false alarms on 1500 normal payments</text>
 <text x="20" y="84" font-size="14" font-weight="bold" fill="#1f2937">known mules: today's payee intel answers</text>
@@ -13,15 +13,25 @@
 <rect x="250" y="140" width="420" height="30" fill="#f3f4f6"/>
 <rect x="250" y="140" width="420.0" height="30" fill="#7c3aed"/>
 <text x="678.0" y="160" font-size="13" font-weight="bold" fill="#1f2937">100%</text>
-<text x="20" y="208" font-size="14" font-weight="bold" fill="#1f2937">fresh mules: no list or bank knows the payee yet</text>
-<text x="20" y="237" font-size="12" fill="#1f2937">A: existing stack</text>
-<text x="20" y="250" font-size="10" fill="#6b7280">false alarms 0.07%, first alert at payment 3.0</text>
-<rect x="250" y="222" width="420" height="30" fill="#f3f4f6"/>
-<rect x="250" y="222" width="205.8" height="30" fill="#9ca3af"/>
-<text x="463.8" y="242" font-size="13" font-weight="bold" fill="#1f2937">49%</text>
-<text x="20" y="279" font-size="12" fill="#1f2937">B: + episode (phone)</text>
+<text x="20" y="197" font-size="12" fill="#1f2937">C: + episode + payment graph</text>
+<text x="20" y="210" font-size="10" fill="#6b7280">false alarms 0.07%, first alert at payment 1.0</text>
+<rect x="250" y="182" width="420" height="30" fill="#f3f4f6"/>
+<rect x="250" y="182" width="420.0" height="30" fill="#4c1d95"/>
+<text x="678.0" y="202" font-size="13" font-weight="bold" fill="#1f2937">100%</text>
+<text x="20" y="250" font-size="14" font-weight="bold" fill="#1f2937">fresh mules: no list or bank knows the payee yet</text>
+<text x="20" y="279" font-size="12" fill="#1f2937">A: existing stack</text>
 <text x="20" y="292" font-size="10" fill="#6b7280">false alarms 0.07%, first alert at payment 3.0</text>
 <rect x="250" y="264" width="420" height="30" fill="#f3f4f6"/>
-<rect x="250" y="264" width="241.9" height="30" fill="#7c3aed"/>
-<text x="499.9" y="284" font-size="13" font-weight="bold" fill="#1f2937">58%</text>
+<rect x="250" y="264" width="205.8" height="30" fill="#9ca3af"/>
+<text x="463.8" y="284" font-size="13" font-weight="bold" fill="#1f2937">49%</text>
+<text x="20" y="321" font-size="12" fill="#1f2937">B: + episode (phone)</text>
+<text x="20" y="334" font-size="10" fill="#6b7280">false alarms 0.07%, first alert at payment 3.0</text>
+<rect x="250" y="306" width="420" height="30" fill="#f3f4f6"/>
+<rect x="250" y="306" width="241.9" height="30" fill="#7c3aed"/>
+<text x="499.9" y="326" font-size="13" font-weight="bold" fill="#1f2937">58%</text>
+<text x="20" y="363" font-size="12" fill="#1f2937">C: + episode + payment graph</text>
+<text x="20" y="376" font-size="10" fill="#6b7280">false alarms 0.07%, first alert at payment 1.0</text>
+<rect x="250" y="348" width="420" height="30" fill="#f3f4f6"/>
+<rect x="250" y="348" width="362.0" height="30" fill="#4c1d95"/>
+<text x="620.0" y="368" font-size="13" font-weight="bold" fill="#1f2937">86%</text>
 </svg>

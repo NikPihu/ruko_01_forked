@@ -70,6 +70,13 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
             add("P", {1: 0.4, 2: 0.7, 3: 0.9}[lvl], "R8_intel_hit")
     if f["story_mismatch"]:
         add("P", 0.8, "R9_story_mismatch")
+    # Payment graph (c2-0.4): the account is linked to the ring that sent the "rewards".
+    if f["payee_money_loop"]:
+        add("P", 0.8, "R11_ring_link")
+    if f["payee_crowd"]:
+        add("P", 0.6, "R11_ring_link")
+    if f["payee_forwards_to_cashout"]:
+        add("P", 0.6, "R11_ring_link")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]

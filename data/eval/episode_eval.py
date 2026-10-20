@@ -82,8 +82,12 @@ def phone_context(events: pd.DataFrame, ts) -> dict:
     return ctx
 
 
-def episodes_at(ledger: pd.DataFrame, users: pd.DataFrame, wanted: set[str]) -> dict[str, dict]:
-    """The phone's episode summary just before each wanted payment (same rules as the phone)."""
+def episodes_at(ledger: pd.DataFrame, users: pd.DataFrame, wanted: set[str],
+                events_out: list | None = None) -> dict[str, dict]:
+    """The phone's episode summary just before each wanted payment (same rules as the phone).
+
+    With `events_out`, also collects the episode events (c2-0.4) a phone with "Share suspicious
+    accounts" on would send: one per state change, with the episode's accounts."""
     rules = load_rules()
     u2u = dict(zip(users.upi_id, users.user_id))
     consent = dict(zip(users.user_id, users.sms_consent))
@@ -93,20 +97,54 @@ def episodes_at(ledger: pd.DataFrame, users: pd.DataFrame, wanted: set[str]) -> 
     for r in ledger.sort_values("ts", kind="stable").itertuples(index=False):
         ts, payer, payee = r.ts.timestamp(), u2u.get(r.from_upi), u2u.get(r.to_upi)
         if payee and r.flow not in IGNORED_BY_PARSER and r.ts >= warm_until:
-            trackers.setdefault(payee, EpisodeTracker(rules, bool(consent[payee]))).add(
-                Txn(ts, float(r.amount), "in", r.from_upi, from_sms=True))
+            t = trackers.setdefault(payee, EpisodeTracker(rules, bool(consent[payee])))
+            before = (t.ep.state, len(t.ep.bait), {b.counterparty for b in t.ep.bait})
+            t.add(Txn(ts, float(r.amount), "in", r.from_upi, from_sms=True))
+            if events_out is not None:
+                _event(events_out, payee, t, before, r.ts, rules["version"])
         if payer:
             t = trackers.setdefault(payer, EpisodeTracker(rules, bool(consent[payer])))
             if r.tx_id in wanted:
                 out[r.tx_id] = t.summary(ts, payee=r.to_upi)
+            before = (t.ep.state, len(t.ep.outs), None)
             t.add(Txn(ts, float(r.amount), "out", r.to_upi.lower()))
+            if events_out is not None and r.ts >= warm_until:
+                _event(events_out, payer, t, before, r.ts, rules["version"])
     return out
+
+
+def _event(events_out: list, user: str, t: EpisodeTracker, before: tuple, ts, version: str) -> None:
+    """The c2-0.4 trigger for this change, if any (§8.1), with up to 10 of the episode's accounts."""
+    ep, (state0, n0, senders0) = t.ep, before
+    if ep.state not in ("watching", "active"):
+        return
+    if state0 != ep.state:
+        trigger = ep.state
+    elif ep.state == "active" and len(ep.outs) > n0 and senders0 is None:
+        trigger = "out_payment"
+    elif senders0 is not None and len(ep.bait) > n0 and ep.bait[-1].counterparty not in senders0:
+        trigger = "bait"
+    else:
+        return
+    accounts = []
+    for b in ep.bait:
+        if b.counterparty:
+            accounts.append({"upi_id": b.counterparty, "role": "bait_sender", "n": 1, "inr": b.amount,
+                             "first_seen_min_ago": max(0.0, (ts.timestamp() - b.ts) / 60)})
+    for i, o in enumerate(ep.outs):
+        if o.counterparty:
+            accounts.append({"upi_id": o.counterparty, "role": "payee", "n": 1, "inr": o.amount,
+                             "first_seen_min_ago": max(0.0, (ts.timestamp() - o.ts) / 60), "via": "this_app", "step": i + 1})
+    events_out.append({"ts": ts, "user_id": user, "body": {
+        "event_id": f"ev_{len(events_out)}", "episode_id": f"ep_{user}_{int(ep.start_ts)}", "user_id": user,
+        "ts": ts.isoformat(), "trigger": trigger, "rules_version": version,
+        "summary": t.summary(ts.timestamp()), "accounts": accounts[-10:]}})
 
 
 # ---------- replay ----------
 
 def replay(data: Path, engine_data: Path, rows: pd.DataFrame, events: pd.DataFrame, eps: dict,
-           setup: str, fresh: bool) -> list[str]:
+           setup: str, fresh: bool, episode_events: list | None = None) -> list[str]:
     mock = create_mock(data)
     mock_client = TestClient(mock)
     # Fresh mules: every payee lookup fails, so NPCI, bank, registry and FRI all count as unknown.
@@ -115,8 +153,14 @@ def replay(data: Path, engine_data: Path, rows: pd.DataFrame, events: pd.DataFra
     engine = TestClient(create_engine(engine_data, intel_client=intel, intel_cache_ttl_s=0, log_path=None,
                                       evidence_async=False, intel_budget_s=5.0))
     by_user = {u: g for u, g in events.groupby("user_id")}
+    pending = list(episode_events or []) if setup == "C" else []
     tiers = []
     for r in rows.itertuples(index=False):
+        # Setup C: the phones' episode events up to now reach the engine first (they fill the graph).
+        while pending and pending[0]["ts"] <= r.ts:
+            e = pending.pop(0)
+            mock_client.post("/sim/clock", json={"set": e["ts"].isoformat()})
+            engine.post("/v1/episode", json=e["body"])
         mock_client.post("/sim/clock", json={"set": r.ts.isoformat()})
         ev = by_user.get(r.user_id, events.iloc[0:0])
         ctx = phone_context(ev, r.ts)
@@ -160,21 +204,25 @@ def main() -> None:
         scam = mine[mine.journey_id.isin(set(task_j.journey_id))]
         normal = mine[~mine.label_is_scam].sample(min(a.normal_sample, (~mine.label_is_scam).sum()), random_state=a.seed)
         rows = pd.concat([scam, normal]).sort_values("ts", kind="stable")
-        eps = episodes_at(ledger, users, set(rows.tx_id))
+        episode_events: list = []
+        eps = episodes_at(ledger, users, set(rows.tx_id), episode_events)
+        episode_events.sort(key=lambda e: e["ts"])
         events = events.sort_values("ts", kind="stable")
 
         results = {"world": {"seed": a.seed, "users": cfg.n_users, "task_journeys": int(len(task_j)),
                              "task_payments": int(len(scam)), "task_inr": float(scam.amount.sum()),
                              "normal_sample": int(len(normal)),
                              "variants": task_j.variant.value_counts().to_dict(),
-                             "visible_to_watcher": int(task_j.visible.sum())},
+                             "visible_to_watcher": int(task_j.visible.sum()),
+                             "episode_events": len(episode_events)},
                    "conditions": {}}
         for cond in CONDITIONS:
             results["conditions"][cond] = {}
             for s, label in SETUPS.items():
                 if s == "C" and not graph_ready():
                     continue
-                rows["tier"] = replay(data, engine_data, rows, events, eps, s, fresh=cond == "fresh_mules")
+                rows["tier"] = replay(data, engine_data, rows, events, eps, s, fresh=cond == "fresh_mules",
+                                      episode_events=episode_events)
                 sc = rows[rows.label_is_scam].merge(task_j[["journey_id", "variant", "visible"]], on="journey_id")
                 seen = sc[sc.visible]
                 sc["n"] = sc.groupby("journey_id").cumcount() + 1
