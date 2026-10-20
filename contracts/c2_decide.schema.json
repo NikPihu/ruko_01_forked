@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.2",
+  "contract_version": "c2-0.3",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -146,6 +146,17 @@
               }
             ],
             "default": null
+          },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/EpisodeSignal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           }
         },
         "title": "Context",
@@ -205,6 +216,168 @@
           }
         },
         "title": "DeviceSignal",
+        "type": "object"
+      },
+      "EpisodeSignal": {
+        "additionalProperties": false,
+        "description": "Task-scam episode kept on the phone across payees for up to 30 days (c2-0.3).\n\nBuilt by the phone's background watcher from bank SMS alerts and this app's payments, with\nthe rules in contracts/episode_rules.json. Counts only; bait fields are null when SMS can't be read.",
+        "properties": {
+          "state": {
+            "enum": [
+              "none",
+              "watching",
+              "active",
+              "dismissed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "age_days": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Age Days"
+          },
+          "bait_credits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Credits"
+          },
+          "bait_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Inr"
+          },
+          "outs": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs"
+          },
+          "outs_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs Inr"
+          },
+          "new_payees": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "New Payees"
+          },
+          "escalation_steps": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Escalation Steps"
+          },
+          "last_out_inr": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Last Out Inr"
+          },
+          "out_to_in_ratio": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Out To In Ratio"
+          },
+          "payee_seen_in_episode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee Seen In Episode"
+          },
+          "rules_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rules Version"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "EpisodeSignal",
         "type": "object"
       },
       "LureSignal": {
@@ -516,7 +689,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.2",
+        "default": "c2-0.3",
         "title": "Contract Version",
         "type": "string"
       }

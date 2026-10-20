@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.2"
+CONTRACT_VERSION = "c2-0.3"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -61,11 +61,32 @@ class MoneySignal(_M):
     last_debit_inr: Optional[float] = Field(None, gt=0)
 
 
+class EpisodeSignal(_M):
+    """Task-scam episode kept on the phone across payees for up to 30 days (c2-0.3).
+
+    Built by the phone's background watcher from bank SMS alerts and this app's payments, with
+    the rules in contracts/episode_rules.json. Counts only; bait fields are null when SMS can't be read.
+    """
+    state: Literal["none", "watching", "active", "dismissed"]
+    age_days: Optional[float] = Field(None, ge=0)          # since first bait credit
+    bait_credits: Optional[int] = Field(None, ge=0)        # null when SMS can't be read
+    bait_inr: Optional[float] = Field(None, ge=0)
+    outs: Optional[int] = Field(None, ge=0)                # after first bait, any app, excl. this payment
+    outs_inr: Optional[float] = Field(None, ge=0)
+    new_payees: Optional[int] = Field(None, ge=0)
+    escalation_steps: Optional[int] = Field(None, ge=0)
+    last_out_inr: Optional[float] = Field(None, gt=0)
+    out_to_in_ratio: Optional[float] = Field(None, ge=0)
+    payee_seen_in_episode: Optional[bool] = None           # this payee already paid in this episode
+    rules_version: Optional[str] = None                    # e.g. "episode-0.1"
+
+
 class Context(_M):
     call: Optional[CallSignal] = None
     device: Optional[DeviceSignal] = None
     lures: list[LureSignal] = Field(default_factory=list)
-    money: Optional[MoneySignal] = None                   # added in c2-0.2
+    money: Optional[MoneySignal] = None      # c2-0.2, deprecated: still accepted in c2-0.3, removed in c2-0.4
+    episode: Optional[EpisodeSignal] = None  # c2-0.3
 
 
 class DecideRequest(_M):
