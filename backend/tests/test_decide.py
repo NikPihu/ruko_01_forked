@@ -109,6 +109,53 @@ def test_split_tranches_still_caught(engine, mock, world):
     assert "R7_tranche_pattern" in r["reasons"] or r["tier"] >= "T2"
 
 
+TASK_MONEY = {"bait_credits": 3, "credits_inr": 650, "debits": 3, "debits_inr": 11_000,
+              "new_payees": 3, "escalation_steps": 2, "last_debit_inr": 6_500}
+TASK_PAYEE = "prime.task.rewards@ybl"
+
+
+def test_task_scam_caught_from_money_flow(engine, world):
+    """Rewards in, then 1,500 -> 3,000 -> 6,500 out; now 14,000. No call, lure seen elsewhere."""
+    user = users_in(world)[0]
+    ctx = {"lures": [], "money": TASK_MONEY}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
+    assert r["tier"] in ("T2", "T3") and r["playbook"] == "task_job"
+    assert {"R7_tranche_pattern", "R10_bait_then_pay"} <= set(r["reasons"])
+    assert r["message_key"] == f"{r['tier'].lower()}_task_job"
+
+
+def test_task_scam_to_mule_gets_paused(engine, mock, world):
+    pump(mock[1], world)
+    ctx = {"lures": [{"tag": "task_job", "conf": 0.82, "min_ago": 1800}], "money": TASK_MONEY}
+    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx, says="company")).json()
+    assert r["tier"] in ("T3", "T4") and r["playbook"] == "task_job"
+
+
+def test_task_money_flow_names_the_playbook_over_an_old_message(engine, world):
+    user = users_in(world)[0]
+    ctx = {"lures": [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 380}], "money": TASK_MONEY}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
+    assert r["playbook"] == "task_job"
+
+
+def test_escalation_alone_is_not_enough(engine, world):
+    """Paying a contractor in growing instalments: behaviour only, no bait, no lure."""
+    user = users_in(world)[0]
+    money = {**TASK_MONEY, "bait_credits": 0, "credits_inr": 0}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
+                                           context={"lures": [], "money": money})).json()
+    assert r["tier"] in ("T0", "T1")
+
+
+def test_money_without_sms_is_unknown(engine, world):
+    """SMS checks off: credits are null, so no bait signal and no task alert from behaviour alone."""
+    user = users_in(world)[0]
+    money = {k: v for k, v in TASK_MONEY.items() if k not in ("bait_credits", "credits_inr")}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
+                                           context={"lures": [], "money": money})).json()
+    assert r["tier"] in ("T0", "T1") and "R10_bait_then_pay" not in r["reasons"]
+
+
 # ---------- false-alarm protection ----------
 
 def test_single_family_never_interrupts(engine, world):

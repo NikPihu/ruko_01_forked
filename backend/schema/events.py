@@ -10,13 +10,13 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.1"
+CONTRACT_VERSION = "c2-0.2"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
     "R1_live_unknown_call", "R2_remote_control", "R3_mule_like_payee", "R4_unusual_amount",
     "R5_lure_message", "R6_new_payee_typed", "R7_tranche_pattern", "R8_intel_hit",
-    "R9_story_mismatch", "ruko_unavailable",
+    "R9_story_mismatch", "R10_bait_then_pay", "ruko_unavailable",
 ]
 LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "normal"]
 
@@ -48,10 +48,24 @@ class LureSignal(_M):
     min_ago: float = Field(ge=0)
 
 
+class MoneySignal(_M):
+    """The payer's own money flow over the last 72 hours, summarised on the phone from the app's
+    payments and bank SMS alerts. Only counts and sums leave the phone, never the transactions.
+    Counts that need bank SMS (credits) are null when the user did not allow SMS checks."""
+    bait_credits: Optional[int] = Field(None, ge=0)       # small credits (<= Rs 500) from UPI IDs the user never paid
+    credits_inr: Optional[float] = Field(None, ge=0)      # everything received
+    debits: Optional[int] = Field(None, ge=0)             # outgoing payments, not counting this one
+    debits_inr: Optional[float] = Field(None, ge=0)
+    new_payees: Optional[int] = Field(None, ge=0)         # distinct payees paid for the first time
+    escalation_steps: Optional[int] = Field(None, ge=0)   # run of payments each >= 1.5x the one before, up to the latest
+    last_debit_inr: Optional[float] = Field(None, gt=0)
+
+
 class Context(_M):
     call: Optional[CallSignal] = None
     device: Optional[DeviceSignal] = None
     lures: list[LureSignal] = Field(default_factory=list)
+    money: Optional[MoneySignal] = None                   # added in c2-0.2
 
 
 class DecideRequest(_M):

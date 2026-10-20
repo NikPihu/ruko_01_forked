@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ruko.demo.signals.Signals
 import com.ruko.demo.ui.auth.AuthState
 import com.ruko.demo.ui.auth.AuthViewModel
 import com.ruko.demo.ui.auth.LoginScreen
@@ -54,7 +55,10 @@ private fun PaymentApp(auth: AuthViewModel) {
     // One view model for the whole payment flow, scoped to the activity.
     val vm: PaymentViewModel = viewModel()
     // Signals are read with the user's current consents at the moment of Pay.
-    SideEffect { vm.consents = auth.consents }
+    SideEffect {
+        vm.consents = auth.consents
+        Signals.history = auth.payments
+    }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
@@ -92,6 +96,7 @@ private fun PaymentApp(auth: AuthViewModel) {
         composable(Routes.PIN) {
             PinScreen(vm, onConfirm = {
                 auth.rememberPayee(vm.upiId)
+                auth.rememberPayment(vm.upiId, vm.amountInr)
                 nav.navigate(Routes.SUCCESS) { popUpTo(Routes.HOME) }
             })
         }

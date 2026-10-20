@@ -17,7 +17,7 @@ From the command line: `./gradlew assembleDebug testDebugUnitTest`
 
 | Area | Files |
 |---|---|
-| Request and response models, contract **c2-0.1** (`contracts/`) | `net/Models.kt` |
+| Request and response models, contract **c2-0.2** (`contracts/`) | `net/Models.kt` |
 | Request builder (IST timestamps, request id) | `net/RequestBuilder.kt` |
 | Retrofit client, 1 s timeout, fail open | `net/RukoApi.kt` |
 | Phone signals: calls, contacts, apps, screen recording | `signals/ContextSensor.kt` |

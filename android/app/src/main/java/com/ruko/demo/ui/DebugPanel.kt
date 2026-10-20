@@ -85,6 +85,7 @@ fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
         BoolOverride("sideload_last_24h", o.sideload) { set(o.copy(sideload = it)) }
         BoolOverride("screen_recorded", o.screenRecorded) { set(o.copy(screenRecorded = it)) }
         ChoiceOverride("lure_tags", o.lureTag, LURE_TAGS) { set(o.copy(lureTag = it)) }
+        BoolOverride("task_scam_money_flow", o.taskMoney) { set(o.copy(taskMoney = it)) }
         SecondaryButton(stringResource(R.string.debug_clear), onClick = { set(SignalOverrides()) })
 
         SectionTitle(R.string.debug_paste)

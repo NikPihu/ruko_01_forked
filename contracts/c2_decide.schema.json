@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.1",
+  "contract_version": "c2-0.2",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -135,6 +135,17 @@
             },
             "title": "Lures",
             "type": "array"
+          },
+          "money": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MoneySignal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           }
         },
         "title": "Context",
@@ -229,6 +240,105 @@
           "min_ago"
         ],
         "title": "LureSignal",
+        "type": "object"
+      },
+      "MoneySignal": {
+        "additionalProperties": false,
+        "description": "The payer's own money flow over the last 72 hours, summarised on the phone from the app's\npayments and bank SMS alerts. Only counts and sums leave the phone, never the transactions.\nCounts that need bank SMS (credits) are null when the user did not allow SMS checks.",
+        "properties": {
+          "bait_credits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Credits"
+          },
+          "credits_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Credits Inr"
+          },
+          "debits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Debits"
+          },
+          "debits_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Debits Inr"
+          },
+          "new_payees": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "New Payees"
+          },
+          "escalation_steps": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Escalation Steps"
+          },
+          "last_debit_inr": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Last Debit Inr"
+          }
+        },
+        "title": "MoneySignal",
         "type": "object"
       }
     },
@@ -339,6 +449,7 @@
             "R7_tranche_pattern",
             "R8_intel_hit",
             "R9_story_mismatch",
+            "R10_bait_then_pay",
             "ruko_unavailable"
           ],
           "type": "string"
@@ -405,7 +516,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.1",
+        "default": "c2-0.2",
         "title": "Contract Version",
         "type": "string"
       }
