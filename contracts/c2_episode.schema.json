@@ -1,0 +1,375 @@
+{
+  "title": "RUKO C2: POST /v1/episode",
+  "contract_version": "c2-0.4",
+  "request": {
+    "$defs": {
+      "EpisodeAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "upi_id": {
+            "title": "Upi Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "bait_sender",
+              "payee"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "n": {
+            "minimum": 1,
+            "title": "N",
+            "type": "integer"
+          },
+          "inr": {
+            "minimum": 0,
+            "title": "Inr",
+            "type": "number"
+          },
+          "first_seen_min_ago": {
+            "minimum": 0,
+            "title": "First Seen Min Ago",
+            "type": "number"
+          },
+          "via": {
+            "anyOf": [
+              {
+                "enum": [
+                  "this_app",
+                  "other_app"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Via"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Step"
+          }
+        },
+        "required": [
+          "upi_id",
+          "role",
+          "n",
+          "inr",
+          "first_seen_min_ago"
+        ],
+        "title": "EpisodeAccount",
+        "type": "object"
+      },
+      "EpisodeSignal": {
+        "additionalProperties": false,
+        "description": "Task-scam episode kept on the phone across payees for up to 30 days (c2-0.3).\n\nBuilt by the phone's background watcher from bank SMS alerts and this app's payments, with\nthe rules in contracts/episode_rules.json. Counts only; bait fields are null when SMS can't be read.",
+        "properties": {
+          "state": {
+            "enum": [
+              "none",
+              "watching",
+              "active",
+              "dismissed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "age_days": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Age Days"
+          },
+          "bait_credits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Credits"
+          },
+          "bait_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Inr"
+          },
+          "outs": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs"
+          },
+          "outs_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs Inr"
+          },
+          "new_payees": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "New Payees"
+          },
+          "escalation_steps": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Escalation Steps"
+          },
+          "last_out_inr": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Last Out Inr"
+          },
+          "out_to_in_ratio": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Out To In Ratio"
+          },
+          "payee_seen_in_episode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee Seen In Episode"
+          },
+          "rules_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rules Version"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "EpisodeSignal",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "POST /v1/episode. Sent only on state changes, and only with \"Share suspicious accounts\" on.",
+    "properties": {
+      "event_id": {
+        "title": "Event Id",
+        "type": "string"
+      },
+      "episode_id": {
+        "title": "Episode Id",
+        "type": "string"
+      },
+      "user_id": {
+        "title": "User Id",
+        "type": "string"
+      },
+      "ts": {
+        "format": "date-time",
+        "title": "Ts",
+        "type": "string"
+      },
+      "trigger": {
+        "enum": [
+          "watching",
+          "active",
+          "out_payment",
+          "bait",
+          "dismissed",
+          "closed"
+        ],
+        "title": "Trigger",
+        "type": "string"
+      },
+      "rules_version": {
+        "title": "Rules Version",
+        "type": "string"
+      },
+      "summary": {
+        "$ref": "#/$defs/EpisodeSignal"
+      },
+      "accounts": {
+        "items": {
+          "$ref": "#/$defs/EpisodeAccount"
+        },
+        "maxItems": 10,
+        "title": "Accounts",
+        "type": "array"
+      }
+    },
+    "required": [
+      "event_id",
+      "episode_id",
+      "user_id",
+      "ts",
+      "trigger",
+      "rules_version",
+      "summary"
+    ],
+    "title": "EpisodeEvent",
+    "type": "object"
+  },
+  "response": {
+    "additionalProperties": false,
+    "properties": {
+      "event_id": {
+        "title": "Event Id",
+        "type": "string"
+      },
+      "episode_risk": {
+        "enum": [
+          "unknown",
+          "low",
+          "elevated",
+          "high"
+        ],
+        "title": "Episode Risk",
+        "type": "string"
+      },
+      "reasons": {
+        "items": {
+          "enum": [
+            "R1_live_unknown_call",
+            "R2_remote_control",
+            "R3_mule_like_payee",
+            "R4_unusual_amount",
+            "R5_lure_message",
+            "R6_new_payee_typed",
+            "R7_tranche_pattern",
+            "R8_intel_hit",
+            "R9_story_mismatch",
+            "R10_bait_then_pay",
+            "R11_ring_link",
+            "ruko_unavailable"
+          ],
+          "type": "string"
+        },
+        "title": "Reasons",
+        "type": "array"
+      },
+      "message_key": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Message Key"
+      },
+      "case_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Case Id"
+      },
+      "contract_version": {
+        "default": "c2-0.4",
+        "title": "Contract Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_id",
+      "episode_risk",
+      "reasons"
+    ],
+    "title": "EpisodeEventResponse",
+    "type": "object"
+  }
+}

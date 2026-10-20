@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse
-from schema.export import OUT, render
+from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
+from schema.export import OUT, OUT_EPISODE, render, render_episode
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "contracts" / "examples"
 
@@ -18,6 +18,26 @@ def load(name: str) -> dict:
 def test_committed_schema_is_current():
     # Fails after any change to events.py until `python -m schema.export` is re-run and committed.
     assert OUT.read_text(encoding="utf-8") == render()
+    assert OUT_EPISODE.read_text(encoding="utf-8") == render_episode()
+
+
+@pytest.mark.parametrize("name", sorted(p.name for p in EXAMPLES.glob("episode_event_*.json")
+                                        if "response" not in p.name))
+def test_episode_event_examples_validate(name):
+    EpisodeEvent.model_validate(load(name))
+
+
+@pytest.mark.parametrize("name", sorted(p.name for p in EXAMPLES.glob("episode_event_response_*.json")))
+def test_episode_response_examples_validate(name):
+    r = EpisodeEventResponse.model_validate(load(name))
+    assert r.contract_version == CONTRACT_VERSION
+
+
+def test_episode_event_caps_accounts_at_ten():
+    body = load("episode_event_active.json")
+    body["accounts"] = body["accounts"] * 2
+    with pytest.raises(ValidationError):
+        EpisodeEvent.model_validate(body)
 
 
 @pytest.mark.parametrize("name", sorted(p.name for p in EXAMPLES.glob("decide_request_*.json")))

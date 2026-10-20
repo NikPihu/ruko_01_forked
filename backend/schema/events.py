@@ -10,13 +10,13 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.3"
+CONTRACT_VERSION = "c2-0.4"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
     "R1_live_unknown_call", "R2_remote_control", "R3_mule_like_payee", "R4_unusual_amount",
     "R5_lure_message", "R6_new_payee_typed", "R7_tranche_pattern", "R8_intel_hit",
-    "R9_story_mismatch", "R10_bait_then_pay", "ruko_unavailable",
+    "R9_story_mismatch", "R10_bait_then_pay", "R11_ring_link", "ruko_unavailable",
 ]
 LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "normal"]
 
@@ -48,19 +48,6 @@ class LureSignal(_M):
     min_ago: float = Field(ge=0)
 
 
-class MoneySignal(_M):
-    """The payer's own money flow over the last 72 hours, summarised on the phone from the app's
-    payments and bank SMS alerts. Only counts and sums leave the phone, never the transactions.
-    Counts that need bank SMS (credits) are null when the user did not allow SMS checks."""
-    bait_credits: Optional[int] = Field(None, ge=0)       # small credits (<= Rs 500) from UPI IDs the user never paid
-    credits_inr: Optional[float] = Field(None, ge=0)      # everything received
-    debits: Optional[int] = Field(None, ge=0)             # outgoing payments, not counting this one
-    debits_inr: Optional[float] = Field(None, ge=0)
-    new_payees: Optional[int] = Field(None, ge=0)         # distinct payees paid for the first time
-    escalation_steps: Optional[int] = Field(None, ge=0)   # run of payments each >= 1.5x the one before, up to the latest
-    last_debit_inr: Optional[float] = Field(None, gt=0)
-
-
 class EpisodeSignal(_M):
     """Task-scam episode kept on the phone across payees for up to 30 days (c2-0.3).
 
@@ -85,8 +72,7 @@ class Context(_M):
     call: Optional[CallSignal] = None
     device: Optional[DeviceSignal] = None
     lures: list[LureSignal] = Field(default_factory=list)
-    money: Optional[MoneySignal] = None      # c2-0.2, deprecated: still accepted in c2-0.3, removed in c2-0.4
-    episode: Optional[EpisodeSignal] = None  # c2-0.3
+    episode: Optional[EpisodeSignal] = None  # c2-0.3 (the c2-0.2 `money` group was removed in c2-0.4)
 
 
 class DecideRequest(_M):
@@ -113,3 +99,39 @@ class DecideResponse(_M):
     fail_open: bool = False
     contract_version: str = CONTRACT_VERSION
     # Never p_scam: the user sees reasons in words, never a score.
+
+
+# ---------- Episode events: phone -> server when the episode changes state (c2-0.4) ----------
+
+EpisodeTrigger = Literal["watching", "active", "out_payment", "bait", "dismissed", "closed"]
+
+
+class EpisodeAccount(_M):
+    upi_id: str                                   # plain: needed for intel lookups and the graph
+    role: Literal["bait_sender", "payee"]
+    n: int = Field(ge=1)                          # times seen in this episode
+    inr: float = Field(ge=0)                      # total with this account in this episode
+    first_seen_min_ago: float = Field(ge=0)
+    via: Optional[Literal["this_app", "other_app"]] = None   # payees only; other_app = debit SMS
+    step: Optional[int] = Field(None, ge=1)       # payees only: position in the escalation run
+
+
+class EpisodeEvent(_M):
+    """POST /v1/episode. Sent only on state changes, and only with "Share suspicious accounts" on."""
+    event_id: str                                 # UUID; the server ignores repeats (safe to retry)
+    episode_id: str                               # UUID, stable for the whole episode
+    user_id: str
+    ts: AwareDatetime
+    trigger: EpisodeTrigger
+    rules_version: str                            # "episode-0.2"
+    summary: EpisodeSignal                        # same object as context.episode
+    accounts: list[EpisodeAccount] = Field(default_factory=list, max_length=10)
+
+
+class EpisodeEventResponse(_M):
+    event_id: str
+    episode_risk: Literal["unknown", "low", "elevated", "high"]   # words, never a score
+    reasons: list[ReasonCode]
+    message_key: Optional[str] = None             # e.g. "episode_task_scam_confirmed"
+    case_id: Optional[str] = None                 # set when an analyst case was opened
+    contract_version: str = CONTRACT_VERSION

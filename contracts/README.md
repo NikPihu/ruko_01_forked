@@ -8,7 +8,6 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `examples/decide_request_meena.json` | Meena paying the demo mule mid-call (expect T3/T4) |
 | `examples/decide_request_minimal.json` | Kirana purchase, `context: null` (expect T0) |
 | `examples/decide_request_task_episode.json` | Task scam seen by the phone's background watcher: `context.episode` ACTIVE (c2-0.3) |
-| `examples/decide_request_task_job.json` | Task scam: reward credits, then each payment bigger than the last (expect T2, T3 to a mule) |
 | `examples/decide_response_*.json` | T3, T0 and fail-open responses |
 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.

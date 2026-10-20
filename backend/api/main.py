@@ -33,7 +33,8 @@ from evidence.store import EvidenceStore, pseudonym
 from features.build import build_features
 from api.intel import IntelAdapter
 from api.policy import Policy
-from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse
+from api.episode_events import EpisodeService
+from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
@@ -78,6 +79,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     # Swappable: anything with score(features) -> same dict shape (e.g. the trained model).
     app.state.score = scorer.score
     app.state.evidence, app.state.trusted = evidence, trusted
+    episodes = EpisodeService(intel, evidence)
+    app.state.episodes = episodes
     if log_path:
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -158,6 +161,23 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                                      "tier": resp.tier, **{f"ms_{k}": round(v, 2) for k, v in ms.items()}}) + "\n")
         return resp
 
+    @app.post("/v1/episode", response_model=EpisodeEventResponse)
+    async def episode_event(ev: EpisodeEvent) -> EpisodeEventResponse:
+        """The phone's watcher changed state (c2-0.4). Never needed by /v1/decide; missing means unknown."""
+        now = ev.ts
+        if clock["offset"] is not None:
+            now = datetime.now(ev.ts.tzinfo) + clock["offset"]
+        try:
+            return await episodes.handle(ev, now)
+        except Exception:
+            log.exception("episode event failed")
+            return EpisodeEventResponse(event_id=ev.event_id, episode_risk="unknown", reasons=[])
+
+    @app.get("/v1/cases")
+    def cases() -> list[dict]:
+        """Analyst cases opened by high-risk episodes (console, C5)."""
+        return episodes.cases
+
     @app.post("/v1/trusted/{user_id}/{payee_upi_id}")
     def mark_trusted(user_id: str, payee_upi_id: str) -> dict:
         """The user tapped "I know this person"."""
@@ -181,6 +201,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         policy.reset()
         evidence.clear()
         trusted.clear()
+        episodes.reset()
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()
         return {"ok": True}

@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import httpx
 import pytest
@@ -116,9 +117,6 @@ ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_i
 WATCHING_EPISODE = {"state": "watching", "age_days": 0.5, "bait_credits": 2, "bait_inr": 350, "outs": 0,
                     "outs_inr": 0, "new_payees": 0, "escalation_steps": 0, "last_out_inr": None,
                     "out_to_in_ratio": 0, "rules_version": "episode-0.2"}
-# The deprecated c2-0.2 shape of the same scam.
-TASK_MONEY = {"bait_credits": 3, "credits_inr": 650, "debits": 3, "debits_inr": 11_000,
-              "new_payees": 3, "escalation_steps": 2, "last_debit_inr": 6_500}
 
 
 def baseline(world, user):
@@ -188,29 +186,27 @@ def test_active_episode_names_the_playbook_over_an_old_message(engine, mock, wor
     assert r["playbook"] == "task_job"
 
 
-def test_c2_0_2_money_request_still_accepted(engine, mock, world):
-    pump(mock[1], world)
-    ctx = {"lures": [{"tag": "task_job", "conf": 0.82, "min_ago": 1800}], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx, says="company"))
-    assert r.status_code == 200
-    assert r.json()["tier"] in ("T3", "T4") and r.json()["playbook"] == "task_job"
+def test_c2_0_2_money_group_is_gone(engine):
+    """Removed in c2-0.4: an old app sending `money` gets 422 and fails open on the phone."""
+    ctx = {"lures": [], "money": {"bait_credits": 3, "debits": 3}}
+    assert engine.post("/v1/decide", json=req(context=ctx)).status_code == 422
 
 
-def test_escalation_alone_is_not_enough(engine, world):
-    """Paying a contractor in growing instalments: no bait, so no episode signal."""
+def test_escalation_with_no_bait_is_not_an_episode(engine, world):
+    """Paying a contractor in growing instalments: no bait, so the phone's episode stays none."""
     user = users_in(world)[0]
-    money = {**TASK_MONEY, "bait_credits": 0, "credits_inr": 0}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
-                                           context={"lures": [], "money": money})).json()
-    assert r["tier"] in ("T0", "T1")
+    ep = {"state": "none", "bait_credits": 0, "bait_inr": 0, "outs": 0, "outs_inr": 0, "new_payees": 0,
+          "escalation_steps": 0, "rules_version": "episode-0.2"}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=episode_ctx(ep))).json()
+    assert r["tier"] in ("T0", "T1") and "R10_bait_then_pay" not in r["reasons"]
 
 
-def test_money_without_sms_is_unknown(engine, world):
-    """SMS off: credits are null, so no episode can start and no task alert."""
+def test_episode_without_sms_is_unknown(engine, world):
+    """SMS off: bait fields are null and no episode can start, so no task alert."""
     user = users_in(world)[0]
-    money = {k: v for k, v in TASK_MONEY.items() if k not in ("bait_credits", "credits_inr")}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
-                                           context={"lures": [], "money": money})).json()
+    ep = {"state": "none", "bait_credits": None, "bait_inr": None, "outs": 0, "outs_inr": 0,
+          "new_payees": 0, "escalation_steps": 0, "out_to_in_ratio": None, "rules_version": "episode-0.2"}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=episode_ctx(ep))).json()
     assert r["tier"] in ("T0", "T1") and "R10_bait_then_pay" not in r["reasons"]
 
 
@@ -355,3 +351,62 @@ def test_demo_clock_uses_sim_time_not_phone_time(world, mock):
         assert r["tier"] in ("T3", "T4")
         ev = engine.get(f"/v1/evidence/{r['evidence_id']}").json()
     assert abs(datetime.fromisoformat(ev["ts"]) - sim_now) < timedelta(minutes=1)
+
+
+# ---------- episode events (c2-0.4) ----------
+
+def episode_event(trigger="active", accounts=None, event_id="ev_1", user=DEMO_MEENA, state=None):
+    import json as _json  # noqa: PLC0415
+    body = _json.loads((Path(__file__).resolve().parents[2] / "contracts" / "examples" /
+                        "episode_event_active.json").read_text(encoding="utf-8"))
+    body.update(event_id=event_id, user_id=user, trigger=trigger, ts=NOW.isoformat())
+    if state:
+        body["summary"]["state"] = state
+    if accounts is not None:
+        body["accounts"] = accounts
+    return body
+
+
+def test_active_episode_with_mule_payee_is_high(engine, mock, world):
+    pump(mock[1], world)
+    r = engine.post("/v1/episode", json=episode_event()).json()
+    assert r["episode_risk"] == "high" and r["case_id"]
+    assert {"R10_bait_then_pay", "R3_mule_like_payee"} <= set(r["reasons"])
+    assert r["message_key"] == "episode_task_scam_confirmed"
+    assert any(c["case_id"] == r["case_id"] for c in engine.get("/v1/cases").json())
+
+
+def test_repeated_event_id_is_ignored(engine, mock, world):
+    pump(mock[1], world)
+    first = engine.post("/v1/episode", json=episode_event(event_id="ev_same")).json()
+    again = engine.post("/v1/episode", json=episode_event(event_id="ev_same")).json()
+    assert first == again
+    assert len(engine.get("/v1/cases").json()) == 1
+
+
+def test_watching_episode_with_clean_accounts_is_low_or_elevated(engine, world):
+    acc = [{"upi_id": "like.reward7@ybl", "role": "bait_sender", "n": 1, "inr": 150, "first_seen_min_ago": 0}]
+    r = engine.post("/v1/episode", json=episode_event("watching", acc, "ev_w", state="watching")).json()
+    assert r["episode_risk"] in ("low", "elevated") and r["case_id"] is None
+
+
+def test_active_episode_with_clean_payees_is_only_elevated(engine, world):
+    acc = [{"upi_id": "unlock.level1@ybl", "role": "payee", "n": 1, "inr": 1000, "first_seen_min_ago": 60,
+            "via": "this_app", "step": 1}]
+    r = engine.post("/v1/episode", json=episode_event(accounts=acc, event_id="ev_e")).json()
+    assert r["episode_risk"] == "elevated" and r["case_id"] is None
+
+
+def test_unreachable_intel_is_unknown(world):
+    dead = httpx.AsyncClient(transport=httpx.MockTransport(lambda req: httpx.Response(503)), base_url="http://mock")
+    app = create_engine(world[0], intel_client=dead, intel_cache_ttl_s=0, log_path=None, evidence_async=False)
+    acc = [{"upi_id": "unlock.level1@ybl", "role": "payee", "n": 1, "inr": 1000, "first_seen_min_ago": 60}]
+    r = TestClient(app).post("/v1/episode", json=episode_event(accounts=acc, event_id="ev_u", state="watching")).json()
+    assert r["episode_risk"] == "unknown"
+
+
+def test_dismissed_clears_the_users_episode_evidence(engine, mock, world):
+    pump(mock[1], world)
+    engine.post("/v1/episode", json=episode_event(event_id="ev_a"))
+    r = engine.post("/v1/episode", json=episode_event("dismissed", [], "ev_d", state="dismissed")).json()
+    assert r["episode_risk"] == "low"

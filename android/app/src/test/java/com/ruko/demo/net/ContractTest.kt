@@ -70,14 +70,6 @@ class ContractTest {
     }
 
     @Test
-    fun taskJobRequestRoundTripsExactly() {
-        val original = Json.parseToJsonElement(example("decide_request_task_job.json"))
-        val decoded = RukoJson.decodeFromString(DecideRequest.serializer(), original.toString())
-        val encoded = RukoJson.parseToJsonElement(RukoJson.encodeToString(DecideRequest.serializer(), decoded))
-        assertEquals(normalise(original), normalise(encoded))
-    }
-
-    @Test
     fun builtRequestUsesOnlySchemaFieldsAndHasTheRequiredOnes() {
         val built = RequestBuilder.build(
             userId = "u_demo_meena",
@@ -89,7 +81,6 @@ class ContractTest {
                 call = CallSignal(true, CallKind.SIM, CallDirection.INCOMING, "+919812345670", false, 38.0, null),
                 device = DeviceSignal(null, 25.0, false, null),
                 lures = listOf(LureSignal("arrest_threat", 0.85, 52.0)),
-                money = MoneySignal(3, 650.0, 3, 11_000.0, 3, 2, 6_500.0),
             ),
         )
         val json = RukoJson.parseToJsonElement(RukoJson.encodeToString(DecideRequest.serializer(), built)).jsonObject
@@ -99,7 +90,6 @@ class ContractTest {
         assertFieldsAllowed(context.getValue("call").jsonObject, defs.getValue("CallSignal").jsonObject)
         assertFieldsAllowed(context.getValue("device").jsonObject, defs.getValue("DeviceSignal").jsonObject)
         assertFieldsAllowed(context.getValue("lures").jsonArray.first().jsonObject, defs.getValue("LureSignal").jsonObject)
-        assertFieldsAllowed(context.getValue("money").jsonObject, defs.getValue("MoneySignal").jsonObject)
         assertEquals("secure.settlement.desk@okaxis", json.getValue("payee_upi_id").jsonPrimitive.content)
     }
 

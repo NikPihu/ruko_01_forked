@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.3: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.4: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.3"
+const val CONTRACT_VERSION = "c2-0.4"
 
 @Serializable
 enum class CallKind {
@@ -65,22 +65,6 @@ data class DeviceSignal(
 data class LureSignal(val tag: String, val conf: Double, @SerialName("min_ago") val minAgo: Double)
 
 /**
- * The payer's own money flow over the last 72 h (c2-0.2), counted on the phone from this app's
- * payments and bank SMS alerts. Only counts and sums are sent, never the transactions.
- * Credit fields are null when SMS checks are off.
- */
-@Serializable
-data class MoneySignal(
-    @SerialName("bait_credits") val baitCredits: Int? = null, // small credits from strangers
-    @SerialName("credits_inr") val creditsInr: Double? = null,
-    val debits: Int? = null, // not counting the payment being checked
-    @SerialName("debits_inr") val debitsInr: Double? = null,
-    @SerialName("new_payees") val newPayees: Int? = null,
-    @SerialName("escalation_steps") val escalationSteps: Int? = null,
-    @SerialName("last_debit_inr") val lastDebitInr: Double? = null,
-)
-
-/**
  * The task-scam episode the background watcher keeps across payees for up to 30 days (c2-0.3).
  * Bait fields are null when SMS can't be read. Built by shield/EpisodeTracker.
  */
@@ -105,7 +89,6 @@ data class Context(
     val call: CallSignal? = null,
     val device: DeviceSignal? = null,
     val lures: List<LureSignal> = emptyList(),
-    val money: MoneySignal? = null, // c2-0.2, deprecated: the app now sends episode
     val episode: EpisodeSignal? = null,
 )
 
