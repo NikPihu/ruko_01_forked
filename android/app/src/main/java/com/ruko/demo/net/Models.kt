@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.2: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.3: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.2"
+const val CONTRACT_VERSION = "c2-0.3"
 
 @Serializable
 enum class CallKind {
@@ -80,12 +80,33 @@ data class MoneySignal(
     @SerialName("last_debit_inr") val lastDebitInr: Double? = null,
 )
 
+/**
+ * The task-scam episode the background watcher keeps across payees for up to 30 days (c2-0.3).
+ * Bait fields are null when SMS can't be read. Built by shield/EpisodeTracker.
+ */
+@Serializable
+data class EpisodeSignal(
+    val state: String, // none | watching | active | dismissed
+    @SerialName("age_days") val ageDays: Double? = null,
+    @SerialName("bait_credits") val baitCredits: Int? = null,
+    @SerialName("bait_inr") val baitInr: Double? = null,
+    val outs: Int? = null,
+    @SerialName("outs_inr") val outsInr: Double? = null,
+    @SerialName("new_payees") val newPayees: Int? = null,
+    @SerialName("escalation_steps") val escalationSteps: Int? = null,
+    @SerialName("last_out_inr") val lastOutInr: Double? = null,
+    @SerialName("out_to_in_ratio") val outToInRatio: Double? = null,
+    @SerialName("payee_seen_in_episode") val payeeSeenInEpisode: Boolean? = null,
+    @SerialName("rules_version") val rulesVersion: String? = null,
+)
+
 @Serializable
 data class Context(
     val call: CallSignal? = null,
     val device: DeviceSignal? = null,
     val lures: List<LureSignal> = emptyList(),
-    val money: MoneySignal? = null,
+    val money: MoneySignal? = null, // c2-0.2, deprecated: the app now sends episode
+    val episode: EpisodeSignal? = null,
 )
 
 @Serializable

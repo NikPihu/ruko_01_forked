@@ -56,6 +56,20 @@ class ContractTest {
     }
 
     @Test
+    fun taskEpisodeRequestRoundTripsExactly() {
+        val original = Json.parseToJsonElement(example("decide_request_task_episode.json"))
+        val decoded = RukoJson.decodeFromString(DecideRequest.serializer(), original.toString())
+        val encoded = RukoJson.parseToJsonElement(RukoJson.encodeToString(DecideRequest.serializer(), decoded))
+        assertEquals(normalise(original), normalise(encoded))
+        assertFieldsAllowed(
+            encoded.jsonObject.getValue("context").jsonObject.getValue("episode").jsonObject,
+            defs.getValue("EpisodeSignal").jsonObject,
+        )
+        val states = enumValues(defs.getValue("EpisodeSignal").jsonObject.getValue("properties").jsonObject.getValue("state"))
+        assertSubset(com.ruko.demo.shield.EpisodeState.entries.map { it.wire }, states)
+    }
+
+    @Test
     fun taskJobRequestRoundTripsExactly() {
         val original = Json.parseToJsonElement(example("decide_request_task_job.json"))
         val decoded = RukoJson.decodeFromString(DecideRequest.serializer(), original.toString())
