@@ -208,6 +208,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.IO) {
                 store.saveProfile(newProfile)
                 store.saveConsents(agreed)
+                if (agreed.moneyWatch) ShieldController.enable(getApplication())
             }
             profile = newProfile
             consents = agreed

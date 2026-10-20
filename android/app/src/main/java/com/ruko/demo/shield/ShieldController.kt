@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -21,6 +22,7 @@ import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -42,6 +44,38 @@ object ShieldController {
     var debugOffsetMs = 0L
 
     fun now(): Long = System.currentTimeMillis() + debugOffsetMs
+
+    /** The latest watcher data for the UI (Home card, debug panel). Null while the watcher is off. */
+    val live = mutableStateOf<ShieldData?>(null)
+
+    private val io = Executors.newSingleThreadExecutor()
+
+    fun refresh(context: Context, consents: Consents) {
+        live.value = if (isOn(consents)) EpisodeStore(context).load() else null
+    }
+
+    fun dismissAsync(context: Context) = io.execute { dismiss(context) }
+
+    // ---------- debug panel ----------
+
+    /** A fake ₹150 "reward" from a new stranger, through the same path as a real bank SMS. */
+    fun simulateBait(context: Context) = io.execute {
+        val n = (live.value?.watcher?.episode?.bait?.size ?: 0) + 1
+        process(context, listOf(MoneyTxn(now(), 150.0, Flow.IN, "task.reward$n@ybl", fromSms = true)))
+    }
+
+    /** A fake payment from another app (a debit SMS), each one bigger than the last. */
+    fun simulateDebit(context: Context) = io.execute {
+        val outs = live.value?.watcher?.episode?.outs.orEmpty()
+        val amount = outs.lastOrNull()?.let { Math.round(it.amount * 2.4 / 100.0) * 100.0 } ?: 1_000.0
+        process(context, listOf(MoneyTxn(now(), amount, Flow.OUT, "unlock.level${outs.size + 1}@ybl", fromSms = true)))
+    }
+
+    /** "+1 day": moves the watcher's clock forward, to test the 30-day close. */
+    fun addDay(context: Context) = io.execute {
+        debugOffsetMs += 86_400_000L
+        process(context, emptyList())
+    }
 
     fun isOn(consents: Consents): Boolean = consents.moneyWatch
 
@@ -77,6 +111,7 @@ object ShieldController {
 
     /** Switching off stops everything and deletes the money history and episode. */
     fun disable(context: Context) {
+        live.value = null
         setReceiver(context, false)
         WorkManager.getInstance(context).apply {
             cancelUniqueWork(CATCH_UP_WORK)
@@ -88,7 +123,7 @@ object ShieldController {
 
     /** "Delete money history": keeps watching, forgets everything seen so far. */
     fun deleteHistory(context: Context) {
-        EpisodeStore(context).update { ShieldData(lastScanTs = now()) }
+        live.value = EpisodeStore(context).update { ShieldData(lastScanTs = now()) }
     }
 
     /** Hand transactions to the worker (from the SMS receiver). */
@@ -122,6 +157,7 @@ object ShieldController {
             if (markScanned != null) withEvents.copy(lastScanTs = markScanned) else withEvents
         }
         val r = result ?: return
+        live.value = r.data
         val language = accounts.loadProfile()?.language
         r.alerts.forEach { ShieldNotifier.show(context, it, language) }
         if (r.transitions.isNotEmpty()) EventSender.schedule(context)
@@ -134,7 +170,7 @@ object ShieldController {
         val consents = accounts.loadConsents()
         val rules = EpisodeStore.rules(context)
         var transitions: List<ShieldEngine.Transition> = emptyList()
-        EpisodeStore(context).update { data ->
+        live.value = EpisodeStore(context).update { data ->
             val r = ShieldEngine.dismiss(rules, smsRead(context, consents), data, now())
             transitions = r.transitions
             EventSender.queue(r.data, r.transitions, consents, accounts.loadProfile()?.localId, rules.version, now())

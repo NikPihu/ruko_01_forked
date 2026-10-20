@@ -65,6 +65,8 @@ private fun PaymentApp(auth: AuthViewModel) {
                 vm = vm,
                 firstName = auth.profile?.firstName.orEmpty(),
                 consents = auth.consents,
+                trustedName = auth.profile?.trustedName,
+                trustedMobile = auth.profile?.trustedMobile,
                 onPay = {
                     vm.reset()
                     nav.navigate(Routes.PAY)

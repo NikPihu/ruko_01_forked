@@ -1,5 +1,10 @@
 package com.ruko.demo.ui.auth
 
+import com.ruko.demo.shield.ShieldController
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.clickable
+import android.provider.Settings
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +42,8 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
     val p = vm.profile ?: return
     val c = vm.consents
     var askDelete by remember { mutableStateOf(false) }
+    var askDeleteHistory by remember { mutableStateOf(false) }
+    val appContext = LocalContext.current.applicationContext
     val notAdded = stringResource(R.string.profile_not_added)
 
     Screen {
@@ -71,7 +78,20 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         Text(stringResource(R.string.profile_safety), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         ConsentRow(R.string.consent_calls, R.string.consent_calls_desc, c.callSignals) { vm.updateConsents(c.copy(callSignals = it)) }
         ConsentRow(R.string.consent_apps, R.string.consent_apps_desc, c.appChecks) { vm.updateConsents(c.copy(appChecks = it)) }
-        ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) { vm.updateConsents(c.copy(smsLure = it)) }
+        ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) {
+            // Watching money alerts needs SMS checks; switching SMS off switches it off too.
+            vm.updateConsents(c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it))
+        }
+        ConsentRow(R.string.consent_watch, R.string.consent_watch_desc, c.moneyWatch) {
+            vm.updateConsents(c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it))
+        }
+        if (c.moneyWatch) {
+            ConsentRow(R.string.consent_share, R.string.consent_share_desc, c.shareAccounts) { vm.updateConsents(c.copy(shareAccounts = it)) }
+            KeepRunningRow()
+            TextButton(onClick = { askDeleteHistory = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.profile_delete_history), color = CacheColors.Warning, style = MaterialTheme.typography.titleMedium)
+            }
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(CacheIcons.Shield, contentDescription = null, tint = CacheColors.PrimaryLight, modifier = Modifier.size(18.dp))
@@ -81,6 +101,19 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         TextButton(onClick = { askDelete = true }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.profile_delete), color = CacheColors.Danger, style = MaterialTheme.typography.titleMedium)
         }
+    }
+
+    if (askDeleteHistory) {
+        ConfirmDeleteDialog(
+            title = R.string.delete_history_title,
+            body = R.string.delete_history_body,
+            confirm = R.string.delete_history_confirm,
+            onConfirm = {
+                askDeleteHistory = false
+                Thread { ShieldController.deleteHistory(appContext) }.start()
+            },
+            onDismiss = { askDeleteHistory = false },
+        )
     }
 
     if (askDelete) {
@@ -107,6 +140,27 @@ private fun InfoCard(title: String, vararg rows: Pair<String, String>) {
                 Text(label, style = MaterialTheme.typography.bodyMedium, color = CacheColors.TextSecondary)
                 Text(value, style = MaterialTheme.typography.bodyMedium)
             }
+        }
+    }
+}
+
+/** Some phones (Xiaomi, Oppo, Vivo, Realme) stop background apps; this opens the setting that allows it. */
+@Composable
+private fun KeepRunningRow() {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier.fillMaxWidth().cacheCard().clickable {
+            runCatching {
+                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }.padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(CacheIcons.Shield, contentDescription = null, tint = CacheColors.PrimaryLight, modifier = Modifier.size(20.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.profile_keep_running), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.profile_keep_running_desc), style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary)
         }
     }
 }
