@@ -71,6 +71,7 @@
     <string name="reason_R6_new_payee_typed">You typed this UPI ID by hand and have never paid it before</string>
     <string name="reason_R7_tranche_pattern">You are making several payments in a short time</string>
     <string name="reason_R8_intel_hit">This account or number has been reported for fraud</string>
+    <string name="reason_R10_bait_then_pay">You got small payments from strangers, and now you are paying out more and more. This is how task and job scams work</string>
     <string name="reason_R9_story_mismatch">This account belongs to a private person, not who you said you are paying</string>
 
     <!-- Who are you paying? (contract field payer_says) -->

@@ -2,6 +2,7 @@ package com.ruko.demo.data
 
 import android.content.Context
 import android.util.Log
+import com.ruko.demo.signals.MoneyTxn
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -67,11 +68,17 @@ class AccountStore(context: Context) {
 
     fun saveRecentPayees(payees: List<String>) = write(PAYEES_FILE, ListSerializer(String.serializer()), payees)
 
+    /** This app's own payments from the last 30 days, for the task scam money flow. */
+    fun loadPayments(): List<MoneyTxn> = read(PAYMENTS_FILE, ListSerializer(MoneyTxn.serializer())) ?: emptyList()
+
+    fun savePayments(payments: List<MoneyTxn>) = write(PAYMENTS_FILE, ListSerializer(MoneyTxn.serializer()), payments)
+
     /** Right to erasure: remove the files and the key that could decrypt any copy of them. */
     fun deleteAll() {
         store.delete(PROFILE_FILE)
         store.delete(CONSENTS_FILE)
         store.delete(PAYEES_FILE)
+        store.delete(PAYMENTS_FILE)
         store.deleteKey()
     }
 
@@ -97,5 +104,6 @@ class AccountStore(context: Context) {
         const val PROFILE_FILE = "profile.enc"
         const val CONSENTS_FILE = "consents.enc"
         const val PAYEES_FILE = "recent_payees.enc"
+        const val PAYMENTS_FILE = "payments.enc"
     }
 }

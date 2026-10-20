@@ -29,6 +29,7 @@ class Session:
     contacts: list[datetime] = field(default_factory=list)
     control_ts: datetime | None = None
     lure_ts: datetime | None = None
+    bait_credits: int = 0          # latest count the phone reported (its own 72 h window)
     attempts: list[Attempt] = field(default_factory=list)
     stage_path: list[tuple[str, datetime]] = field(default_factory=list)
 
@@ -73,6 +74,10 @@ class StageTracker:
                 if lure.tag != "normal" and lure.conf >= 0.6:
                     ts = now - timedelta(minutes=lure.min_ago)
                     s.lure_ts = max(s.lure_ts or ts, ts)
+        if ctx and ctx.money and ctx.money.bait_credits is not None:
+            s.bait_credits = ctx.money.bait_credits
+            if s.bait_credits and s.lure_ts is None:
+                s.lure_ts = now   # a bait credit is first contact when no message was seen
         if dev is not None:
             control_signal = dev.remote_access_active or dev.untrusted_accessibility or (
                 dev.remote_app_installed_min_ago is not None and dev.remote_app_installed_min_ago <= 120)
@@ -101,7 +106,7 @@ class StageTracker:
             return "S0"
         stage = "S1"
         long_call = call is not None and (call.started_min_ago or 0) >= 15 and call.caller_in_contacts is False
-        if len(s.contacts) >= 2 or (s.contacts and s.lure_ts) or long_call:
+        if len(s.contacts) >= 2 or (s.contacts and s.lure_ts) or long_call or s.bait_credits >= 2:
             stage = "S2"
         first = min([*s.contacts, *([s.lure_ts] if s.lure_ts else [])], default=None)
         if s.control_ts and (first is None or s.control_ts - first <= CONTROL_AFTER_CONTACT):

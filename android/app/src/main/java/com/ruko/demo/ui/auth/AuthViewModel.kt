@@ -14,6 +14,8 @@ import com.ruko.demo.data.Consents
 import com.ruko.demo.data.Passcode
 import com.ruko.demo.data.UserProfile
 import com.ruko.demo.data.Validators
+import com.ruko.demo.signals.Flow
+import com.ruko.demo.signals.MoneyTxn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +44,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var consents by mutableStateOf(Consents())
         private set
     var recentPayees by mutableStateOf<List<String>>(emptyList())
+        private set
+    var payments by mutableStateOf<List<MoneyTxn>>(emptyList())
         private set
 
     // ---- Sign up draft. Kept in memory only until the passcode step saves it. ----
@@ -85,7 +89,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             val (p, c) = withContext(Dispatchers.IO) { store.loadProfile() to store.loadConsents() }
             profile = p
             consents = c
-            if (p != null) recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
+            if (p != null) {
+                recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
+                payments = withContext(Dispatchers.IO) { store.loadPayments() }
+            }
             state = if (p == null) AuthState.NeedsSignUp else AuthState.Locked
         }
     }
@@ -277,6 +284,18 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { store.saveRecentPayees(updated) }
     }
 
+    /** Keep a completed payment for the money flow: 30 days, at most 200, encrypted. */
+    fun rememberPayment(upiId: String, amountInr: Double?) {
+        val id = upiId.trim().lowercase()
+        if (id.isEmpty() || amountInr == null) return
+        val now = System.currentTimeMillis()
+        val updated = (payments + MoneyTxn(now, amountInr, Flow.OUT, id))
+            .filter { now - it.ts <= PAYMENT_HISTORY_MS }
+            .takeLast(MAX_PAYMENTS)
+        payments = updated
+        viewModelScope.launch(Dispatchers.IO) { store.savePayments(updated) }
+    }
+
     /** Delete the account and every stored detail, then start again from sign up. */
     fun deleteAccount() {
         viewModelScope.launch {
@@ -284,6 +303,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             profile = null
             consents = Consents()
             recentPayees = emptyList()
+            payments = emptyList()
             failedAttempts = 0
             lockedUntil = 0
             clearDraft()
@@ -312,6 +332,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCKOUT_MS = 30_000L
         const val AUTO_LOCK_MS = 60_000L
         const val MAX_RECENT_PAYEES = 5
+        const val MAX_PAYMENTS = 200
+        const val PAYMENT_HISTORY_MS = 30L * 24 * 60 * 60_000
         private val WEAK_CODES = setOf("123456", "654321", "012345", "123123", "121212", "112233")
     }
 }
