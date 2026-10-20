@@ -12,9 +12,13 @@ import kotlin.math.roundToLong
  * Task-scam episode: the same state machine as backend/features/episode.py.
  *
  *     NONE --bait credit--> WATCHING --2+ outs to new payees and 2+ escalation steps--> ACTIVE
- *     WATCHING / ACTIVE --30 days with no bait and no out--> NONE
+ *     WATCHING / ACTIVE --30 days with no bait and no out to a new payee--> NONE
  *     WATCHING / ACTIVE --"I know them / real job"--> DISMISSED
  *     DISMISSED --a NEW bait sender--> WATCHING (fresh episode); --30 days--> NONE
+ *
+ * Only payments above min_out_inr to payees the user had not paid before the episode are "outs":
+ * the scam is paying strangers to "unlock" earnings, and counting the usual shop, the landlord or a
+ * ₹100 snack would turn everyday spending into escalation.
  *
  * Pure Kotlin (no Android imports) so EpisodeTrackerTest can run contracts/examples/episode_vectors.json.
  * Thresholds come from assets/episode_rules.json, a copy of contracts/episode_rules.json.
@@ -24,6 +28,7 @@ import kotlin.math.roundToLong
 data class EpisodeRules(
     val version: String,
     @SerialName("bait_max_inr") val baitMaxInr: Double,
+    @SerialName("min_out_inr") val minOutInr: Double,
     @SerialName("escalation_factor") val escalationFactor: Double,
     @SerialName("active_min_outs") val activeMinOuts: Int,
     @SerialName("active_min_escalation_steps") val activeMinEscalationSteps: Int,
@@ -127,7 +132,7 @@ class EpisodeTracker(
 
     private fun onOut(t: MoneyTxn) {
         val ep = episode
-        if (!ep.state.live) return
+        if (!ep.state.live || t.amount <= rules.minOutInr || (t.counterparty != null && t.counterparty in ep.paidBefore)) return
         val next = ep.copy(outs = ep.outs + t, lastActivityTs = t.ts)
         val becomesActive = next.state == EpisodeState.WATCHING &&
             newPayeeOuts(next) >= rules.activeMinOuts &&

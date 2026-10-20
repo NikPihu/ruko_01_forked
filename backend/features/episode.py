@@ -1,7 +1,11 @@
 """Task-scam episode: the same state machine as the phone's `EpisodeTracker.kt`.
 
     NONE --bait credit--> WATCHING --2+ outs to new payees and 2+ escalation steps--> ACTIVE
-    WATCHING / ACTIVE --30 days with no bait and no out--> NONE
+    WATCHING / ACTIVE --30 days with no bait and no out to a new payee--> NONE
+
+Only payments above min_out_inr to payees the user had not paid before the episode are "outs":
+the scam is paying strangers to "unlock" earnings, and counting the usual shop, the landlord or a
+₹100 snack would turn everyday spending into escalation.
     WATCHING / ACTIVE --user: "I know them / real job"--> DISMISSED
     DISMISSED --a NEW bait sender--> WATCHING (fresh episode); --30 days--> NONE
 
@@ -94,7 +98,8 @@ class EpisodeTracker:
 
     def _on_out(self, t: Txn) -> None:
         ep = self.ep
-        if ep.state not in ("watching", "active"):
+        if (ep.state not in ("watching", "active") or t.amount <= self.r["min_out_inr"]
+                or (t.counterparty and t.counterparty in ep.paid_before)):
             return
         ep.outs.append(t)
         ep.last_activity_ts = t.ts

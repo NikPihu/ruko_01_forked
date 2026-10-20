@@ -1,6 +1,6 @@
 {
   "about": "Shared test cases for the task-scam episode. Run by backend/tests/test_episode.py and android EpisodeTrackerTest. Times are hours after base_ts. Only the fields in expect are checked; age_days and out_to_in_ratio within 0.01.",
-  "rules_version": "episode-0.1",
+  "rules_version": "episode-0.2",
   "base_ts": "2026-11-01T09:00:00+05:30",
   "vectors": [
     {
@@ -113,6 +113,43 @@
       "expect": {"state": "none", "bait_credits": 0}
     },
     {
+      "name": "everyday payments to the usual shop never escalate an episode",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "ganesh.kirana@okaxis", "amount": 150}},
+        {"at_h": 1, "sms": {"from": "AX-SBIINB", "body": "Rs.300.00 credited to A/c XX12 by UPI from cousin.ravi@ybl"}},
+        {"at_h": 20, "app": {"to": "ganesh.kirana@okaxis", "amount": 200}},
+        {"at_h": 44, "app": {"to": "ganesh.kirana@okaxis", "amount": 450}},
+        {"at_h": 68, "app": {"to": "ganesh.kirana@okaxis", "amount": 900}}
+      ],
+      "now_h": 69,
+      "expect": {"state": "watching", "outs": 0, "escalation_steps": 0}
+    },
+    {
+      "name": "a quiet month closes the episode even with everyday spending",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "ganesh.kirana@okaxis", "amount": 150}},
+        {"at_h": 1, "sms": {"from": "AX-SBIINB", "body": "Rs.300.00 credited to A/c XX12 by UPI from cousin.ravi@ybl"}},
+        {"at_h": 200, "app": {"to": "ganesh.kirana@okaxis", "amount": 200}},
+        {"at_h": 500, "app": {"to": "ganesh.kirana@okaxis", "amount": 250}}
+      ],
+      "now_h": 722,
+      "expect": {"state": "none"}
+    },
+    {
+      "name": "small payments are not episode payments",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 2, "app": {"to": "new.shop1@ybl", "amount": 100}},
+        {"at_h": 4, "app": {"to": "new.shop2@ybl", "amount": 200}},
+        {"at_h": 6, "app": {"to": "new.shop3@ybl", "amount": 450}}
+      ],
+      "now_h": 7,
+      "expect": {"state": "watching", "outs": 0, "escalation_steps": 0}
+    },
+    {
       "name": "SMS off: no bait can be seen, credit fields are unknown",
       "sms_read": false,
       "events": [
@@ -124,7 +161,7 @@
       "expect": {"state": "none", "bait_credits": null, "bait_inr": null, "out_to_in_ratio": null}
     },
     {
-      "name": "a payee paid before the episode is not new",
+      "name": "a payee paid before the episode is not an episode payment",
       "sms_read": true,
       "events": [
         {"at_h": 0, "app": {"to": "unlock.level1@ybl", "amount": 300}},
@@ -133,7 +170,7 @@
         {"at_h": 3, "app": {"to": "unlock.level2@ybl", "amount": 2500}}
       ],
       "now_h": 4,
-      "expect": {"state": "watching", "outs": 2, "new_payees": 1, "escalation_steps": 1}
+      "expect": {"state": "watching", "outs": 1, "outs_inr": 2500, "new_payees": 1, "escalation_steps": 0}
     }
   ]
 }

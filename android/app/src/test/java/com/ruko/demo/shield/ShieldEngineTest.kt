@@ -8,7 +8,7 @@ import org.junit.Test
 
 class ShieldEngineTest {
 
-    private val rules = EpisodeRules("episode-0.1", 500.0, 1.5, 2, 2, 30, 30, 10)
+    private val rules = EpisodeRules("episode-0.2", 500.0, 500.0, 1.5, 2, 2, 30, 30, 10)
     private val t0 = 1_800_000_000_000L
     private fun h(x: Double) = t0 + (x * 3_600_000).toLong()
     private fun bait(at: Double, from: String, inr: Double = 150.0) = MoneyTxn(h(at), inr, Flow.IN, from, fromSms = true)

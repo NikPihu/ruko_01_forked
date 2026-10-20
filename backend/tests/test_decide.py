@@ -112,10 +112,10 @@ def test_split_tranches_still_caught(engine, mock, world):
 TASK_PAYEE = "prime.task.rewards@ybl"
 ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_inr": 450, "outs": 3,
                   "outs_inr": 9_500, "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6_000,
-                  "out_to_in_ratio": 21.11, "payee_seen_in_episode": False, "rules_version": "episode-0.1"}
+                  "out_to_in_ratio": 21.11, "payee_seen_in_episode": False, "rules_version": "episode-0.2"}
 WATCHING_EPISODE = {"state": "watching", "age_days": 0.5, "bait_credits": 2, "bait_inr": 350, "outs": 0,
                     "outs_inr": 0, "new_payees": 0, "escalation_steps": 0, "last_out_inr": None,
-                    "out_to_in_ratio": 0, "rules_version": "episode-0.1"}
+                    "out_to_in_ratio": 0, "rules_version": "episode-0.2"}
 # The deprecated c2-0.2 shape of the same scam.
 TASK_MONEY = {"bait_credits": 3, "credits_inr": 650, "debits": 3, "debits_inr": 11_000,
               "new_payees": 3, "escalation_steps": 2, "last_debit_inr": 6_500}

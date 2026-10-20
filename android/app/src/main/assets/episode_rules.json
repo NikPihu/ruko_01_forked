@@ -1,6 +1,7 @@
 {
-  "version": "episode-0.1",
+  "version": "episode-0.2",
   "bait_max_inr": 500,
+  "min_out_inr": 500,
   "escalation_factor": 1.5,
   "active_min_outs": 2,
   "active_min_escalation_steps": 2,

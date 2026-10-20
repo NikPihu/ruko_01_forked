@@ -24,7 +24,7 @@
       "last_out_inr": 6000,
       "out_to_in_ratio": 21.11,
       "payee_seen_in_episode": false,
-      "rules_version": "episode-0.1"
+      "rules_version": "episode-0.2"
     }
   }
 }

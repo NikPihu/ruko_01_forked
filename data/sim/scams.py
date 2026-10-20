@@ -25,6 +25,7 @@ class Journey:
     mules: list[str] = field(default_factory=list)
     payments: list[dict] = field(default_factory=list)
     is_demo: bool = False
+    variant: str | None = None
 
 
 def _pay(w: World, j: Journey, ts: datetime, mule: str, amount: float, entry: str) -> None:
@@ -98,15 +99,25 @@ def trading_group(w: World, j: Journey, mule2: str) -> None:
 
 def task_job(w: World, j: Journey, mule2: str) -> None:
     rng, uid, t = w.rng, j.user["user_id"], j.start
-    w.event(t, uid, "sms_lure", {"tag": "task_job", "conf": round(rng.uniform(0.6, 0.9), 2)}, j.jid, "S1")
+    # Variant (w.aux, so the core world is unchanged): a crypto "deposit" scam with no rewards first.
+    crypto = w.aux.random() < 0.25
+    j.variant = "crypto_deposit" if crypto else "rewards"
+    conf = round(rng.uniform(0.6, 0.9), 2)
+    w.event(t, uid, "sms_lure", {"tag": "trading_tip" if crypto else "task_job", "conf": conf}, j.jid, "S1")
     for _ in range(rng.randint(2, 3)):  # tiny rewards for "liking videos"
         t += timedelta(hours=rng.uniform(1, 6))
-        w.pay(t, rng.choice(w.cash_out)["upi_id"], j.user["upi_id"], rng.randint(50, 300),
-              "typed", "scam_bait", journey_id=j.jid)
+        sender, amount = rng.choice(w.cash_out)["upi_id"], rng.randint(50, 300)
+        if not crypto:
+            w.pay(t, sender, j.user["upi_id"], amount, "typed", "scam_bait", journey_id=j.jid)
     amt = rng.uniform(1_000, 3_000)
+    used: list[str] = []
     for i in range(rng.randint(3, 5)):
         t += timedelta(hours=rng.uniform(2, 20))
-        _pay(w, j, t, j.mules[0] if i < 2 else mule2, amt, "typed")
+        # The payee rotates after every payment ("level 2 account", "level 3 account"...).
+        fresh = [m for m in _eligible_mules(w, t) if m not in used] or [j.mules[0] if i < 2 else mule2]
+        payee = j.mules[0] if i == 0 else w.aux.choice(fresh)
+        used.append(payee)
+        _pay(w, j, t, payee, amt, "typed")
         amt *= rng.uniform(1.8, 3.0)
 
 
@@ -205,6 +216,6 @@ def build_scams(w: World) -> list[Journey]:
             "last_payment_at": max((p["ts"] for p in j.payments), default=None),
             "caller_number": j.caller, "mule_upi_ids": ",".join(j.mules),
             "n_payments": len(j.payments), "total_paid": float(sum(p["amount"] for p in j.payments)),
-            "is_demo": j.is_demo, "reported": False,
+            "is_demo": j.is_demo, "reported": False, "variant": j.variant,
         })
     return journeys

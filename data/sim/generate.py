@@ -24,17 +24,18 @@ import pandas as pd
 
 from .accounts import build_accounts
 from .config import HANDLES, SimConfig
+from .extras import build_hard_negatives
 from .mules import build_external_victims, build_mule_forwarding, build_mule_grooming
 from .normal_life import build_normal_life
 from .reports import build_reports
 from .scams import build_scams
 from .world import World
 
-USER_COLS = ["user_id", "account_id", "upi_id", "mobile", "region", "age_band", "language"]
+USER_COLS = ["user_id", "account_id", "upi_id", "mobile", "region", "age_band", "language", "sms_consent"]
 
 
 def build_world(cfg: SimConfig) -> dict[str, pd.DataFrame]:
-    w = World(cfg=cfg, rng=random.Random(cfg.seed))
+    w = World(cfg=cfg, rng=random.Random(cfg.seed), aux=random.Random(cfg.seed + 1000))
     build_accounts(w)
     build_normal_life(w)
     build_mule_grooming(w)
@@ -42,6 +43,7 @@ def build_world(cfg: SimConfig) -> dict[str, pd.DataFrame]:
     build_external_victims(w)
     build_mule_forwarding(w)
     build_reports(w)
+    build_hard_negatives(w)
 
     ledger = pd.DataFrame(w.ledger).sort_values("ts", kind="stable").reset_index(drop=True)
     ledger.insert(0, "tx_id", [f"t_{i:07d}" for i in range(len(ledger))])
