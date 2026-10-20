@@ -46,6 +46,10 @@ data class Consents(
     @SerialName("call_signals") val callSignals: Boolean = true,
     @SerialName("app_checks") val appChecks: Boolean = true,
     @SerialName("sms_lure") val smsLure: Boolean = false, // off by default
+    // Background task-scam watcher (bank SMS alerts); needs SMS checks. Off by default.
+    @SerialName("money_watch") val moneyWatch: Boolean = false,
+    // Send the accounts in a suspicious episode to the server (c2-0.4). Off by default.
+    @SerialName("share_accounts") val shareAccounts: Boolean = false,
     @SerialName("storage_agreed") val storageAgreed: Boolean = false,
     @SerialName("agreed_at") val agreedAt: String? = null,
 )

@@ -228,4 +228,18 @@
     <string name="debug_last_request">Last request sent</string>
     <string name="debug_none">Nothing sent yet</string>
     <string name="debug_context_off">Call signals are off, so context is null.</string>
+    <!-- Background task-scam watcher (shield/) -->
+    <string name="perm_receive_sms">new bank SMS alerts</string>
+    <string name="perm_notifications">notifications</string>
+    <string name="shield_channel_name">Scam Shield alerts</string>
+    <string name="shield_channel_desc">Warnings when your money alerts look like a task or job scam.</string>
+    <string name="shield_working">Scam Shield is checking a money alert</string>
+    <string name="shield_watching_title">Got money for a “task”?</string>
+    <string name="shield_watching_text">Got %1$s for a “task”? Real jobs never ask you to pay to get your earnings.</string>
+    <string name="shield_active_title">This looks like a task scam</string>
+    <string name="shield_active_text">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
+    <string name="shield_out_title">Do not pay more</string>
+    <string name="shield_out_text">You just paid %1$s. The next ask will be bigger. Do not pay more.</string>
+    <string name="shield_confirmed_title">We checked the accounts</string>
+    <string name="shield_confirmed_text">The account you are paying has received money from many people who got the same “task” rewards. Stop and call 1930.</string>
 </resources>

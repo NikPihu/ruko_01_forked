@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
     <!-- Demo build only: Play does not allow SMS access for a payment app. -->
     <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- Background task-scam watcher (shield/): bank SMS alerts wake the app; warnings are notifications. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <!-- Remote access apps. Confirm each package name on its Play Store page before the finale. -->
@@ -43,6 +46,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Ships disabled; ShieldController enables it when "Watch my money alerts" is on. -->
+        <receiver
+            android:name=".shield.SmsReceiver"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.ruko.demo.R
 import com.ruko.demo.data.Consents
 import com.ruko.demo.signals.ShieldPermissions
+import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.Signals
 
 /**
@@ -53,6 +54,8 @@ fun ShieldPermissionCard(consents: Consents, modifier: Modifier = Modifier) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         missing = ShieldPermissions.missing(context, consents)
         Signals.sensor.start()
+        // Permissions granted after the switch went on: run the 30-day backfill now.
+        if (consents.moneyWatch) ShieldController.enable(context.applicationContext)
         // No rationale after a refusal means "don't ask again": only Settings can grant it now.
         blocked = missing.isNotEmpty() && activity != null &&
             missing.none { activity.shouldShowRequestPermissionRationale(it) }
@@ -76,9 +79,11 @@ fun ShieldPermissionCard(consents: Consents, modifier: Modifier = Modifier) {
             READ_CONTACTS -> stringResource(R.string.perm_contacts)
             READ_CALL_LOG -> stringResource(R.string.perm_call_log)
             READ_SMS -> stringResource(R.string.perm_sms)
+            android.Manifest.permission.RECEIVE_SMS -> stringResource(R.string.perm_receive_sms)
+            "android.permission.POST_NOTIFICATIONS" -> stringResource(R.string.perm_notifications)
             else -> it.substringAfterLast('.')
         }
-    }.joinToString(", ")
+    }.distinct().joinToString(", ")
 
     Column(
         modifier = modifier

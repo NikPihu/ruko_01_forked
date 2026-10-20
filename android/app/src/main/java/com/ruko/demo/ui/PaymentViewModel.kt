@@ -99,7 +99,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
 
         viewModelScope.launch {
             val reading = try {
-                withContext(Dispatchers.IO) { Signals.read(consents) }
+                withContext(Dispatchers.IO) { Signals.read(consents, upiId) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

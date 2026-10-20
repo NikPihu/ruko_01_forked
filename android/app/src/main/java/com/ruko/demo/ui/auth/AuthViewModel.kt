@@ -14,6 +14,7 @@ import com.ruko.demo.data.Consents
 import com.ruko.demo.data.Passcode
 import com.ruko.demo.data.UserProfile
 import com.ruko.demo.data.Validators
+import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
 import kotlinx.coroutines.Dispatchers
@@ -89,6 +90,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             val (p, c) = withContext(Dispatchers.IO) { store.loadProfile() to store.loadConsents() }
             profile = p
             consents = c
+            withContext(Dispatchers.IO) { ShieldController.ensureRunning(getApplication(), c) }
             if (p != null) {
                 recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
                 payments = withContext(Dispatchers.IO) { store.loadPayments() }
@@ -271,8 +273,14 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun updateConsents(new: Consents) {
+        val old = consents
         consents = new
-        viewModelScope.launch(Dispatchers.IO) { store.saveConsents(new) }
+        viewModelScope.launch(Dispatchers.IO) {
+            store.saveConsents(new)
+            // The background watcher follows its switch; off also deletes the money history.
+            if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
+            if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
+        }
     }
 
     /** Remember a paid UPI ID (newest first, at most five), encrypted with the rest. */
@@ -293,7 +301,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             .filter { now - it.ts <= PAYMENT_HISTORY_MS }
             .takeLast(MAX_PAYMENTS)
         payments = updated
-        viewModelScope.launch(Dispatchers.IO) { store.savePayments(updated) }
+        viewModelScope.launch(Dispatchers.IO) {
+            store.savePayments(updated)
+            ShieldController.recordAppPayment(getApplication(), id, amountInr)
+        }
     }
 
     /** Delete the account and every stored detail, then start again from sign up. */
