@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import math
 
-MODEL_VERSION = "rules-0.2"
-FAMILY_WEIGHT = {"C": 3.2, "L": 2.0, "P": 3.2, "B": 2.4}
+MODEL_VERSION = "rules-0.3"
+# L rose from 2.0 in rules-0.3: it now carries the phone's 30-day task-scam episode, which is as
+# strong as live call context. One family alone still stays far below any tier (p < 0.15).
+FAMILY_WEIGHT = {"C": 3.2, "L": 3.5, "P": 3.2, "B": 2.4}
 BIAS = -5.0  # two strong families (~0.9 each) land near p=0.55; one alone stays under 0.1
 REASON_MIN_STRENGTH = 0.3
-# The task scam's whole money workflow seen on the phone (rewards in, then each payment bigger
-# than the last) is stronger than its families suggest one by one: lifts it to about T2.
-TASK_WORKFLOW_BONUS = 1.5
 
 
 def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
@@ -38,11 +37,14 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
     # Lure: a scam-script message recently, or small "reward" credits from strangers.
     if (f["lure_max_conf_72h"] or 0) >= 0.6:
         add("L", f["lure_max_conf_72h"], "R5_lure_message")
-    bait = f["bait_credits_72h"] or 0
-    if bait >= 2 and f["first_time_payee"]:
-        add("L", 0.7, "R10_bait_then_pay")
-    elif bait >= 1 and f["first_time_payee"]:
-        add("L", 0.4, "R10_bait_then_pay")
+    # The phone's task-scam episode is ONE lure signal: rewards in, then paying more and more.
+    ep = f["episode_state"]
+    if ep == 2:  # active
+        add("L", 0.85, "R10_bait_then_pay")
+    elif ep == 1 and f["first_time_payee"]:  # watching
+        add("L", 0.5, "R10_bait_then_pay")
+    elif ep == 3 and (f["payee_registry_listed"] or (f["payee_fri_level"] or 0) >= 2):
+        add("L", 0.6, "R10_bait_then_pay")  # "I know them" is overridden by an intel hit
 
     # Payee: mule-like behaviour seen by the payee's bank, and what the lists say.
     u6, u7, rep = f["payee_uniq_payers_6h"], f["payee_uniq_payers_7d"], f["payee_repeat_ratio"]
@@ -85,16 +87,6 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("B", 0.4, "R7_tranche_pattern")
     if (f["new_payee_sum_to_max_90d"] or 0) >= 3 and f["attempts_72h"] >= 1:
         add("B", 0.6, "R7_tranche_pattern")
-    # Each payment bigger than the last ("pay more to unlock your commission").
-    steps = f["escalation_steps_72h"] or 0
-    if steps >= 3:
-        add("B", 0.8, "R7_tranche_pattern")
-    elif steps >= 2:
-        add("B", 0.55, "R7_tranche_pattern")
-    if (f["phone_new_payees_72h"] or 0) >= 3 and f["first_time_payee"]:
-        add("B", 0.4, "R7_tranche_pattern")
-    if bait and (f["sent_to_received_72h"] or 0) >= 5:
-        add("B", 0.5, "R10_bait_then_pay")
     return s
 
 
@@ -104,8 +96,8 @@ def _noisy_or(xs: list[float]) -> float:
 
 def _playbook(f: dict) -> str | None:
     tag = f["lure_tag"]
-    # The task scam's money workflow seen in full beats any older message on the phone.
-    if (f["bait_credits_72h"] or 0) >= 2 and (f["escalation_steps_72h"] or 0) >= 3:
+    # An active task-scam episode beats any older message on the phone.
+    if f["episode_state"] == 2:
         return "task_job"
     if f["sideloaded_last_24h"] and tag == "kyc":
         return "fake_kyc_apk"
@@ -116,7 +108,7 @@ def _playbook(f: dict) -> str | None:
         return "digital_arrest"
     if tag == "trading_tip":
         return "trading_group"
-    if tag == "task_job" or ((f["bait_credits_72h"] or 0) >= 1 and (f["escalation_steps_72h"] or 0) >= 2):
+    if tag == "task_job":
         return "task_job"
     if f["on_call"] and f["caller_unknown"] and not f["entry_typed"]:
         return "refund_qr"
@@ -130,8 +122,6 @@ def score(f: dict) -> dict:
     if f["payee_verified_merchant"] and not any(c == "R8_intel_hit" for _, c in sig["P"]):
         fam["P"] = round(fam["P"] * 0.3, 3)
     z = BIAS + sum(FAMILY_WEIGHT[k] * v for k, v in fam.items())
-    if (f["bait_credits_72h"] or 0) >= 2 and (f["escalation_steps_72h"] or 0) >= 3:
-        z += TASK_WORKFLOW_BONUS
     best: dict[str, float] = {}
     for k, v in sig.items():
         for strength, code in v:

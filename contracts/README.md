@@ -14,7 +14,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.2`** (adds the optional `context.money` group and reason `R10_bait_then_pay`; c2-0.1 requests still validate). The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.3`** (see the changelog at the end; c2-0.1 and c2-0.2 requests still validate). The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 

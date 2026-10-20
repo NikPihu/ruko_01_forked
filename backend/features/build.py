@@ -2,13 +2,14 @@
 
 Families (corroboration counts families, not sources):
     C context    calls, remote control, sideloaded apps        (phone)
-    L lure       the hook: scam-script messages, bait credits   (phone)
+    L lure       the hook: scam-script messages, the task-scam episode (phone)
     P payee      bank features, MuleHunter, registry, FRI, NPCI name/type  (payee side)
-    B behaviour  amount vs history, new payee, typed, tranches, escalation (payer side)
+    B behaviour  amount vs history, new payee, typed, tranches (payer side)
     S stage      journey stage (not a family; used for context)
 """
 from __future__ import annotations
 
+from features.episode import STATE_CODE, effective_episode
 from features.user_baseline import UserBaseline
 from api.intel import IntelResult
 from schema.events import DecideRequest
@@ -20,7 +21,10 @@ FAMILY = {
     "on_call": "C", "caller_unknown": "C", "voip_call": "C", "foreign_caller": "C",
     "outgoing_to_unknown": "C", "remote_control": "C", "untrusted_accessibility": "C",
     "sideloaded_last_24h": "C",
-    "lure_max_conf_72h": "L", "lure_tag": "L", "bait_credits_72h": "L",
+    "lure_max_conf_72h": "L", "lure_tag": "L",
+    # The whole episode is one phone summary, so all of it sits in one family (never two).
+    "episode_state": "L", "episode_age_days": "L", "episode_bait_credits": "L",
+    "episode_new_payees": "L", "episode_out_to_in": "L", "episode_escalation_steps": "L",
     "payee_holder_type": "P", "payee_verified_merchant": "P", "payee_account_age_days": "P",
     "payee_uniq_payers_6h": "P", "payee_uniq_payers_7d": "P", "payee_repeat_ratio": "P",
     "payee_pass_through_24h": "P", "payee_median_hold_min": "P", "payee_mulehunter": "P",
@@ -29,7 +33,6 @@ FAMILY = {
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
-    "escalation_steps_72h": "B", "phone_new_payees_72h": "B", "sent_to_received_72h": "B",
     "stage": "S", "minutes_since_first_contact": "S",
 }
 
@@ -63,9 +66,17 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     top = max(lures, key=lambda l: l.conf, default=None)
     f["lure_max_conf_72h"] = None if ctx is None else (top.conf if top else 0.0)
     f["lure_tag"] = top.tag if top else None
-    money = ctx.money if ctx else None
-    # Task scams pay small "rewards" first; the phone sees them in bank SMS alerts.
-    f["bait_credits_72h"] = money.bait_credits if money else None
+    # Task-scam episode from the phone's watcher (c2-0.3), or the old money summary mapped onto it.
+    ep = effective_episode(ctx)
+    f["episode_state"] = STATE_CODE[ep["state"]] if ep else None
+    f["episode_age_days"] = ep["age_days"] if ep else None
+    f["episode_bait_credits"] = ep["bait_credits"] if ep else None
+    f["episode_new_payees"] = ep["new_payees"] if ep else None
+    f["episode_out_to_in"] = ep["out_to_in_ratio"] if ep else None
+    steps = ep["escalation_steps"] if ep else None
+    if steps is not None and ep["last_out_inr"]:
+        steps = steps + 1 if req.amount_inr >= 1.5 * ep["last_out_inr"] else 0  # does this payment continue it?
+    f["episode_escalation_steps"] = steps
 
     # P — payee (what NPCI, the payee's bank and the lists said)
     npci, bank = intel.npci or {}, (intel.bank or {}).get("features") or {}
@@ -96,14 +107,6 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["attempts_72h"] = st.attempts_72h
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
     f["trusted_payee"] = trusted
-    # From the phone's own 72 h money flow (covers other UPI apps via bank SMS).
-    steps = money.escalation_steps if money else None
-    if steps is not None and money.last_debit_inr:
-        steps = steps + 1 if req.amount_inr >= 1.5 * money.last_debit_inr else 0  # does this payment continue it?
-    f["escalation_steps_72h"] = steps
-    f["phone_new_payees_72h"] = money.new_payees if money else None
-    f["sent_to_received_72h"] = (round(((money.debits_inr or 0) + req.amount_inr) / money.credits_inr, 2)
-                                 if money and money.credits_inr else None)
 
     # S — stage
     f["stage"] = int(st.stage[1])

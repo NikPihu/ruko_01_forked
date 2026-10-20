@@ -157,3 +157,30 @@ def escalation_steps(amounts: list[float], factor: float = 1.5) -> int:
         else:
             break
     return steps
+
+
+STATE_CODE = {"none": 0, "watching": 1, "active": 2, "dismissed": 3}
+
+
+def effective_episode(ctx) -> Optional[dict]:
+    """The request's episode as a dict: `context.episode` (c2-0.3), or the deprecated c2-0.2
+    `context.money` mapped onto the same shape. None when the phone sent neither."""
+    if ctx is None:
+        return None
+    if ctx.episode is not None:
+        return ctx.episode.model_dump()
+    m = ctx.money
+    if m is None:
+        return None
+    r = load_rules()
+    bait = m.bait_credits
+    state = "none"
+    if bait:
+        state = "watching"
+        if (m.new_payees or 0) >= r["active_min_outs"] and (m.escalation_steps or 0) >= r["active_min_escalation_steps"]:
+            state = "active"
+    ratio = round(m.debits_inr / m.credits_inr, 2) if m.debits_inr is not None and m.credits_inr else None
+    return {"state": state, "age_days": None, "bait_credits": bait, "bait_inr": m.credits_inr,
+            "outs": m.debits, "outs_inr": m.debits_inr, "new_payees": m.new_payees,
+            "escalation_steps": m.escalation_steps, "last_out_inr": m.last_debit_inr,
+            "out_to_in_ratio": ratio, "payee_seen_in_episode": None, "rules_version": None}

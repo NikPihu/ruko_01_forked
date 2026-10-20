@@ -109,37 +109,95 @@ def test_split_tranches_still_caught(engine, mock, world):
     assert "R7_tranche_pattern" in r["reasons"] or r["tier"] >= "T2"
 
 
+TASK_PAYEE = "prime.task.rewards@ybl"
+ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_inr": 450, "outs": 3,
+                  "outs_inr": 9_500, "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6_000,
+                  "out_to_in_ratio": 21.11, "payee_seen_in_episode": False, "rules_version": "episode-0.1"}
+WATCHING_EPISODE = {"state": "watching", "age_days": 0.5, "bait_credits": 2, "bait_inr": 350, "outs": 0,
+                    "outs_inr": 0, "new_payees": 0, "escalation_steps": 0, "last_out_inr": None,
+                    "out_to_in_ratio": 0, "rules_version": "episode-0.1"}
+# The deprecated c2-0.2 shape of the same scam.
 TASK_MONEY = {"bait_credits": 3, "credits_inr": 650, "debits": 3, "debits_inr": 11_000,
               "new_payees": 3, "escalation_steps": 2, "last_debit_inr": 6_500}
-TASK_PAYEE = "prime.task.rewards@ybl"
 
 
-def test_task_scam_caught_from_money_flow(engine, world):
-    """Rewards in, then 1,500 -> 3,000 -> 6,500 out; now 14,000. No call, lure seen elsewhere."""
+def baseline(world, user):
+    from features.user_baseline import Baselines
+    return Baselines.from_data(world[0]).get(user)
+
+
+def episode_ctx(ep, lures=()):
+    return {"lures": list(lures), "episode": ep}
+
+
+# §6 outcome table: the episode is ONE lure-family signal; T2+ needs a second, independent family.
+
+def test_active_episode_clean_payee_normal_amount_is_at_most_t1(engine, world):
     user = users_in(world)[0]
-    ctx = {"lures": [], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
-    assert r["tier"] in ("T2", "T3") and r["playbook"] == "task_job"
-    assert {"R7_tranche_pattern", "R10_bait_then_pay"} <= set(r["reasons"])
+    amount = baseline(world, user).median_90d or 500
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=amount,
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
+    assert r["tier"] in ("T0", "T1")
+
+
+def test_active_episode_mule_payee_pauses(engine, mock, world):
+    pump(mock[1], world)
+    r = engine.post("/v1/decide", json=req(amount=14_000, says="company",
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
+    assert r["tier"] in ("T2", "T3", "T4") and r["playbook"] == "task_job"
+    assert "R10_bait_then_pay" in r["reasons"] and "R3_mule_like_payee" in r["reasons"]
     assert r["message_key"] == f"{r['tier'].lower()}_task_job"
 
 
-def test_task_scam_to_mule_gets_paused(engine, mock, world):
-    pump(mock[1], world)
-    ctx = {"lures": [{"tag": "task_job", "conf": 0.82, "min_ago": 1800}], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx, says="company")).json()
-    assert r["tier"] in ("T3", "T4") and r["playbook"] == "task_job"
-
-
-def test_task_money_flow_names_the_playbook_over_an_old_message(engine, world):
+def test_active_episode_far_above_usual_amount_is_t2(engine, world):
     user = users_in(world)[0]
-    ctx = {"lures": [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 380}], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
+    amount = 10 * (baseline(world, user).max_90d or 5_000)
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=amount,
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
+    assert r["tier"] == "T2" and r["playbook"] == "task_job"
+    assert {"R10_bait_then_pay", "R4_unusual_amount"} <= set(r["reasons"])
+
+
+def test_watching_alone_does_not_interrupt(engine, world):
+    user = users_in(world)[0]
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=2_000,
+                                           context=episode_ctx(WATCHING_EPISODE))).json()
+    assert r["tier"] in ("T0", "T1")
+
+
+def test_dismissed_episode_still_alerts_on_a_listed_payee(engine, world):
+    rep = world[1]["reports"]
+    listed = rep[(rep.identifier_type == "upi_id") & ~rep.is_false & (rep.listed_at <= CFG.end)].identifier.iloc[0]
+    user = users_in(world)[0]
+    ep = {**WATCHING_EPISODE, "state": "dismissed", "age_days": None}
+    r = engine.post("/v1/decide", json=req(user=user, payee=listed, amount=5_000, context=episode_ctx(ep))).json()
+    assert r["tier"] in ("T2", "T3", "T4") and "R10_bait_then_pay" in r["reasons"]
+
+
+def test_dismissed_episode_alone_is_silent(engine, world):
+    user = users_in(world)[0]
+    ep = {**WATCHING_EPISODE, "state": "dismissed", "age_days": None}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=5_000, context=episode_ctx(ep))).json()
+    assert "R10_bait_then_pay" not in r["reasons"]
+
+
+def test_active_episode_names_the_playbook_over_an_old_message(engine, mock, world):
+    pump(mock[1], world)
+    ctx = episode_ctx(ACTIVE_EPISODE, lures=[{"tag": "arrest_threat", "conf": 0.85, "min_ago": 380}])
+    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx)).json()
     assert r["playbook"] == "task_job"
 
 
+def test_c2_0_2_money_request_still_accepted(engine, mock, world):
+    pump(mock[1], world)
+    ctx = {"lures": [{"tag": "task_job", "conf": 0.82, "min_ago": 1800}], "money": TASK_MONEY}
+    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx, says="company"))
+    assert r.status_code == 200
+    assert r.json()["tier"] in ("T3", "T4") and r.json()["playbook"] == "task_job"
+
+
 def test_escalation_alone_is_not_enough(engine, world):
-    """Paying a contractor in growing instalments: behaviour only, no bait, no lure."""
+    """Paying a contractor in growing instalments: no bait, so no episode signal."""
     user = users_in(world)[0]
     money = {**TASK_MONEY, "bait_credits": 0, "credits_inr": 0}
     r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
@@ -148,7 +206,7 @@ def test_escalation_alone_is_not_enough(engine, world):
 
 
 def test_money_without_sms_is_unknown(engine, world):
-    """SMS checks off: credits are null, so no bait signal and no task alert from behaviour alone."""
+    """SMS off: credits are null, so no episode can start and no task alert."""
     user = users_in(world)[0]
     money = {k: v for k, v in TASK_MONEY.items() if k not in ("bait_credits", "credits_inr")}
     r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
