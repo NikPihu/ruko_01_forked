@@ -1,23 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">RUKO demo</string>
+    <string name="app_name">Cache Pay</string>
 
     <!-- Home -->
-    <string name="demo_banner">RUKO demo, not a real payment app. No real money moves.</string>
-    <string name="home_pay">Pay someone</string>
-    <string name="home_check_server">Check server</string>
+    <string name="demo_banner">Cache Pay demo, not a real payment app. No real money moves.</string>
+    <string name="demo_only">Not part of this demo yet</string>
+    <string name="home_hero_tagline">Scam Shield by RUKO is on. A risky payment gets a pause and a reason.</string>
+    <string name="home_check_server">Check Scam Shield</string>
     <string name="home_api_address">API: %1$s</string>
+    <string name="home_profile">Profile</string>
+    <string name="home_help">Help</string>
+    <string name="home_money_transfers">Money Transfers</string>
+    <string name="home_shield_chip">Shield on</string>
+    <string name="home_to_mobile">To Mobile Number</string>
+    <string name="home_to_bank">To Bank &amp; Self A/c</string>
+    <string name="home_receive">Receive Money</string>
+    <string name="home_check_balance">Check Balance</string>
+    <string name="home_trusted">Add trusted contacts</string>
+    <string name="home_how_shield">How Scam Shield works</string>
+    <string name="home_bills">Recharge &amp; Bills</string>
+    <string name="bill_mobile">Mobile Recharge</string>
+    <string name="bill_rent">Rent Payment</string>
+    <string name="bill_electricity">Electricity Bill</string>
+    <string name="bill_loan">Loan Repayment</string>
+    <string name="home_pay_upi">Pay any UPI ID</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_scan">Scan and pay</string>
+    <string name="nav_alerts">Alerts</string>
+    <string name="nav_history">History</string>
 
     <!-- Pay -->
-    <string name="pay_title">Pay</string>
+    <string name="pay_title">Pay to UPI ID</string>
     <string name="pay_upi_label">UPI ID</string>
+    <string name="pay_upi_hint">Enter a UPI ID to pay</string>
+    <string name="pay_typed">New payee, typed by hand</string>
     <string name="pay_amount_label">Amount</string>
     <string name="pay_button">Pay</string>
+    <string name="pay_shield_note">Scam Shield checks this payment before you enter your PIN.</string>
     <string name="back">Back</string>
 
     <!-- Decision (placeholder until the T1 to T4 alert screens exist) -->
-    <string name="decision_tier">RUKO decision: %1$s</string>
+    <string name="decision_title">Scam Shield</string>
+    <string name="decision_tier">Decision: %1$s</string>
+    <string name="decision_why">Why we paused</string>
     <string name="decision_unavailable">Safety check unavailable</string>
+    <string name="decision_unavailable_body">Scam Shield could not be reached, so this payment can go ahead.</string>
     <string name="decision_placeholder">Placeholder screen. The T1 to T4 alert screens replace this in step 7.</string>
     <string name="decision_continue">Continue to PIN</string>
     <string name="decision_cancel">Cancel payment</string>
@@ -27,10 +55,11 @@
     <string name="pin_note">Demo PIN: any 4 or 6 digits. It is never stored or sent.</string>
     <string name="pin_to">%1$s to %2$s</string>
     <string name="pin_confirm">Confirm</string>
+    <string name="pin_delete">Delete</string>
 
     <!-- Success -->
-    <string name="success_title">Payment simulated</string>
-    <string name="success_note">No real money moved.</string>
+    <string name="success_title">Payment successful</string>
+    <string name="success_note">Simulated. No real money moved.</string>
     <string name="success_done">Done</string>
 
     <!-- Reason codes, wording fixed by the team contract. Never show a score. -->
