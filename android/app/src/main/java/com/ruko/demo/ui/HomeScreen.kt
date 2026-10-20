@@ -5,6 +5,9 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import com.ruko.demo.data.Consents
+import com.ruko.demo.signals.Signals
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,13 +45,21 @@ import com.ruko.demo.BuildConfig
 import com.ruko.demo.R
 
 @Composable
-fun HomeScreen(vm: PaymentViewModel, firstName: String, onPay: () -> Unit, onProfile: () -> Unit) {
+fun HomeScreen(
+    vm: PaymentViewModel,
+    firstName: String,
+    consents: Consents,
+    onPay: () -> Unit,
+    onProfile: () -> Unit,
+    onDebug: () -> Unit,
+) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
 
     Column(Modifier.fillMaxSize().background(CacheColors.Background)) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Hero(vm, firstName, onProfile = onProfile, onHelp = demoOnly)
+            Hero(vm, firstName, onProfile = onProfile, onHelp = demoOnly, onDebug = onDebug)
+            ShieldPermissionCard(consents, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
 
             Section(
                 title = stringResource(R.string.home_money_transfers),
@@ -93,7 +104,13 @@ fun HomeScreen(vm: PaymentViewModel, firstName: String, onPay: () -> Unit, onPro
 }
 
 @Composable
-private fun Hero(vm: PaymentViewModel, firstName: String, onProfile: () -> Unit, onHelp: () -> Unit) {
+private fun Hero(
+    vm: PaymentViewModel,
+    firstName: String,
+    onProfile: () -> Unit,
+    onHelp: () -> Unit,
+    onDebug: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,12 +168,15 @@ private fun Hero(vm: PaymentViewModel, firstName: String, onProfile: () -> Unit,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ShieldEmblem()
+            // Long press the name to open the debug panel (guide step 6).
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
+                modifier = Modifier.combinedClickable(onClick = {}, onLongClick = onDebug),
             )
+            SimulatedPill(Signals.overrides.active)
             Text(
                 text = stringResource(R.string.home_hero_tagline),
                 style = MaterialTheme.typography.bodyLarge,

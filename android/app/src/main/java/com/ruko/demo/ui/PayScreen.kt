@@ -1,6 +1,10 @@
 package com.ruko.demo.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import com.ruko.demo.signals.Signals
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,9 +27,40 @@ import androidx.compose.ui.unit.dp
 import com.ruko.demo.R
 
 @Composable
-fun PayScreen(vm: PaymentViewModel, onBack: () -> Unit, onDecided: (Decision) -> Unit) {
+fun PayScreen(
+    vm: PaymentViewModel,
+    recentPayees: List<String>,
+    onBack: () -> Unit,
+    onDecided: (Decision) -> Unit,
+) {
     Screen {
         CacheTopBar(stringResource(R.string.pay_title), onBack)
+        SimulatedPill(Signals.overrides.active)
+
+        if (recentPayees.isNotEmpty()) {
+            Text(stringResource(R.string.pay_recent), style = MaterialTheme.typography.titleSmall, color = CacheColors.TextSecondary)
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                recentPayees.forEach { payee ->
+                    Row(
+                        modifier = Modifier
+                            .cacheCard(radius = 50.dp)
+                            .clickable {
+                                vm.upiId = payee
+                                vm.typedManually = false
+                            }
+                            .padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        InitialAvatar(payee, size = 32.dp)
+                        Text(payee, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
 
         // Payee card, like a chat header in UPI apps.
         Row(
@@ -42,7 +77,7 @@ fun PayScreen(vm: PaymentViewModel, onBack: () -> Unit, onDecided: (Decision) ->
                     maxLines = 1,
                 )
                 Text(
-                    text = stringResource(R.string.pay_typed),
+                    text = stringResource(if (vm.typedManually) R.string.pay_typed else R.string.pay_saved),
                     style = MaterialTheme.typography.bodySmall,
                     color = CacheColors.TextSecondary,
                 )

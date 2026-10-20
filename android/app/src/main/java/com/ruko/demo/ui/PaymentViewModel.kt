@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruko.demo.DemoConfig
+import com.ruko.demo.data.Consents
+import com.ruko.demo.signals.Signals
 import com.ruko.demo.net.ApiClient
 import com.ruko.demo.net.DecideRequest
 import com.ruko.demo.net.DecideResponse
@@ -31,8 +33,15 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     var upiId by mutableStateOf("")
     var amountText by mutableStateOf("")
 
-    // True when the UPI ID was typed, false once picking from saved payees exists.
+    // True when the UPI ID was typed, false when it was picked from saved payees.
     var typedManually by mutableStateOf(true)
+
+    // The user's current Scam Shield switches, kept in sync by the app from the account.
+    var consents by mutableStateOf(Consents())
+
+    // Debug overrides that shaped the last request, shown as SIMULATED.
+    var lastSimulated by mutableStateOf<List<String>>(emptyList())
+        private set
 
     var checking by mutableStateOf(false)
         private set
@@ -66,19 +75,30 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
 
     fun pay(onDecided: (Decision) -> Unit) {
         val amount = amountInr ?: return
-        val request = RequestBuilder.build(
-            userId = DemoConfig.USER_ID,
-            upiId = upiId,
-            amountInr = amount,
-            typedManually = typedManually,
-            // TODO(step 6): real signals from ContextSensor. Until then send null, which the
-            // server reads as "unknown", never as "safe".
-            context = null,
-        )
-        lastRequestJson = RukoJson.encodeToString(DecideRequest.serializer(), request)
         checking = true
 
         viewModelScope.launch {
+            val reading = try {
+                withContext(Dispatchers.IO) { Signals.read(consents) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // A broken sensor must not block the payment; null context means "unknown".
+                Log.w(TAG, "reading signals failed", e)
+                null
+            }
+            val request = RequestBuilder.build(
+                userId = DemoConfig.USER_ID,
+                upiId = upiId,
+                amountInr = amount,
+                typedManually = typedManually,
+                context = reading?.context,
+                lureTags = reading?.lureTags.orEmpty(),
+            )
+            lastRequestJson = RukoJson.encodeToString(DecideRequest.serializer(), request)
+            lastSimulated = reading?.simulated.orEmpty()
+            Signals.pasted = null // a pasted message counts for one payment only
+
             val start = SystemClock.elapsedRealtime()
             val result = try {
                 Decision.Result(api.decide(request), SystemClock.elapsedRealtime() - start)
