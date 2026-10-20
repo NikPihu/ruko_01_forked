@@ -1,7 +1,12 @@
-# Task-scam watcher: plan (contract c2-0.3)
+# Task-scam watcher and payment graph: plan (contracts c2-0.3, c2-0.4)
 
 Status: **design only, not built yet.** This file is the full brief for building it on any machine.
-It covers the phone (UI + background watcher), the contract, the engine and the data.
+It covers:
+- the phone: UI and the background watcher (§2–4);
+- the contracts (§5 and §8);
+- the engine (§6);
+- the data (§7);
+- the payment graph that finds new mules from the crowd signal and money loops (§9).
 
 ## 1. Why
 
@@ -282,7 +287,248 @@ class Context(_M):
 - **Evaluation chart:** task-scam rupees stopped and the alert moment (which payment number) for
   three setups: existing stack only, + episode (phone), and + episode + payee intel.
 
-## 8. Build order and done checks
+## 8. Episode events: phone → server when a threshold is reached (contract c2-0.4)
+
+`/v1/decide` only runs when the user taps Pay in this app. The server needs the **accounts** in an
+episode earlier, and also for payments made in other apps. With them it can:
+- look the accounts up;
+- count the crowd signal (§9.3);
+- find money loops (§9.4);
+- have the risk ready before the next payment.
+
+This is a separate message from `/v1/decide`. It stays inside C2, the app ↔ engine contract that
+SPEC §3 already plans an events endpoint for, with its own schema file. It ships as **c2-0.4**,
+after c2-0.3's `context.episode`, so the two can be built one after the other.
+
+### 8.1 When the phone sends it
+Only on **state changes**, never with every SMS:
+
+| Trigger | Sent when | Accounts included |
+|---|---|---|
+| `watching` | NONE → WATCHING (first bait credit) | Bait senders only |
+| `active` | WATCHING → ACTIVE | Bait senders + payees in the episode |
+| `out_payment` | A new payment out while ACTIVE, from this app or another (seen through a debit SMS) | The new payee |
+| `bait` | Another bait credit from a **new** sender while WATCHING or ACTIVE | The new bait sender |
+| `dismissed` | User taps "I know them / it's a real job" | None |
+| `closed` | 30 days quiet | None |
+
+Accounts appear only when the bank SMS or this app's history **names a UPI ID**. A credit with no
+counterparty only changes the counts.
+
+### 8.2 Schema (`backend/schema/events.py`, exported to `contracts/c2_episode.schema.json`)
+
+```python
+class EpisodeAccount(_M):
+    upi_id: str                                   # plain: needed for intel lookups and the graph
+    role: Literal["bait_sender", "payee"]
+    n: int = Field(ge=1)                          # times seen in this episode
+    inr: float = Field(ge=0)                      # total with this account in this episode
+    first_seen_min_ago: float = Field(ge=0)
+    via: Optional[Literal["this_app", "other_app"]] = None   # payees only; other_app = debit SMS
+    step: Optional[int] = Field(None, ge=1)       # payees only: position in the escalation run
+
+class EpisodeEvent(_M):
+    event_id: str                                 # UUID; the server ignores repeats (safe to retry)
+    episode_id: str                               # UUID, stable for the whole episode
+    user_id: str
+    ts: AwareDatetime
+    trigger: Literal["watching", "active", "out_payment", "bait", "dismissed", "closed"]
+    rules_version: str                            # "episode-0.1"
+    summary: EpisodeSignal                        # same object as context.episode (§5)
+    accounts: list[EpisodeAccount] = Field(default_factory=list, max_length=10)
+
+class EpisodeEventResponse(_M):
+    event_id: str
+    episode_risk: Literal["unknown", "low", "elevated", "high"]   # words, never a score
+    reasons: list[ReasonCode]
+    message_key: Optional[str] = None             # e.g. "episode_task_scam_confirmed"
+    case_id: Optional[str] = None                 # set when an analyst case was opened
+    contract_version: str = CONTRACT_VERSION
+```
+
+- Examples to add:
+  - `contracts/examples/episode_event_watching.json`
+  - `contracts/examples/episode_event_active.json`
+  - `contracts/examples/episode_event_response_high.json`
+- `test_schema.py` already validates everything in `examples/`. Extend its glob to the
+  `episode_event_*` files.
+
+### 8.3 What the server does with it (`POST /v1/episode` in `backend/api/main.py`)
+1. **Ignore repeats** by `event_id`.
+2. **Look up each account** with the existing `IntelAdapter` (`api/intel.py`): NPCI name and type,
+   account age, bank payee features and MuleHunter score where the bank shares, registry.
+   Anything missing is unknown, not clean.
+3. **Update the graph** (§9) with the episode's edges: bait sender → user, and user → payee.
+4. **Compute the graph signals** for these accounts: crowd counts (§9.3) and money loop (§9.4).
+5. **Store per-user episode evidence**, so the next `/v1/decide` for this user can read it
+   (in-memory dict for the demo, Redis later).
+6. **Write an evidence record** (hash chain, off the latency path), and open a case for the
+   analyst console when `episode_risk == "high"`.
+7. **Reply** with `episode_risk`, reasons and `message_key`. No score is ever sent.
+
+`episode_risk` uses the same two-family rule as payments:
+
+| Level | When |
+|---|---|
+| `high` | Episode ACTIVE (lure family) **and** payee-family evidence on at least one account: mule-like, intel hit, crowd signal or money loop |
+| `elevated` | Only one of those two families |
+| `low` | Neither |
+| `unknown` | The lookups timed out |
+
+### 8.4 What the phone does with the reply
+- `high`: upgrade the Home episode card and send a stronger notification, for example "We checked:
+  the account you're paying has received money from many people who got the same 'task'
+  rewards." This also works when the payments are made in GPay or PhonePe. **It still only warns
+  and never blocks.**
+- `elevated` or `low`: keep the phone's own wording (§4.4).
+- No reply, or an error: nothing changes. The phone's own episode logic keeps working **(fail open)**.
+
+### 8.5 Retry queue on the phone
+- Pending events are stored **encrypted** in `EpisodeStore`, as part of the same 30-day data.
+- They are sent by a WorkManager `OneTimeWorkRequest` with a network constraint and exponential
+  backoff. It runs from `EpisodeWorker` whenever a trigger fires, and the 6-hourly
+  `CatchUpWorker` flushes anything left.
+- The server ignores repeated `event_id`s, so retries are safe. Events older than 7 days that were
+  never delivered are dropped.
+- Switching off "Share suspicious accounts" or "Watch my money alerts" deletes the queue.
+
+### 8.6 Consent and limits
+- A **new switch, "Share suspicious accounts to protect you and others"**, off by default, in
+  sign-up and Profile. Add `shareAccounts` to `Consents`.
+  - Without it, the phone sends nothing in the background; only `context.episode` goes with
+    `/v1/decide`.
+  - Sending account IDs is a bigger step than sending counts, which is why it gets its own switch.
+- Only accounts that belong to the episode are sent, at most 10 per event. The phone **never**
+  sends its full payment history or any SMS text.
+- `/v1/decide` never depends on these events. It still gets `context.episode`. A missing event
+  means unknown.
+
+## 9. Payment graph: crowd signal, money loops and new mules
+
+**Goal:** draw who pays whom, with direction, to **find mules and their rings before anyone
+reports them**. Two signals make RUKO stand out:
+
+- **Crowd signal.** If `task.reward@ybl` sent about ₹150 to **40 different RUKO users** this week,
+  it is a bait account before anyone has reported it. The same goes for a payee that shows up in
+  many users' episodes. This catches **fresh mules that MuleHunter and the I4C registry miss**:
+  MuleHunter needs history, and the registry needs reports plus listing lag.
+- **Money loop.** Do the bait sender and the payee share cash-out accounts, or does money from the
+  payee flow back to the bait sender? Either one shows the "earnings" came **from the same ring**
+  the victim is paying. The user can be told this in plain words.
+
+### 9.1 Rule: build only from what RUKO could really see
+The engine must **never** read the simulator's full `ledger.parquet` or its `is_mule` labels
+(CLAUDE.md rule 9). The graph is built only from:
+
+| Source | Edges it gives |
+|---|---|
+| `/v1/decide` | user → payee (every payment check, any tier) |
+| `/v1/episode` (§8) | bait sender → user, user → payee (including other apps, through SMS) |
+| **Payee's bank, when it shares** (new mock endpoint, below) | payee → its top outbound counterparties (where money is forwarded) |
+| I4C registry / FRI (existing mocks) | Marks on nodes (listed, risk level); no edges |
+
+**New mock endpoint** in `backend/intel_mock/bank.py`:
+- `GET /banks/{code}/payee-flows/{upi_id}` returns
+  `{outbound: [{upi_id, n, inr, median_hold_min}], as_of}` for the last 7 days, top 10.
+- It follows the same visibility rules as `payee-risk`:
+  - `none`: 403 for every bank;
+  - `partner`: partner banks only;
+  - `dpip`: every bank.
+- Outside those modes the money loop is **unknown** (null), never "no loop".
+- This is how much a real PSP could see through bank partnerships or RBI's DPIP. It is
+  **not** the full network.
+
+### 9.2 The graph
+- **Nodes:**
+  - UPI accounts, with role marks: RUKO user, bait sender, payee, cash-out (forwarded-to),
+    registry-listed, MuleHunter score;
+  - optionally caller numbers, linked to the payees they were on the line for.
+- **Edges:** directed money flows `from → to`, with `n`, `inr`, `first_ts`, `last_ts` and source
+  (`decide` / `episode` / `bank_flows`).
+- **RUKO users are pseudonymised** in the graph (`pseudonym()` from `evidence/store.py`).
+  Accounts that aren't users (bait senders, payees, cash-outs) are kept in plain text, because
+  they need to be looked up.
+- **Storage:** `backend/graph/store.py`, in memory (Python dicts or `networkx`) for the demo, with
+  a Postgres `edges` table later. Edges older than 30 days are dropped, unless they are part of a
+  case's evidence.
+
+### 9.3 Crowd-signal features (payee family)
+| Feature | Meaning |
+|---|---|
+| `bait_sender_fanout_7d` | Distinct RUKO users who got a bait credit from this account in 7 days |
+| `payee_in_episodes_7d` | Distinct users' episodes in which this account was a payee |
+| `payee_fanin_ruko_6h` | Distinct RUKO users paying this account in 6 h (from `/v1/decide`) |
+| `shared_bait_sender` | This payee was paid by users who all got bait from the same sender |
+
+### 9.4 Money-loop features (payee family)
+| Feature | Meaning |
+|---|---|
+| `money_loop` | `true` when the payee's outbound and the bait sender share a counterparty (2 hops), or money flows payee → … → bait sender within 3 hops. `false` only when the bank data was visible and showed no link. `null` when it couldn't be seen. |
+| `loop_path` | The accounts on the loop, kept in evidence for the analyst and the user message, e.g. `vip.unlock@okaxis → cash.hub@ybl ← task.reward@ybl` |
+| `forwards_to_known_cashout` | The payee forwards to an account that already acts as cash-out for other flagged payees |
+
+- These get a new reason code, **`R11_ring_link`**: "This account is linked to the account that
+  sent you the 'rewards'." / "यह खाता उसी खाते से जुड़ा है जिसने आपको ‘इनाम’ भेजा था।"
+- Adding it is a contract change, so it goes in c2-0.4 with §8.
+
+### 9.5 Finding new mules (offline job, `backend/graph/discover.py`)
+Runs every hour in the demo (weekly in a real deployment). It produces a **suspect list for
+analysts**, not automatic blocks.
+1. **Seeds:** accounts with strong evidence, meaning registry-listed, a payee in a `high` episode,
+   or analyst-confirmed.
+2. **Spread suspicion** from the seeds along money edges, using personalised PageRank or simple
+   label propagation, with weights from amount, speed of forwarding and fan-in from strangers.
+3. **Rings:** connected groups among the suspects (connected components, or Louvain if needed).
+   Name the hubs, which are the cash-out accounts many suspects forward to.
+4. **Output** for each suspect:
+   - account, score band (low / med / high), why (in words), evidence path, ring id;
+   - first seen, and **days before any registry listing**.
+5. **Analyst approval:** a suspect only affects live scoring after **two-person approval** in the
+   console, the same approval rule SPEC uses for discovered playbooks. Before that it is
+   shown, not used.
+
+### 9.6 Guard against poisoning
+An attacker could send fake episodes to frame an honest shop.
+- Count **distinct users with signed requests** (SPEC §4.5), and cap events per device per day.
+- A crowd signal from users created in the last 24 h counts for less.
+- The graph and crowd signals are **payee-family evidence only**. They can never reach T2 on their
+  own; the user's own episode or context must agree.
+- Verified merchants with long history need stronger evidence: the existing scorer already
+  multiplies the payee family by 0.3 for them (`api/rule_scorer.py`).
+
+### 9.7 Console and API (contract C5)
+| Endpoint | Returns |
+|---|---|
+| `GET /v1/graph/account/{upi_id}?hops=2` | The account's neighbourhood: nodes, directed edges, marks and the loop path, for drawing |
+| `GET /v1/graph/suspects` | Ranked new-mule candidates with reasons, rings and "days before registry" |
+| `POST /v1/graph/suspects/{upi_id}/review` | Analyst approve or reject (two people needed to approve) |
+
+- **Console view:** draw the graph with directed arrows, coloured by role (victim, bait sender,
+  payee, cash-out hub). Put the case's loop path on top.
+  - `cytoscape.js` or `react-force-graph` both work; Recharts doesn't draw graphs.
+  - Clicking a node shows its evidence and when the registry listed it, if it ever did.
+
+### 9.8 Demo and evaluation
+- **Live demo: `data/sim/bait_pump.py` (new)**, like `mule_pump.py`. One bait account sends ₹150
+  to 40 RUKO users through `/v1/episode`. Then a demo user pays the linked payee, and RUKO shows
+  T2 or T3 with `R10_bait_then_pay` and `R11_ring_link`, with the loop drawn in the console.
+  Neither MuleHunter nor the registry knows these accounts yet.
+- **Offline evaluation:** replay what RUKO *would have seen*:
+  - only consenting users' episodes and payments;
+  - only bank flows the visibility setting allows.
+
+  Then score the suspects against the simulator's ground truth, which is allowed in evaluation
+  only. Report:
+  - % of mules flagged **before** their first registry listing, and how many days earlier;
+  - suspect precision;
+  - rings found;
+  - all of the above under `none` / `partner` / `dpip` visibility.
+- The simulator already sends bait from a small pool of cash-out accounts, and mules forward to
+  the same pool. Crowd signals and loops therefore exist in the current data. Add a few
+  merchant-cashback senders as **hard negatives**: many users get small credits from them
+  legitimately.
+
+## 10. Build order and done checks
 1. **Contract and rules.**
    - Write `episode_rules.json`, `episode_vectors.json`, `EpisodeSignal`, the c2-0.3 export and the
      examples.
@@ -299,11 +545,40 @@ class Context(_M):
      Debug builds accept numbered senders.
 6. **Android UI:** Home episode card, Profile switches, Decision text, Debug panel, Hindi strings.
 7. **Data:** offline episodes, simulator additions, and the evaluation chart.
+8. **Episode events, server side (§8, c2-0.4).**
+   - Add `EpisodeEvent` and its response, the export, the examples and `POST /v1/episode`, with
+     repeated `event_id`s ignored and account lookups.
+   - Done when the example events validate, a repeated `event_id` is ignored, and an ACTIVE event
+     with a mule-like payee returns `high`.
+9. **Graph store and mock bank flows (§9.1–9.4).**
+   - Build `backend/graph/store.py` and `GET /banks/{code}/payee-flows/{upi_id}` with the
+     visibility rules.
+   - Add the crowd and money-loop features, and `R11_ring_link`.
+   - Done when:
+     - 40 bait events from one sender light `bait_sender_fanout_7d`;
+     - the loop is found under `partner`/`dpip` and is null under `none`;
+     - crowd evidence alone never reaches T2.
+10. **Android sending (§8.4–8.6):** the "Share suspicious accounts" switch, the encrypted retry
+    queue, and the stronger notification on `high`.
+    - Done when, in flight mode, events are queued and sent once the network is back.
+11. **Discovery and console (§9.5, §9.7):** suspect list, ring grouping, two-person review, and the
+    graph view.
+12. **Demo and evaluation (§9.8):** `bait_pump.py`; the "mules flagged before registry listing"
+    chart for `none` / `partner` / `dpip`.
 
-## 9. Privacy checklist (must stay true)
+## 11. Privacy checklist (must stay true)
 - [ ] SMS text is never stored or sent; only parsed amount, direction, counterparty and time.
 - [ ] Money history is encrypted on the phone, kept 30 days, and deleted when the switch goes off.
-- [ ] The server receives only the episode summary, and only when the user taps Pay.
+- [ ] Without "Share suspicious accounts", the server receives only the episode summary, and only
+      when the user taps Pay.
+- [ ] With it on, only accounts in the episode are sent (at most 10 per event), never the full
+      history.
+- [ ] RUKO users are pseudonymised in the graph. Graph edges are dropped after 30 days unless they
+      are case evidence.
+- [ ] The graph is built only from what RUKO could really see (§9.1), never from simulator ground
+      truth.
+- [ ] Crowd and graph signals are payee-family evidence only, and suspects affect scoring only after
+      two-person analyst approval.
 - [ ] Unmeasured fields are `null`, never 0 or false.
 - [ ] The phone only warns; it never blocks a payment. Payment-time interruptions stay with the
       engine, which needs two families.
