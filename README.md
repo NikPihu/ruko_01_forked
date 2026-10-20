@@ -59,6 +59,29 @@ Python imports do not change. Put the three Python folders on the path and
 export PYTHONPATH=backend:ml:data
 ```
 
+## Run the whole demo (backend + phone)
+
+One script sets up `.venv`, generates `data/*.parquet` if it is missing, starts the mock
+intel (8001) and the risk API (8000, `--demo-clock`), pumps the demo mule and runs
+`adb reverse` so the Cache Pay app on a USB phone or emulator reaches the API.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1          # Windows
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
+```
+
+```bash
+sh scripts/dev.sh            # macOS / Linux
+sh scripts/dev.sh stop
+```
+
+If port 8000 is already taken on the laptop, the API moves to the next free port and
+`adb reverse` maps the phone's 8000 to it, so the app needs no change. Logs go to `logs/`.
+Then install the app (`android/`, `gradlew installDebug`) and tap "Check Scam Shield".
+
+Generated files: `data/manifest.json` and the small `data/sample_v0/` world are committed;
+the full `data/*.parquet` is not (rebuild with `-Regenerate` / `REGENERATE=1`).
+
 ## Fixed values (team contract)
 
 Ports: API 8000, mock intel 8001, console 8501, Redis 6379, Postgres 5432.

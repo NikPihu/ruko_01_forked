@@ -1,0 +1,47 @@
+{
+  "config": {
+    "seed": 7,
+    "n_users": 2000,
+    "n_days": 30,
+    "end": "2026-11-07T00:00:00+05:30",
+    "scam_rate": 0.01,
+    "report_rate": 0.5,
+    "report_lag_days": [
+      0.0,
+      3.0
+    ],
+    "listing_lag_days": [
+      1.0,
+      4.0
+    ],
+    "false_entry_share": 0.01,
+    "chakshu_report_rate": 0.3,
+    "external_victims_per_day": [
+      0.5,
+      4.0
+    ],
+    "mule_kind_weights": {
+      "plain": 0.45,
+      "merchant_disguised": 0.2,
+      "warm_up": 0.2,
+      "slow_forward": 0.15
+    },
+    "playbook_weights": {
+      "digital_arrest": 0.3,
+      "trading_group": 0.15,
+      "task_job": 0.15,
+      "fake_kyc_apk": 0.15,
+      "refund_qr": 0.12,
+      "fake_customer_care": 0.13
+    }
+  },
+  "rows": {
+    "handles": 8,
+    "accounts": 3098,
+    "users": 2000,
+    "ledger": 63708,
+    "context_events": 70971,
+    "journeys": 23,
+    "reports": 729
+  }
+}

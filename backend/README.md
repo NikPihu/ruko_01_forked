@@ -67,6 +67,8 @@ What is here so far:
 The request/response shape the app must send is published in `../contracts/` (see its README).
 `schema/events.py` stays the source of truth. After changing it, run `python -m schema.export`.
 
-Not done yet: the Android app still sends its older request shape (gaps listed in
-`../contracts/README.md`); feedback, report, prefetch and pause enforcement endpoints;
+The Android app sends contract `c2-0.1` (since PR #6). `../scripts/dev.ps1` / `dev.sh` start
+this stack and connect the phone in one step.
+
+Not done yet: feedback, report, prefetch and pause enforcement endpoints;
 Redis/Postgres; docker-compose.
