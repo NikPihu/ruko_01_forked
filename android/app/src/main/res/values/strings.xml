@@ -181,4 +181,40 @@
     <string name="delete_body">This removes your account, bank details and settings from this phone and destroys the key that protects them. It cannot be undone.</string>
     <string name="delete_confirm">Delete everything</string>
     <string name="home_greeting">Hi, %1$s</string>
+
+    <!-- Permissions -->
+    <string name="perm_title">Scam Shield needs your permission</string>
+    <string name="perm_body">To check: %1$s. Only yes/no signals leave your phone, never numbers, names or messages.</string>
+    <string name="perm_phone">calls</string>
+    <string name="perm_contacts">whether a caller is in your contacts</string>
+    <string name="perm_call_log">the caller\'s number</string>
+    <string name="perm_sms">recent SMS for scam scripts</string>
+    <string name="perm_allow">Allow</string>
+    <string name="perm_settings">Open settings</string>
+    <string name="perm_denied">Permission was refused. Turn it on in Settings, or switch the check off in your profile.</string>
+
+    <!-- Saved payees and simulated values -->
+    <string name="pay_recent">Recent</string>
+    <string name="pay_saved">Saved payee</string>
+    <string name="simulated">SIMULATED</string>
+    <string name="simulated_fields">Simulated: %1$s</string>
+
+    <!-- Debug panel (long press the app name on Home) -->
+    <string name="debug_title">Debug panel</string>
+    <string name="debug_note">Values set here replace real signals and are marked SIMULATED on screen. Say so in the demo.</string>
+    <string name="debug_live">What the next payment will send</string>
+    <string name="debug_overrides">Overrides</string>
+    <string name="debug_real">Real</string>
+    <string name="debug_yes">Yes</string>
+    <string name="debug_no">No</string>
+    <string name="debug_clear">Clear all overrides</string>
+    <string name="debug_paste">Check a message</string>
+    <string name="debug_paste_hint">Paste a message here. It is scored on the phone and not stored.</string>
+    <string name="debug_paste_check">Check</string>
+    <string name="debug_paste_result">Result: %1$s (%2$s)</string>
+    <string name="debug_paste_use">Use on the next payment</string>
+    <string name="debug_model">Lure model: %1$s</string>
+    <string name="debug_last_request">Last request sent</string>
+    <string name="debug_none">Nothing sent yet</string>
+    <string name="debug_context_off">Call signals are off, so context is null.</string>
 </resources>

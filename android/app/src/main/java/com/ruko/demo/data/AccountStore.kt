@@ -6,6 +6,8 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
@@ -60,10 +62,16 @@ class AccountStore(context: Context) {
 
     fun saveConsents(consents: Consents) = write(CONSENTS_FILE, Consents.serializer(), consents)
 
+    /** UPI IDs paid before, newest first, so a repeat payment is not "typed by hand". */
+    fun loadRecentPayees(): List<String> = read(PAYEES_FILE, ListSerializer(String.serializer())) ?: emptyList()
+
+    fun saveRecentPayees(payees: List<String>) = write(PAYEES_FILE, ListSerializer(String.serializer()), payees)
+
     /** Right to erasure: remove the files and the key that could decrypt any copy of them. */
     fun deleteAll() {
         store.delete(PROFILE_FILE)
         store.delete(CONSENTS_FILE)
+        store.delete(PAYEES_FILE)
         store.deleteKey()
     }
 
@@ -88,5 +96,6 @@ class AccountStore(context: Context) {
         const val TAG = "AccountStore"
         const val PROFILE_FILE = "profile.enc"
         const val CONSENTS_FILE = "consents.enc"
+        const val PAYEES_FILE = "recent_payees.enc"
     }
 }
