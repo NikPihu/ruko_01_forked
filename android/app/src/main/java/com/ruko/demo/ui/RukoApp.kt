@@ -1,10 +1,22 @@
 package com.ruko.demo.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ruko.demo.ui.auth.AuthState
+import com.ruko.demo.ui.auth.AuthViewModel
+import com.ruko.demo.ui.auth.LoginScreen
+import com.ruko.demo.ui.auth.ProfileScreen
+import com.ruko.demo.ui.auth.SignUpFlow
 
 private object Routes {
     const val HOME = "home"
@@ -12,21 +24,45 @@ private object Routes {
     const val DECISION = "decision"
     const val PIN = "pin"
     const val SUCCESS = "success"
+    const val PROFILE = "profile"
 }
 
-/** Home, Pay, decision, PIN, Success (guide step 5). */
+/** Sign up or login first; the payment app only exists once the account is unlocked. */
 @Composable
 fun RukoApp() {
+    val auth: AuthViewModel = viewModel()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { auth.onBackground() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { auth.onForeground() }
+
+    when (auth.state) {
+        AuthState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = CacheColors.Primary)
+        }
+        AuthState.NeedsSignUp -> SignUpFlow(auth)
+        AuthState.Locked -> LoginScreen(auth)
+        AuthState.Unlocked -> PaymentApp(auth)
+    }
+}
+
+/** Home, Pay, decision, PIN, Success (guide step 5), plus the profile. */
+@Composable
+private fun PaymentApp(auth: AuthViewModel) {
     val nav = rememberNavController()
     // One view model for the whole payment flow, scoped to the activity.
     val vm: PaymentViewModel = viewModel()
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
-            HomeScreen(vm, onPay = {
-                vm.reset()
-                nav.navigate(Routes.PAY)
-            })
+            HomeScreen(
+                vm = vm,
+                firstName = auth.profile?.firstName.orEmpty(),
+                onPay = {
+                    vm.reset()
+                    nav.navigate(Routes.PAY)
+                },
+                onProfile = { nav.navigate(Routes.PROFILE) },
+            )
         }
         composable(Routes.PAY) {
             PayScreen(
@@ -53,6 +89,9 @@ fun RukoApp() {
         }
         composable(Routes.SUCCESS) {
             SuccessScreen(vm, onDone = { nav.popBackStack(Routes.HOME, inclusive = false) })
+        }
+        composable(Routes.PROFILE) {
+            ProfileScreen(auth, onBack = { nav.popBackStack() })
         }
     }
 }

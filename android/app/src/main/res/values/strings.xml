@@ -71,4 +71,114 @@
     <string name="reason_R6_new_payee_typed">You typed this UPI ID by hand and have never paid it before</string>
     <string name="reason_R7_tranche_pattern">You are making several payments in a short time</string>
     <string name="reason_R8_intel_hit">This account or number has been reported for fraud</string>
+
+    <!-- Welcome and sign up -->
+    <string name="welcome_title">Welcome to Cache Pay</string>
+    <string name="welcome_body">Pay any UPI ID with Scam Shield watching your back. Setting up takes about two minutes.</string>
+    <string name="welcome_create">Create account</string>
+    <string name="welcome_privacy">Your details are encrypted and stay on this phone.</string>
+    <string name="signup_step">Step %1$d of %2$d</string>
+    <string name="next">Next</string>
+    <string name="optional">Optional</string>
+
+    <string name="mobile_title">Your mobile number</string>
+    <string name="mobile_body">Use the number linked to your bank account.</string>
+    <string name="mobile_label">Mobile number</string>
+    <string name="mobile_send_otp">Send OTP</string>
+    <string name="otp_label">6 digit OTP</string>
+    <string name="otp_demo">Demo OTP (no SMS is sent): %1$s</string>
+    <string name="otp_verify">Verify</string>
+    <string name="otp_resend">Resend OTP</string>
+
+    <string name="personal_title">About you</string>
+    <string name="personal_body">As on your bank account and PAN.</string>
+    <string name="name_label">Full name</string>
+    <string name="email_label">Email</string>
+    <string name="dob_label">Date of birth</string>
+    <string name="dob_day">DD</string>
+    <string name="dob_month">MM</string>
+    <string name="dob_year">YYYY</string>
+    <string name="language_label">Alert language</string>
+    <string name="language_en">English</string>
+    <string name="language_hi">हिन्दी</string>
+
+    <string name="bank_title">Link your bank</string>
+    <string name="bank_body">We only keep the last 4 digits of your account number.</string>
+    <string name="bank_label">Bank</string>
+    <string name="account_last4_label">Last 4 digits of account number</string>
+    <string name="ifsc_label">IFSC</string>
+    <string name="upi_handle_label">Choose your UPI ID</string>
+
+    <string name="kyc_title">KYC and safety contact</string>
+    <string name="kyc_body">Both are optional. A trusted contact is who Scam Shield offers to call when a payment looks risky.</string>
+    <string name="pan_label">PAN</string>
+    <string name="trusted_name_label">Trusted contact name</string>
+    <string name="trusted_mobile_label">Trusted contact mobile</string>
+
+    <string name="privacy_title">Privacy and Scam Shield</string>
+    <string name="privacy_body">Choose what Scam Shield may check. You can change this later in your profile.</string>
+    <string name="consent_calls">Call signals</string>
+    <string name="consent_calls_desc">Whether you are on a call with a number not in your contacts.</string>
+    <string name="consent_apps">App checks</string>
+    <string name="consent_apps_desc">Whether a screen sharing or remote control app is installed.</string>
+    <string name="consent_sms">SMS scam check</string>
+    <string name="consent_sms_desc">Checks recent messages for scam scripts on the phone. Message text never leaves the phone.</string>
+    <string name="privacy_points">• Your details are stored only on this phone, encrypted with a key that cannot leave it.\n• They are never backed up to the cloud or sent to Scam Shield.\n• Scam Shield only gets a one-way hash of the payee, the amount and yes/no signals.\n• You can delete everything at any time from your profile.</string>
+    <string name="privacy_agree">I agree to store my details on this phone as described</string>
+
+    <string name="passcode_set_title">Set a 6 digit passcode</string>
+    <string name="passcode_confirm_title">Enter it again to confirm</string>
+    <string name="passcode_set_body">You will use it to open Cache Pay. It is different from your UPI PIN.</string>
+
+    <!-- Login -->
+    <string name="login_title">Welcome back, %1$s</string>
+    <string name="login_body">Enter your passcode to open Cache Pay.</string>
+    <string name="login_forgot">Forgot passcode?</string>
+    <string name="login_locked_out">Too many wrong tries. Try again in %1$d s.</string>
+    <string name="reset_title">Reset this account?</string>
+    <string name="reset_body">Without the passcode the stored details cannot be opened. Resetting deletes them from this phone and you can sign up again.</string>
+    <string name="reset_confirm">Delete and sign up again</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Errors -->
+    <string name="err_mobile">Enter a valid 10 digit Indian mobile number.</string>
+    <string name="err_otp">That OTP does not match.</string>
+    <string name="err_name">Enter your full name using letters only.</string>
+    <string name="err_email">Enter a valid email address.</string>
+    <string name="err_dob">Enter a real date of birth.</string>
+    <string name="err_age">You must be 18 or older to use Cache Pay.</string>
+    <string name="err_bank">Choose your bank.</string>
+    <string name="err_account">Enter the last 4 digits of your account number.</string>
+    <string name="err_ifsc">IFSC is 11 characters, like SBIN0001234.</string>
+    <string name="err_upi">Use 3 to 40 lowercase letters, numbers, dots, dashes or underscores.</string>
+    <string name="err_pan">PAN looks like ABCDE1234F.</string>
+    <string name="err_trusted_name">Enter your trusted contact\'s name.</string>
+    <string name="err_trusted_mobile">Enter a valid 10 digit mobile for your trusted contact.</string>
+    <string name="err_trusted_self">Your trusted contact needs a different number from yours.</string>
+    <string name="err_agree">Please agree to continue. Cache Pay cannot work without storing your details.</string>
+    <string name="err_weak_passcode">That passcode is too easy to guess. Try another.</string>
+    <string name="err_passcode_mismatch">Passcodes did not match. Set it again.</string>
+    <string name="err_wrong_passcode">Wrong passcode.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_personal">Personal</string>
+    <string name="profile_bank">Bank and UPI</string>
+    <string name="profile_safety">Scam Shield</string>
+    <string name="profile_mobile">Mobile</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_dob">Date of birth</string>
+    <string name="profile_language">Alert language</string>
+    <string name="profile_pan">PAN</string>
+    <string name="profile_not_added">Not added</string>
+    <string name="profile_account">Account</string>
+    <string name="profile_upi">UPI ID</string>
+    <string name="profile_trusted">Trusted contact</string>
+    <string name="profile_storage">Stored encrypted on this phone only.</string>
+    <string name="profile_lock">Lock app</string>
+    <string name="profile_delete">Delete my data</string>
+    <string name="delete_title">Delete all your data?</string>
+    <string name="delete_body">This removes your account, bank details and settings from this phone and destroys the key that protects them. It cannot be undone.</string>
+    <string name="delete_confirm">Delete everything</string>
+    <string name="home_greeting">Hi, %1$s</string>
 </resources>

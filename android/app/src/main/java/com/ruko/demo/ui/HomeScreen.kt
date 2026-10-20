@@ -42,13 +42,13 @@ import com.ruko.demo.BuildConfig
 import com.ruko.demo.R
 
 @Composable
-fun HomeScreen(vm: PaymentViewModel, onPay: () -> Unit) {
+fun HomeScreen(vm: PaymentViewModel, firstName: String, onPay: () -> Unit, onProfile: () -> Unit) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
 
     Column(Modifier.fillMaxSize().background(CacheColors.Background)) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Hero(vm, onTapIcon = demoOnly)
+            Hero(vm, firstName, onProfile = onProfile, onHelp = demoOnly)
 
             Section(
                 title = stringResource(R.string.home_money_transfers),
@@ -70,7 +70,7 @@ fun HomeScreen(vm: PaymentViewModel, onPay: () -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                InfoChip(CacheIcons.Person, R.string.home_trusted, CacheColors.Gold, demoOnly)
+                InfoChip(CacheIcons.Person, R.string.home_trusted, CacheColors.Gold, onProfile)
                 InfoChip(CacheIcons.Shield, R.string.home_how_shield, CacheColors.PrimaryLight, demoOnly)
             }
 
@@ -93,7 +93,7 @@ fun HomeScreen(vm: PaymentViewModel, onPay: () -> Unit) {
 }
 
 @Composable
-private fun Hero(vm: PaymentViewModel, onTapIcon: () -> Unit) {
+private fun Hero(vm: PaymentViewModel, firstName: String, onProfile: () -> Unit, onHelp: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -101,16 +101,37 @@ private fun Hero(vm: PaymentViewModel, onTapIcon: () -> Unit) {
             .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(CacheColors.Gold)
-                .clickable(onClick = onTapIcon),
-            contentAlignment = Alignment.Center,
+                .clip(RoundedCornerShape(50))
+                .clickable(onClick = onProfile),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(CacheIcons.Person, contentDescription = stringResource(R.string.home_profile), tint = CacheColors.HeroTop)
+            Box(
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(CacheColors.Gold),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (firstName.isEmpty()) {
+                    Icon(CacheIcons.Person, contentDescription = stringResource(R.string.home_profile), tint = CacheColors.HeroTop)
+                } else {
+                    Text(
+                        text = firstName.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CacheColors.HeroTop,
+                    )
+                }
+            }
+            if (firstName.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.home_greeting, firstName),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+            }
         }
         Box(
             modifier = Modifier
@@ -118,7 +139,7 @@ private fun Hero(vm: PaymentViewModel, onTapIcon: () -> Unit) {
                 .size(36.dp)
                 .clip(CircleShape)
                 .border(2.dp, Color.White, CircleShape)
-                .clickable(onClick = onTapIcon),
+                .clickable(onClick = onHelp),
             contentAlignment = Alignment.Center,
         ) {
             Text("?", color = Color.White, fontWeight = FontWeight.Bold)
