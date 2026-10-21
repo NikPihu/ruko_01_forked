@@ -134,7 +134,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     async def decide_inner(req: DecideRequest, ms: dict) -> DecideResponse:
         t = time.perf_counter()
-        base = baselines.get(req.user_id)
+        base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
         is_trusted = upi in trusted.get(req.user_id, set())
         state = tracker.update(req, new_payee=upi not in base.known_payees and not is_trusted)

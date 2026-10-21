@@ -194,12 +194,12 @@ def main() -> None:
         write_world(build_world(cfg), cfg, data)
         ledger, users = pd.read_parquet(data / "ledger.parquet"), pd.read_parquet(data / "users.parquet")
         journeys, events = pd.read_parquet(data / "journeys.parquet"), pd.read_parquet(data / "context_events.parquet")
-        # The engine's user baseline (largest payment, known payees) must not include the scam being
-        # judged: features/user_baseline.py reads the whole ledger, so give it the honest part only.
         engine_data = data / "engine"
         engine_data.mkdir()
         users.to_parquet(engine_data / "users.parquet", index=False)
-        ledger[~ledger.label_is_scam & (ledger.flow != "scam_bait")].to_parquet(engine_data / "ledger.parquet", index=False)
+        # The engine only looks at payments before the one it judges (features/user_baseline.py),
+        # so it gets the real ledger, scams included, as a bank would have it.
+        ledger.to_parquet(engine_data / "ledger.parquet", index=False)
 
         u2u = dict(zip(users.upi_id, users.user_id))
         ledger["user_id"] = ledger.from_upi.map(u2u)
