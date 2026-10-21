@@ -112,3 +112,36 @@ def test_demo_actors(t):
     assert DEMO_MULE_UPI not in set(rep.identifier)  # the fresh-mule gap
     assert led[(led.to_upi == DEMO_MULE_UPI) & led.label_is_scam].shape[0] > 0
     assert DEMO_KIRANA_UPI not in set(rep.identifier)
+
+
+# ---------- Pay-screen sessions (c2-0.5) ----------
+
+def test_sessions_leave_the_rest_of_the_world_unchanged(t, monkeypatch):
+    import sim.generate as gen
+    monkeypatch.setattr(gen, "build_sessions", lambda w: None)
+    without = build_world(CFG)
+    ev = t["context_events"]
+    pd.testing.assert_frame_equal(t["ledger"], without["ledger"])
+    pd.testing.assert_frame_equal(ev[ev.event_type != "pay_session"].reset_index(drop=True),
+                                  without["context_events"])
+
+
+def test_every_user_payment_has_one_session(t):
+    import json
+    users = set(t["users"].upi_id)
+    paid = t["ledger"][t["ledger"].from_upi.isin(users)]
+    ses = t["context_events"][t["context_events"].event_type == "pay_session"]
+    assert len(ses) == len(paid)
+    s = json.loads(ses["attrs"].iloc[0])
+    assert set(s) == {"amount_digits", "amount_median_gap_s", "amount_max_gap_s", "amount_gap_vs_usual",
+                      "amount_edits", "payee_pasted", "pasted_within_s_of_return", "app_switches",
+                      "away_s", "pay_screen_s", "abandoned_flows_30m"}
+
+
+def test_scam_sessions_look_coached_more_often(t):
+    import json
+    ses = t["context_events"][t["context_events"].event_type == "pay_session"]
+    a = pd.DataFrame([json.loads(x) for x in ses["attrs"]]).assign(scam=ses.label_is_scam.values)
+    slow = a.amount_gap_vs_usual.fillna(1) >= 2.5
+    assert slow[a.scam].mean() > 3 * slow[~a.scam].mean()
+    assert (a[a.scam].app_switches > 0).mean() > (a[~a.scam].app_switches > 0).mean()

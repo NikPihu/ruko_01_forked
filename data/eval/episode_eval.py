@@ -49,9 +49,13 @@ def eval_config(seed: int) -> SimConfig:
 
 # ---------- what the phone would have sent ----------
 
-def phone_context(events: pd.DataFrame, ts) -> dict:
-    """call / device / lures as the phone saw them at `ts` (no episode)."""
+def phone_context(events: pd.DataFrame, ts, session: bool = False) -> dict:
+    """call / device / lures as the phone saw them at `ts` (no episode). With `session`, also the
+    Pay-screen behaviour of the payment at `ts` (c2-0.5, from its `pay_session` event)."""
     ctx: dict = {"call": None, "device": None, "lures": []}
+    if session:
+        ses = events[(events.event_type == "pay_session") & (events.ts == ts)]
+        ctx["session"] = json.loads(ses["attrs"].iloc[-1]) if len(ses) else None
     calls = events[events.event_type.isin(["call_started", "call_ended"])]
     started = calls[(calls.event_type == "call_started") & (calls.ts <= ts)]
     if len(started):
@@ -144,7 +148,8 @@ def _event(events_out: list, user: str, t: EpisodeTracker, before: tuple, ts, ve
 # ---------- replay ----------
 
 def replay(data: Path, engine_data: Path, rows: pd.DataFrame, events: pd.DataFrame, eps: dict,
-           setup: str, fresh: bool, episode_events: list | None = None) -> list[str]:
+           setup: str, fresh: bool, episode_events: list | None = None, session: bool = False,
+           drop: tuple[str, ...] = ()) -> list[str]:
     mock = create_mock(data)
     mock_client = TestClient(mock)
     # Fresh mules: every payee lookup fails, so NPCI, bank, registry and FRI all count as unknown.
@@ -163,7 +168,9 @@ def replay(data: Path, engine_data: Path, rows: pd.DataFrame, events: pd.DataFra
             engine.post("/v1/episode", json=e["body"])
         mock_client.post("/sim/clock", json={"set": r.ts.isoformat()})
         ev = by_user.get(r.user_id, events.iloc[0:0])
-        ctx = phone_context(ev, r.ts)
+        ctx = phone_context(ev, r.ts, session)
+        if ctx.get("session"):  # ablation: these session fields count as unknown
+            ctx["session"].update({k: None for k in drop})
         if setup in ("B", "C"):
             ctx["episode"] = eps.get(r.tx_id)
         body = {"request_id": r.tx_id, "user_id": r.user_id, "payee_upi_id": r.to_upi, "amount_inr": float(r.amount),
