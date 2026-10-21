@@ -32,7 +32,7 @@ export function App() {
   else if (section === "case" && path[1] === "payment") page = <PaymentCase id={path[2] ?? ""} />;
   else if (section === "case" && path[1] === "episode") page = <EpisodeCaseView id={path[2] ?? ""} />;
   else if (section === "suspects") page = <Suspects />;
-  else if (section === "explore") page = <Explore upi={query.get("upi") ?? ""} />;
+  else if (section === "explore") page = <Explore upi={query.get("upi") ?? ""} payment={query.get("payment") ?? ""} />;
   else if (section === "evaluation") page = <Evaluation />;
   else page = <Overview />;
 

@@ -63,7 +63,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
 
-## Contract (current: c2-0.5)
+## Contract (current: c2-0.6)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`.
@@ -72,12 +72,16 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   `null` when "Session checks" is off. All its signs are family B, so they can never interrupt on
   their own. `call.speaker_on` (c2-0.5) only adds weight to the C call signal. Field meanings are
   in `contracts/README.md`; phone and simulator must measure them the same way.
+- `POST /v1/payment/outcome` (c2-0.6): after the PIN or Cancel, the phone reports `completed` or
+  `cancelled` for a payment, in the background. The payment id is the `/v1/decide` `request_id`;
+  it is kept in the phone's history, the payment graph (`GET /v1/payments/{id}`) and the console.
 - `POST /v1/episode`: the phone's task-scam watcher reports a state change with at most 10
   accounts, only with "Share suspicious accounts" on; reply `episode_risk` in words.
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1, c2-0.3 and c2-0.4
-  requests still validate.
-- Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`. Shared episode
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1, c2-0.3, c2-0.4 and
+  c2-0.5 requests still validate.
+- Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
+  `contracts/c2_payment_outcome.schema.json`. Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
 
 ## Run it (Windows)
@@ -102,8 +106,8 @@ account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 130 tests (with PYTHONPATH set)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 52 tests
+.venv/Scripts/python -m pytest backend/tests -q          # 143 tests (with PYTHONPATH set)
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 58 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -133,7 +137,8 @@ mind. Offline episode features for training:
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
   → coached-session signs), `user_baseline.py` (history before the payment only),
   `offline_episode.py`.
-- `graph/store.py` (crowd signal, money loop, story for the console), `graph/discover.py`.
+- `graph/store.py` (crowd signal, money loop, story for the console, one `Payment` per payment id
+  with its decision and outcome), `graph/discover.py`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
 - `schema/events.py` is the source of truth for the contract; `evidence/store.py` is the
@@ -142,7 +147,7 @@ mind. Offline episode features for training:
 **Android** (`android/app/src/main/java/com/ruko/demo/`)
 - `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer, bank
   SMS parser, `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
-  encrypted event queue). `data/`: encrypted account store. `ui/`: screens, debug panel (long press
+  encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
 
 **Data** (`data/`)

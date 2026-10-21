@@ -27,6 +27,18 @@ export function when(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? iso : DT.format(d);
 }
 
+/** What the user did after the check, as reported by the phone (c2-0.6). */
+export const PAYMENT_STATUS: Record<string, string> = {
+  completed: "Paid",
+  cancelled: "Cancelled",
+  checked: "Not reported yet",
+};
+
+/** A payment id (UUID) shortened for tables; the full id is in the tooltip and on the detail. */
+export function shortId(id: string): string {
+  return id.length > 13 ? `${id.slice(0, 8)}…` : id;
+}
+
 /** A pseudonymised user id, shortened so it reads as a label rather than a hash. */
 export function userLabel(hash: string): string {
   return "User " + hash.replace(/^u:/, "").slice(0, 6);

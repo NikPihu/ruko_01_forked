@@ -1,0 +1,83 @@
+{
+  "title": "RUKO C2: POST /v1/payment/outcome",
+  "contract_version": "c2-0.6",
+  "request": {
+    "additionalProperties": false,
+    "description": "POST /v1/payment/outcome. What happened to a payment after its check. The payment id is the\n/v1/decide `request_id`. Payee and amount are repeated so the payment is recorded even when the\ncheck never reached the server (timeout, fail open). Safe to retry.",
+    "properties": {
+      "request_id": {
+        "title": "Request Id",
+        "type": "string"
+      },
+      "user_id": {
+        "title": "User Id",
+        "type": "string"
+      },
+      "payee_upi_id": {
+        "title": "Payee Upi Id",
+        "type": "string"
+      },
+      "amount_inr": {
+        "exclusiveMinimum": 0,
+        "title": "Amount Inr",
+        "type": "number"
+      },
+      "status": {
+        "enum": [
+          "completed",
+          "cancelled"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "ts": {
+        "format": "date-time",
+        "title": "Ts",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id",
+      "user_id",
+      "payee_upi_id",
+      "amount_inr",
+      "status",
+      "ts"
+    ],
+    "title": "PaymentOutcome",
+    "type": "object"
+  },
+  "response": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "title": "Request Id",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "completed",
+          "cancelled"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "recorded": {
+        "title": "Recorded",
+        "type": "boolean"
+      },
+      "contract_version": {
+        "default": "c2-0.6",
+        "title": "Contract Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id",
+      "status",
+      "recorded"
+    ],
+    "title": "PaymentOutcomeResponse",
+    "type": "object"
+  }
+}

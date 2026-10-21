@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +62,17 @@ fun SuccessScreen(vm: PaymentViewModel, onDone: () -> Unit) {
             color = CacheColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
+        vm.checkedPayment?.let { p ->
+            SelectionContainer {
+                Text(
+                    text = stringResource(R.string.success_payment_id, p.id),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = CacheColors.TextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
         Text(
             text = stringResource(R.string.success_note),
             style = MaterialTheme.typography.bodyLarge,

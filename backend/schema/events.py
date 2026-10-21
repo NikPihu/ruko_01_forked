@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.5"
+CONTRACT_VERSION = "c2-0.6"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -156,4 +156,28 @@ class EpisodeEventResponse(_M):
     reasons: list[ReasonCode]
     message_key: Optional[str] = None             # e.g. "episode_task_scam_confirmed"
     case_id: Optional[str] = None                 # set when an analyst case was opened
+    contract_version: str = CONTRACT_VERSION
+
+
+# ---------- Payment outcome: phone -> server after the PIN or Cancel (c2-0.6) ----------
+
+PaymentStatus = Literal["completed", "cancelled"]
+
+
+class PaymentOutcome(_M):
+    """POST /v1/payment/outcome. What happened to a payment after its check. The payment id is the
+    /v1/decide `request_id`. Payee and amount are repeated so the payment is recorded even when the
+    check never reached the server (timeout, fail open). Safe to retry."""
+    request_id: str                               # the payment id: same UUID as its /v1/decide request
+    user_id: str
+    payee_upi_id: str                             # plain, as in /v1/decide
+    amount_inr: float = Field(gt=0)
+    status: PaymentStatus                         # completed = PIN entered; cancelled = user left without paying
+    ts: AwareDatetime                             # when it was completed or cancelled
+
+
+class PaymentOutcomeResponse(_M):
+    request_id: str
+    status: PaymentStatus                         # the status the server holds (the first final one wins)
+    recorded: bool                                # False: a repeat, a conflicting status, or not accepted
     contract_version: str = CONTRACT_VERSION

@@ -58,6 +58,7 @@ fun HomeScreen(
     onPay: () -> Unit,
     onProfile: () -> Unit,
     onDebug: () -> Unit,
+    onHistory: () -> Unit,
 ) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
@@ -110,7 +111,7 @@ fun HomeScreen(
             Spacer(Modifier.height(28.dp))
         }
 
-        BottomBar(onScan = onPay, onOther = demoOnly)
+        BottomBar(onScan = onPay, onHistory = onHistory, onOther = demoOnly)
     }
 }
 
@@ -362,7 +363,7 @@ private fun PayAnyUpiRow(onPay: () -> Unit) {
 }
 
 @Composable
-private fun BottomBar(onScan: () -> Unit, onOther: () -> Unit) {
+private fun BottomBar(onScan: () -> Unit, onHistory: () -> Unit, onOther: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(CacheColors.Surface).navigationBarsPadding()) {
         Row(
             modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 8.dp),
@@ -372,7 +373,7 @@ private fun BottomBar(onScan: () -> Unit, onOther: () -> Unit) {
             NavItem(CacheIcons.Search, R.string.nav_search, selected = false, onClick = onOther, modifier = Modifier.weight(1f))
             Spacer(Modifier.weight(1f))
             NavItem(CacheIcons.Alerts, R.string.nav_alerts, selected = false, onClick = onOther, modifier = Modifier.weight(1f))
-            NavItem(CacheIcons.History, R.string.nav_history, selected = false, onClick = onOther, modifier = Modifier.weight(1f))
+            NavItem(CacheIcons.History, R.string.nav_history, selected = false, onClick = onHistory, modifier = Modifier.weight(1f))
         }
         Box(
             modifier = Modifier
