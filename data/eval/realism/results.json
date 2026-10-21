@@ -1,0 +1,383 @@
+{
+ "team_sim": {
+  "rows": {
+   "ledger": 72594,
+   "user_payments": 63958,
+   "users": 2000,
+   "accounts": 3098,
+   "journeys": 23,
+   "context_events": 70971
+  },
+  "days": 30.0,
+  "flows": {
+   "normal": 61968,
+   "cashback": 5871,
+   "mule_forward": 1284,
+   "repay": 1063,
+   "scam_external": 887,
+   "mule_cover": 850,
+   "gig_payout": 585,
+   "scam": 77,
+   "scam_bait": 9
+  },
+  "entry_method_share": {
+   "qr": 0.815,
+   "contact": 0.108,
+   "typed": 0.078
+  },
+  "p2m_share_of_user_payments": 0.875,
+  "user_payments_per_day": {
+   "median": 1.07,
+   "p90": 1.27
+  },
+  "journeys": 23,
+  "demo_journeys": 3,
+  "victim_rate": 0.0115,
+  "playbooks": {
+   "digital_arrest": 8,
+   "trading_group": 6,
+   "fake_customer_care": 3,
+   "refund_qr": 2,
+   "task_job": 2,
+   "fake_kyc_apk": 2
+  },
+  "scam_payments_per_journey": 3.35,
+  "scam_total_paid_median": 73900.0,
+  "mules": 19,
+  "shape": {
+   "legit_median": 202.0,
+   "legit_q_over_median": {
+    "0.1": 0.287,
+    "0.25": 0.5,
+    "0.5": 1.0,
+    "0.75": 2.099,
+    "0.9": 5.545,
+    "0.99": 56.812
+   },
+   "fraud_median_over_legit_median": 86.63,
+   "fraud_share_above_legit_p90": 0.948,
+   "fraud_rate": 0.0012,
+   "n_rows": 63958,
+   "n_fraud": 77
+  },
+  "shape_p2p_only": {
+   "legit_median": 1447.0,
+   "legit_q_over_median": {
+    "0.1": 0.199,
+    "0.25": 0.3,
+    "0.5": 1.0,
+    "0.75": 2.764,
+    "0.9": 6.248,
+    "0.99": 16.679
+   },
+   "fraud_median_over_legit_median": 12.72,
+   "fraud_share_above_legit_p90": 0.694,
+   "fraud_rate": 0.00612,
+   "n_rows": 8006,
+   "n_fraud": 49
+  },
+  "hour_profile_legit": [
+   0.0072,
+   0.0082,
+   0.0079,
+   0.0072,
+   0.0073,
+   0.0131,
+   0.0273,
+   0.0386,
+   0.0536,
+   0.0616,
+   0.0584,
+   0.0597,
+   0.0601,
+   0.0558,
+   0.0536,
+   0.0529,
+   0.0597,
+   0.0651,
+   0.0733,
+   0.0743,
+   0.0665,
+   0.0475,
+   0.0277,
+   0.0133
+  ],
+  "hour_profile_scam": [
+   0.039,
+   0.0,
+   0.013,
+   0.0,
+   0.0649,
+   0.0,
+   0.026,
+   0.013,
+   0.026,
+   0.039,
+   0.0,
+   0.026,
+   0.0519,
+   0.013,
+   0.039,
+   0.026,
+   0.2078,
+   0.013,
+   0.0649,
+   0.1169,
+   0.1299,
+   0.0,
+   0.039,
+   0.0519
+  ],
+  "single_feature_separability": {
+   "payee_age_days": {
+    "roc_auc": 0.9938,
+    "pr_auc": 0.1053
+   },
+   "payee_is_mule": {
+    "roc_auc": 0.9933,
+    "pr_auc": 0.0831
+   },
+   "log_amount": {
+    "roc_auc": 0.9798,
+    "pr_auc": 0.2706
+   },
+   "amount_ratio_median": {
+    "roc_auc": 0.9769,
+    "pr_auc": 0.1583
+   },
+   "typed": {
+    "roc_auc": 0.9227,
+    "pr_auc": 0.0133
+   },
+   "to_merchant": {
+    "roc_auc": 0.7559,
+    "pr_auc": 0.0043
+   },
+   "payee_new_to_user": {
+    "roc_auc": 0.5663,
+    "pr_auc": 0.0014
+   },
+   "hour": {
+    "roc_auc": 0.5638,
+    "pr_auc": 0.0018
+   }
+  },
+  "context_events_by_label": {
+   "accessibility_enabled": {
+    "False": 0,
+    "True": 2
+   },
+   "app_installed": {
+    "False": 16,
+    "True": 10
+   },
+   "call_ended": {
+    "False": 34518,
+    "True": 16
+   },
+   "call_started": {
+    "False": 34520,
+    "True": 16
+   },
+   "notification_lure": {
+    "False": 0,
+    "True": 18
+   },
+   "remote_session_notice": {
+    "False": 0,
+    "True": 8
+   },
+   "sms_lure": {
+    "False": 1842,
+    "True": 5
+   }
+  },
+  "sms_lure_on_non_scam": 1842,
+  "hour_profile_l1_vs_xente": 0.21
+ },
+ "real": {
+  "paysim": {
+   "shape": {
+    "legit_quantiles_over_median": {
+     "0.1": 0.06,
+     "0.25": 0.179,
+     "0.5": 1.0,
+     "0.75": 2.79,
+     "0.9": 4.879,
+     "0.99": 21.237
+    },
+    "fraud_median_over_legit_median": 5.91,
+    "fraud_share_above_legit_p90": 0.539,
+    "fraud_rate": 0.001290820448180152
+   },
+   "hour_profile_legit": [
+    0.0112,
+    0.0042,
+    0.0014,
+    0.0003,
+    0.0002,
+    0.0002,
+    0.0005,
+    0.0014,
+    0.0042,
+    0.0446,
+    0.0669,
+    0.0701,
+    0.076,
+    0.0737,
+    0.0691,
+    0.0655,
+    0.0694,
+    0.0692,
+    0.0913,
+    0.1019,
+    0.0871,
+    0.0389,
+    0.0306,
+    0.0222
+   ],
+   "per_user_txns_median": 1.0
+  },
+  "xente_real": {
+   "shape": {
+    "legit_quantiles_over_median": {
+     "0.1": 0.05,
+     "0.25": 0.25,
+     "0.5": 1.0,
+     "0.75": 5.0,
+     "0.9": 11.2,
+     "0.99": 80.0
+    },
+    "fraud_median_over_legit_median": 650.0,
+    "fraud_share_above_legit_p90": 0.99,
+    "fraud_rate": 0.00201752001839811
+   },
+   "hour_profile_legit": [
+    0.0153,
+    0.0071,
+    0.003,
+    0.0017,
+    0.0018,
+    0.003,
+    0.0074,
+    0.0244,
+    0.0435,
+    0.0557,
+    0.0599,
+    0.059,
+    0.0569,
+    0.0627,
+    0.0651,
+    0.0549,
+    0.0545,
+    0.0542,
+    0.0657,
+    0.0763,
+    0.0762,
+    0.0662,
+    0.0537,
+    0.0316
+   ],
+   "per_user_txns_median": 7.0
+  }
+ },
+ "old_sim": {
+  "rows": {
+   "payments": 344469,
+   "users": 4000,
+   "journeys": 240
+  },
+  "p2m_share_of_user_payments": 0.609,
+  "user_payments_per_day": {
+   "median": 1.42,
+   "p90": 2.12
+  },
+  "victim_rate": 0.06,
+  "hard_negative_payments": 24345,
+  "shape": {
+   "legit_median": 259.99,
+   "legit_q_over_median": {
+    "0.1": 0.132,
+    "0.25": 0.33,
+    "0.5": 1.0,
+    "0.75": 3.279,
+    "0.9": 9.615,
+    "0.99": 56.541
+   },
+   "fraud_median_over_legit_median": 78.01,
+   "fraud_share_above_legit_p90": 0.93,
+   "fraud_rate": 0.00141,
+   "n_rows": 344469,
+   "n_fraud": 487
+  },
+  "hour_profile_legit": [
+   0.0068,
+   0.0033,
+   0.0016,
+   0.001,
+   0.0009,
+   0.0038,
+   0.0117,
+   0.0237,
+   0.0394,
+   0.0438,
+   0.0536,
+   0.0576,
+   0.0614,
+   0.0525,
+   0.0457,
+   0.0454,
+   0.0486,
+   0.0645,
+   0.0908,
+   0.1006,
+   0.0962,
+   0.0831,
+   0.047,
+   0.017
+  ],
+  "single_feature_separability": {
+   "amount_ratio_median_90d": {
+    "roc_auc": 0.9794,
+    "pr_auc": 0.195
+   },
+   "log_amount": {
+    "roc_auc": 0.9739,
+    "pr_auc": 0.2091
+   },
+   "hesitation_s": {
+    "roc_auc": 0.8776,
+    "pr_auc": 0.0117
+   },
+   "payee_age_days": {
+    "roc_auc": 0.8515,
+    "pr_auc": 0.1289
+   },
+   "typed_by_hand": {
+    "roc_auc": 0.7912,
+    "pr_auc": 0.017
+   },
+   "payee_is_merchant": {
+    "roc_auc": 0.7626,
+    "pr_auc": 0.0031
+   },
+   "payee_new_to_user": {
+    "roc_auc": 0.6373,
+    "pr_auc": 0.0021
+   },
+   "hour": {
+    "roc_auc": 0.6227,
+    "pr_auc": 0.0058
+   },
+   "call_active": {
+    "roc_auc": 0.5585,
+    "pr_auc": 0.0018
+   },
+   "lure_max_conf_72h": {
+    "roc_auc": 0.5562,
+    "pr_auc": 0.0272
+   }
+  },
+  "hour_profile_l1_vs_xente": 0.212
+ }
+}

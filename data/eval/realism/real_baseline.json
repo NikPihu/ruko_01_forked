@@ -1,0 +1,195 @@
+{
+  "paysim": {
+    "test_rows": 918617,
+    "test_frauds": 4006,
+    "roc_auc": 0.9679001795826615,
+    "pr_auc": 0.5212022958626291,
+    "recall_at_budget": {
+      "1": 0.3796804792810784,
+      "2": 0.44807788317523717,
+      "5": 0.6270594108836745,
+      "10": 0.744882675986021
+    },
+    "top_features": {
+      "dest_inflows_24h": 0.442,
+      "dest_prior_inflows": 0.292,
+      "log_amount": 0.123,
+      "hour": 0.105,
+      "type_code": 0.034,
+      "dest_is_merchant": 0.004
+    },
+    "note": "Balance columns removed by the mirror (they leak the label). Fraud exists only in TRANSFER and CASH_OUT. Origins are almost all one-off, so there is no per-user history.",
+    "shape": {
+      "legit_quantiles_over_median": {
+        "0.1": 0.06,
+        "0.25": 0.179,
+        "0.5": 1.0,
+        "0.75": 2.79,
+        "0.9": 4.879,
+        "0.99": 21.237
+      },
+      "fraud_median_over_legit_median": 5.91,
+      "fraud_share_above_legit_p90": 0.539,
+      "fraud_rate": 0.001290820448180152
+    },
+    "hour_profile_legit": [
+      0.0112,
+      0.0042,
+      0.0014,
+      0.0003,
+      0.0002,
+      0.0002,
+      0.0005,
+      0.0014,
+      0.0042,
+      0.0446,
+      0.0669,
+      0.0701,
+      0.076,
+      0.0737,
+      0.0691,
+      0.0655,
+      0.0694,
+      0.0692,
+      0.0913,
+      0.1019,
+      0.0871,
+      0.0389,
+      0.0306,
+      0.0222
+    ],
+    "per_user_txns_median": 1.0
+  },
+  "xente_real": {
+    "test_rows": 14350,
+    "test_frauds": 50,
+    "roc_auc": 0.9974972027972028,
+    "pr_auc": 0.969556436727975,
+    "recall_at_budget": {
+      "1": 0.98,
+      "2": 0.98,
+      "5": 0.98,
+      "10": 0.98
+    },
+    "top_features": {
+      "log_value": 0.996,
+      "value_over_user_median": 0.002,
+      "user_prior_txns": 0.001,
+      "hour": 0.0,
+      "PricingStrategy": 0.0,
+      "ChannelId_code": 0.0
+    },
+    "note": "Real e-payment transactions (airtime, bills, financial services) from the Xente platform, Uganda, Nov 2018 - Mar 2019. Fraud here is mostly very large amounts.",
+    "shape": {
+      "legit_quantiles_over_median": {
+        "0.1": 0.05,
+        "0.25": 0.25,
+        "0.5": 1.0,
+        "0.75": 5.0,
+        "0.9": 11.2,
+        "0.99": 80.0
+      },
+      "fraud_median_over_legit_median": 650.0,
+      "fraud_share_above_legit_p90": 0.99,
+      "fraud_rate": 0.00201752001839811
+    },
+    "hour_profile_legit": [
+      0.0153,
+      0.0071,
+      0.003,
+      0.0017,
+      0.0018,
+      0.003,
+      0.0074,
+      0.0244,
+      0.0435,
+      0.0557,
+      0.0599,
+      0.059,
+      0.0569,
+      0.0627,
+      0.0651,
+      0.0549,
+      0.0545,
+      0.0542,
+      0.0657,
+      0.0763,
+      0.0762,
+      0.0662,
+      0.0537,
+      0.0316
+    ],
+    "per_user_txns_median": 7.0
+  },
+  "ruko_synthetic": {
+    "models": {
+      "transaction_only": {
+        "test_rows": null,
+        "roc_auc": 0.999018209575094,
+        "pr_auc": 0.8675982019415485,
+        "recall_at_budget": {
+          "1": 0.8524590163934426,
+          "2": 0.9098360655737705,
+          "5": 0.9590163934426229,
+          "10": 0.9754098360655737
+        }
+      },
+      "ruko_journey": {
+        "test_rows": null,
+        "roc_auc": 0.9984558378619266,
+        "pr_auc": 0.9043862236191819,
+        "recall_at_budget": {
+          "1": 0.9180327868852459,
+          "2": 0.9262295081967213,
+          "5": 0.9754098360655737,
+          "10": 0.9918032786885246
+        }
+      }
+    },
+    "shape": {
+      "legit_quantiles_over_median": {
+        "0.1": 0.133,
+        "0.25": 0.333,
+        "0.5": 1.0,
+        "0.75": 3.315,
+        "0.9": 9.876,
+        "0.99": 56.927
+      },
+      "fraud_median_over_legit_median": 78.01,
+      "fraud_share_above_legit_p90": 0.93,
+      "fraud_rate": 0.0018017818031137156
+    },
+    "hour_profile_legit": [
+      0.0067,
+      0.0032,
+      0.0016,
+      0.001,
+      0.0009,
+      0.0037,
+      0.0116,
+      0.0238,
+      0.0396,
+      0.0438,
+      0.0536,
+      0.0578,
+      0.0615,
+      0.0527,
+      0.0458,
+      0.0454,
+      0.0486,
+      0.0643,
+      0.0911,
+      0.1003,
+      0.0963,
+      0.0828,
+      0.0469,
+      0.0172
+    ],
+    "per_user_txns_median": 67.0
+  },
+  "hour_profile_correlation": {
+    "ruko_vs_xente_real": 0.934,
+    "ruko_vs_paysim": 0.879,
+    "paysim_vs_xente_real": 0.898
+  }
+}
