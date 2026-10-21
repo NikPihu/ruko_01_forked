@@ -13,6 +13,7 @@ export interface Health {
 
 export interface Alert {
   alert_id: string;
+  payment_id?: string;
   ts: string;
   user_hash: string;
   payee: string;
@@ -91,6 +92,8 @@ export interface StoryLink {
   n?: number;
   inr: number;
   hold_min?: number | null;
+  completed?: number;
+  completed_inr?: number;
 }
 
 export interface Story {
@@ -106,6 +109,29 @@ export interface Story {
   flows_visible: boolean | null;
   signals: Record<string, unknown>;
   summary: string[];
+}
+
+/** One payment, traced by its id (the /v1/decide request_id) from the check to its outcome (c2-0.6). */
+export interface Payment {
+  payment_id: string;
+  user: string;
+  payee: string;
+  inr: number;
+  ts: string;
+  checked: boolean;
+  tier: Tier | null;
+  reasons: string[];
+  evidence_id: string | null;
+  status: "checked" | "completed" | "cancelled";
+  outcome_ts: string | null;
+}
+
+export interface PaymentList {
+  account: string;
+  total: number;
+  by_status: Record<"checked" | "completed" | "cancelled", number>;
+  completed_inr: number;
+  payments: Payment[];
 }
 
 export interface Verify {
@@ -156,6 +182,14 @@ export const api = {
   suspects: (minBand = "med") => get<Suspects>(`/v1/graph/suspects?min_band=${minBand}`),
   story: (upi: string) => get<Story>(`/v1/graph/story/${encodeURIComponent(upi.trim().toLowerCase())}`),
   verify: () => get<Verify>("/v1/evidence/verify"),
+  payments: (upi: string) => get<PaymentList>(`/v1/graph/payments/${encodeURIComponent(upi.trim().toLowerCase())}`),
+  /** null when no payment has that id (unknown, or older than 30 days). */
+  payment: async (id: string) => {
+    const r = await fetch(`/v1/payments/${encodeURIComponent(id.trim())}`, { headers: { Accept: "application/json" } });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`payment: ${r.status}`);
+    return r.json() as Promise<Payment>;
+  },
   evaluation: () => get<EvalResults>("/v1/eval"),
   review: async (upi: string, reviewer: string, decision: "approve" | "reject") => {
     const r = await fetch(`/v1/graph/suspects/${encodeURIComponent(upi)}/review`, {

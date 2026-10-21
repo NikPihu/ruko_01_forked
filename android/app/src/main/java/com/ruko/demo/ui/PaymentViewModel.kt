@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruko.demo.DemoConfig
 import com.ruko.demo.data.Consents
+import com.ruko.demo.data.PaymentRecord
 import com.ruko.demo.net.ApiClient
 import com.ruko.demo.net.DecideRequest
 import com.ruko.demo.net.DecideResponse
@@ -62,6 +63,10 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     var checking by mutableStateOf(false)
         private set
     var decision by mutableStateOf<Decision?>(null)
+        private set
+
+    // The payment being made, for the history: its id is the request_id sent to /v1/decide.
+    var checkedPayment by mutableStateOf<PaymentRecord?>(null)
         private set
     var serverStatus by mutableStateOf<String?>(null)
         private set
@@ -159,6 +164,17 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
                 Decision.Unavailable
             }
             decision = result
+            val answer = (result as? Decision.Result)?.response
+            checkedPayment = PaymentRecord(
+                id = request.requestId,
+                ts = System.currentTimeMillis(),
+                payee = request.payeeUpiId,
+                amountInr = amount,
+                entryMethod = request.entryMethod.name.lowercase(),
+                tier = answer?.tier,
+                reasons = answer?.reasons.orEmpty(),
+                evidenceId = answer?.evidenceId,
+            )
             checking = false
             onDecided(result)
         }
@@ -173,6 +189,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         entryMethod = EntryMethod.TYPED
         payerSays = null
         decision = null
+        checkedPayment = null
     }
 
     private companion object {

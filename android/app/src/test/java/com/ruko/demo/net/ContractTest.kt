@@ -45,8 +45,24 @@ class ContractTest {
                 file.name.startsWith("decide_response") -> strict.decodeFromString(DecideResponse.serializer(), file.readText())
                 file.name.startsWith("episode_event_response") -> strict.decodeFromString(EpisodeEventResponse.serializer(), file.readText())
                 file.name.startsWith("episode_event") -> strict.decodeFromString(EpisodeEvent.serializer(), file.readText())
+                file.name.startsWith("payment_outcome_response") -> strict.decodeFromString(PaymentOutcomeResponse.serializer(), file.readText())
+                file.name.startsWith("payment_outcome") -> strict.decodeFromString(PaymentOutcome.serializer(), file.readText())
             }
         }
+    }
+
+    @Test
+    fun paymentOutcomeMatchesItsSchema() {
+        val outcome = Json.parseToJsonElement(File(contracts, "c2_payment_outcome.schema.json").readText()).jsonObject
+        assertEquals(outcome.getValue("contract_version").jsonPrimitive.content, CONTRACT_VERSION)
+        val req = outcome.getValue("request").jsonObject
+        val built = PaymentOutcome("0b6e4d2f-8c1a-4f3e-b7d9-5a2c1e8f0d47", "u_demo_meena", "shreeganesh.kirana@okaxis",
+            240.0, PaymentStatus.COMPLETED, RequestBuilder.nowIst())
+        assertFieldsAllowed(RukoJson.encodeToJsonElement(PaymentOutcome.serializer(), built).jsonObject, req)
+        assertSubset(PaymentStatus.entries.map(::wire), enumValues(req.getValue("properties").jsonObject.getValue("status")))
+        val example = Json.parseToJsonElement(example("payment_outcome_completed.json"))
+        val decoded = RukoJson.decodeFromString(PaymentOutcome.serializer(), example.toString())
+        assertEquals(normalise(example), normalise(RukoJson.encodeToJsonElement(PaymentOutcome.serializer(), decoded)))
     }
 
     @Test

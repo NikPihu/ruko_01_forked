@@ -8,5 +8,5 @@
   "stage": null,
   "evidence_id": null,
   "fail_open": true,
-  "contract_version": "c2-0.5"
+  "contract_version": "c2-0.6"
 }

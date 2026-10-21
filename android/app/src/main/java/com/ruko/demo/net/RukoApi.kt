@@ -22,6 +22,10 @@ interface RukoApi {
     /** Episode events (c2-0.4), sent in the background by shield/EventSender. */
     @POST("v1/episode")
     suspend fun episode(@Body event: EpisodeEvent): EpisodeEventResponse
+
+    /** What happened after the check (c2-0.6), sent in the background by the payment history. */
+    @POST("v1/payment/outcome")
+    suspend fun paymentOutcome(@Body outcome: PaymentOutcome): PaymentOutcomeResponse
 }
 
 object ApiClient {

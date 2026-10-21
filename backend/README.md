@@ -82,6 +82,7 @@ Brief: `../docs/task-scam-watcher.md` (build notes at its end).
 | Payment graph: crowd signal, money loop, mock bank flows | `graph/store.py`, `intel_mock/bank.py` (`/banks/{code}/payee-flows/{upi}`) |
 | Mule discovery (hourly), two-person review, console API | `graph/discover.py`, `GET /v1/graph/account/{upi}`, `GET /v1/graph/story/{upi}`, `GET /v1/graph/suspects`, `POST /v1/graph/suspects/{upi}/review` |
 | Analyst console reads | `GET /v1/alerts` (payments at T1+), `GET /v1/cases`, `GET /v1/eval`; the built console (`../console/`) is served at `/console/` |
+| Payment ids and outcomes (c2-0.6): one record per `/v1/decide` request_id, completed / cancelled from the phone | `graph/store.py` (`Payment`, `record_outcome`), `POST /v1/payment/outcome`, `GET /v1/payments/{id}`, `GET /v1/graph/payments/{upi}` |
 
 ```bash
 python -m features.offline_episode --data data/

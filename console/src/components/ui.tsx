@@ -22,8 +22,8 @@ export function go(hash: string) {
   window.location.hash = hash;
 }
 
-export function exploreHref(upi: string) {
-  return `#/explore?upi=${encodeURIComponent(upi)}`;
+export function exploreHref(upi: string, payment?: string) {
+  return `#/explore?upi=${encodeURIComponent(upi)}` + (payment ? `&payment=${encodeURIComponent(payment)}` : "");
 }
 
 /** Load once, reload on demand; errors are shown, never thrown. */

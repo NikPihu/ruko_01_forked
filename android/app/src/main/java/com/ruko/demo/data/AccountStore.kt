@@ -84,9 +84,15 @@ class AccountStore(context: Context) {
 
     fun saveTypingGaps(gaps: List<Double>) = write(TYPING_FILE, ListSerializer(Double.serializer()), gaps)
 
+    /** Every payment started in this app (90 days, at most 500), with its payment id and outcome. */
+    fun loadHistory(): List<PaymentRecord> = read(HISTORY_FILE, ListSerializer(PaymentRecord.serializer())) ?: emptyList()
+
+    fun saveHistory(history: List<PaymentRecord>) = write(HISTORY_FILE, ListSerializer(PaymentRecord.serializer()), history)
+
     /** Right to erasure: remove the files and the key that could decrypt any copy of them. */
     fun deleteAll() {
         store.delete(PROFILE_FILE)
+        store.delete(HISTORY_FILE)
         store.delete(CONSENTS_FILE)
         store.delete(PAYEES_FILE)
         store.delete(PAYMENTS_FILE)
@@ -118,5 +124,6 @@ class AccountStore(context: Context) {
         const val PAYEES_FILE = "recent_payees.enc"
         const val PAYMENTS_FILE = "payments.enc"
         const val TYPING_FILE = "typing.enc"
+        const val HISTORY_FILE = "history.enc"
     }
 }
