@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/episode",
-  "contract_version": "c2-0.4",
+  "contract_version": "c2-0.5",
   "request": {
     "$defs": {
       "EpisodeAccount": {
@@ -327,6 +327,7 @@
             "R9_story_mismatch",
             "R10_bait_then_pay",
             "R11_ring_link",
+            "R12_coached_session",
             "ruko_unavailable"
           ],
           "type": "string"
@@ -359,7 +360,7 @@
         "title": "Case Id"
       },
       "contract_version": {
-        "default": "c2-0.4",
+        "default": "c2-0.5",
         "title": "Contract Version",
         "type": "string"
       }

@@ -4,12 +4,13 @@ Families (corroboration counts families, not sources):
     C context    calls, remote control, sideloaded apps        (phone)
     L lure       the hook: scam-script messages, the task-scam episode (phone)
     P payee      bank features, MuleHunter, registry, FRI, NPCI name/type  (payee side)
-    B behaviour  amount vs history, new payee, typed, tranches (payer side)
+    B behaviour  amount vs history, new payee, typed, tranches, coached session (payer side)
     S stage      journey stage (not a family; used for context)
 """
 from __future__ import annotations
 
 from features.episode import STATE_CODE, effective_episode
+from features.session import session_features
 from features.user_baseline import UserBaseline
 from api.intel import IntelResult
 from schema.events import DecideRequest
@@ -20,7 +21,7 @@ FRI_LEVEL = {"NONE": 0, "MEDIUM": 1, "HIGH": 2, "VERY_HIGH": 3}
 FAMILY = {
     "on_call": "C", "caller_unknown": "C", "voip_call": "C", "foreign_caller": "C",
     "outgoing_to_unknown": "C", "remote_control": "C", "untrusted_accessibility": "C",
-    "sideloaded_last_24h": "C",
+    "sideloaded_last_24h": "C", "call_on_speaker": "C",
     "lure_max_conf_72h": "L", "lure_tag": "L",
     # The whole episode is one phone summary, so all of it sits in one family (never two).
     "episode_state": "L", "episode_age_days": "L", "episode_bait_credits": "L",
@@ -35,6 +36,9 @@ FAMILY = {
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
+    # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
+    "session_dictated": "B", "session_pasted_after_switch": "B", "session_app_switches": "B",
+    "session_hesitation": "B", "session_abandoned_30m": "B",
     "stage": "S", "minutes_since_first_contact": "S",
 }
 
@@ -54,6 +58,8 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["foreign_caller"] = None if not num else not num.startswith("+91")
     f["outgoing_to_unknown"] = None if call is None or call.direction is None else (
         call.direction == "outgoing" and call.caller_in_contacts is False)
+    # Speaker on only matters during a call; it strengthens the call signal, it is not a new family.
+    f["call_on_speaker"] = call.speaker_on if call is not None and st.on_call else None
     if dev is None:
         f["remote_control"] = f["untrusted_accessibility"] = f["sideloaded_last_24h"] = None
     else:
@@ -116,6 +122,7 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["attempts_72h"] = st.attempts_72h
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
     f["trusted_payee"] = trusted
+    f.update(session_features(ctx.session if ctx else None))
 
     # S — stage
     f["stage"] = int(st.stage[1])

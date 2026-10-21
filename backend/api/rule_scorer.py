@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import math
 
-MODEL_VERSION = "rules-0.3"
+from features.session import T as SESSION
+
+MODEL_VERSION = "rules-0.4"
 # L rose from 2.0 in rules-0.3: it now carries the phone's 30-day task-scam episode, which is as
 # strong as live call context. One family alone still stays far below any tier (p < 0.15).
 FAMILY_WEIGHT = {"C": 3.2, "L": 3.5, "P": 3.2, "B": 2.4}
@@ -24,7 +26,11 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
 
     # Context: who is on the line, and who can see the screen.
     if f["on_call"] and f["caller_unknown"]:
-        add("C", 0.9 if f["foreign_caller"] else 0.8 if f["voip_call"] else 0.7, "R1_live_unknown_call")
+        strength = 0.9 if f["foreign_caller"] else 0.8 if f["voip_call"] else 0.7
+        # On speaker while paying: someone is talking the user through it (same call, same family).
+        if f["call_on_speaker"]:
+            strength = min(0.95, strength + 0.1)
+        add("C", strength, "R1_live_unknown_call")
     elif f["on_call"] and f["outgoing_to_unknown"]:
         add("C", 0.5, "R1_live_unknown_call")
     if f["remote_control"]:
@@ -96,6 +102,17 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("B", 0.4, "R7_tranche_pattern")
     if (f["new_payee_sum_to_max_90d"] or 0) >= 3 and f["attempts_72h"] >= 1:
         add("B", 0.6, "R7_tranche_pattern")
+    # Coached session (c2-0.5): the Pay screen was used the way a guided victim uses it.
+    if f["session_dictated"]:
+        add("B", 0.6, "R12_coached_session")
+    if f["session_pasted_after_switch"]:
+        add("B", 0.55, "R12_coached_session")
+    if (f["session_app_switches"] or 0) >= SESSION["many_switches"]:
+        add("B", 0.45, "R12_coached_session")
+    if (f["session_abandoned_30m"] or 0) >= 1:
+        add("B", 0.4, "R12_coached_session")
+    if f["session_hesitation"]:
+        add("B", 0.3, "R12_coached_session")
     return s
 
 
@@ -110,10 +127,10 @@ def _playbook(f: dict) -> str | None:
         return "task_job"
     if f["sideloaded_last_24h"] and tag == "kyc":
         return "fake_kyc_apk"
-    if f["outgoing_to_unknown"] and f["remote_control"]:
+    if f["outgoing_to_unknown"] and (f["remote_control"] or f["session_dictated"]):
         return "fake_customer_care"
     if tag == "arrest_threat" or (f["on_call"] and f["caller_unknown"]
-                                  and (f["remote_control"] or f["story_mismatch"])):
+                                  and (f["remote_control"] or f["story_mismatch"] or f["session_dictated"])):
         return "digital_arrest"
     if tag == "trading_tip":
         return "trading_group"

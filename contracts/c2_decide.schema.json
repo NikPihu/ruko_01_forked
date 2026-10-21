@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.4",
+  "contract_version": "c2-0.5",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -99,6 +99,18 @@
             ],
             "default": null,
             "title": "Ended Min Ago"
+          },
+          "speaker_on": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Speaker On"
           }
         },
         "title": "CallSignal",
@@ -140,6 +152,17 @@
             "anyOf": [
               {
                 "$ref": "#/$defs/EpisodeSignal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SessionSignal"
               },
               {
                 "type": "null"
@@ -403,6 +426,156 @@
         ],
         "title": "LureSignal",
         "type": "object"
+      },
+      "SessionSignal": {
+        "additionalProperties": false,
+        "description": "How the user behaved on the Pay screen of THIS payment (c2-0.5).\n\nMeasured inside the app, from opening Pay to tapping Pay. Only counts and rounded durations:\nnever the keys typed, never which other app was open. Field meanings: contracts/README.md.",
+        "properties": {
+          "amount_digits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Digits"
+          },
+          "amount_median_gap_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Median Gap S"
+          },
+          "amount_max_gap_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Max Gap S"
+          },
+          "amount_gap_vs_usual": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Gap Vs Usual"
+          },
+          "amount_edits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Edits"
+          },
+          "payee_pasted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee Pasted"
+          },
+          "pasted_within_s_of_return": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pasted Within S Of Return"
+          },
+          "app_switches": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "App Switches"
+          },
+          "away_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Away S"
+          },
+          "pay_screen_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pay Screen S"
+          },
+          "abandoned_flows_30m": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Abandoned Flows 30M"
+          }
+        },
+        "title": "SessionSignal",
+        "type": "object"
       }
     },
     "additionalProperties": false,
@@ -514,6 +687,7 @@
             "R9_story_mismatch",
             "R10_bait_then_pay",
             "R11_ring_link",
+            "R12_coached_session",
             "ruko_unavailable"
           ],
           "type": "string"
@@ -580,7 +754,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.4",
+        "default": "c2-0.5",
         "title": "Contract Version",
         "type": "string"
       }

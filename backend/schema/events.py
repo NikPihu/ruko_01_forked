@@ -10,13 +10,14 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.4"
+CONTRACT_VERSION = "c2-0.5"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
     "R1_live_unknown_call", "R2_remote_control", "R3_mule_like_payee", "R4_unusual_amount",
     "R5_lure_message", "R6_new_payee_typed", "R7_tranche_pattern", "R8_intel_hit",
-    "R9_story_mismatch", "R10_bait_then_pay", "R11_ring_link", "ruko_unavailable",
+    "R9_story_mismatch", "R10_bait_then_pay", "R11_ring_link", "R12_coached_session",
+    "ruko_unavailable",
 ]
 LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "normal"]
 
@@ -33,6 +34,7 @@ class CallSignal(_M):
     caller_in_contacts: Optional[bool] = None
     started_min_ago: Optional[float] = Field(None, ge=0)
     ended_min_ago: Optional[float] = Field(None, ge=0)  # for a call that just finished
+    speaker_on: Optional[bool] = None            # c2-0.5: call audio on the loudspeaker at Pay
 
 
 class DeviceSignal(_M):
@@ -68,11 +70,31 @@ class EpisodeSignal(_M):
     rules_version: Optional[str] = None                    # e.g. "episode-0.1"
 
 
+class SessionSignal(_M):
+    """How the user behaved on the Pay screen of THIS payment (c2-0.5).
+
+    Measured inside the app, from opening Pay to tapping Pay. Only counts and rounded durations:
+    never the keys typed, never which other app was open. Field meanings: contracts/README.md.
+    """
+    amount_digits: Optional[int] = Field(None, ge=0)              # digit key presses in the amount box
+    amount_median_gap_s: Optional[float] = Field(None, ge=0)      # typical pause between those digits
+    amount_max_gap_s: Optional[float] = Field(None, ge=0)         # longest pause between them
+    amount_gap_vs_usual: Optional[float] = Field(None, ge=0)      # median gap / this user's usual; null until 3 past payments
+    amount_edits: Optional[int] = Field(None, ge=0)               # deletions in the amount box
+    payee_pasted: Optional[bool] = None                           # the UPI ID arrived in one paste
+    pasted_within_s_of_return: Optional[float] = Field(None, ge=0)  # paste this soon after coming back to the app
+    app_switches: Optional[int] = Field(None, ge=0)               # times the app went to the background
+    away_s: Optional[float] = Field(None, ge=0)                   # total time away
+    pay_screen_s: Optional[float] = Field(None, ge=0)             # opening Pay -> tapping Pay
+    abandoned_flows_30m: Optional[int] = Field(None, ge=0)        # payments started and left unpaid, last 30 min
+
+
 class Context(_M):
     call: Optional[CallSignal] = None
     device: Optional[DeviceSignal] = None
     lures: list[LureSignal] = Field(default_factory=list)
     episode: Optional[EpisodeSignal] = None  # c2-0.3 (the c2-0.2 `money` group was removed in c2-0.4)
+    session: Optional[SessionSignal] = None  # c2-0.5
 
 
 class DecideRequest(_M):
