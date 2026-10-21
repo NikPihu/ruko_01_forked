@@ -77,6 +77,8 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("P", 0.6, "R11_ring_link")
     if f["payee_forwards_to_cashout"]:
         add("P", 0.6, "R11_ring_link")
+    if f["payee_approved_suspect"]:  # found by graph discovery, approved by two analysts
+        add("P", 0.7, "R11_ring_link")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]

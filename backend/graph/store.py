@@ -37,6 +37,7 @@ class Edge:
     last_ts: Optional[datetime] = None
     sources: set[str] = field(default_factory=set)
     protected: bool = False     # part of a case's evidence
+    hold_min: Optional[float] = None   # bank flows: median minutes the money stayed before moving on
 
     def add(self, inr: float, ts: datetime, source: str) -> None:
         self.n += 1
@@ -113,6 +114,7 @@ class GraphStore:
             e = self.edges.setdefault((account, to), Edge())
             if "bank_flows" not in e.sources:  # a fresh snapshot, not a new payment
                 e.n, e.inr = o["n"], o["inr"]
+            e.hold_min = o.get("median_hold_min")
             e.first_ts, e.last_ts = e.first_ts or as_of, as_of
             e.sources.add("bank_flows")
             self.out[account].add(to)

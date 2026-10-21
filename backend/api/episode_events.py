@@ -42,6 +42,8 @@ class AccountCheck:
     intel_hit: Optional[bool] = None
     ring: dict = field(default_factory=dict)   # graph signals (crowd, money loop), filled by §9
     reached: bool = False
+    verified_merchant: Optional[bool] = None
+    holder_type: Optional[str] = None
 
     @property
     def payee_evidence(self) -> bool:
@@ -62,7 +64,9 @@ def check_account(upi: str, role: str, res: IntelResult) -> AccountCheck:
     fri = FRI_LEVEL.get((res.payee_fri or {}).get("risk"), 0)
     intel_hit = None if res.status.get("payee_registry") in UNREACHED else bool(listed or fri >= 2)
     reached = any(v not in UNREACHED for v in res.status.values())
-    return AccountCheck(upi, role, mule_like, intel_hit, reached=reached)
+    npci = res.npci or {}
+    return AccountCheck(upi, role, mule_like, intel_hit, reached=reached,
+                        verified_merchant=npci.get("verified_merchant"), holder_type=npci.get("holder_type"))
 
 
 class EpisodeService:
@@ -95,7 +99,8 @@ class EpisodeService:
             for c, f in zip(checks, flows):
                 self.graph.add_bank_flows(c.upi_id, f)
                 self.graph.mark(c.upi_id, flagged=bool(c.mule_like or c.intel_hit) or None,
-                                listed=c.intel_hit or None, role=c.role)
+                                listed=c.intel_hit or None, role=c.role,
+                                verified_merchant=c.verified_merchant, holder_type=c.holder_type)
             for c in checks:
                 c.ring = self.graph.account_signals(c.upi_id, now)
 

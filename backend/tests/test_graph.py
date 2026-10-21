@@ -154,3 +154,50 @@ def test_crowd_evidence_alone_never_reaches_t2(stack, world):
                                         "amount_inr": 2_000, "entry_method": "typed", "ts": NOW.isoformat(),
                                         "context": None}).json()
     assert r["tier"] in ("T0", "T1")
+
+
+# ---------- discovery and review (§9.5, §9.7) ----------
+
+def test_discovery_finds_an_unlisted_account_next_to_a_listed_mule():
+    from graph import discover as d
+    g = GraphStore()
+    # Two victims each paid a listed mule and an account nobody has listed yet.
+    for i in range(2):
+        g.add_episode(EpisodeEvent.model_validate(event(f"u_v{i}", [bait("b@ybl"), payee("listed.mule@ybl"),
+                                                                    payee("fresh.mule@ybl", step=2)], f"d{i}")), NOW)
+    g.add_bank_flows("fresh.mule@ybl", {"as_of": NOW.isoformat(), "outbound": [
+        {"upi_id": "hub@ybl", "n": 4, "inr": 40_000, "median_hold_min": 12}]})
+    g.mark("listed.mule@ybl", listed=True)
+    g.mark("big.shop@ybl", verified_merchant=True)
+    out = d.discover(g, {}, NOW)
+    names = [s["upi_id"] for s in out]
+    assert "fresh.mule@ybl" in names and "listed.mule@ybl" not in names  # seeds aren't suspects
+    fresh = next(s for s in out if s["upi_id"] == "fresh.mule@ybl")
+    assert fresh["ring_id"] and "paid" in fresh["why"] and not fresh["review"]["approved"]
+    assert all(not s["upi_id"].startswith("u:") for s in out)  # victims are never suspects
+
+
+def test_a_suspect_needs_two_different_analysts():
+    from graph import discover as d
+    reviews = {}
+    d.review(reviews, "fresh.mule@ybl", "asha", "approve")
+    d.review(reviews, "fresh.mule@ybl", "asha", "approve")
+    assert not reviews["fresh.mule@ybl"].approved
+    d.review(reviews, "fresh.mule@ybl", "ravi", "approve")
+    assert reviews["fresh.mule@ybl"].approved
+    d.review(reviews, "fresh.mule@ybl", "meera", "reject")
+    assert not reviews["fresh.mule@ybl"].approved
+
+
+def test_console_endpoints(stack, world):
+    engine, _ = stack
+    mule, cash_out = mule_and_cash_out(world)
+    engine.post("/v1/episode", json=event("u_000002", [bait(cash_out), payee(mule)], "console_1"))
+    g = engine.get(f"/v1/graph/account/{mule}?hops=2").json()
+    assert g["center"] == mule and g["edges"] and "money_loop" in g["signals"]
+    s = engine.get("/v1/graph/suspects").json()
+    assert "suspects" in s and s["approvals_needed"] == 2 and s["last_run"]["error"] is None
+    r = engine.post(f"/v1/graph/suspects/{mule}/review", json={"reviewer": "asha", "decision": "approve"}).json()
+    assert r["approved"] is False
+    assert engine.post(f"/v1/graph/suspects/{mule}/review", json={"reviewer": "x", "decision": "maybe"}).status_code == 422
+    assert "cytoscape" in engine.get("/console/graph").text
