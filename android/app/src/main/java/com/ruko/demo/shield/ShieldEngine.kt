@@ -8,10 +8,12 @@ import kotlinx.serialization.Serializable
  * What the background watcher does with new transactions, without any Android code:
  * update the episode, pick the notifications to show (at most one per state change and two a
  * week) and record state changes, which become episode events for the server (c2-0.4).
+ * WATCHING (small money from a stranger) is recorded but never shown: one credit is too common
+ * (refunds, cashback) to warn about. The user hears from us once the pattern is ACTIVE.
  */
 object ShieldEngine {
 
-    enum class AlertKind { WATCHING, ACTIVE, OUT_OTHER_APP }
+    enum class AlertKind { ACTIVE, OUT_OTHER_APP }
 
     data class Alert(val kind: AlertKind, val episodeId: String?, val amountInr: Double, val summary: EpisodeSummaryText)
 
@@ -63,7 +65,6 @@ object ShieldEngine {
         if (before.state.live && !sameEpisode) transitions += Transition("closed", before.id, ts)
         if (after.state == EpisodeState.WATCHING && !(sameEpisode && before.state.live)) {
             transitions += Transition("watching", after.id, ts, t)
-            alerts += Alert(AlertKind.WATCHING, after.id, t?.amount ?: 0.0, text(after))
             return
         }
         if (!sameEpisode || t == null) return

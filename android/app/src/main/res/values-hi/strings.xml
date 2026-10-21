@@ -6,8 +6,6 @@
     <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
     <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
     <string name="shield_working">स्कैम शील्ड एक बैंक अलर्ट जाँच रहा है</string>
-    <string name="shield_watching_title">‘टास्क’ के लिए पैसे मिले?</string>
-    <string name="shield_watching_text">‘टास्क’ के लिए %1$s मिले? असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
     <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
     <string name="shield_active_text">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
     <string name="shield_out_title">और पैसे मत भेजिए</string>
@@ -27,7 +25,6 @@
     <string name="delete_history_title">पैसों का इतिहास मिटाएँ?</string>
     <string name="delete_history_body">स्कैम शील्ड ने जो बैंक अलर्ट और भुगतान देखे हैं, वे मिट जाएँगे। नज़र अभी से फिर शुरू होगी।</string>
     <string name="delete_history_confirm">इतिहास मिटाएँ</string>
-    <string name="episode_title_watching">‘टास्क’ वाले पैसों से सावधान</string>
     <string name="episode_title_active">यह टास्क स्कैम लगता है</string>
     <string name="episode_body_watching">आपको %2$d अनजान खातों से %1$s मिले। असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
     <string name="episode_body_active">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>

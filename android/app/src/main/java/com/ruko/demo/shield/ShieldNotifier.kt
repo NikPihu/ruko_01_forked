@@ -72,8 +72,6 @@ object ShieldNotifier {
     fun text(c: Context, a: ShieldEngine.Alert): Pair<String, String> {
         val s = a.summary
         return when (a.kind) {
-            ShieldEngine.AlertKind.WATCHING -> c.getString(R.string.shield_watching_title) to
-                c.getString(R.string.shield_watching_text, rupees(a.amountInr))
             ShieldEngine.AlertKind.ACTIVE -> c.getString(R.string.shield_active_title) to
                 c.getString(R.string.shield_active_text, rupees(s.baitInr), s.baitCredits, rupees(s.outsInr), s.newPayees)
             ShieldEngine.AlertKind.OUT_OTHER_APP -> c.getString(R.string.shield_out_title) to

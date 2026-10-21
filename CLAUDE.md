@@ -58,7 +58,9 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    `eval/session_eval.py` still hides scam payments from the engine's ledger (an old workaround)
    until it is re-run without it.
 10. **Warn, never block, on the phone.** Phone-side alerts (watcher notifications, the Home card)
-    only warn. Interruptions at payment time come from the engine.
+    only warn. Interruptions at payment time come from the engine. They appear only once there is a
+    pattern (episode ACTIVE, or the server answered `high`); a WATCHING episode (one small credit
+    from a stranger) is recorded and reported, but not shown.
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
@@ -106,7 +108,7 @@ account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 143 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest backend/tests -q          # 144 tests (with PYTHONPATH set)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 58 tests
 ```
 
@@ -130,7 +132,7 @@ mind. Offline episode features for training:
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
-- `api/rule_scorer.py` (`rules-0.4`, hand-set fallback until `ml/model/predict.py` exists),
+- `api/rule_scorer.py` (`rules-0.5`, hand-set fallback until `ml/model/predict.py` exists),
   `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds), `api/intel.py`,
   `api/episode_events.py`.
 - `features/`: `build.py` (one feature builder; `FAMILY` map), `tracker.py` (stages S0 to S5),
