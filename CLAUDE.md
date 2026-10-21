@@ -53,8 +53,10 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 9. **The engine only sees what RUKO could really see.** It never reads the simulator's ground
    truth (`is_mule`, `label_*`, journeys, full ledger) at decision time. The payment graph is built
    only from `/v1/decide`, `/v1/episode` and bank flows the visibility setting allows. Ground truth
-   is for scoring in `data/eval/` only. Known leak, not fixed: `features/user_baseline.py` builds
-   baselines from the whole ledger; evaluations exclude scam payments from it.
+   is for scoring in `data/eval/` only. User baselines (`features/user_baseline.py`,
+   `Baselines.get(user, at=ts)`) use only payments before the one being judged; keep it that way.
+   `eval/session_eval.py` still hides scam payments from the engine's ledger (an old workaround)
+   until it is re-run without it.
 10. **Warn, never block, on the phone.** Phone-side alerts (watcher notifications, the Home card)
     only warn. Interruptions at payment time come from the engine.
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
@@ -100,7 +102,7 @@ account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 123 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest backend/tests -q          # 130 tests (with PYTHONPATH set)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 52 tests
 ```
 
@@ -110,8 +112,12 @@ compileSdk 37, targetSdk 34, minSdk 26. The system `java` (Java 8) does not work
 
 Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph_eval`,
 `python -m eval.session_eval` write `data/eval/*_results.json` and `data/eval/charts/*.svg`
-(results are committed). Latest coached-session run: fresh mules 62.5% → 67.8% of scam rupees
-interrupted, no new false alarms. Offline episode features for training:
+(results are committed). Latest episode run (history-only baselines), fresh mules, scam rupees
+interrupted: 54.2% / 65.3% / 90.5% across its setups. The coached-session result (fresh mules
+62.5% → 67.8%, no new false alarms) predates that fix. `data/eval/realism/` compares the simulator
+with an older prototype, PaySim and Xente (`FINDINGS.md`): the team data is too easy (e.g. mule
+account age alone gives AUC 0.994) and has few scam payments, so read eval numbers with that in
+mind. Offline episode features for training:
 `python -m features.offline_episode --data data/`.
 
 ## Map
@@ -125,7 +131,8 @@ interrupted, no new false alarms. Offline episode features for training:
   `api/episode_events.py`.
 - `features/`: `build.py` (one feature builder; `FAMILY` map), `tracker.py` (stages S0 to S5),
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
-  → coached-session signs), `user_baseline.py`, `offline_episode.py`.
+  → coached-session signs), `user_baseline.py` (history before the payment only),
+  `offline_episode.py`.
 - `graph/store.py` (crowd signal, money loop, story for the console), `graph/discover.py`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
@@ -143,7 +150,7 @@ interrupted, no new false alarms. Offline episode features for training:
   stream so the core world and demo identities never shift; `sim/session.py` adds Pay-screen
   sessions the same way). `sim/mule_pump.py`, `sim/bait_pump.py` prepare live demos.
 - `eval/`: `episode_eval.py`, `graph_eval.py`, `session_eval.py` (ground truth used for scoring
-  only); `redteam/` is empty. `data/manifest.json` and `data/sample_v0/` are committed;
+  only), `realism/` (`compare.py`, `FINDINGS.md`); `redteam/` is empty. `data/manifest.json` and `data/sample_v0/` are committed;
   `data/*.parquet` is git ignored.
 
 ## Demo identities
