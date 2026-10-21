@@ -26,7 +26,8 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api import rule_scorer as scorer
@@ -43,6 +44,9 @@ from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
 DEADLINE_S = 0.200
+MAX_ALERTS = 500
+# The built analyst console (cd console && npm run build), served at /console/.
+CONSOLE_DIST = Path(__file__).resolve().parents[2] / "console" / "dist"
 
 
 class ReviewBody(BaseModel):
@@ -97,6 +101,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     reviews: dict[str, discovery.Review] = {}
     found: dict = {"suspects": [], "last_run": None}
     app.state.reviews = reviews
+    # Payment checks that got T1 or higher, newest last, for the analyst console.
+    alerts: list[dict] = []
+    app.state.alerts = alerts
+    eval_dir = Path(data_dir) / "eval"
 
     def sim_now() -> datetime:
         now = datetime.now().astimezone()
@@ -175,6 +183,16 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 evidence.write(row)
 
         reasons = s["reasons"] if d.tier != "T0" else []
+        if d.tier != "T0":
+            alerts.append({
+                "alert_id": evidence_id or f"a_{uuid.uuid4().hex[:12]}", "ts": req.ts.isoformat(),
+                "user_hash": pseudonym(req.user_id), "payee": upi, "amount_inr": req.amount_inr,
+                "tier": d.tier, "reasons": reasons, "message_key": d.message_key,
+                "playbook": s["playbook"], "stage": state.stage, "pause_minutes": d.pause_minutes,
+                "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
+                "families": d.lit_families, "evidence_id": evidence_id, "entry_method": req.entry_method,
+            })
+            del alerts[:-MAX_ALERTS]
         return DecideResponse(
             request_id=req.request_id, tier=d.tier, reasons=reasons, message_key=d.message_key,
             pause_minutes=d.pause_minutes, playbook=s["playbook"] if d.tier != "T0" else None,
@@ -222,6 +240,24 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         """Analyst cases opened by high-risk episodes (console, C5)."""
         return episodes.cases
 
+    @app.get("/v1/alerts")
+    def list_alerts(min_tier: str = "T1", limit: int = 200) -> list[dict]:
+        """Payment checks that got min_tier or higher, newest first (console, C5)."""
+        rank = {"T1": 1, "T2": 2, "T3": 3, "T4": 4}
+        if min_tier not in rank:
+            raise HTTPException(422, "min_tier must be T1, T2, T3 or T4")
+        keep = [a for a in alerts if rank[a["tier"]] >= rank[min_tier]]
+        return keep[::-1][:max(1, min(limit, MAX_ALERTS))]
+
+    @app.get("/v1/eval")
+    def eval_results() -> dict:
+        """The latest offline evaluation results, for the console's Evaluation page."""
+        out = {}
+        for name in ("episode", "graph"):
+            f = eval_dir / f"{name}_results.json"
+            out[name] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+        return out
+
     # ---------- payment graph for the analyst console (contract C5, §9.7) ----------
 
     @app.get("/v1/graph/account/{upi_id}")
@@ -229,6 +265,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         out = graph.neighbourhood(upi_id, hops=max(1, min(hops, 3)))
         out["signals"] = graph.account_signals(upi_id, sim_now())
         return out
+
+    @app.get("/v1/graph/story/{upi_id}")
+    def graph_story(upi_id: str) -> dict:
+        """The account's money flow as a short story: who baited whom, who paid it, where it went."""
+        return graph.story(upi_id, sim_now())
 
     @app.get("/v1/graph/suspects")
     def graph_suspects(min_band: str = "med") -> dict:
@@ -246,9 +287,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         return {"upi_id": upi_id.strip().lower(), "approved_by": sorted(r.approved_by),
                 "rejected_by": sorted(r.rejected_by), "approved": r.approved}
 
-    @app.get("/console/graph", response_class=HTMLResponse)
-    def console_graph() -> str:
-        return (Path(__file__).with_name("console_graph.html")).read_text(encoding="utf-8")
+    @app.get("/console/graph", include_in_schema=False)
+    def console_graph() -> RedirectResponse:
+        """Old address of the graph page; the analyst console replaced it."""
+        return RedirectResponse("/console/#/explore")
 
     @app.post("/v1/trusted/{user_id}/{payee_upi_id}")
     def mark_trusted(user_id: str, payee_upi_id: str) -> dict:
@@ -276,11 +318,16 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         episodes.reset()
         graph.reset()
         reviews.clear()
+        alerts.clear()
         found.update(suspects=[], last_run=None)
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()
         return {"ok": True}
 
+    if CONSOLE_DIST.is_dir():
+        app.mount("/console", StaticFiles(directory=CONSOLE_DIST, html=True), name="console")
+    else:
+        log.info("analyst console not built; run: cd console && npm install && npm run build")
     return app
 
 

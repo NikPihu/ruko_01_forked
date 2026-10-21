@@ -200,4 +200,61 @@ def test_console_endpoints(stack, world):
     r = engine.post(f"/v1/graph/suspects/{mule}/review", json={"reviewer": "asha", "decision": "approve"}).json()
     assert r["approved"] is False
     assert engine.post(f"/v1/graph/suspects/{mule}/review", json={"reviewer": "x", "decision": "maybe"}).status_code == 422
-    assert "cytoscape" in engine.get("/console/graph").text
+    old = engine.get("/console/graph", follow_redirects=False)
+    assert old.status_code in (302, 307) and old.headers["location"] == "/console/#/explore"
+
+
+# ---------- the story the analyst console draws ----------
+
+def ring_graph() -> GraphStore:
+    """One bait account rewards 6 users; 3 of them pay a mule, which forwards to a hub and back."""
+    g = GraphStore()
+    for i in range(6):
+        g.add_episode(EpisodeEvent.model_validate(event(f"u_{i}", [bait("reward.desk@ybl")], f"b{i}", "watching", "watching")),
+                      NOW - timedelta(days=3))
+    for i in range(3):
+        g.add_episode(EpisodeEvent.model_validate(event(f"u_{i}", [payee("unlock.fee@okaxis", 1_000 * (i + 1))], f"p{i}")),
+                      NOW - timedelta(days=1))
+    flows = {"as_of": NOW.isoformat(), "outbound": [
+        {"upi_id": "cash.hub@ybl", "n": 2, "inr": 4_000, "median_hold_min": 12},
+        {"upi_id": "reward.desk@ybl", "n": 1, "inr": 900, "median_hold_min": 20}]}
+    g.add_bank_flows("unlock.fee@okaxis", flows)
+    g.add_bank_flows("reward.desk@ybl", None)
+    return g
+
+
+def test_story_from_the_payee_shows_bait_payers_forwards_and_loop():
+    st = ring_graph().story("unlock.fee@okaxis", NOW)
+    assert st["center_role"] == "payee"
+    assert [s["id"] for s in st["senders"]] == ["reward.desk@ybl"]
+    assert st["users"] == {"count": 6, "baited": 6, "paid": 3}
+    assert [c["id"] for c in st["cashouts"]] == ["cash.hub@ybl"]
+    kinds = {(lk["from"], lk["to"]): lk["kind"] for lk in st["links"]}
+    assert kinds[("reward.desk@ybl", "users")] == "bait"
+    assert kinds[("users", "unlock.fee@okaxis")] == "pay"
+    assert kinds[("unlock.fee@okaxis", "cash.hub@ybl")] == "forward"
+    assert kinds[("unlock.fee@okaxis", "reward.desk@ybl")] == "loop"
+    assert st["loop"]["found"] is True
+    text = " ".join(st["summary"])
+    assert "6 RUKO users" in text and "3 of them then paid" in text and "same ring" in text
+    assert "₹6,000" in text  # 1,000 + 2,000 + 3,000
+
+
+def test_story_from_the_bait_sender_finds_the_payee():
+    st = ring_graph().story("reward.desk@ybl", NOW)
+    assert st["center_role"] == "bait_sender"
+    assert [p["id"] for p in st["payees"]] == ["unlock.fee@okaxis"]
+    assert "sent small “rewards” to 6 RUKO users" in st["summary"][0]
+
+
+def test_story_says_when_the_loop_cannot_be_seen():
+    g = ring_graph()
+    g.flows_seen["unlock.fee@okaxis"] = None   # bank does not share
+    st = g.story("unlock.fee@okaxis", NOW)
+    assert st["loop"]["found"] is None
+    assert any("not visible" in s for s in st["summary"])
+
+
+def test_story_for_an_unseen_account():
+    st = GraphStore().story("nobody@ybl", NOW)
+    assert st["center_role"] == "unknown" and not st["known"] and st["links"] == []

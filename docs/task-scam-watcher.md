@@ -561,7 +561,7 @@ An attacker could send fake episodes to frame an honest shop.
 10. **Android sending (§8.4–8.6):** the "Share suspicious accounts" switch, the encrypted retry
     queue, and the stronger notification on `high`.
     - Done when, in flight mode, events are queued and sent once the network is back.
-11. **Discovery and console (§9.5, §9.7):** suspect list, ring grouping, two-person review, and the
+11. **Discovery and console (§9.5, §9.7; the console is now `console/`, see its README):** suspect list, ring grouping, two-person review, and the
     graph view.
 12. **Demo and evaluation (§9.8):** `bait_pump.py`; the "mules flagged before registry listing"
     chart for `none` / `partner` / `dpip`.

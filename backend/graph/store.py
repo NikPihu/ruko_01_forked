@@ -208,6 +208,91 @@ class GraphStore:
 
     # ---------- reads for the console (C5) ----------
 
+    def story(self, account: str, now: datetime, max_side: int = 6) -> dict:
+        """One account's money flow as a short left-to-right story for analysts:
+        bait senders -> RUKO users (one group) -> payees -> where the payees send money on,
+        plus any link back to a bait sender (the money loop) and plain-English sentences."""
+        acc = account.strip().lower()
+        known = acc in self.out or acc in self.inn
+        if self.bait.get(acc):
+            role = "bait_sender"
+            senders = [acc]
+            baited = set(self.bait[acc])
+            paid_by: dict[str, set[str]] = defaultdict(set)
+            for u in baited:
+                for b in self.out.get(u, ()):
+                    if not b.startswith("u:") and b != acc:
+                        paid_by[b].add(u)
+            payees = sorted((p for p, us in paid_by.items()
+                             if len(us) >= 2 or self.marks.get(p, {}).get("flagged")),
+                            key=lambda p: (-len(paid_by[p]), p))[:max_side]
+            payers = set().union(*(paid_by[p] for p in payees)) if payees else set()
+        else:
+            role = "payee" if any(a.startswith("u:") for a in self.inn.get(acc, ())) else (
+                "account" if known else "unknown")
+            payees = [acc]
+            payers = {a for a in self.inn.get(acc, ()) if a.startswith("u:")}
+            senders = sorted((s for s, us in self.bait.items() if s != acc and payers & set(us)),
+                             key=lambda s: (-len(payers & set(self.bait[s])), s))[:max_side]
+            baited = set().union(*(set(self.bait[s]) for s in senders)) if senders else set()
+        users = baited | payers
+
+        def node(account_id: str, **extra) -> dict:
+            return {"id": account_id, "marks": self.marks.get(account_id, {}), **extra}
+
+        def bank_out(a: str) -> list[tuple[str, Edge]]:
+            return [(b, self.edges[(a, b)]) for b in self.out.get(a, ())
+                    if "bank_flows" in self.edges[(a, b)].sources]
+
+        links: list[dict] = []
+        for s in senders:
+            us = set(self.bait[s]) & users
+            inr = sum(self.edges[(s, u)].inr for u in us if (s, u) in self.edges)
+            links.append({"from": s, "to": "users", "kind": "bait", "users": len(us), "inr": round(inr, 2)})
+        payee_nodes = []
+        for p in payees:
+            us = {u for u in self.inn.get(p, ()) if u.startswith("u:")} & users
+            es = [self.edges[(u, p)] for u in us if (u, p) in self.edges]
+            n, inr = sum(e.n for e in es), round(sum(e.inr for e in es), 2)
+            payee_nodes.append(node(p, users=len(us), payments=n, inr=inr))
+            if us:
+                links.append({"from": "users", "to": p, "kind": "pay", "users": len(us), "n": n, "inr": inr})
+
+        cash: dict[str, dict] = {}
+        for p in payees:
+            for b, e in sorted(bank_out(p), key=lambda x: -x[1].inr):
+                if b in senders:
+                    links.append({"from": p, "to": b, "kind": "loop", "n": e.n, "inr": round(e.inr, 2),
+                                  "hold_min": e.hold_min})
+                    continue
+                c = cash.setdefault(b, node(b, inr=0.0, n=0, hold_min=e.hold_min))
+                c["inr"] = round(c["inr"] + e.inr, 2)
+                c["n"] += e.n
+                links.append({"from": p, "to": b, "kind": "forward", "n": e.n, "inr": round(e.inr, 2),
+                              "hold_min": e.hold_min})
+        cashouts = sorted(cash.values(), key=lambda c: -c["inr"])[:max_side]
+        keep = {c["id"] for c in cashouts}
+        links = [lk for lk in links if lk["kind"] != "forward" or lk["to"] in keep]
+        # A bait sender that sends money to the same place as a payee: shared cash-out (also a loop).
+        for s in senders:
+            for b, e in bank_out(s):
+                if b in keep:
+                    links.append({"from": s, "to": b, "kind": "shared", "n": e.n, "inr": round(e.inr, 2)})
+
+        centre_payee = acc if role != "bait_sender" else (payees[0] if payees else None)
+        loop, path = (self.money_loop(centre_payee, senders) if centre_payee else (None, None))
+        signals = self.account_signals(acc, now)
+        return {"center": acc, "center_role": role, "known": known or role == "bait_sender",
+                "senders": [node(s, users_baited=len(set(self.bait[s]) & users)) for s in senders],
+                "users": {"count": len(users), "baited": len(baited), "paid": len(payers)},
+                "payees": payee_nodes, "cashouts": cashouts, "links": links,
+                "loop": {"found": loop, "path": path},
+                "flows_visible": self.flows_seen.get(centre_payee) if centre_payee else None,
+                "signals": signals,
+                "summary": _story_sentences(role, acc, senders, baited, payers, payee_nodes, cashouts,
+                                            links, loop, self.flows_seen.get(centre_payee) if centre_payee else None,
+                                            self.marks.get(acc, {}))}
+
     def neighbourhood(self, account: str, hops: int = 2) -> dict:
         start = account.strip().lower()
         nodes, frontier = {start}, {start}
@@ -224,3 +309,63 @@ class GraphStore:
         return {"center": start, "nodes": [{"id": n, "kind": "ruko_user" if n.startswith("u:") else "account",
                                             "marks": self.marks.get(n, {})} for n in sorted(nodes)],
                 "edges": edges}
+
+
+def _inr(x: float) -> str:
+    """Indian digit grouping: 1450329 -> Rs 14,50,329."""
+    n = str(int(round(x)))
+    if len(n) > 3:
+        head, tail = n[:-3], n[-3:]
+        groups = []
+        while len(head) > 2:
+            groups.insert(0, head[-2:])
+            head = head[:-2]
+        n = ",".join(([head] if head else []) + groups + [tail])
+    return "₹" + n
+
+
+def _story_sentences(role: str, acc: str, senders: list[str], baited: set, payers: set, payees: list[dict],
+                     cashouts: list[dict], links: list[dict], loop, flows_visible, marks: dict) -> list[str]:
+    """The story in words, for an analyst who has never seen a graph."""
+    out: list[str] = []
+    if role == "unknown":
+        return [f"RUKO has not seen any money move to or from {acc} yet."]
+    bait_links = {lk["from"]: lk for lk in links if lk["kind"] == "bait"}
+    if role == "bait_sender":
+        lk = bait_links.get(acc, {})
+        each = f", about {_inr(lk['inr'] / lk['users'])} each" if lk.get("users") and lk.get("inr") else ""
+        out.append(f"{acc} sent small “rewards” to {len(baited)} RUKO users{each}.")
+        if payees:
+            top = payees[0]
+            out.append(f"{len(payers)} of those users then paid new accounts; most often {top['id']} "
+                       f"({top['users']} users, {_inr(top['inr'])}).")
+    else:
+        p = payees[0] if payees else {"users": 0, "payments": 0, "inr": 0}
+        if senders:
+            s = senders[0]
+            more = f" (and {len(senders) - 1} more account{'s' if len(senders) > 2 else ''})" if len(senders) > 1 else ""
+            out.append(f"{s}{more} sent small “rewards” to {len(baited)} RUKO users.")
+            out.append(f"{p['users']} of them then paid {acc}: {_inr(p['inr'])} in {p['payments']} payments.")
+        elif p["users"]:
+            out.append(f"{p['users']} RUKO users paid {acc}: {_inr(p['inr'])} in {p['payments']} payments.")
+    if cashouts:
+        holds = [c["hold_min"] for c in cashouts if c.get("hold_min") is not None]
+        when = f", usually within {min(holds):.0f} minutes" if holds else ""
+        who = acc if role != "bait_sender" else "These accounts"
+        out.append(f"{who} moved {_inr(sum(c['inr'] for c in cashouts))} on to {len(cashouts)} "
+                   f"other account{'s' if len(cashouts) > 1 else ''}{when}.")
+    if loop is True:
+        back = [lk for lk in links if lk["kind"] in ("loop", "shared")]
+        out.append("Money flows back to the account that paid the “rewards”: the earnings came from the "
+                   "same ring the victims are paying." if back else
+                   "The payee and the “rewards” account send money to the same place: one ring.")
+    elif loop is None and role != "bait_sender" and senders:
+        out.append("Where this account sends money is not visible: its bank does not share data, "
+                   "so a money loop can't be checked.")
+    elif flows_visible and not cashouts and role != "bait_sender":
+        out.append("Its bank shares data and shows no onward payments.")
+    if marks.get("listed"):
+        out.append("It is already reported on the I4C registry or rated high risk by DoT.")
+    elif role != "bait_sender" and (senders or marks.get("flagged")):
+        out.append("It is not on any fraud registry yet: RUKO found it from its payments alone.")
+    return out

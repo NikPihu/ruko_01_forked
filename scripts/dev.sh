@@ -3,6 +3,7 @@
 #
 #   sh scripts/dev.sh              start everything
 #   REGENERATE=1 sh scripts/dev.sh rebuild data first
+#   BUILD_CONSOLE=1 sh scripts/dev.sh  rebuild the analyst console
 #   sh scripts/dev.sh stop         stop the services
 #
 # Same steps as scripts/dev.ps1. API_PORT and INTEL_PORT can be overridden.
@@ -31,6 +32,16 @@ if [ "${REGENERATE:-0}" = 1 ] || [ ! -f data/ledger.parquet ]; then
   "$PY" -m sim.generate --users 2000 --days 30 --seed 7 --out data/
 fi
 
+# Analyst console (console/dist is git ignored; the API serves it at /console/)
+if [ "${BUILD_CONSOLE:-0}" = 1 ] || [ ! -f console/dist/index.html ]; then
+  if command -v npm >/dev/null 2>&1; then
+    echo "building the analyst console"
+    (cd console && { [ -d node_modules ] || npm install --no-audit --no-fund >/dev/null; } && npm run build >/dev/null)       || echo "console build failed; the API still runs without it"
+  else
+    echo "npm not found; skipping the analyst console (install Node.js to get it)"
+  fi
+fi
+
 wait_health() {
   i=0
   until curl -fs "$1" >/dev/null 2>&1; do
@@ -57,4 +68,5 @@ if command -v adb >/dev/null 2>&1 && adb devices | grep -q "	device$"; then
 else
   echo "no phone found; run later: adb reverse tcp:8000 tcp:$API_PORT"
 fi
+[ -f console/dist/index.html ] && echo "Analyst console: http://127.0.0.1:$API_PORT/console/"
 echo "Ready. Logs in logs/. Stop: sh scripts/dev.sh stop"

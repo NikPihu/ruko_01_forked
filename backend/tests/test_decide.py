@@ -415,3 +415,37 @@ def test_dismissed_clears_the_users_episode_evidence(engine, mock, world):
     engine.post("/v1/episode", json=episode_event(event_id="ev_a"))
     r = engine.post("/v1/episode", json=episode_event("dismissed", [], "ev_d", state="dismissed")).json()
     assert r["episode_risk"] == "low"
+
+
+# ---------- analyst console reads ----------
+
+def test_alerts_list_the_interrupted_payments_newest_first(engine, mock, world):
+    pump(mock[1], world)
+    engine.post("/v1/decide", json=req(context=MEENA_CONTEXT, says="government", rid="r_alert"))
+    engine.post("/v1/decide", json=req(payee=DEMO_KIRANA_UPI, amount=240, entry="qr", rid="r_quiet"))
+    alerts = engine.get("/v1/alerts").json()
+    assert [a["payee"] for a in alerts] == [DEMO_MULE_UPI]  # the kirana purchase was T0
+    a = alerts[0]
+    assert a["tier"] in ("T3", "T4") and a["reasons"] and a["evidence_id"] and a["stage_path"]
+    assert "p_scam" not in a and a["user_hash"] != DEMO_MEENA
+    assert engine.get("/v1/alerts?min_tier=T9").status_code == 422
+    engine.post("/sim/reset")
+    assert engine.get("/v1/alerts").json() == []
+
+
+def test_eval_results_are_served_when_present(engine):
+    r = engine.get("/v1/eval").json()
+    assert set(r) == {"episode", "graph"}  # null until data/eval/*_results.json exist
+
+
+def test_evidence_chain_verifies_with_scoreless_episode_records(tmp_path):
+    """Episode records have no p_scam; reading them back must not break /v1/evidence/verify."""
+    from evidence.store import EvidenceStore
+    store = EvidenceStore(str(tmp_path / "evidence.db"))
+    base = {"ts": "2026-11-07T10:40:00+05:30", "user_hash": "u", "payee_hash": None, "caller_hash": None,
+            "reasons": [], "playbook": None, "family_scores": {}, "features": {}, "intel_status": {},
+            "stage_path": [], "model_version": "m", "policy_version": "p"}
+    store.write({**base, "id": "e_1", "tier": "T3", "p_scam": 0.91})
+    store.write({**base, "id": "e_2", "tier": "episode_high", "p_scam": None})
+    assert store.verify() == {"ok": True, "rows_checked": 2, "first_bad_id": None}
+    assert store.get("e_2")["p_scam"] is None

@@ -4,6 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Regenerate # rebuild data first
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop       # stop the services
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BaitPump   # also pump the task-scam bait account
+#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BuildConsole # rebuild the analyst console
 #
 # Steps: venv + requirements, synthetic data (if missing), mock intel on 8001,
 # risk API with --demo-clock, mule pump, adb reverse so the phone's
@@ -17,6 +18,7 @@ param(
     [switch]$Regenerate,
     [switch]$NoPump,
     [switch]$BaitPump,
+    [switch]$BuildConsole,
     [switch]$Stop
 )
 
@@ -67,6 +69,21 @@ if ($Regenerate -or -not (Test-Path "data\ledger.parquet")) {
     Write-Host "generating data"
     & $Py -m sim.generate --users 2000 --days 30 --seed 7 --out data/
     if ($LASTEXITCODE -ne 0) { throw "sim.generate failed" }
+}
+
+# 2b. Analyst console (console\dist is git ignored; the API serves it at /console/)
+if ($BuildConsole -or -not (Test-Path "console\dist\index.html")) {
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Host "building the analyst console"
+        Push-Location console
+        try {
+            if (-not (Test-Path "node_modules")) { npm install --no-audit --no-fund | Out-Null }
+            npm run build | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Host "console build failed; the API still runs without it" }
+        } finally { Pop-Location }
+    } else {
+        Write-Host "npm not found; skipping the analyst console (install Node.js to get it)"
+    }
 }
 
 # 3. Ports
@@ -121,4 +138,5 @@ if ($Adb) {
 
 Write-Host ""
 Write-Host "Ready. In Cache Pay tap 'Check Scam Shield' or long press the title for the debug panel."
+if (Test-Path "console\dist\index.html") { Write-Host "Analyst console: http://127.0.0.1:$ApiPort/console/" }
 Write-Host "Logs: logs\api.log, logs\intel.log. Stop: scripts\dev.ps1 -Stop"

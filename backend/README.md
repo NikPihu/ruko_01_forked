@@ -80,11 +80,12 @@ Brief: `../docs/task-scam-watcher.md` (build notes at its end).
 | Episodes rebuilt from the ledger for training | `features/offline_episode.py` -> `../data/episode_features.parquet` |
 | `POST /v1/episode`, account lookups, episode risk, analyst cases (`GET /v1/cases`) | `api/episode_events.py` |
 | Payment graph: crowd signal, money loop, mock bank flows | `graph/store.py`, `intel_mock/bank.py` (`/banks/{code}/payee-flows/{upi}`) |
-| Mule discovery (hourly), two-person review, console API and view | `graph/discover.py`, `GET /v1/graph/account/{upi}`, `GET /v1/graph/suspects`, `POST /v1/graph/suspects/{upi}/review`, `/console/graph` |
+| Mule discovery (hourly), two-person review, console API | `graph/discover.py`, `GET /v1/graph/account/{upi}`, `GET /v1/graph/story/{upi}`, `GET /v1/graph/suspects`, `POST /v1/graph/suspects/{upi}/review` |
+| Analyst console reads | `GET /v1/alerts` (payments at T1+), `GET /v1/cases`, `GET /v1/eval`; the built console (`../console/`) is served at `/console/` |
 
 ```bash
 python -m features.offline_episode --data data/
-python -m sim.bait_pump --api http://127.0.0.1:8000 --check   # after sim.mule_pump; then open /console/graph
+python -m sim.bait_pump --api http://127.0.0.1:8000 --check   # after sim.mule_pump; then open /console/
 python -m eval.episode_eval                                      # task-scam rupees stopped, 3 setups
 python -m eval.graph_eval                                        # mules flagged before registry listing
 ```

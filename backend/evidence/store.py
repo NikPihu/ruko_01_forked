@@ -62,7 +62,8 @@ class EvidenceStore:
             d = dict(zip(COLUMNS, r))
             for c in JSON_COLS:
                 d[c] = json.loads(d[c])
-            d["p_scam"] = float(d["p_scam"])
+            # Episode records carry no score (p_scam None); keep it None so the hash still matches.
+            d["p_scam"] = None if d["p_scam"] is None else float(d["p_scam"])
             out.append(d)
         return out
 
