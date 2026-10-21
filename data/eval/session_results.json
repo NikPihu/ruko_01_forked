@@ -1,0 +1,206 @@
+{
+  "world": {
+    "seed": 13,
+    "users": 1500,
+    "journeys": 78,
+    "scam_payments": 226,
+    "scam_inr": 7846798.0,
+    "playbooks": {
+      "digital_arrest": 20,
+      "fake_customer_care": 18,
+      "fake_kyc_apk": 11,
+      "refund_qr": 11,
+      "trading_group": 9,
+      "task_job": 9
+    },
+    "normal_sample": 2000
+  },
+  "conditions": {
+    "known_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 6924808.0,
+        "share_inr_interrupted": 0.883,
+        "share_inr_paused": 0.846,
+        "call_scams_share_inr_interrupted": 0.952,
+        "other_scams_share_inr_interrupted": 0.74,
+        "journeys_alerted": 76,
+        "journeys": 77,
+        "false_interruptions_t2": 2,
+        "false_interruptions_per_1000": 1.0,
+        "false_alerts_t1_per_1000": 4.5,
+        "false_per_1000_by_age_band": {
+          "18-29": 1.81,
+          "30-44": 1.39,
+          "45-59": 0.0,
+          "60+": 0.0
+        },
+        "errors": 0
+      },
+      "B": {
+        "label": "+ coached session",
+        "inr_interrupted_t2": 6929694.0,
+        "share_inr_interrupted": 0.883,
+        "share_inr_paused": 0.847,
+        "call_scams_share_inr_interrupted": 0.952,
+        "other_scams_share_inr_interrupted": 0.742,
+        "journeys_alerted": 76,
+        "journeys": 77,
+        "false_interruptions_t2": 2,
+        "false_interruptions_per_1000": 1.0,
+        "false_alerts_t1_per_1000": 4.5,
+        "false_per_1000_by_age_band": {
+          "18-29": 1.81,
+          "30-44": 1.39,
+          "45-59": 0.0,
+          "60+": 0.0
+        },
+        "errors": 0
+      }
+    },
+    "fresh_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 4906859.0,
+        "share_inr_interrupted": 0.625,
+        "share_inr_paused": 0.322,
+        "call_scams_share_inr_interrupted": 0.65,
+        "other_scams_share_inr_interrupted": 0.575,
+        "journeys_alerted": 47,
+        "journeys": 77,
+        "false_interruptions_t2": 0,
+        "false_interruptions_per_1000": 0.0,
+        "false_alerts_t1_per_1000": 2.5,
+        "false_per_1000_by_age_band": {
+          "18-29": 0.0,
+          "30-44": 0.0,
+          "45-59": 0.0,
+          "60+": 0.0
+        },
+        "errors": 0
+      },
+      "B": {
+        "label": "+ coached session",
+        "inr_interrupted_t2": 5323551.0,
+        "share_inr_interrupted": 0.678,
+        "share_inr_paused": 0.324,
+        "call_scams_share_inr_interrupted": 0.728,
+        "other_scams_share_inr_interrupted": 0.576,
+        "journeys_alerted": 52,
+        "journeys": 77,
+        "false_interruptions_t2": 0,
+        "false_interruptions_per_1000": 0.0,
+        "false_alerts_t1_per_1000": 2.5,
+        "false_per_1000_by_age_band": {
+          "18-29": 0.0,
+          "30-44": 0.0,
+          "45-59": 0.0,
+          "60+": 0.0
+        },
+        "errors": 0
+      }
+    }
+  },
+  "ablation_fresh_mules": {
+    "dictated": {
+      "label": "B without dictated",
+      "inr_interrupted_t2": 5266524.0,
+      "share_inr_interrupted": 0.671,
+      "share_inr_paused": 0.324,
+      "call_scams_share_inr_interrupted": 0.718,
+      "other_scams_share_inr_interrupted": 0.576,
+      "journeys_alerted": 50,
+      "journeys": 77,
+      "false_interruptions_t2": 0,
+      "false_interruptions_per_1000": 0.0,
+      "false_alerts_t1_per_1000": 2.5,
+      "false_per_1000_by_age_band": {
+        "18-29": 0.0,
+        "30-44": 0.0,
+        "45-59": 0.0,
+        "60+": 0.0
+      },
+      "errors": 0
+    },
+    "pasted_after_switch": {
+      "label": "B without pasted_after_switch",
+      "inr_interrupted_t2": 5217056.0,
+      "share_inr_interrupted": 0.665,
+      "share_inr_paused": 0.324,
+      "call_scams_share_inr_interrupted": 0.707,
+      "other_scams_share_inr_interrupted": 0.578,
+      "journeys_alerted": 51,
+      "journeys": 77,
+      "false_interruptions_t2": 0,
+      "false_interruptions_per_1000": 0.0,
+      "false_alerts_t1_per_1000": 2.5,
+      "false_per_1000_by_age_band": {
+        "18-29": 0.0,
+        "30-44": 0.0,
+        "45-59": 0.0,
+        "60+": 0.0
+      },
+      "errors": 0
+    },
+    "app_switches": {
+      "label": "B without app_switches",
+      "inr_interrupted_t2": 5318162.0,
+      "share_inr_interrupted": 0.678,
+      "share_inr_paused": 0.324,
+      "call_scams_share_inr_interrupted": 0.728,
+      "other_scams_share_inr_interrupted": 0.574,
+      "journeys_alerted": 52,
+      "journeys": 77,
+      "false_interruptions_t2": 0,
+      "false_interruptions_per_1000": 0.0,
+      "false_alerts_t1_per_1000": 2.5,
+      "false_per_1000_by_age_band": {
+        "18-29": 0.0,
+        "30-44": 0.0,
+        "45-59": 0.0,
+        "60+": 0.0
+      },
+      "errors": 0
+    },
+    "abandoned": {
+      "label": "B without abandoned",
+      "inr_interrupted_t2": 5323551.0,
+      "share_inr_interrupted": 0.678,
+      "share_inr_paused": 0.324,
+      "call_scams_share_inr_interrupted": 0.728,
+      "other_scams_share_inr_interrupted": 0.576,
+      "journeys_alerted": 52,
+      "journeys": 77,
+      "false_interruptions_t2": 0,
+      "false_interruptions_per_1000": 0.0,
+      "false_alerts_t1_per_1000": 2.5,
+      "false_per_1000_by_age_band": {
+        "18-29": 0.0,
+        "30-44": 0.0,
+        "45-59": 0.0,
+        "60+": 0.0
+      },
+      "errors": 0
+    },
+    "hesitation": {
+      "label": "B without hesitation",
+      "inr_interrupted_t2": 5323551.0,
+      "share_inr_interrupted": 0.678,
+      "share_inr_paused": 0.324,
+      "call_scams_share_inr_interrupted": 0.728,
+      "other_scams_share_inr_interrupted": 0.576,
+      "journeys_alerted": 52,
+      "journeys": 77,
+      "false_interruptions_t2": 0,
+      "false_interruptions_per_1000": 0.0,
+      "false_alerts_t1_per_1000": 2.5,
+      "false_per_1000_by_age_band": {
+        "18-29": 0.0,
+        "30-44": 0.0,
+        "45-59": 0.0,
+        "60+": 0.0
+      },
+      "errors": 0
+    }
+  }
+}
