@@ -1,0 +1,62 @@
+# What each phone sees, for the training replay (dataset/phone_view.py).
+# Every number here is an assumption, not a measured fact. Change them here, never in code.
+# Per-user values are drawn independently of whether the user gets scammed, so a missing signal
+# can never become a stand-in for "safe".
+version: phone-view-0.1
+
+# Share of users who switch each Scam Shield group on. SMS checks are off by default (deck A2).
+consent:
+  call_signals: 0.65     # READ_PHONE_STATE, READ_CONTACTS, READ_CALL_LOG
+  app_checks: 0.70       # remote access, accessibility, sideloads, screen capture (no permission)
+  sms: 0.30              # lure checks and bank SMS alerts (READ_SMS)
+android_15_share: 0.35   # has the screen-capture callback; before Android 15 it is null
+
+# Copied from the Android app; change them only together with the app.
+phone:
+  call_memory_min: 30                # ContextSensor.CALL_MEMORY_MS
+  outgoing_sim_number_known: false   # ContextSensor gets no number for outgoing SIM calls
+  notification_lures_visible: false  # SmsScan reads SMS only, not notifications
+  lure_send_threshold: 0.6           # LURE_SEND_THRESHOLD
+  lure_window_h: 72                  # SmsScan.WINDOW_MS
+  money_window_h: 72                 # MoneyFlow.WINDOW_MS
+  bait_max_inr: 500                  # MoneyFlow.BAIT_MAX_INR
+  escalation_factor: 1.5             # MoneyFlow.ESCALATION_FACTOR
+  remote_session_minutes: 120        # assumption: a remote-control session lasts this long
+  bank_sms_parse_rate: 0.9           # assumption: share of bank alerts BankSms.parse can read
+
+# Answer to "Who are you paying?" (PaymentViewModel asks for typed payees from Rs 2,000).
+payer_says:
+  ask_from_inr: 2000
+  skip_rate: 0.3                     # people who dismiss the question
+  normal:
+    person: {family: 0.6, other: 0.3, shop: 0.1}
+    merchant: {shop: 0.8, other: 0.2}
+  scam:                              # what coached victims answer
+    digital_arrest: {government: 0.5, other: 0.3, family: 0.2}
+    fake_customer_care: {company: 0.6, other: 0.4}
+    fake_kyc_apk: {company: 0.5, government: 0.2, other: 0.3}
+    trading_group: {investment: 0.7, other: 0.3}
+    task_job: {company: 0.4, other: 0.6}
+    refund_qr: {company: 0.5, other: 0.5}
+    default: {other: 0.6, family: 0.4}
+
+# Behaviour on the pay screen, measured inside the app only (no new permissions).
+session:
+  coached_rate:          # share of scam payments made while the scammer is directing the victim
+    digital_arrest: 0.9
+    fake_customer_care: 0.9
+    fake_kyc_apk: 0.7
+    refund_qr: 0.8
+    trading_group: 0.3
+    task_job: 0.4
+    default: 0.5
+  pace_sigma: 0.35       # personal speed, lognormal per user
+  # Older users are slower on average. Realism only: age is never a model input, and this is
+  # exactly the kind of proxy the fairness audit has to check.
+  pace_by_age: {"18-29": 0.85, "30-44": 1.0, "45-59": 1.2, "60+": 1.5}
+  seconds_median: {normal: 12, new_payee: 20, coached: 45}
+  seconds_sigma: 0.6
+  pasted_upi_rate: {normal: 0.08, coached: 0.5}     # typed payees only
+  amount_edits_mean: {normal: 0.2, coached: 0.9}
+  backgrounded_rate: {normal: 0.08, coached: 0.55}  # left the app mid-payment (e.g. to WhatsApp)
+  cancelled_10m_rate: {normal: 0.02, coached: 0.25} # an earlier attempt was abandoned

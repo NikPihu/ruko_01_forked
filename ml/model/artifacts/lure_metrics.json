@@ -1,0 +1,54 @@
+{
+  "version": "lure-0.1",
+  "held_out_templates": {
+    "n": 918,
+    "macro_f1": 0.682350599414614,
+    "per_class_f1": {
+      "arrest_threat": 0.8108108108108109,
+      "kyc": 0.7192982456140351,
+      "normal": 0.8467336683417085,
+      "refund": 0.208955223880597,
+      "task_job": 0.8571428571428571,
+      "trading_tip": 0.6511627906976745
+    },
+    "today": {
+      "scam_caught_share": 0.5271453590192644,
+      "scam_right_tag_share": 0.51138353765324,
+      "normal_false_alarm_share": 0.0,
+      "by_language": {
+        "en": {
+          "scam_caught": 0.5238095238095238,
+          "normal_false_alarm": 0.0
+        },
+        "hi": {
+          "scam_caught": 0.45,
+          "normal_false_alarm": 0.0
+        },
+        "hinglish": {
+          "scam_caught": 0.6131386861313869,
+          "normal_false_alarm": 0.0
+        }
+      }
+    },
+    "scam_conf": {
+      "scam_caught_share": 0.840630472854641,
+      "scam_right_tag_share": 0.658493870402802,
+      "normal_false_alarm_share": 0.0,
+      "by_language": {
+        "en": {
+          "scam_caught": 0.7108843537414966,
+          "normal_false_alarm": 0.0
+        },
+        "hi": {
+          "scam_caught": 0.9571428571428572,
+          "normal_false_alarm": 0.0
+        },
+        "hinglish": {
+          "scam_caught": 1.0,
+          "normal_false_alarm": 0.0
+        }
+      }
+    }
+  },
+  "max_prob_diff_json_vs_sklearn": 1.152583790631212e-07
+}

@@ -1,0 +1,6 @@
+# Generated worlds, training tables and run output (rebuild with the commands in PLAN.md).
+# data/* (not data/) so the lure corpus below can be committed.
+data/*
+!data/lure_texts.csv
+runs/
+__pycache__/

@@ -1,0 +1,7 @@
+# Everything the backend needs, plus the ML libraries. Install from the repo root:
+#   python -m venv .venv && .venv\Scripts\python -m pip install -r ml/requirements.txt
+-r ../backend/requirements.txt
+lightgbm>=4.3
+scikit-learn>=1.5
+numpy>=1.26
+scipy>=1.11
