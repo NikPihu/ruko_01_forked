@@ -1,0 +1,313 @@
+{
+ "version": "lure-0.1",
+ "classes": [
+  "arrest_threat",
+  "kyc",
+  "normal",
+  "refund",
+  "task_job",
+  "trading_tip"
+ ],
+ "vectors": [
+  {
+   "text": "This is CBI. A parcel in your name with drugs was seized. Join the video call now or you will be arrested.",
+   "tag": "arrest_threat",
+   "conf": 0.987973,
+   "scam_tag": "arrest_threat",
+   "scam_conf": 0.992864,
+   "probs": [
+    0.987973,
+    0.001299,
+    0.007136,
+    0.001571,
+    0.000585,
+    0.001435
+   ]
+  },
+  {
+   "text": "आप डिजिटल अरेस्ट में हैं। कैमरा चालू रखें और 50,000 रुपये सुरक्षित खाते में भेजें।",
+   "tag": "arrest_threat",
+   "conf": 0.847813,
+   "scam_tag": "arrest_threat",
+   "scam_conf": 0.879161,
+   "probs": [
+    0.847813,
+    0.003454,
+    0.120839,
+    0.002682,
+    0.008299,
+    0.016915
+   ]
+  },
+  {
+   "text": "Aapka KYC expire ho gaya hai, ye app install karo aur sab permission allow karo bit.ly/3xK9pQ",
+   "tag": "kyc",
+   "conf": 0.992982,
+   "scam_tag": "kyc",
+   "scam_conf": 0.999239,
+   "probs": [
+    0.000222,
+    0.992982,
+    0.000761,
+    0.001355,
+    0.003658,
+    0.001023
+   ]
+  },
+  {
+   "text": "Dear SBI customer, your account will be blocked today. Update KYC now: sbi-kyc-update.com",
+   "tag": "kyc",
+   "conf": 0.998676,
+   "scam_tag": "kyc",
+   "scam_conf": 0.999618,
+   "probs": [
+    6.4e-05,
+    0.998676,
+    0.000382,
+    0.000514,
+    8.5e-05,
+    0.000278
+   ]
+  },
+  {
+   "text": "Like YouTube videos and earn ₹200 per task. Join us on Telegram today!",
+   "tag": "task_job",
+   "conf": 0.99798,
+   "scam_tag": "task_job",
+   "scam_conf": 0.998716,
+   "probs": [
+    0.000227,
+    0.00015,
+    0.001284,
+    0.000141,
+    0.99798,
+    0.000218
+   ]
+  },
+  {
+   "text": "Your commission of Rs 12,000 is frozen. Pay Rs 8,500 to unlock withdrawal.",
+   "tag": "task_job",
+   "conf": 0.960455,
+   "scam_tag": "task_job",
+   "scam_conf": 0.985518,
+   "probs": [
+    0.000581,
+    0.001527,
+    0.014482,
+    0.001487,
+    0.960455,
+    0.021468
+   ]
+  },
+  {
+   "text": "SEBI registered expert: IREDA will give 300% return this week. Join our VIP group.",
+   "tag": "trading_tip",
+   "conf": 0.997835,
+   "scam_tag": "trading_tip",
+   "scam_conf": 0.999501,
+   "probs": [
+    0.000185,
+    0.000234,
+    0.000499,
+    0.000448,
+    0.0008,
+    0.997835
+   ]
+  },
+  {
+   "text": "Your refund of ₹4,999 is approved. Scan the QR code and enter your UPI PIN to receive it.",
+   "tag": "refund",
+   "conf": 0.999508,
+   "scam_tag": "refund",
+   "scam_conf": 0.999749,
+   "probs": [
+    3.7e-05,
+    0.000152,
+    0.000251,
+    0.999508,
+    2.9e-05,
+    2.3e-05
+   ]
+  },
+  {
+   "text": "Aapki bijli aaj raat kat jayegi, turant 9876543210 pe call karo.",
+   "tag": "refund",
+   "conf": 0.893737,
+   "scam_tag": "refund",
+   "scam_conf": 0.982887,
+   "probs": [
+    0.05987,
+    0.008714,
+    0.017113,
+    0.893737,
+    0.014804,
+    0.005762
+   ]
+  },
+  {
+   "text": "482913 is your OTP for a transaction of Rs 1,250 at Amazon. Do not share it with anyone. -HDFC Bank",
+   "tag": "normal",
+   "conf": 0.997229,
+   "scam_tag": "normal",
+   "scam_conf": 0.997229,
+   "probs": [
+    0.000974,
+    0.000553,
+    0.997229,
+    0.000187,
+    0.000342,
+    0.000716
+   ]
+  },
+  {
+   "text": "Rs 2,000 debited from a/c XX1234 to VPA shreeganesh.kirana@okaxis. -SBI",
+   "tag": "normal",
+   "conf": 0.973101,
+   "scam_tag": "normal",
+   "scam_conf": 0.973101,
+   "probs": [
+    0.001625,
+    0.003754,
+    0.973101,
+    0.002698,
+    0.012726,
+    0.006095
+   ]
+  },
+  {
+   "text": "Police never arrest anyone over a video call. Report fraud at 1930.",
+   "tag": "normal",
+   "conf": 0.924861,
+   "scam_tag": "normal",
+   "scam_conf": 0.924861,
+   "probs": [
+    0.061902,
+    0.001312,
+    0.924861,
+    0.004163,
+    0.005111,
+    0.00265
+   ]
+  },
+  {
+   "text": "Dear Customer, KYC update is due. Please visit your home branch. We never ask for OTP.",
+   "tag": "normal",
+   "conf": 0.942147,
+   "scam_tag": "normal",
+   "scam_conf": 0.942147,
+   "probs": [
+    0.002437,
+    0.035587,
+    0.942147,
+    0.013254,
+    0.005468,
+    0.001108
+   ]
+  },
+  {
+   "text": "Mummy main ghar pahunch gaya, khana kha liya.",
+   "tag": "normal",
+   "conf": 0.992079,
+   "scam_tag": "normal",
+   "scam_conf": 0.992079,
+   "probs": [
+    0.001521,
+    0.000743,
+    0.992079,
+    0.001704,
+    0.001797,
+    0.002156
+   ]
+  },
+  {
+   "text": "Refund of Rs 499 for your Flipkart order has been processed. It may take 3 to 5 days.",
+   "tag": "normal",
+   "conf": 0.985728,
+   "scam_tag": "normal",
+   "scam_conf": 0.985728,
+   "probs": [
+    0.000639,
+    0.000404,
+    0.985728,
+    0.010822,
+    0.001396,
+    0.001012
+   ]
+  },
+  {
+   "text": "🚨 Y0ur acc0unt w1ll be bl0cked t0day 🚨 update KYC now",
+   "tag": "kyc",
+   "conf": 0.862921,
+   "scam_tag": "kyc",
+   "scam_conf": 0.915047,
+   "probs": [
+    0.006753,
+    0.862921,
+    0.084953,
+    0.026519,
+    0.00654,
+    0.012313
+   ]
+  },
+  {
+   "text": "URGENT URGENT CALL BACK",
+   "tag": "normal",
+   "conf": 0.823505,
+   "scam_tag": "normal",
+   "scam_conf": 0.823505,
+   "probs": [
+    0.070155,
+    0.021409,
+    0.823505,
+    0.042705,
+    0.016482,
+    0.025743
+   ]
+  },
+  {
+   "text": "ok",
+   "tag": "normal",
+   "conf": 0.884486,
+   "scam_tag": "normal",
+   "scam_conf": 0.884486,
+   "probs": [
+    0.006988,
+    0.013902,
+    0.884486,
+    0.01622,
+    0.057526,
+    0.020877
+   ]
+  },
+  {
+   "text": "",
+   "tag": "normal",
+   "conf": 0.861766,
+   "scam_tag": "normal",
+   "scam_conf": 0.861766,
+   "probs": [
+    0.013937,
+    0.016153,
+    0.861766,
+    0.023715,
+    0.047458,
+    0.036971
+   ]
+  },
+  {
+   "text": "Part time job: earn Rs 5,000 daily, message us",
+   "tag": "task_job",
+   "conf": 0.963737,
+   "scam_tag": "task_job",
+   "scam_conf": 0.978353,
+   "probs": [
+    0.002686,
+    0.001371,
+    0.021647,
+    0.002334,
+    0.963737,
+    0.008226
+   ]
+  }
+ ]
+}
