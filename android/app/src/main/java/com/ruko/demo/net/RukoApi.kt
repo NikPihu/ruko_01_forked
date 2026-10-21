@@ -18,6 +18,10 @@ interface RukoApi {
 
     @POST("v1/decide")
     suspend fun decide(@Body request: DecideRequest): DecideResponse
+
+    /** Episode events (c2-0.4), sent in the background by shield/EventSender. */
+    @POST("v1/episode")
+    suspend fun episode(@Body event: EpisodeEvent): EpisodeEventResponse
 }
 
 object ApiClient {
@@ -28,9 +32,14 @@ object ApiClient {
         .callTimeout(1, TimeUnit.SECONDS)
         .build()
 
-    val api: RukoApi = Retrofit.Builder()
+    val api: RukoApi = retrofit(http)
+
+    // Episode events are off the payment path: the server looks every account up, so allow longer.
+    val events: RukoApi = retrofit(OkHttpClient.Builder().callTimeout(15, TimeUnit.SECONDS).build())
+
+    private fun retrofit(client: OkHttpClient): RukoApi = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)
-        .client(http)
+        .client(client)
         .addConverterFactory(RukoJson.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(RukoApi::class.java)

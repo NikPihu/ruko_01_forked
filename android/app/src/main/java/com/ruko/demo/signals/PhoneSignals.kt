@@ -4,7 +4,7 @@ import com.ruko.demo.net.CallDirection
 import com.ruko.demo.net.CallKind
 import com.ruko.demo.net.CallSignal
 import com.ruko.demo.net.DeviceSignal
-import com.ruko.demo.net.MoneySignal
+import com.ruko.demo.net.EpisodeSignal
 import com.ruko.demo.net.Context as RequestContext
 
 /**
@@ -69,13 +69,13 @@ data class PhoneSignals(val call: CallReading?, val device: DeviceReading?) {
      * The `context` object of contract c2-0.2. A switched-off group is left null ("unknown");
      * with every group off and no lure, `context` itself is null (the user opted out).
      */
-    fun toRequestContext(lures: List<LureHit>, money: MoneySignal? = null): RequestContext? {
-        if (call == null && device == null && lures.isEmpty() && money == null) return null
+    fun toRequestContext(lures: List<LureHit>, episode: EpisodeSignal? = null): RequestContext? {
+        if (call == null && device == null && lures.isEmpty() && episode == null) return null
         return RequestContext(
             call = call?.toCallSignal(),
             device = device?.toDeviceSignal(),
             lures = lures.map { it.toLureSignal() },
-            money = money,
+            episode = episode,
         )
     }
 }
@@ -105,7 +105,6 @@ data class SignalOverrides(
     val sideload: Boolean? = null,
     val screenRecorded: Boolean? = null,
     val lureTag: String? = null,
-    val taskMoney: Boolean? = null, // replace the money flow with a task scam's
 ) {
     val active: List<String>
         get() = buildList {
@@ -117,16 +116,7 @@ data class SignalOverrides(
             if (sideload != null) add("device.sideloaded_last_24h")
             if (screenRecorded != null) add("screen_recorded")
             if (lureTag != null) add("lures")
-            if (taskMoney == true) add("money")
         }
-
-    companion object {
-        /** Three rewards in, then 1,500 -> 3,000 -> 6,500 out (the simulator's task scam). */
-        val TASK_MONEY = MoneySignal(
-            baitCredits = 3, creditsInr = 650.0, debits = 3, debitsInr = 11_000.0,
-            newPayees = 3, escalationSteps = 2, lastDebitInr = 6_500.0,
-        )
-    }
 
     /** Overrides only fill in groups the user consented to; a switched-off group stays null. */
     fun applyTo(real: PhoneSignals): PhoneSignals {

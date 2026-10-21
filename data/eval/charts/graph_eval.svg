@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 246" font-family="sans-serif">
+<rect width="720" height="246" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="bold" fill="#1f2937">Mules flagged before their first registry listing</text>
+<text x="20" y="54" font-size="12" fill="#6b7280">15 mules; 568 episode events from consenting users</text>
+<text x="20" y="96" font-size="13" fill="#1f2937">bank visibility: none</text>
+<text x="20" y="110" font-size="10" fill="#6b7280">median 1.4 days early, analyst list precision 0.0 (10 medium or high suspects)</text>
+<rect x="200" y="80" width="430" height="34" fill="#f3f4f6"/>
+<rect x="200" y="80" width="114.8" height="34" fill="#9ca3af"/>
+<text x="322.8" y="102" font-size="13" font-weight="bold" fill="#1f2937">27%</text>
+<text x="20" y="148" font-size="13" fill="#1f2937">bank visibility: partner</text>
+<text x="20" y="162" font-size="10" fill="#6b7280">median 1.4 days early, analyst list precision 0.375 (8 medium or high suspects)</text>
+<rect x="200" y="132" width="430" height="34" fill="#f3f4f6"/>
+<rect x="200" y="132" width="200.8" height="34" fill="#7c3aed"/>
+<text x="408.8" y="154" font-size="13" font-weight="bold" fill="#1f2937">47%</text>
+<text x="20" y="200" font-size="13" fill="#1f2937">bank visibility: dpip</text>
+<text x="20" y="214" font-size="10" fill="#6b7280">median 1.4 days early, analyst list precision 0.19 (21 medium or high suspects)</text>
+<rect x="200" y="184" width="430" height="34" fill="#f3f4f6"/>
+<rect x="200" y="184" width="200.8" height="34" fill="#4c1d95"/>
+<text x="408.8" y="206" font-size="13" font-weight="bold" fill="#1f2937">47%</text>
+</svg>

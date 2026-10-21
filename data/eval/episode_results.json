@@ -1,0 +1,148 @@
+{
+  "world": {
+    "seed": 11,
+    "users": 1500,
+    "task_journeys": 28,
+    "task_payments": 103,
+    "task_inr": 1450329.0,
+    "normal_sample": 1500,
+    "variants": {
+      "rewards": 17,
+      "crypto_deposit": 11
+    },
+    "visible_to_watcher": 11,
+    "episode_events": 568
+  },
+  "conditions": {
+    "known_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "B": {
+        "label": "+ episode (phone)",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "C": {
+        "label": "+ episode + payment graph",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      }
+    },
+    "fresh_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 711299.0,
+        "inr_paused_t3": 100000.0,
+        "share_inr_interrupted": 0.49,
+        "journeys_alerted": 11,
+        "journeys": 27,
+        "median_first_alert_payment": 3.0,
+        "by_variant": {
+          "rewards": 7,
+          "crypto_deposit": 4
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.552,
+          "share_inr_paused": 0.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "B": {
+        "label": "+ episode (phone)",
+        "inr_interrupted_t2": 834694.0,
+        "inr_paused_t3": 100000.0,
+        "share_inr_interrupted": 0.576,
+        "journeys_alerted": 17,
+        "journeys": 27,
+        "median_first_alert_payment": 3.0,
+        "by_variant": {
+          "rewards": 13,
+          "crypto_deposit": 4
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.858,
+          "share_inr_paused": 0.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "C": {
+        "label": "+ episode + payment graph",
+        "inr_interrupted_t2": 1249610.0,
+        "inr_paused_t3": 1005935.0,
+        "share_inr_interrupted": 0.862,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.973,
+          "share_inr_paused": 0.726
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      }
+    }
+  }
+}

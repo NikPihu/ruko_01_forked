@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from .config import HANDLES
 from .names import REGIONS, SHOP_WORDS
+from .extras import SMS_CONSENT_SHARE
 from .world import World
 
 DEMO_MEENA = "u_demo_meena"
@@ -44,7 +45,9 @@ def _add_user(w: World, user_id: str, region: str, age_band: str, language: str,
     user = {"user_id": user_id, "upi_id": acct["upi_id"], "mobile": mobile, "region": region,
             "age_band": age_band, "language": language,
             # Spending scale: multiplies every normal-life amount for this user.
-            "scale": w.rng.lognormvariate(0, 0.5)}
+            "scale": w.rng.lognormvariate(0, 0.5),
+            # Allowed SMS checks, so the episode watcher can see credits (sim/extras.py).
+            "sms_consent": user_id == DEMO_MEENA or w.aux.random() < SMS_CONSENT_SHARE}
     w.users.append(user)
     w.users_by_id[user_id] = user
     return user

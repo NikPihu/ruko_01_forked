@@ -1,0 +1,49 @@
+{
+  "world": {
+    "seed": 11,
+    "users": 1500,
+    "mules": 15,
+    "episode_events": 568
+  },
+  "visibility": {
+    "none": {
+      "mules_seen_in_episodes": 13,
+      "mules_flagged": 10,
+      "flagged_before_registry": 4,
+      "share_of_mules_flagged_before_registry": 0.267,
+      "median_days_before_listing": 1.4,
+      "never_listed_but_flagged": 3,
+      "suspects": 25,
+      "suspect_precision": 0.0,
+      "analyst_list": 10,
+      "analyst_list_precision": 0.0,
+      "rings": 3
+    },
+    "partner": {
+      "mules_seen_in_episodes": 13,
+      "mules_flagged": 13,
+      "flagged_before_registry": 7,
+      "share_of_mules_flagged_before_registry": 0.467,
+      "median_days_before_listing": 1.4,
+      "never_listed_but_flagged": 6,
+      "suspects": 50,
+      "suspect_precision": 0.08,
+      "analyst_list": 8,
+      "analyst_list_precision": 0.375,
+      "rings": 1
+    },
+    "dpip": {
+      "mules_seen_in_episodes": 13,
+      "mules_flagged": 14,
+      "flagged_before_registry": 7,
+      "share_of_mules_flagged_before_registry": 0.467,
+      "median_days_before_listing": 1.4,
+      "never_listed_but_flagged": 6,
+      "suspects": 140,
+      "suspect_precision": 0.029,
+      "analyst_list": 21,
+      "analyst_list_precision": 0.19,
+      "rings": 1
+    }
+  }
+}

@@ -17,6 +17,12 @@ object RequestBuilder {
             .truncatedTo(ChronoUnit.SECONDS)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
+    /** Epoch millis as ISO 8601 in IST, for episode events. */
+    fun istIso(ms: Long): String =
+        java.time.Instant.ofEpochMilli(ms).atOffset(IST)
+            .truncatedTo(ChronoUnit.SECONDS)
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
     fun build(
         userId: String,
         upiId: String,

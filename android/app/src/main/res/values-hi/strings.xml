@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hindi. Strings missing here fall back to English (values/). -->
+    <string name="perm_receive_sms">नए बैंक SMS अलर्ट</string>
+    <string name="perm_notifications">सूचनाएँ</string>
+    <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
+    <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
+    <string name="shield_working">स्कैम शील्ड एक बैंक अलर्ट जाँच रहा है</string>
+    <string name="shield_watching_title">‘टास्क’ के लिए पैसे मिले?</string>
+    <string name="shield_watching_text">‘टास्क’ के लिए %1$s मिले? असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
+    <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
+    <string name="shield_active_text">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
+    <string name="shield_out_title">और पैसे मत भेजिए</string>
+    <string name="shield_out_text">आपने अभी %1$s भेजे। अगली माँग और बड़ी होगी। और पैसे मत भेजिए।</string>
+    <string name="shield_confirmed_title">हमने खाते जाँचे</string>
+    <string name="shield_confirmed_text">जिस खाते में आप पैसे भेज रहे हैं, उसे उन कई लोगों से पैसे मिले हैं जिन्हें यही ‘टास्क’ इनाम मिला था। रुकिए और 1930 पर कॉल कीजिए।</string>
+    <!-- Watcher UI -->
+    <string name="shield_chip_on">पैसों के अलर्ट पर नज़र</string>
+    <string name="shield_chip_off">पैसों के अलर्ट बंद</string>
+    <string name="consent_watch">मेरे पैसों के अलर्ट पर नज़र रखें</string>
+    <string name="consent_watch_desc">ऐप बंद होने पर भी बैंक SMS अलर्ट पर नज़र रखता है, ताकि टास्क और नौकरी वाले स्कैम जल्दी पकड़े जाएँ। SMS का टेक्स्ट फ़ोन से बाहर नहीं जाता।</string>
+    <string name="consent_share">आपको और दूसरों को बचाने के लिए संदिग्ध खाते भेजें</string>
+    <string name="consent_share_desc">जब पैसों के अलर्ट स्कैम जैसे लगें, तो सिर्फ़ उसमें शामिल खाते (ज़्यादा से ज़्यादा 10) जाँच के लिए भेजे जाते हैं। आपके SMS या पूरा इतिहास कभी नहीं।</string>
+    <string name="profile_keep_running">स्कैम शील्ड चालू रखें</string>
+    <string name="profile_keep_running_desc">कुछ फ़ोन बैकग्राउंड में ऐप बंद कर देते हैं। यहाँ Cache Pay को अनुमति दें ताकि अलर्ट पर नज़र बनी रहे।</string>
+    <string name="profile_delete_history">पैसों का इतिहास मिटाएँ</string>
+    <string name="delete_history_title">पैसों का इतिहास मिटाएँ?</string>
+    <string name="delete_history_body">स्कैम शील्ड ने जो बैंक अलर्ट और भुगतान देखे हैं, वे मिट जाएँगे। नज़र अभी से फिर शुरू होगी।</string>
+    <string name="delete_history_confirm">इतिहास मिटाएँ</string>
+    <string name="episode_title_watching">‘टास्क’ वाले पैसों से सावधान</string>
+    <string name="episode_title_active">यह टास्क स्कैम लगता है</string>
+    <string name="episode_body_watching">आपको %2$d अनजान खातों से %1$s मिले। असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
+    <string name="episode_body_active">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
+    <string name="episode_how">यह स्कैम कैसे होता है</string>
+    <string name="episode_how_body">1. वीडियो लाइक करने या छोटे काम के लिए अनजान लोगों से छोटे ‘इनाम’ आते हैं।\n2. फिर कमाई ‘अनलॉक’ करने या अगले लेवल के लिए पैसे माँगे जाते हैं।\n3. हर भुगतान पिछले से बड़ा होता है, अक्सर अलग खाते में।\n4. फिर वे पैसे लेकर गायब हो जाते हैं। कमाई कभी असली नहीं थी।</string>
+    <string name="episode_call_1930">1930 पर कॉल करें (साइबर क्राइम हेल्पलाइन)</string>
+    <string name="episode_call_trusted">%1$s को कॉल करें</string>
+    <string name="episode_dismiss">मैं इन्हें जानता/जानती हूँ / यह असली नौकरी है</string>
+    <string name="episode_dismiss_body">स्कैम शील्ड इन भुगतानों के बारे में चेतावनी देना बंद कर देगा। कोई नया अनजान व्यक्ति पैसे भेजेगा तो नज़र फिर शुरू होगी।</string>
+    <string name="episode_dismiss_confirm">हाँ, मैं जानता/जानती हूँ</string>
+    <string name="episode_keep">नज़र रखते रहें</string>
+    <string name="episode_ok">ठीक है</string>
+    <string name="decision_task_job">यह टास्क या नौकरी वाला स्कैम लगता है: पहले छोटे इनाम, फिर कमाई अनलॉक करने के लिए बार-बार ज़्यादा पैसे माँगे जाते हैं। असली नौकरी पैसे नहीं माँगती।</string>
+</resources>

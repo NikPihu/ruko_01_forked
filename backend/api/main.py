@@ -26,6 +26,8 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 from api import rule_scorer as scorer
 from features.user_baseline import Baselines
@@ -33,18 +35,27 @@ from evidence.store import EvidenceStore, pseudonym
 from features.build import build_features
 from api.intel import IntelAdapter
 from api.policy import Policy
-from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse
+from api.episode_events import EpisodeService
+from graph import discover as discovery
+from graph.store import GraphStore
+from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
 DEADLINE_S = 0.200
 
 
+class ReviewBody(BaseModel):
+    """An analyst's decision on a discovered suspect (two different approvals are needed)."""
+    reviewer: str
+    decision: str  # approve | reject
+
+
 def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = None,
                intel_url: str = "http://127.0.0.1:8001", evidence_path: str = ":memory:",
                intel_budget_s: float = 0.150, intel_cache_ttl_s: float = 10.0,
                log_path: str | Path | None = "logs/decide.jsonl", evidence_async: bool = True,
-               demo_clock: bool = False) -> FastAPI:
+               demo_clock: bool = False, discover_every_s: float | None = None) -> FastAPI:
     client = intel_client or httpx.AsyncClient(base_url=intel_url)
     # sim time - wall time; None means "use the request's ts".
     clock: dict[str, timedelta | None] = {"offset": None}
@@ -67,7 +78,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             log.warning("intel services not reachable at startup; lookups will count as unknown")
         if demo_clock:
             await sync_clock()
+        task = asyncio.create_task(discover_loop()) if discover_every_s else None
         yield
+        if task:
+            task.cancel()
 
     app = FastAPI(title="RUKO risk engine", lifespan=lifespan)
     intel = IntelAdapter(client, budget_s=intel_budget_s, cache_ttl_s=intel_cache_ttl_s)
@@ -78,6 +92,32 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     # Swappable: anything with score(features) -> same dict shape (e.g. the trained model).
     app.state.score = scorer.score
     app.state.evidence, app.state.trusted = evidence, trusted
+    graph = GraphStore()
+    app.state.graph = graph
+    reviews: dict[str, discovery.Review] = {}
+    found: dict = {"suspects": [], "last_run": None}
+    app.state.reviews = reviews
+
+    def sim_now() -> datetime:
+        now = datetime.now().astimezone()
+        return now + clock["offset"] if clock["offset"] is not None else now
+
+    def run_discovery(min_band: str = "med") -> list[dict]:
+        now = sim_now()
+        try:
+            found["suspects"] = discovery.discover(graph, reviews, now, min_band=min_band)
+            found["last_run"] = discovery.last_run_summary(found["suspects"], now)
+        except Exception as e:  # a broken run must never affect payments
+            log.exception("discovery failed")
+            found["last_run"] = discovery.last_run_summary([], now, error=str(e))
+        return found["suspects"]
+
+    async def discover_loop() -> None:
+        while True:
+            await asyncio.sleep(discover_every_s)
+            await asyncio.get_running_loop().run_in_executor(None, run_discovery)
+    episodes = EpisodeService(intel, evidence, graph=graph)
+    app.state.episodes = episodes
     if log_path:
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -98,7 +138,14 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ms["intel"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
-        feats = build_features(req, state, res, base, is_trusted)
+        # The payment graph: this check is an edge, and the payee's crowd / loop signals are read
+        # from what episodes already added (no extra lookups on the payment path).
+        graph.add_payment(req.user_id, upi, req.amount_inr, req.ts)
+        graph.expire(req.ts)
+        ring = graph.account_signals(upi, req.ts)
+        # Discovered suspects count only after two analysts approved them (§9.5).
+        ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -158,6 +205,51 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                                      "tier": resp.tier, **{f"ms_{k}": round(v, 2) for k, v in ms.items()}}) + "\n")
         return resp
 
+    @app.post("/v1/episode", response_model=EpisodeEventResponse)
+    async def episode_event(ev: EpisodeEvent) -> EpisodeEventResponse:
+        """The phone's watcher changed state (c2-0.4). Never needed by /v1/decide; missing means unknown."""
+        now = ev.ts
+        if clock["offset"] is not None:
+            now = datetime.now(ev.ts.tzinfo) + clock["offset"]
+        try:
+            return await episodes.handle(ev, now)
+        except Exception:
+            log.exception("episode event failed")
+            return EpisodeEventResponse(event_id=ev.event_id, episode_risk="unknown", reasons=[])
+
+    @app.get("/v1/cases")
+    def cases() -> list[dict]:
+        """Analyst cases opened by high-risk episodes (console, C5)."""
+        return episodes.cases
+
+    # ---------- payment graph for the analyst console (contract C5, §9.7) ----------
+
+    @app.get("/v1/graph/account/{upi_id}")
+    def graph_account(upi_id: str, hops: int = 2) -> dict:
+        out = graph.neighbourhood(upi_id, hops=max(1, min(hops, 3)))
+        out["signals"] = graph.account_signals(upi_id, sim_now())
+        return out
+
+    @app.get("/v1/graph/suspects")
+    def graph_suspects(min_band: str = "med") -> dict:
+        """Analysts see medium and high suspects by default; ?min_band=low shows everything."""
+        if min_band not in discovery.BAND_RANK:
+            raise HTTPException(422, "min_band must be low, med or high")
+        return {"suspects": run_discovery(min_band), "last_run": found["last_run"],
+                "approvals_needed": discovery.APPROVALS_NEEDED}
+
+    @app.post("/v1/graph/suspects/{upi_id}/review")
+    def graph_review(upi_id: str, body: ReviewBody) -> dict:
+        if body.decision not in ("approve", "reject"):
+            raise HTTPException(422, "decision must be approve or reject")
+        r = discovery.review(reviews, upi_id, body.reviewer.strip(), body.decision)
+        return {"upi_id": upi_id.strip().lower(), "approved_by": sorted(r.approved_by),
+                "rejected_by": sorted(r.rejected_by), "approved": r.approved}
+
+    @app.get("/console/graph", response_class=HTMLResponse)
+    def console_graph() -> str:
+        return (Path(__file__).with_name("console_graph.html")).read_text(encoding="utf-8")
+
     @app.post("/v1/trusted/{user_id}/{payee_upi_id}")
     def mark_trusted(user_id: str, payee_upi_id: str) -> dict:
         """The user tapped "I know this person"."""
@@ -181,6 +273,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         policy.reset()
         evidence.clear()
         trusted.clear()
+        episodes.reset()
+        graph.reset()
+        reviews.clear()
+        found.update(suspects=[], last_run=None)
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()
         return {"ok": True}
@@ -199,7 +295,8 @@ def main() -> None:
     p.add_argument("--demo-clock", action="store_true",
                    help="ignore request timestamps and use the mock's sim clock (live phone demos)")
     a = p.parse_args()
-    uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock),
+    uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
+                           discover_every_s=3600),
                 host="0.0.0.0", port=a.port)
 
 

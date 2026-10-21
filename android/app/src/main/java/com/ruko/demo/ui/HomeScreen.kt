@@ -30,6 +30,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,27 +46,35 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ruko.demo.BuildConfig
 import com.ruko.demo.R
+import com.ruko.demo.shield.ShieldController
 
 @Composable
 fun HomeScreen(
     vm: PaymentViewModel,
     firstName: String,
     consents: Consents,
+    trustedName: String?,
+    trustedMobile: String?,
     onPay: () -> Unit,
     onProfile: () -> Unit,
     onDebug: () -> Unit,
 ) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
+    // The background watcher may have changed the episode while the app was away.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { ShieldController.refresh(context.applicationContext, consents) }
+    LaunchedEffect(consents) { ShieldController.refresh(context.applicationContext, consents) }
+    val shield = ShieldController.live.value
 
     Column(Modifier.fillMaxSize().background(CacheColors.Background)) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Hero(vm, firstName, onProfile = onProfile, onHelp = demoOnly, onDebug = onDebug)
             ShieldPermissionCard(consents, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
+            EpisodeCard(shield, trustedName, trustedMobile, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
 
             Section(
                 title = stringResource(R.string.home_money_transfers),
-                trailing = { ShieldChip() },
+                trailing = { ShieldStatusChip(consents.moneyWatch) },
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TransferAction(CacheIcons.Phone, R.string.home_to_mobile, onPay, Modifier.weight(1f))
@@ -267,22 +278,6 @@ private fun Section(
             trailing?.invoke()
         }
         content()
-    }
-}
-
-@Composable
-private fun ShieldChip() {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(CacheColors.Accent.copy(alpha = 0.18f))
-            .border(1.dp, CacheColors.Accent.copy(alpha = 0.5f), RoundedCornerShape(50))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(CacheIcons.Shield, contentDescription = null, tint = CacheColors.Accent, modifier = Modifier.size(16.dp))
-        Text(stringResource(R.string.home_shield_chip), style = MaterialTheme.typography.labelLarge, color = Color(0xFFFED7AA))
     }
 }
 

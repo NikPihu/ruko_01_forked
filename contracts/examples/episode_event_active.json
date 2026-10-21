@@ -1,0 +1,19 @@
+{
+  "event_id": "8b7c6d5e-4f3a-4b2c-9d1e-0f9a8b7c6d5e",
+  "episode_id": "c4a1b2d3-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "user_id": "u_demo_meena",
+  "ts": "2026-11-06T21:10:00+05:30",
+  "trigger": "active",
+  "rules_version": "episode-0.2",
+  "summary": {"state": "active", "age_days": 1.08, "bait_credits": 3, "bait_inr": 450, "outs": 3, "outs_inr": 9500,
+              "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6000, "out_to_in_ratio": 21.11,
+              "payee_seen_in_episode": null, "rules_version": "episode-0.2"},
+  "accounts": [
+    {"upi_id": "like.reward7@ybl", "role": "bait_sender", "n": 1, "inr": 150, "first_seen_min_ago": 1550},
+    {"upi_id": "like.reward8@ybl", "role": "bait_sender", "n": 1, "inr": 200, "first_seen_min_ago": 1250},
+    {"upi_id": "like.reward9@ybl", "role": "bait_sender", "n": 1, "inr": 100, "first_seen_min_ago": 950},
+    {"upi_id": "unlock.level1@ybl", "role": "payee", "n": 1, "inr": 1000, "first_seen_min_ago": 600, "via": "this_app", "step": 1},
+    {"upi_id": "unlock.level2@ybl", "role": "payee", "n": 1, "inr": 2500, "first_seen_min_ago": 300, "via": "other_app", "step": 2},
+    {"upi_id": "secure.settlement.desk@okaxis", "role": "payee", "n": 1, "inr": 6000, "first_seen_min_ago": 0, "via": "other_app", "step": 3}
+  ]
+}

@@ -57,7 +57,6 @@ private fun PaymentApp(auth: AuthViewModel) {
     // Signals are read with the user's current consents at the moment of Pay.
     SideEffect {
         vm.consents = auth.consents
-        Signals.history = auth.payments
     }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
@@ -66,6 +65,8 @@ private fun PaymentApp(auth: AuthViewModel) {
                 vm = vm,
                 firstName = auth.profile?.firstName.orEmpty(),
                 consents = auth.consents,
+                trustedName = auth.profile?.trustedName,
+                trustedMobile = auth.profile?.trustedMobile,
                 onPay = {
                     vm.reset()
                     nav.navigate(Routes.PAY)
