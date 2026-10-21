@@ -34,7 +34,7 @@ FAMILY = {
     # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
     "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
-    "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
+    "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
     # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
     "session_dictated": "B", "session_pasted_after_switch": "B", "session_app_switches": "B",
@@ -120,6 +120,7 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["first_time_payee"] = req.payee_upi_id.lower() not in base.known_payees
     f["entry_typed"] = req.entry_method == "typed"
     f["attempts_72h"] = st.attempts_72h
+    f["payee_in_run"] = st.payee_in_run
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
     f["trusted_payee"] = trusted
     f.update(session_features(ctx.session if ctx else None))

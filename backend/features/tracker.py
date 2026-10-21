@@ -43,6 +43,7 @@ class TrackerState:
     on_call: bool | None
     attempts_72h: int          # earlier attempts to new payees in the window, not counting this one
     new_payee_sum_72h: float   # including this one
+    payee_in_run: bool         # this payee is new, or one of those earlier new payees
     minutes_since_first_contact: float | None
 
 
@@ -99,6 +100,7 @@ class StageTracker:
             stage=stage, stage_path=list(s.stage_path), on_call=on_call,
             attempts_72h=len(earlier_new),
             new_payee_sum_72h=sum(a.amount for a in s.attempts if a.new_payee),
+            payee_in_run=new_payee or any(a.payee == req.payee_upi_id for a in earlier_new),
             minutes_since_first_contact=(now - first).total_seconds() / 60 if first else None,
         )
 

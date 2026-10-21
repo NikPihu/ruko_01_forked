@@ -110,6 +110,22 @@ def test_split_tranches_still_caught(engine, mock, world):
     assert "R7_tranche_pattern" in r["reasons"] or r["tier"] >= "T2"
 
 
+def test_usual_shop_after_new_payees_is_not_a_tranche(engine, world):
+    """Two payments to new payees, then the usual kirana: the kirana payment is not part of the run,
+    so an old scam-looking SMS alone (one family) leaves it silent."""
+    users = world[1]["users"].set_index("user_id")
+    user = next(u for u in users_in(world) if DEMO_KIRANA_UPI in baseline(world, u).known_payees)
+    others = [users.loc[u].upi_id for u in users_in(world, "Delhi")[:2]]
+    lure = {"lures": [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 600}]}
+    for i, payee in enumerate(others):
+        engine.post("/v1/decide", json=req(user=user, payee=payee, amount=2_000, context=lure,
+                                           rid=f"r_new_{i}", ts=NOW + timedelta(minutes=3 * i)))
+    r = engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=100, entry="contact",
+                                           context=lure, rid="r_kirana", ts=NOW + timedelta(minutes=9))).json()
+    assert r["tier"] == "T0", r
+    assert "R7_tranche_pattern" not in r["reasons"]
+
+
 TASK_PAYEE = "prime.task.rewards@ybl"
 ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_inr": 450, "outs": 3,
                   "outs_inr": 9_500, "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6_000,

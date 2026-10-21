@@ -238,8 +238,6 @@
     <string name="shield_channel_name">Scam Shield alerts</string>
     <string name="shield_channel_desc">Warnings when your money alerts look like a task or job scam.</string>
     <string name="shield_working">Scam Shield is checking a money alert</string>
-    <string name="shield_watching_title">Got money for a “task”?</string>
-    <string name="shield_watching_text">Got %1$s for a “task”? Real jobs never ask you to pay to get your earnings.</string>
     <string name="shield_active_title">This looks like a task scam</string>
     <string name="shield_active_text">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
     <string name="shield_out_title">Do not pay more</string>
@@ -259,7 +257,6 @@
     <string name="delete_history_title">Delete money history?</string>
     <string name="delete_history_body">This removes the money alerts and payments Scam Shield has seen. Watching continues from now.</string>
     <string name="delete_history_confirm">Delete history</string>
-    <string name="episode_title_watching">Be careful with “task” money</string>
     <string name="episode_title_active">This looks like a task scam</string>
     <string name="episode_body_watching">You received %1$s from %2$d unknown accounts. Real jobs never ask you to pay to get your earnings.</string>
     <string name="episode_body_active">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
