@@ -11,7 +11,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
-| `ml/` | Diwansu Pilania | Scorer, families, reasons, playbooks, lure model (not started: only empty `artifacts/`) |
+| `ml/` | Diwansu Pilania | Scorer, families, reasons, playbooks, lure model (not started: a planning `README.md` and empty `artifacts/`) |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
 | `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
@@ -42,7 +42,10 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 7. **Privacy by default.** Phone data is AES-256-GCM encrypted with an Android Keystore key in
    `noBackupFilesDir`, excluded from backup; "Delete my data" removes the files and the key. RUKO
    users are pseudonymised on the server (`evidence/store.py` `pseudonym()`); payees, bait senders
-   and cash-out accounts stay plain because they must be looked up. New consents default to off.
+   and cash-out accounts stay plain because they must be looked up. New consents default to off,
+   with one exception: "Session checks" (`Consents.sessionSignals`, c2-0.5) is on by default,
+   because it sends only counts and rounded times measured inside RUKO's own Pay screen (never
+   keys typed or which other app was open) and the user can switch it off.
 8. **A contract change is one change everywhere.** Edit `backend/schema/events.py`, bump
    `CONTRACT_VERSION`, run `python -m schema.export`, update `contracts/examples/` and
    `contracts/README.md` (changelog), and mirror it in `android/.../net/Models.kt` and
@@ -58,14 +61,20 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
 
-## Contract (current: c2-0.4)
+## Contract (current: c2-0.5)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
-  payer_says?, ts (+05:30), context {call, device, lures, episode}`; response tier T0 to T4,
-  reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`.
+  payer_says?, ts (+05:30), context {call, device, lures, episode, session}`; response tier T0 to
+  T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`.
+- `context.session` (c2-0.5): how the Pay screen of this payment was used (digit rhythm, paste
+  after an app switch, app switches, time away, abandoned tries), counts and rounded seconds only;
+  `null` when "Session checks" is off. All its signs are family B, so they can never interrupt on
+  their own. `call.speaker_on` (c2-0.5) only adds weight to the C call signal. Field meanings are
+  in `contracts/README.md`; phone and simulator must measure them the same way.
 - `POST /v1/episode`: the phone's task-scam watcher reports a state change with at most 10
   accounts, only with "Share suspicious accounts" on; reply `episode_risk` in words.
-- Reason codes R1 to R11 (`R10_bait_then_pay`, `R11_ring_link`). `context.money` (c2-0.2) was
-  removed and now gets 422.
+- Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1, c2-0.3 and c2-0.4
+  requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`. Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
 
@@ -91,16 +100,18 @@ account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 107 tests (with PYTHONPATH set)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 43 tests
+.venv/Scripts/python -m pytest backend/tests -q          # 123 tests (with PYTHONPATH set)
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 52 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
 compileSdk 37, targetSdk 34, minSdk 26. The system `java` (Java 8) does not work.
 `android/local.properties` (not committed) needs `sdk.dir` and optionally `API_BASE_URL`.
 
-Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph_eval` write
-`data/eval/*_results.json` and `data/eval/charts/*.svg`. Offline episode features for training:
+Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph_eval`,
+`python -m eval.session_eval` write `data/eval/*_results.json` and `data/eval/charts/*.svg`
+(results are committed). Latest coached-session run: fresh mules 62.5% → 67.8% of scam rupees
+interrupted, no new false alarms. Offline episode features for training:
 `python -m features.offline_episode --data data/`.
 
 ## Map
@@ -109,10 +120,12 @@ Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
-- `api/rule_scorer.py` (`rules-0.3`, hand-set fallback until `ml/model/predict.py` exists),
-  `api/policy.py` + `policy.yaml`, `api/intel.py`, `api/episode_events.py`.
+- `api/rule_scorer.py` (`rules-0.4`, hand-set fallback until `ml/model/predict.py` exists),
+  `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds), `api/intel.py`,
+  `api/episode_events.py`.
 - `features/`: `build.py` (one feature builder; `FAMILY` map), `tracker.py` (stages S0 to S5),
-  `episode.py` + `bank_sms.py` (same state machine as the phone), `offline_episode.py`.
+  `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
+  → coached-session signs), `user_baseline.py`, `offline_episode.py`.
 - `graph/store.py` (crowd signal, money loop, story for the console), `graph/discover.py`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
@@ -121,14 +134,16 @@ Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph
 
 **Android** (`android/app/src/main/java/com/ruko/demo/`)
 - `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer, bank
-  SMS parser. `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
+  SMS parser, `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
   encrypted event queue). `data/`: encrypted account store. `ui/`: screens, debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
 
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
-  stream so the core world and demo identities never shift). `sim/mule_pump.py`,
-  `sim/bait_pump.py` prepare live demos. `data/manifest.json` and `data/sample_v0/` are committed;
+  stream so the core world and demo identities never shift; `sim/session.py` adds Pay-screen
+  sessions the same way). `sim/mule_pump.py`, `sim/bait_pump.py` prepare live demos.
+- `eval/`: `episode_eval.py`, `graph_eval.py`, `session_eval.py` (ground truth used for scoring
+  only); `redteam/` is empty. `data/manifest.json` and `data/sample_v0/` are committed;
   `data/*.parquet` is git ignored.
 
 ## Demo identities
@@ -136,9 +151,10 @@ Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph
 - Demo mule `secure.settlement.desk@okaxis`; kirana `shreeganesh.kirana@okaxis`.
 - Meena scenario (call + remote access + ₹95,000, "government") → T3 `t3_digital_arrest`.
 - Bait pump `--check` → T3 `t3_task_job` with R10, R3, R9, R11.
+- Coached example (`contracts/examples/decide_request_coached.json`) → T3 or T4 with R12 and R1.
 
 ## Not built yet
 Real T1 to T4 alert screens (the decision screen is a placeholder), feedback endpoint and buttons,
 the trained ML model and `lure.json`, `docker-compose.yml` / `Makefile`, Redis / Postgres, signed
 release APK. SMS permissions are a demo-build feature only (Play Store does not allow them for a
-payment app).
+payment app). `ml/README.md` describes the planned ML layout; none of it exists yet.
