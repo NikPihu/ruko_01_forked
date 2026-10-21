@@ -281,6 +281,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             // The background watcher follows its switch; off also deletes the money history.
             if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
             if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
+            // Switching sharing off deletes anything still waiting to be sent.
+            if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
         }
     }
 

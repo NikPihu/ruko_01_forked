@@ -43,6 +43,8 @@ class ContractTest {
             when {
                 file.name.startsWith("decide_request") -> strict.decodeFromString(DecideRequest.serializer(), file.readText())
                 file.name.startsWith("decide_response") -> strict.decodeFromString(DecideResponse.serializer(), file.readText())
+                file.name.startsWith("episode_event_response") -> strict.decodeFromString(EpisodeEventResponse.serializer(), file.readText())
+                file.name.startsWith("episode_event") -> strict.decodeFromString(EpisodeEvent.serializer(), file.readText())
             }
         }
     }

@@ -104,6 +104,41 @@ data class DecideRequest(
     val context: Context? = null, // null when the user opted out of every phone signal
 )
 
+// ---------- Episode events (c2-0.4): the watcher's state changes, only with "Share" on ----------
+
+@Serializable
+data class EpisodeAccount(
+    @SerialName("upi_id") val upiId: String,
+    val role: String, // bait_sender | payee
+    val n: Int,
+    val inr: Double,
+    @SerialName("first_seen_min_ago") val firstSeenMinAgo: Double,
+    val via: String? = null, // payees only: this_app | other_app
+    val step: Int? = null, // payees only: position in the escalation run
+)
+
+@Serializable
+data class EpisodeEvent(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("episode_id") val episodeId: String,
+    @SerialName("user_id") val userId: String,
+    val ts: String,
+    val trigger: String, // watching | active | out_payment | bait | dismissed | closed
+    @SerialName("rules_version") val rulesVersion: String,
+    val summary: EpisodeSignal,
+    val accounts: List<EpisodeAccount> = emptyList(),
+)
+
+@Serializable
+data class EpisodeEventResponse(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("episode_risk") val episodeRisk: String, // unknown | low | elevated | high
+    val reasons: List<String> = emptyList(),
+    @SerialName("message_key") val messageKey: String? = null,
+    @SerialName("case_id") val caseId: String? = null,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
 @Serializable
 data class DecideResponse(
     @SerialName("request_id") val requestId: String,

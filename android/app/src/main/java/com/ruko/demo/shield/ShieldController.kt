@@ -126,6 +126,10 @@ object ShieldController {
         live.value = EpisodeStore(context).update { ShieldData(lastScanTs = now()) }
     }
 
+    fun clearQueue(context: Context) {
+        live.value = EpisodeStore(context).update { it.copy(pending = emptyList()) }
+    }
+
     /** Hand transactions to the worker (from the SMS receiver). */
     fun enqueue(context: Context, txns: List<MoneyTxn>) {
         if (txns.isEmpty()) return
@@ -153,7 +157,7 @@ object ShieldController {
         EpisodeStore(context).update { data ->
             val r = ShieldEngine.apply(rules, sms, data, txns, now())
             result = r
-            val withEvents = EventSender.queue(r.data, r.transitions, consents, accounts.loadProfile()?.localId, rules.version, now())
+            val withEvents = EventSender.queue(r.data, r.transitions, consents, rules, sms, now())
             if (markScanned != null) withEvents.copy(lastScanTs = markScanned) else withEvents
         }
         val r = result ?: return
@@ -173,7 +177,7 @@ object ShieldController {
         live.value = EpisodeStore(context).update { data ->
             val r = ShieldEngine.dismiss(rules, smsRead(context, consents), data, now())
             transitions = r.transitions
-            EventSender.queue(r.data, r.transitions, consents, accounts.loadProfile()?.localId, rules.version, now())
+            EventSender.queue(r.data, r.transitions, consents, rules, smsRead(context, consents), now())
         }
         if (transitions.isNotEmpty()) EventSender.schedule(context)
     }
