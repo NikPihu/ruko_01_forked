@@ -46,6 +46,12 @@ data class Consents(
     @SerialName("call_signals") val callSignals: Boolean = true,
     @SerialName("app_checks") val appChecks: Boolean = true,
     @SerialName("sms_lure") val smsLure: Boolean = false, // off by default
+    // Background task-scam watcher (bank SMS alerts); needs SMS checks. Off by default.
+    @SerialName("money_watch") val moneyWatch: Boolean = false,
+    // Send the accounts in a suspicious episode to the server (c2-0.4). Off by default.
+    @SerialName("share_accounts") val shareAccounts: Boolean = false,
+    // How the Pay screen is used (typing rhythm, paste, app switches), counts only (c2-0.5). On by default.
+    @SerialName("session_signals") val sessionSignals: Boolean = true,
     @SerialName("storage_agreed") val storageAgreed: Boolean = false,
     @SerialName("agreed_at") val agreedAt: String? = null,
 )
@@ -73,12 +79,18 @@ class AccountStore(context: Context) {
 
     fun savePayments(payments: List<MoneyTxn>) = write(PAYMENTS_FILE, ListSerializer(MoneyTxn.serializer()), payments)
 
+    /** This user's usual typing rhythm: median seconds between amount digits, last 10 payments. */
+    fun loadTypingGaps(): List<Double> = read(TYPING_FILE, ListSerializer(Double.serializer())) ?: emptyList()
+
+    fun saveTypingGaps(gaps: List<Double>) = write(TYPING_FILE, ListSerializer(Double.serializer()), gaps)
+
     /** Right to erasure: remove the files and the key that could decrypt any copy of them. */
     fun deleteAll() {
         store.delete(PROFILE_FILE)
         store.delete(CONSENTS_FILE)
         store.delete(PAYEES_FILE)
         store.delete(PAYMENTS_FILE)
+        store.delete(TYPING_FILE)
         store.deleteKey()
     }
 
@@ -105,5 +117,6 @@ class AccountStore(context: Context) {
         const val CONSENTS_FILE = "consents.enc"
         const val PAYEES_FILE = "recent_payees.enc"
         const val PAYMENTS_FILE = "payments.enc"
+        const val TYPING_FILE = "typing.enc"
     }
 }

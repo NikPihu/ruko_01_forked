@@ -32,9 +32,10 @@ ruko_01/
 ├── data/               Nikunj (generated *.parquet also lands here)
 │   ├── sim/            simulator, config, playbooks.yaml, hard negatives, scenarios/
 │   ├── eval/           replay, metrics, red team, load test, results.json, charts/
-│   ├── console/        Streamlit analyst console + draft report
+│   ├── console/        draft report (the analyst console itself is ../console/)
 │   ├── sample_v0/      small sample dataset
 │   └── external/       public datasets (not committed)
+├── console/            analyst console (React + TypeScript), served by the API at /console/
 ├── docker-compose.yml  (Jagdeep, to add)
 └── Makefile            (Jagdeep, to add)
 ```
@@ -84,6 +85,7 @@ the full `data/*.parquet` is not (rebuild with `-Regenerate` / `REGENERATE=1`).
 
 ## Fixed values (team contract)
 
-Ports: API 8000, mock intel 8001, console 8501, Redis 6379, Postgres 5432.
+Ports: API 8000 (also serves the analyst console at /console/), mock intel 8001,
+console dev server 5173, Redis 6379, Postgres 5432.
 Phone to API: `adb reverse tcp:8000 tcp:8000`, phone calls `http://localhost:8000`.
 Secrets such as `PAYEE_SALT` go in `.env` (copy `.env.example`) and never get committed.

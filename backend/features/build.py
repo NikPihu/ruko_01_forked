@@ -2,13 +2,15 @@
 
 Families (corroboration counts families, not sources):
     C context    calls, remote control, sideloaded apps        (phone)
-    L lure       the hook: scam-script messages, bait credits   (phone)
+    L lure       the hook: scam-script messages, the task-scam episode (phone)
     P payee      bank features, MuleHunter, registry, FRI, NPCI name/type  (payee side)
-    B behaviour  amount vs history, new payee, typed, tranches, escalation (payer side)
+    B behaviour  amount vs history, new payee, typed, tranches, coached session (payer side)
     S stage      journey stage (not a family; used for context)
 """
 from __future__ import annotations
 
+from features.episode import STATE_CODE, effective_episode
+from features.session import session_features
 from features.user_baseline import UserBaseline
 from api.intel import IntelResult
 from schema.events import DecideRequest
@@ -19,23 +21,30 @@ FRI_LEVEL = {"NONE": 0, "MEDIUM": 1, "HIGH": 2, "VERY_HIGH": 3}
 FAMILY = {
     "on_call": "C", "caller_unknown": "C", "voip_call": "C", "foreign_caller": "C",
     "outgoing_to_unknown": "C", "remote_control": "C", "untrusted_accessibility": "C",
-    "sideloaded_last_24h": "C",
-    "lure_max_conf_72h": "L", "lure_tag": "L", "bait_credits_72h": "L",
+    "sideloaded_last_24h": "C", "call_on_speaker": "C",
+    "lure_max_conf_72h": "L", "lure_tag": "L",
+    # The whole episode is one phone summary, so all of it sits in one family (never two).
+    "episode_state": "L", "episode_age_days": "L", "episode_bait_credits": "L",
+    "episode_new_payees": "L", "episode_out_to_in": "L", "episode_escalation_steps": "L",
     "payee_holder_type": "P", "payee_verified_merchant": "P", "payee_account_age_days": "P",
     "payee_uniq_payers_6h": "P", "payee_uniq_payers_7d": "P", "payee_repeat_ratio": "P",
     "payee_pass_through_24h": "P", "payee_median_hold_min": "P", "payee_mulehunter": "P",
     "payee_registry_listed": "P", "payee_fri_level": "P", "caller_registry_listed": "P",
     "caller_fri_level": "P", "story_mismatch": "P", "vpa_invalid": "P",
+    # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
+    "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
-    "escalation_steps_72h": "B", "phone_new_payees_72h": "B", "sent_to_received_72h": "B",
+    # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
+    "session_dictated": "B", "session_pasted_after_switch": "B", "session_app_switches": "B",
+    "session_hesitation": "B", "session_abandoned_30m": "B",
     "stage": "S", "minutes_since_first_contact": "S",
 }
 
 
 def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
-                   base: UserBaseline, trusted: bool) -> dict:
+                   base: UserBaseline, trusted: bool, ring: dict | None = None) -> dict:
     ctx = req.context
     call = ctx.call if ctx else None
     dev = ctx.device if ctx else None
@@ -49,6 +58,8 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["foreign_caller"] = None if not num else not num.startswith("+91")
     f["outgoing_to_unknown"] = None if call is None or call.direction is None else (
         call.direction == "outgoing" and call.caller_in_contacts is False)
+    # Speaker on only matters during a call; it strengthens the call signal, it is not a new family.
+    f["call_on_speaker"] = call.speaker_on if call is not None and st.on_call else None
     if dev is None:
         f["remote_control"] = f["untrusted_accessibility"] = f["sideloaded_last_24h"] = None
     else:
@@ -63,9 +74,17 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     top = max(lures, key=lambda l: l.conf, default=None)
     f["lure_max_conf_72h"] = None if ctx is None else (top.conf if top else 0.0)
     f["lure_tag"] = top.tag if top else None
-    money = ctx.money if ctx else None
-    # Task scams pay small "rewards" first; the phone sees them in bank SMS alerts.
-    f["bait_credits_72h"] = money.bait_credits if money else None
+    # Task-scam episode from the phone's watcher (c2-0.3), or the old money summary mapped onto it.
+    ep = effective_episode(ctx)
+    f["episode_state"] = STATE_CODE[ep["state"]] if ep else None
+    f["episode_age_days"] = ep["age_days"] if ep else None
+    f["episode_bait_credits"] = ep["bait_credits"] if ep else None
+    f["episode_new_payees"] = ep["new_payees"] if ep else None
+    f["episode_out_to_in"] = ep["out_to_in_ratio"] if ep else None
+    steps = ep["escalation_steps"] if ep else None
+    if steps is not None and ep["last_out_inr"]:
+        steps = steps + 1 if req.amount_inr >= 1.5 * ep["last_out_inr"] else 0  # does this payment continue it?
+    f["episode_escalation_steps"] = steps
 
     # P — payee (what NPCI, the payee's bank and the lists said)
     npci, bank = intel.npci or {}, (intel.bank or {}).get("features") or {}
@@ -87,6 +106,13 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["story_mismatch"] = (None if req.payer_says is None or f["payee_holder_type"] is None
                            else req.payer_says in ("government", "company") and f["payee_holder_type"] == "person")
 
+    # P — payment graph: many RUKO users got "rewards" from the same account or paid this payee in
+    # their episodes, or the payee forwards to where the "rewards" came from. None = unknown.
+    f["payee_crowd"] = ring["crowd"] if ring else None
+    f["payee_money_loop"] = ring["money_loop"] if ring else None
+    f["payee_forwards_to_cashout"] = ring["forwards_to_known_cashout"] if ring else None
+    f["payee_approved_suspect"] = ring.get("approved_suspect") if ring else None
+
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr
     f["amount_to_max_90d"] = round(req.amount_inr / base.max_90d, 3) if base.max_90d else None
@@ -96,14 +122,7 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["attempts_72h"] = st.attempts_72h
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
     f["trusted_payee"] = trusted
-    # From the phone's own 72 h money flow (covers other UPI apps via bank SMS).
-    steps = money.escalation_steps if money else None
-    if steps is not None and money.last_debit_inr:
-        steps = steps + 1 if req.amount_inr >= 1.5 * money.last_debit_inr else 0  # does this payment continue it?
-    f["escalation_steps_72h"] = steps
-    f["phone_new_payees_72h"] = money.new_payees if money else None
-    f["sent_to_received_72h"] = (round(((money.debits_inr or 0) + req.amount_inr) / money.credits_inr, 2)
-                                 if money and money.credits_inr else None)
+    f.update(session_features(ctx.session if ctx else None))
 
     # S — stage
     f["stage"] = int(st.stage[1])

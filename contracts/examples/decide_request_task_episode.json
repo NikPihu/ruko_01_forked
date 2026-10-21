@@ -1,0 +1,30 @@
+{
+  "request_id": "9a4f2c1e-6b3d-4e8a-a7f0-1c2d3e4f5a6b",
+  "user_id": "u_demo_meena",
+  "payee_upi_id": "unlock.level4@ybl",
+  "amount_inr": 14000,
+  "entry_method": "typed",
+  "payer_says": "company",
+  "ts": "2026-11-07T21:15:00+05:30",
+  "context": {
+    "call": {"active": false, "kind": null, "direction": null, "caller_number": null,
+             "caller_in_contacts": null, "started_min_ago": null, "ended_min_ago": null},
+    "device": {"remote_access_active": false, "remote_app_installed_min_ago": null,
+               "untrusted_accessibility": false, "sideloaded_last_24h": false},
+    "lures": [],
+    "episode": {
+      "state": "active",
+      "age_days": 4.2,
+      "bait_credits": 3,
+      "bait_inr": 450,
+      "outs": 3,
+      "outs_inr": 9500,
+      "new_payees": 3,
+      "escalation_steps": 2,
+      "last_out_inr": 6000,
+      "out_to_in_ratio": 21.11,
+      "payee_seen_in_episode": false,
+      "rules_version": "episode-0.2"
+    }
+  }
+}

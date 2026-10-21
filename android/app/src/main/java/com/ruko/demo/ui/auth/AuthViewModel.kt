@@ -14,8 +14,10 @@ import com.ruko.demo.data.Consents
 import com.ruko.demo.data.Passcode
 import com.ruko.demo.data.UserProfile
 import com.ruko.demo.data.Validators
+import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
+import com.ruko.demo.signals.SessionTracker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +48,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var recentPayees by mutableStateOf<List<String>>(emptyList())
         private set
     var payments by mutableStateOf<List<MoneyTxn>>(emptyList())
+        private set
+
+    // This user's usual typing rhythm for the amount (seconds between digits), last 10 payments.
+    var typingGaps by mutableStateOf<List<Double>>(emptyList())
         private set
 
     // ---- Sign up draft. Kept in memory only until the passcode step saves it. ----
@@ -89,9 +95,11 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             val (p, c) = withContext(Dispatchers.IO) { store.loadProfile() to store.loadConsents() }
             profile = p
             consents = c
+            withContext(Dispatchers.IO) { ShieldController.ensureRunning(getApplication(), c) }
             if (p != null) {
                 recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
                 payments = withContext(Dispatchers.IO) { store.loadPayments() }
+                typingGaps = withContext(Dispatchers.IO) { store.loadTypingGaps() }
             }
             state = if (p == null) AuthState.NeedsSignUp else AuthState.Locked
         }
@@ -206,6 +214,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.IO) {
                 store.saveProfile(newProfile)
                 store.saveConsents(agreed)
+                if (agreed.moneyWatch) ShieldController.enable(getApplication())
             }
             profile = newProfile
             consents = agreed
@@ -271,8 +280,16 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun updateConsents(new: Consents) {
+        val old = consents
         consents = new
-        viewModelScope.launch(Dispatchers.IO) { store.saveConsents(new) }
+        viewModelScope.launch(Dispatchers.IO) {
+            store.saveConsents(new)
+            // The background watcher follows its switch; off also deletes the money history.
+            if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
+            if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
+            // Switching sharing off deletes anything still waiting to be sent.
+            if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
+        }
     }
 
     /** Remember a paid UPI ID (newest first, at most five), encrypted with the rest. */
@@ -293,7 +310,18 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             .filter { now - it.ts <= PAYMENT_HISTORY_MS }
             .takeLast(MAX_PAYMENTS)
         payments = updated
-        viewModelScope.launch(Dispatchers.IO) { store.savePayments(updated) }
+        viewModelScope.launch(Dispatchers.IO) {
+            store.savePayments(updated)
+            ShieldController.recordAppPayment(getApplication(), id, amountInr)
+        }
+    }
+
+    /** After a completed payment: keep how fast the amount was typed, so "slow" means slow for this user. */
+    fun rememberTypingGap(gapSeconds: Double?) {
+        if (gapSeconds == null) return
+        val updated = (typingGaps + gapSeconds).takeLast(SessionTracker.BASELINE_KEEP)
+        typingGaps = updated
+        viewModelScope.launch(Dispatchers.IO) { store.saveTypingGaps(updated) }
     }
 
     /** Delete the account and every stored detail, then start again from sign up. */
@@ -304,6 +332,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             consents = Consents()
             recentPayees = emptyList()
             payments = emptyList()
+            typingGaps = emptyList()
             failedAttempts = 0
             lockedUntil = 0
             clearDraft()

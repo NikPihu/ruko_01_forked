@@ -224,5 +224,7 @@ fun reasonText(code: String): String? = when (code) {
     "R8_intel_hit" -> stringResource(R.string.reason_R8_intel_hit)
     "R9_story_mismatch" -> stringResource(R.string.reason_R9_story_mismatch)
     "R10_bait_then_pay" -> stringResource(R.string.reason_R10_bait_then_pay)
+    "R11_ring_link" -> stringResource(R.string.reason_R11_ring_link)
+    "R12_coached_session" -> stringResource(R.string.reason_R12_coached_session)
     else -> null // includes ruko_unavailable, which is not shown as a reason
 }

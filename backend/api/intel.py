@@ -70,7 +70,24 @@ class IntelAdapter:
             return "skipped", None
         return await self._get(f"/banks/{body['bank_code']}/payee-risk/{quote(body['upi_id'])}")
 
-    async def lookup(self, payee_upi: str, caller_number: Optional[str] = None) -> IntelResult:
+    async def flows(self, upi_id: str, budget_s: float = 1.0) -> Optional[dict]:
+        """Where an account forwards money, from its bank (§9.1). None when the bank does not share."""
+        upi = upi_id.strip().lower()
+
+        async def go() -> Optional[dict]:
+            status, body = await self._get(f"/npci/resolve/{quote(upi)}")
+            if status != "ok":
+                return None
+            status, body = await self._get(f"/banks/{body['bank_code']}/payee-flows/{quote(upi)}")
+            return body if status == "ok" else None
+
+        try:
+            return await asyncio.wait_for(go(), timeout=budget_s)
+        except asyncio.TimeoutError:
+            return None
+
+    async def lookup(self, payee_upi: str, caller_number: Optional[str] = None,
+                     budget_s: Optional[float] = None) -> IntelResult:
         t0 = time.perf_counter()
         upi = payee_upi.strip().lower()
         resolve = asyncio.ensure_future(self._get(f"/npci/resolve/{quote(upi)}"))
@@ -87,7 +104,7 @@ class IntelAdapter:
                 self._get(f"/i4c/registry?mobile={quote(caller_number)}"))
             tasks["caller_fri"] = asyncio.ensure_future(self._get(f"/dot/fri/{quote(caller_number)}"))
 
-        done, pending = await asyncio.wait(tasks.values(), timeout=self.budget_s)
+        done, pending = await asyncio.wait(tasks.values(), timeout=budget_s or self.budget_s)
         for p in pending:
             p.cancel()
         res = IntelResult()

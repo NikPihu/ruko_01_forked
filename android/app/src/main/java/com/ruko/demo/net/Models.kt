@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.2: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.5: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.2"
+const val CONTRACT_VERSION = "c2-0.5"
 
 @Serializable
 enum class CallKind {
@@ -51,6 +51,7 @@ data class CallSignal(
     @SerialName("caller_in_contacts") val callerInContacts: Boolean? = null,
     @SerialName("started_min_ago") val startedMinAgo: Double? = null,
     @SerialName("ended_min_ago") val endedMinAgo: Double? = null, // a call that just finished
+    @SerialName("speaker_on") val speakerOn: Boolean? = null, // c2-0.5: call on the loudspeaker at Pay
 )
 
 @Serializable
@@ -65,19 +66,42 @@ data class DeviceSignal(
 data class LureSignal(val tag: String, val conf: Double, @SerialName("min_ago") val minAgo: Double)
 
 /**
- * The payer's own money flow over the last 72 h (c2-0.2), counted on the phone from this app's
- * payments and bank SMS alerts. Only counts and sums are sent, never the transactions.
- * Credit fields are null when SMS checks are off.
+ * The task-scam episode the background watcher keeps across payees for up to 30 days (c2-0.3).
+ * Bait fields are null when SMS can't be read. Built by shield/EpisodeTracker.
  */
 @Serializable
-data class MoneySignal(
-    @SerialName("bait_credits") val baitCredits: Int? = null, // small credits from strangers
-    @SerialName("credits_inr") val creditsInr: Double? = null,
-    val debits: Int? = null, // not counting the payment being checked
-    @SerialName("debits_inr") val debitsInr: Double? = null,
+data class EpisodeSignal(
+    val state: String, // none | watching | active | dismissed
+    @SerialName("age_days") val ageDays: Double? = null,
+    @SerialName("bait_credits") val baitCredits: Int? = null,
+    @SerialName("bait_inr") val baitInr: Double? = null,
+    val outs: Int? = null,
+    @SerialName("outs_inr") val outsInr: Double? = null,
     @SerialName("new_payees") val newPayees: Int? = null,
     @SerialName("escalation_steps") val escalationSteps: Int? = null,
-    @SerialName("last_debit_inr") val lastDebitInr: Double? = null,
+    @SerialName("last_out_inr") val lastOutInr: Double? = null,
+    @SerialName("out_to_in_ratio") val outToInRatio: Double? = null,
+    @SerialName("payee_seen_in_episode") val payeeSeenInEpisode: Boolean? = null,
+    @SerialName("rules_version") val rulesVersion: String? = null,
+)
+
+/**
+ * How the user behaved on the Pay screen of this payment (c2-0.5). Counts and rounded seconds
+ * only, never the keys typed or the other apps opened. Built by signals/SessionTracker.
+ */
+@Serializable
+data class SessionSignal(
+    @SerialName("amount_digits") val amountDigits: Int? = null,
+    @SerialName("amount_median_gap_s") val amountMedianGapS: Double? = null,
+    @SerialName("amount_max_gap_s") val amountMaxGapS: Double? = null,
+    @SerialName("amount_gap_vs_usual") val amountGapVsUsual: Double? = null, // null until 3 past payments
+    @SerialName("amount_edits") val amountEdits: Int? = null,
+    @SerialName("payee_pasted") val payeePasted: Boolean? = null,
+    @SerialName("pasted_within_s_of_return") val pastedWithinSOfReturn: Double? = null,
+    @SerialName("app_switches") val appSwitches: Int? = null,
+    @SerialName("away_s") val awayS: Double? = null,
+    @SerialName("pay_screen_s") val payScreenS: Double? = null,
+    @SerialName("abandoned_flows_30m") val abandonedFlows30m: Int? = null,
 )
 
 @Serializable
@@ -85,7 +109,8 @@ data class Context(
     val call: CallSignal? = null,
     val device: DeviceSignal? = null,
     val lures: List<LureSignal> = emptyList(),
-    val money: MoneySignal? = null,
+    val episode: EpisodeSignal? = null,
+    val session: SessionSignal? = null, // c2-0.5; null when "Session checks" is off
 )
 
 @Serializable
@@ -98,6 +123,41 @@ data class DecideRequest(
     @SerialName("payer_says") val payerSays: PayerSays? = null,
     val ts: String, // ISO 8601 with +05:30
     val context: Context? = null, // null when the user opted out of every phone signal
+)
+
+// ---------- Episode events (c2-0.4): the watcher's state changes, only with "Share" on ----------
+
+@Serializable
+data class EpisodeAccount(
+    @SerialName("upi_id") val upiId: String,
+    val role: String, // bait_sender | payee
+    val n: Int,
+    val inr: Double,
+    @SerialName("first_seen_min_ago") val firstSeenMinAgo: Double,
+    val via: String? = null, // payees only: this_app | other_app
+    val step: Int? = null, // payees only: position in the escalation run
+)
+
+@Serializable
+data class EpisodeEvent(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("episode_id") val episodeId: String,
+    @SerialName("user_id") val userId: String,
+    val ts: String,
+    val trigger: String, // watching | active | out_payment | bait | dismissed | closed
+    @SerialName("rules_version") val rulesVersion: String,
+    val summary: EpisodeSignal,
+    val accounts: List<EpisodeAccount> = emptyList(),
+)
+
+@Serializable
+data class EpisodeEventResponse(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("episode_risk") val episodeRisk: String, // unknown | low | elevated | high
+    val reasons: List<String> = emptyList(),
+    @SerialName("message_key") val messageKey: String? = null,
+    @SerialName("case_id") val caseId: String? = null,
+    @SerialName("contract_version") val contractVersion: String? = null,
 )
 
 @Serializable

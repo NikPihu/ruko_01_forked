@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.2",
+  "contract_version": "c2-0.5",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -99,6 +99,18 @@
             ],
             "default": null,
             "title": "Ended Min Ago"
+          },
+          "speaker_on": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Speaker On"
           }
         },
         "title": "CallSignal",
@@ -136,10 +148,21 @@
             "title": "Lures",
             "type": "array"
           },
-          "money": {
+          "episode": {
             "anyOf": [
               {
-                "$ref": "#/$defs/MoneySignal"
+                "$ref": "#/$defs/EpisodeSignal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SessionSignal"
               },
               {
                 "type": "null"
@@ -207,6 +230,168 @@
         "title": "DeviceSignal",
         "type": "object"
       },
+      "EpisodeSignal": {
+        "additionalProperties": false,
+        "description": "Task-scam episode kept on the phone across payees for up to 30 days (c2-0.3).\n\nBuilt by the phone's background watcher from bank SMS alerts and this app's payments, with\nthe rules in contracts/episode_rules.json. Counts only; bait fields are null when SMS can't be read.",
+        "properties": {
+          "state": {
+            "enum": [
+              "none",
+              "watching",
+              "active",
+              "dismissed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "age_days": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Age Days"
+          },
+          "bait_credits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Credits"
+          },
+          "bait_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bait Inr"
+          },
+          "outs": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs"
+          },
+          "outs_inr": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Outs Inr"
+          },
+          "new_payees": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "New Payees"
+          },
+          "escalation_steps": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Escalation Steps"
+          },
+          "last_out_inr": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Last Out Inr"
+          },
+          "out_to_in_ratio": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Out To In Ratio"
+          },
+          "payee_seen_in_episode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee Seen In Episode"
+          },
+          "rules_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rules Version"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "EpisodeSignal",
+        "type": "object"
+      },
       "LureSignal": {
         "additionalProperties": false,
         "properties": {
@@ -242,11 +427,11 @@
         "title": "LureSignal",
         "type": "object"
       },
-      "MoneySignal": {
+      "SessionSignal": {
         "additionalProperties": false,
-        "description": "The payer's own money flow over the last 72 hours, summarised on the phone from the app's\npayments and bank SMS alerts. Only counts and sums leave the phone, never the transactions.\nCounts that need bank SMS (credits) are null when the user did not allow SMS checks.",
+        "description": "How the user behaved on the Pay screen of THIS payment (c2-0.5).\n\nMeasured inside the app, from opening Pay to tapping Pay. Only counts and rounded durations:\nnever the keys typed, never which other app was open. Field meanings: contracts/README.md.",
         "properties": {
-          "bait_credits": {
+          "amount_digits": {
             "anyOf": [
               {
                 "minimum": 0,
@@ -257,9 +442,9 @@
               }
             ],
             "default": null,
-            "title": "Bait Credits"
+            "title": "Amount Digits"
           },
-          "credits_inr": {
+          "amount_median_gap_s": {
             "anyOf": [
               {
                 "minimum": 0,
@@ -270,22 +455,9 @@
               }
             ],
             "default": null,
-            "title": "Credits Inr"
+            "title": "Amount Median Gap S"
           },
-          "debits": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Debits"
-          },
-          "debits_inr": {
+          "amount_max_gap_s": {
             "anyOf": [
               {
                 "minimum": 0,
@@ -296,38 +468,12 @@
               }
             ],
             "default": null,
-            "title": "Debits Inr"
+            "title": "Amount Max Gap S"
           },
-          "new_payees": {
+          "amount_gap_vs_usual": {
             "anyOf": [
               {
                 "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "New Payees"
-          },
-          "escalation_steps": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Escalation Steps"
-          },
-          "last_debit_inr": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0,
                 "type": "number"
               },
               {
@@ -335,10 +481,100 @@
               }
             ],
             "default": null,
-            "title": "Last Debit Inr"
+            "title": "Amount Gap Vs Usual"
+          },
+          "amount_edits": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Edits"
+          },
+          "payee_pasted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee Pasted"
+          },
+          "pasted_within_s_of_return": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pasted Within S Of Return"
+          },
+          "app_switches": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "App Switches"
+          },
+          "away_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Away S"
+          },
+          "pay_screen_s": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pay Screen S"
+          },
+          "abandoned_flows_30m": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Abandoned Flows 30M"
           }
         },
-        "title": "MoneySignal",
+        "title": "SessionSignal",
         "type": "object"
       }
     },
@@ -450,6 +686,8 @@
             "R8_intel_hit",
             "R9_story_mismatch",
             "R10_bait_then_pay",
+            "R11_ring_link",
+            "R12_coached_session",
             "ruko_unavailable"
           ],
           "type": "string"
@@ -516,7 +754,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.2",
+        "default": "c2-0.5",
         "title": "Contract Version",
         "type": "string"
       }

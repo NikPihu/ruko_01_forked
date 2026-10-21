@@ -1,5 +1,10 @@
 package com.ruko.demo.ui
 
+import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.shield.EpisodeTracker
+import com.ruko.demo.shield.EpisodeStore
+import com.ruko.demo.net.EpisodeSignal
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -85,8 +90,13 @@ fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
         BoolOverride("sideload_last_24h", o.sideload) { set(o.copy(sideload = it)) }
         BoolOverride("screen_recorded", o.screenRecorded) { set(o.copy(screenRecorded = it)) }
         ChoiceOverride("lure_tags", o.lureTag, LURE_TAGS) { set(o.copy(lureTag = it)) }
-        BoolOverride("task_scam_money_flow", o.taskMoney) { set(o.copy(taskMoney = it)) }
+        BoolOverride("call.speaker_on", o.speakerOn) { set(o.copy(speakerOn = it)) }
+        // Yes = a coached Pay screen (slow dictated amount, UPI ID pasted after switching apps).
+        BoolOverride("session.coached", o.coachedSession) { set(o.copy(coachedSession = it)) }
         SecondaryButton(stringResource(R.string.debug_clear), onClick = { set(SignalOverrides()) })
+
+        SectionTitle(R.string.debug_watcher)
+        WatcherDebug(consents)
 
         SectionTitle(R.string.debug_paste)
         PasteBox()
@@ -184,4 +194,30 @@ private fun Chip(label: String, selected: Boolean, modifier: Modifier, onClick: 
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
     }
+}
+
+/** Feed fake transactions through the real watcher path, and see its state (guide §4.5). */
+@Composable
+private fun WatcherDebug(consents: Consents) {
+    val context = LocalContext.current.applicationContext
+    LaunchedEffect(consents) { ShieldController.refresh(context, consents) }
+    if (!consents.moneyWatch) {
+        Text(stringResource(R.string.debug_watcher_off), color = CacheColors.TextSecondary)
+        return
+    }
+    val data = ShieldController.live.value
+    val summary = data?.let {
+        EpisodeTracker(EpisodeStore.rules(context), ShieldController.smsRead(context, consents), it.watcher).summary(ShieldController.now())
+    }
+    CodeBlock(summary?.let { prettyJson.encodeToString(EpisodeSignal.serializer(), it) } ?: "…")
+    Text(
+        "pending events: ${data?.pending?.size ?: 0}, server: ${data?.serverRisk ?: "-"}, clock +${ShieldController.debugOffsetMs / 86_400_000L} d",
+        style = MaterialTheme.typography.bodySmall,
+        color = CacheColors.TextSecondary,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SecondaryButton(stringResource(R.string.debug_sim_bait), onClick = { ShieldController.simulateBait(context) }, modifier = Modifier.weight(1f))
+        SecondaryButton(stringResource(R.string.debug_sim_debit), onClick = { ShieldController.simulateDebit(context) }, modifier = Modifier.weight(1f))
+    }
+    SecondaryButton(stringResource(R.string.debug_plus_day), onClick = { ShieldController.addDay(context) })
 }

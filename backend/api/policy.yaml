@@ -34,3 +34,16 @@ message_keys:
   T3: t3_generic
   T4: t3_generic
   playbook_tiers: [T2, T3, T4]   # these use "<tier>_<playbook>" when a playbook matched
+
+# Coached-session signs (c2-0.5): how features/session.py turns the phone's `context.session`
+# numbers into yes/no signs. Behaviour family only -- they never interrupt a payment on their own.
+session:
+  dictated_min_digits: 4          # fewer digits: too short to judge the rhythm
+  dictated_vs_usual: 2.5          # median digit gap >= 2.5x this user's own usual gap
+  # No personal baseline yet (new user): need a slow AND broken rhythm, so a slow typist alone
+  # is not enough.
+  dictated_no_baseline_median_s: 2.0
+  dictated_no_baseline_max_s: 4.0
+  paste_after_return_s: 20       # pasted the UPI ID within 20 s of coming back to the app
+  many_switches: 2                # left the app this many times during one payment
+  hesitation_s: 180               # more than 3 minutes on the Pay screen

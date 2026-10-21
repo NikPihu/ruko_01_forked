@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import httpx
 import pytest
@@ -109,50 +110,108 @@ def test_split_tranches_still_caught(engine, mock, world):
     assert "R7_tranche_pattern" in r["reasons"] or r["tier"] >= "T2"
 
 
-TASK_MONEY = {"bait_credits": 3, "credits_inr": 650, "debits": 3, "debits_inr": 11_000,
-              "new_payees": 3, "escalation_steps": 2, "last_debit_inr": 6_500}
 TASK_PAYEE = "prime.task.rewards@ybl"
+ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_inr": 450, "outs": 3,
+                  "outs_inr": 9_500, "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6_000,
+                  "out_to_in_ratio": 21.11, "payee_seen_in_episode": False, "rules_version": "episode-0.2"}
+WATCHING_EPISODE = {"state": "watching", "age_days": 0.5, "bait_credits": 2, "bait_inr": 350, "outs": 0,
+                    "outs_inr": 0, "new_payees": 0, "escalation_steps": 0, "last_out_inr": None,
+                    "out_to_in_ratio": 0, "rules_version": "episode-0.2"}
 
 
-def test_task_scam_caught_from_money_flow(engine, world):
-    """Rewards in, then 1,500 -> 3,000 -> 6,500 out; now 14,000. No call, lure seen elsewhere."""
+def baseline(world, user):
+    from features.user_baseline import Baselines
+    return Baselines.from_data(world[0]).get(user)
+
+
+def episode_ctx(ep, lures=()):
+    return {"lures": list(lures), "episode": ep}
+
+
+# §6 outcome table: the episode is ONE lure-family signal; T2+ needs a second, independent family.
+
+def test_active_episode_clean_payee_normal_amount_is_at_most_t1(engine, world):
     user = users_in(world)[0]
-    ctx = {"lures": [], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
-    assert r["tier"] in ("T2", "T3") and r["playbook"] == "task_job"
-    assert {"R7_tranche_pattern", "R10_bait_then_pay"} <= set(r["reasons"])
-    assert r["message_key"] == f"{r['tier'].lower()}_task_job"
-
-
-def test_task_scam_to_mule_gets_paused(engine, mock, world):
-    pump(mock[1], world)
-    ctx = {"lures": [{"tag": "task_job", "conf": 0.82, "min_ago": 1800}], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx, says="company")).json()
-    assert r["tier"] in ("T3", "T4") and r["playbook"] == "task_job"
-
-
-def test_task_money_flow_names_the_playbook_over_an_old_message(engine, world):
-    user = users_in(world)[0]
-    ctx = {"lures": [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 380}], "money": TASK_MONEY}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=ctx)).json()
-    assert r["playbook"] == "task_job"
-
-
-def test_escalation_alone_is_not_enough(engine, world):
-    """Paying a contractor in growing instalments: behaviour only, no bait, no lure."""
-    user = users_in(world)[0]
-    money = {**TASK_MONEY, "bait_credits": 0, "credits_inr": 0}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
-                                           context={"lures": [], "money": money})).json()
+    amount = baseline(world, user).median_90d or 500
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=amount,
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
     assert r["tier"] in ("T0", "T1")
 
 
-def test_money_without_sms_is_unknown(engine, world):
-    """SMS checks off: credits are null, so no bait signal and no task alert from behaviour alone."""
+def test_active_episode_mule_payee_pauses(engine, mock, world):
+    pump(mock[1], world)
+    r = engine.post("/v1/decide", json=req(amount=14_000, says="company",
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
+    assert r["tier"] in ("T2", "T3", "T4") and r["playbook"] == "task_job"
+    assert "R10_bait_then_pay" in r["reasons"] and "R3_mule_like_payee" in r["reasons"]
+    assert r["message_key"] == f"{r['tier'].lower()}_task_job"
+
+
+def test_active_episode_far_above_usual_amount_is_t2(engine, world):
     user = users_in(world)[0]
-    money = {k: v for k, v in TASK_MONEY.items() if k not in ("bait_credits", "credits_inr")}
-    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000,
-                                           context={"lures": [], "money": money})).json()
+    amount = 10 * (baseline(world, user).max_90d or 5_000)
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=amount,
+                                           context=episode_ctx(ACTIVE_EPISODE))).json()
+    assert r["tier"] == "T2" and r["playbook"] == "task_job"
+    assert {"R10_bait_then_pay", "R4_unusual_amount"} <= set(r["reasons"])
+
+
+def test_watching_alone_does_not_interrupt(engine, world):
+    user = users_in(world)[0]
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=2_000,
+                                           context=episode_ctx(WATCHING_EPISODE))).json()
+    assert r["tier"] in ("T0", "T1")
+
+
+def test_dismissed_episode_still_alerts_on_a_listed_payee(engine, mock, world):
+    rep = world[1]["reports"]
+    listed = rep[(rep.identifier_type == "upi_id") & ~rep.is_false & (rep.listed_at <= CFG.end)].identifier.iloc[0]
+    # Warm the mock's first (slowest) answers for this payee, as a prefetch would.
+    mock[1].get(f"/i4c/registry?upi_id={listed}")
+    bank = mock[1].get(f"/npci/resolve/{listed}").json().get("bank_code")
+    if bank:
+        mock[1].get(f"/banks/{bank}/payee-risk/{listed}")
+    user = users_in(world)[0]
+    ep = {**WATCHING_EPISODE, "state": "dismissed", "age_days": None}
+    r = engine.post("/v1/decide", json=req(user=user, payee=listed, amount=5_000, context=episode_ctx(ep))).json()
+    assert r["tier"] in ("T2", "T3", "T4") and "R10_bait_then_pay" in r["reasons"]
+
+
+def test_dismissed_episode_alone_is_silent(engine, world):
+    user = users_in(world)[0]
+    ep = {**WATCHING_EPISODE, "state": "dismissed", "age_days": None}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=5_000, context=episode_ctx(ep))).json()
+    assert "R10_bait_then_pay" not in r["reasons"]
+
+
+def test_active_episode_names_the_playbook_over_an_old_message(engine, mock, world):
+    pump(mock[1], world)
+    ctx = episode_ctx(ACTIVE_EPISODE, lures=[{"tag": "arrest_threat", "conf": 0.85, "min_ago": 380}])
+    r = engine.post("/v1/decide", json=req(amount=14_000, context=ctx)).json()
+    assert r["playbook"] == "task_job"
+
+
+def test_c2_0_2_money_group_is_gone(engine):
+    """Removed in c2-0.4: an old app sending `money` gets 422 and fails open on the phone."""
+    ctx = {"lures": [], "money": {"bait_credits": 3, "debits": 3}}
+    assert engine.post("/v1/decide", json=req(context=ctx)).status_code == 422
+
+
+def test_escalation_with_no_bait_is_not_an_episode(engine, world):
+    """Paying a contractor in growing instalments: no bait, so the phone's episode stays none."""
+    user = users_in(world)[0]
+    ep = {"state": "none", "bait_credits": 0, "bait_inr": 0, "outs": 0, "outs_inr": 0, "new_payees": 0,
+          "escalation_steps": 0, "rules_version": "episode-0.2"}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=episode_ctx(ep))).json()
+    assert r["tier"] in ("T0", "T1") and "R10_bait_then_pay" not in r["reasons"]
+
+
+def test_episode_without_sms_is_unknown(engine, world):
+    """SMS off: bait fields are null and no episode can start, so no task alert."""
+    user = users_in(world)[0]
+    ep = {"state": "none", "bait_credits": None, "bait_inr": None, "outs": 0, "outs_inr": 0,
+          "new_payees": 0, "escalation_steps": 0, "out_to_in_ratio": None, "rules_version": "episode-0.2"}
+    r = engine.post("/v1/decide", json=req(user=user, payee=TASK_PAYEE, amount=14_000, context=episode_ctx(ep))).json()
     assert r["tier"] in ("T0", "T1") and "R10_bait_then_pay" not in r["reasons"]
 
 
@@ -297,3 +356,96 @@ def test_demo_clock_uses_sim_time_not_phone_time(world, mock):
         assert r["tier"] in ("T3", "T4")
         ev = engine.get(f"/v1/evidence/{r['evidence_id']}").json()
     assert abs(datetime.fromisoformat(ev["ts"]) - sim_now) < timedelta(minutes=1)
+
+
+# ---------- episode events (c2-0.4) ----------
+
+def episode_event(trigger="active", accounts=None, event_id="ev_1", user=DEMO_MEENA, state=None):
+    import json as _json  # noqa: PLC0415
+    body = _json.loads((Path(__file__).resolve().parents[2] / "contracts" / "examples" /
+                        "episode_event_active.json").read_text(encoding="utf-8"))
+    body.update(event_id=event_id, user_id=user, trigger=trigger, ts=NOW.isoformat())
+    if state:
+        body["summary"]["state"] = state
+    if accounts is not None:
+        body["accounts"] = accounts
+    return body
+
+
+def test_active_episode_with_mule_payee_is_high(engine, mock, world):
+    pump(mock[1], world)
+    r = engine.post("/v1/episode", json=episode_event()).json()
+    assert r["episode_risk"] == "high" and r["case_id"]
+    assert {"R10_bait_then_pay", "R3_mule_like_payee"} <= set(r["reasons"])
+    assert r["message_key"] == "episode_task_scam_confirmed"
+    assert any(c["case_id"] == r["case_id"] for c in engine.get("/v1/cases").json())
+
+
+def test_repeated_event_id_is_ignored(engine, mock, world):
+    pump(mock[1], world)
+    first = engine.post("/v1/episode", json=episode_event(event_id="ev_same")).json()
+    again = engine.post("/v1/episode", json=episode_event(event_id="ev_same")).json()
+    assert first == again
+    assert len(engine.get("/v1/cases").json()) == 1
+
+
+def test_watching_episode_with_clean_accounts_is_low_or_elevated(engine, world):
+    acc = [{"upi_id": "like.reward7@ybl", "role": "bait_sender", "n": 1, "inr": 150, "first_seen_min_ago": 0}]
+    r = engine.post("/v1/episode", json=episode_event("watching", acc, "ev_w", state="watching")).json()
+    assert r["episode_risk"] in ("low", "elevated") and r["case_id"] is None
+
+
+def test_active_episode_with_clean_payees_is_only_elevated(engine, world):
+    acc = [{"upi_id": "unlock.level1@ybl", "role": "payee", "n": 1, "inr": 1000, "first_seen_min_ago": 60,
+            "via": "this_app", "step": 1}]
+    r = engine.post("/v1/episode", json=episode_event(accounts=acc, event_id="ev_e")).json()
+    assert r["episode_risk"] == "elevated" and r["case_id"] is None
+
+
+def test_unreachable_intel_is_unknown(world):
+    dead = httpx.AsyncClient(transport=httpx.MockTransport(lambda req: httpx.Response(503)), base_url="http://mock")
+    app = create_engine(world[0], intel_client=dead, intel_cache_ttl_s=0, log_path=None, evidence_async=False)
+    acc = [{"upi_id": "unlock.level1@ybl", "role": "payee", "n": 1, "inr": 1000, "first_seen_min_ago": 60}]
+    r = TestClient(app).post("/v1/episode", json=episode_event(accounts=acc, event_id="ev_u", state="watching")).json()
+    assert r["episode_risk"] == "unknown"
+
+
+def test_dismissed_clears_the_users_episode_evidence(engine, mock, world):
+    pump(mock[1], world)
+    engine.post("/v1/episode", json=episode_event(event_id="ev_a"))
+    r = engine.post("/v1/episode", json=episode_event("dismissed", [], "ev_d", state="dismissed")).json()
+    assert r["episode_risk"] == "low"
+
+
+# ---------- analyst console reads ----------
+
+def test_alerts_list_the_interrupted_payments_newest_first(engine, mock, world):
+    pump(mock[1], world)
+    engine.post("/v1/decide", json=req(context=MEENA_CONTEXT, says="government", rid="r_alert"))
+    engine.post("/v1/decide", json=req(payee=DEMO_KIRANA_UPI, amount=240, entry="qr", rid="r_quiet"))
+    alerts = engine.get("/v1/alerts").json()
+    assert [a["payee"] for a in alerts] == [DEMO_MULE_UPI]  # the kirana purchase was T0
+    a = alerts[0]
+    assert a["tier"] in ("T3", "T4") and a["reasons"] and a["evidence_id"] and a["stage_path"]
+    assert "p_scam" not in a and a["user_hash"] != DEMO_MEENA
+    assert engine.get("/v1/alerts?min_tier=T9").status_code == 422
+    engine.post("/sim/reset")
+    assert engine.get("/v1/alerts").json() == []
+
+
+def test_eval_results_are_served_when_present(engine):
+    r = engine.get("/v1/eval").json()
+    assert set(r) == {"episode", "graph"}  # null until data/eval/*_results.json exist
+
+
+def test_evidence_chain_verifies_with_scoreless_episode_records(tmp_path):
+    """Episode records have no p_scam; reading them back must not break /v1/evidence/verify."""
+    from evidence.store import EvidenceStore
+    store = EvidenceStore(str(tmp_path / "evidence.db"))
+    base = {"ts": "2026-11-07T10:40:00+05:30", "user_hash": "u", "payee_hash": None, "caller_hash": None,
+            "reasons": [], "playbook": None, "family_scores": {}, "features": {}, "intel_status": {},
+            "stage_path": [], "model_version": "m", "policy_version": "p"}
+    store.write({**base, "id": "e_1", "tier": "T3", "p_scam": 0.91})
+    store.write({**base, "id": "e_2", "tier": "episode_high", "p_scam": None})
+    assert store.verify() == {"ok": True, "rows_checked": 2, "first_bad_id": None}
+    assert store.get("e_2")["p_scam"] is None

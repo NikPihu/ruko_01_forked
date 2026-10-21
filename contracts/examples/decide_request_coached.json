@@ -1,0 +1,41 @@
+{
+  "request_id": "9d3e7b21-5c4a-4f08-8e6d-1a2b3c4d5e6f",
+  "user_id": "u_demo_meena",
+  "payee_upi_id": "secure.settlement.desk@okaxis",
+  "amount_inr": 95000,
+  "entry_method": "typed",
+  "ts": "2026-11-07T10:40:00+05:30",
+  "context": {
+    "call": {
+      "active": true,
+      "kind": "voip",
+      "direction": "incoming",
+      "caller_number": "+919812345670",
+      "caller_in_contacts": false,
+      "started_min_ago": 38,
+      "ended_min_ago": null,
+      "speaker_on": true
+    },
+    "device": {
+      "remote_access_active": null,
+      "remote_app_installed_min_ago": null,
+      "untrusted_accessibility": null,
+      "sideloaded_last_24h": null
+    },
+    "lures": [],
+    "episode": null,
+    "session": {
+      "amount_digits": 5,
+      "amount_median_gap_s": 2.4,
+      "amount_max_gap_s": 6.1,
+      "amount_gap_vs_usual": 4.8,
+      "amount_edits": 1,
+      "payee_pasted": true,
+      "pasted_within_s_of_return": 6.0,
+      "app_switches": 3,
+      "away_s": 41.0,
+      "pay_screen_s": 212.0,
+      "abandoned_flows_30m": 1
+    }
+  }
+}

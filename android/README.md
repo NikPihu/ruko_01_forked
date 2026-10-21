@@ -17,7 +17,7 @@ From the command line: `./gradlew assembleDebug testDebugUnitTest`
 
 | Area | Files |
 |---|---|
-| Request and response models, contract **c2-0.2** (`contracts/`) | `net/Models.kt` |
+| Request and response models, contract **c2-0.4** (`contracts/`) | `net/Models.kt` |
 | Request builder (IST timestamps, request id) | `net/RequestBuilder.kt` |
 | Retrofit client, 1 s timeout, fail open | `net/RukoApi.kt` |
 | Phone signals: calls, contacts, apps, screen recording | `signals/ContextSensor.kt` |
@@ -25,7 +25,9 @@ From the command line: `./gradlew assembleDebug testDebugUnitTest`
 | Lure scorer on recent SMS, `assets/lure.json` or keywords | `signals/LureScorer.kt`, `signals/Signals.kt` |
 | Sign up, login, encrypted account storage | `ui/auth/`, `data/` |
 | Home, Pay, decision, PIN, Success, debug panel | `ui/` |
-| Contract tests against `contracts/` | `app/src/test/.../ContractTest.kt` |
+| Background task-scam watcher: SMS receiver, workers, episode, notifications, event queue | `shield/` |
+| Home episode card, watcher switches in Profile and sign-up, Hindi strings | `ui/EpisodeCard.kt`, `ui/auth/`, `res/values-hi/` |
+| Contract tests against `contracts/`, shared episode vectors | `app/src/test/.../ContractTest.kt`, `shield/EpisodeTrackerTest.kt` |
 
 Privacy rules the phone follows on top of the contract:
 - `caller_number` is sent only for an incoming SIM call from a number not in contacts.

@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.ruko.demo.BuildConfig
 import com.ruko.demo.R
 
+private val TASK_KEYS = setOf("t2_task_job", "t3_task_job")
+
 /** Colour that marks how serious a tier is. */
 private fun tierColor(tier: String?): Color = when (tier) {
     "T1" -> CacheColors.Info
@@ -76,6 +78,9 @@ fun DecisionScreen(vm: PaymentViewModel, onContinue: () -> Unit, onCancel: () ->
             }
 
             if (result != null) {
+                if (result.response.messageKey in TASK_KEYS) {
+                    Text(stringResource(R.string.decision_task_job), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
                 val reasons = result.response.reasons.take(3).mapNotNull { reasonText(it) }
                 if (reasons.isNotEmpty()) {
                     Text(

@@ -1,13 +1,12 @@
 package com.ruko.demo.signals
 
-import com.ruko.demo.net.MoneySignal
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * The payer's own money flow, read on the phone to catch the task scam: small "rewards" come in
  * from strangers, then each payment out is bigger than the last ("pay 8,000 to unlock 12,000").
- * Transactions stay on the phone; only the counts in [MoneySignal] are sent.
+ * Transactions stay on the phone; shield/EpisodeTracker turns them into the counts that are sent.
  */
 
 enum class Flow { IN, OUT }
@@ -58,55 +57,5 @@ object BankSms {
         val a = address?.trim().orEmpty()
         if (a.isEmpty()) return false
         return allowNumbers || a.any(Char::isLetter)
-    }
-}
-
-object MoneyFlow {
-    const val WINDOW_MS = 72 * 60 * 60_000L
-    const val BAIT_MAX_INR = 500.0
-    const val ESCALATION_FACTOR = 1.5
-    private const val SAME_PAYMENT_MS = 10 * 60_000L
-
-    /**
-     * Summary for the request. [smsRead] is false when SMS checks are off: credits are then
-     * unknown (null), and only this app's own payments are counted.
-     * [paidBefore] is every UPI ID this user paid before the 72 h window.
-     */
-    fun summarise(txns: List<MoneyTxn>, now: Long, smsRead: Boolean, paidBefore: Set<String> = emptySet()): MoneySignal {
-        val recent = dedupe(txns.filter { now - it.ts in 0..WINDOW_MS }).sortedBy { it.ts }
-        val outs = recent.filter { it.flow == Flow.OUT }
-        val ins = recent.filter { it.flow == Flow.IN }
-        val paid = paidBefore + outs.mapNotNull { it.counterparty }
-        val bait = ins.count { it.amount <= BAIT_MAX_INR && (it.counterparty == null || it.counterparty !in paid) }
-        val newPayees = outs.mapNotNull { it.counterparty }.toSet().count { it !in paidBefore }
-        return MoneySignal(
-            baitCredits = if (smsRead) bait else null,
-            creditsInr = if (smsRead) ins.sumOf { it.amount } else null,
-            debits = outs.size,
-            debitsInr = outs.sumOf { it.amount },
-            newPayees = newPayees,
-            escalationSteps = escalationSteps(outs.map { it.amount }),
-            lastDebitInr = outs.lastOrNull()?.amount,
-        )
-    }
-
-    /** How many payments in a row, ending with the latest, were each >= 1.5x the one before. */
-    fun escalationSteps(amounts: List<Double>): Int {
-        var steps = 0
-        for (i in amounts.lastIndex downTo 1) {
-            if (amounts[i] >= ESCALATION_FACTOR * amounts[i - 1]) steps++ else break
-        }
-        return steps
-    }
-
-    /** A payment made in this app also arrives as a bank debit SMS; count it once. */
-    private fun dedupe(txns: List<MoneyTxn>): List<MoneyTxn> {
-        val app = txns.filter { !it.fromSms }
-        val sms = txns.filter { s ->
-            s.fromSms && app.none { a ->
-                a.flow == s.flow && a.amount == s.amount && kotlin.math.abs(a.ts - s.ts) <= SAME_PAYMENT_MS
-            }
-        }
-        return app + sms
     }
 }

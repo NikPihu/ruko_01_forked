@@ -16,6 +16,8 @@ from .names import FIRST, FOREIGN_CODES, LAST
 class World:
     cfg: SimConfig
     rng: random.Random
+    # A second stream for later additions (sim/extras.py), so they never shift the core world.
+    aux: random.Random = field(default_factory=lambda: random.Random(1))
     accounts: list[dict] = field(default_factory=list)
     users: list[dict] = field(default_factory=list)
     ledger: list[dict] = field(default_factory=list)

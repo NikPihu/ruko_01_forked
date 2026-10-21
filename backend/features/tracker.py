@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from features.episode import effective_episode
 from schema.events import DecideRequest
 
 WINDOW = timedelta(hours=72)
@@ -29,7 +30,7 @@ class Session:
     contacts: list[datetime] = field(default_factory=list)
     control_ts: datetime | None = None
     lure_ts: datetime | None = None
-    bait_credits: int = 0          # latest count the phone reported (its own 72 h window)
+    episode_hooked: bool = False   # the phone's task-scam episode is ACTIVE
     attempts: list[Attempt] = field(default_factory=list)
     stage_path: list[tuple[str, datetime]] = field(default_factory=list)
 
@@ -74,10 +75,12 @@ class StageTracker:
                 if lure.tag != "normal" and lure.conf >= 0.6:
                     ts = now - timedelta(minutes=lure.min_ago)
                     s.lure_ts = max(s.lure_ts or ts, ts)
-        if ctx and ctx.money and ctx.money.bait_credits is not None:
-            s.bait_credits = ctx.money.bait_credits
-            if s.bait_credits and s.lure_ts is None:
-                s.lure_ts = now   # a bait credit is first contact when no message was seen
+        ep = effective_episode(ctx)
+        if ep and ep["state"] in ("watching", "active"):
+            # The first bait credit is first contact (S1); an active episode means hooked (S2).
+            started = now - timedelta(days=ep["age_days"] or 0)
+            s.lure_ts = min(s.lure_ts or started, started)
+            s.episode_hooked = s.episode_hooked or ep["state"] == "active"
         if dev is not None:
             control_signal = dev.remote_access_active or dev.untrusted_accessibility or (
                 dev.remote_app_installed_min_ago is not None and dev.remote_app_installed_min_ago <= 120)
@@ -106,7 +109,7 @@ class StageTracker:
             return "S0"
         stage = "S1"
         long_call = call is not None and (call.started_min_ago or 0) >= 15 and call.caller_in_contacts is False
-        if len(s.contacts) >= 2 or (s.contacts and s.lure_ts) or long_call or s.bait_credits >= 2:
+        if len(s.contacts) >= 2 or (s.contacts and s.lure_ts) or long_call or s.episode_hooked:
             stage = "S2"
         first = min([*s.contacts, *([s.lure_ts] if s.lure_ts else [])], default=None)
         if s.control_ts and (first is None or s.control_ts - first <= CONTROL_AFTER_CONTACT):

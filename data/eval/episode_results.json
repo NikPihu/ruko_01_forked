@@ -1,0 +1,148 @@
+{
+  "world": {
+    "seed": 11,
+    "users": 1500,
+    "task_journeys": 28,
+    "task_payments": 103,
+    "task_inr": 1450329.0,
+    "normal_sample": 1500,
+    "variants": {
+      "rewards": 17,
+      "crypto_deposit": 11
+    },
+    "visible_to_watcher": 11,
+    "episode_events": 568
+  },
+  "conditions": {
+    "known_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "B": {
+        "label": "+ episode (phone)",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "C": {
+        "label": "+ episode + payment graph",
+        "inr_interrupted_t2": 1450329.0,
+        "inr_paused_t3": 1450329.0,
+        "share_inr_interrupted": 1.0,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 1.0,
+          "share_inr_paused": 1.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      }
+    },
+    "fresh_mules": {
+      "A": {
+        "label": "existing stack",
+        "inr_interrupted_t2": 786172.0,
+        "inr_paused_t3": 100000.0,
+        "share_inr_interrupted": 0.542,
+        "journeys_alerted": 12,
+        "journeys": 27,
+        "median_first_alert_payment": 3.0,
+        "by_variant": {
+          "rewards": 6,
+          "crypto_deposit": 6
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.504,
+          "share_inr_paused": 0.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "B": {
+        "label": "+ episode (phone)",
+        "inr_interrupted_t2": 947623.0,
+        "inr_paused_t3": 100000.0,
+        "share_inr_interrupted": 0.653,
+        "journeys_alerted": 19,
+        "journeys": 27,
+        "median_first_alert_payment": 3.0,
+        "by_variant": {
+          "rewards": 13,
+          "crypto_deposit": 6
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.905,
+          "share_inr_paused": 0.0
+        },
+        "false_interruptions_t2": 1,
+        "false_interruption_rate": 0.0007,
+        "errors": 0
+      },
+      "C": {
+        "label": "+ episode + payment graph",
+        "inr_interrupted_t2": 1313123.0,
+        "inr_paused_t3": 1030907.0,
+        "share_inr_interrupted": 0.905,
+        "journeys_alerted": 27,
+        "journeys": 27,
+        "median_first_alert_payment": 1.0,
+        "by_variant": {
+          "rewards": 16,
+          "crypto_deposit": 11
+        },
+        "visible": {
+          "journeys": 10,
+          "share_inr_interrupted": 0.996,
+          "share_inr_paused": 0.737
+        },
+        "false_interruptions_t2": 4,
+        "false_interruption_rate": 0.0027,
+        "errors": 0
+      }
+    }
+  }
+}

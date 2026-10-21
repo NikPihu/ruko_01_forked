@@ -3,9 +3,12 @@ package com.ruko.demo.signals
 import android.Manifest.permission.READ_CALL_LOG
 import android.Manifest.permission.READ_CONTACTS
 import android.Manifest.permission.READ_PHONE_STATE
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.Manifest.permission.READ_SMS
+import android.Manifest.permission.RECEIVE_SMS
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Telephony
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -14,7 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.ruko.demo.BuildConfig
 import com.ruko.demo.data.Consents
-import com.ruko.demo.net.MoneySignal
+import com.ruko.demo.net.EpisodeSignal
+import com.ruko.demo.net.SessionSignal
+import com.ruko.demo.shield.ShieldController
 import kotlinx.serialization.json.Json
 import java.io.FileNotFoundException
 import com.ruko.demo.net.Context as RequestContext
@@ -23,13 +28,19 @@ import com.ruko.demo.net.Context as RequestContext
 object ShieldPermissions {
     val CALLS = listOf(READ_PHONE_STATE, READ_CONTACTS, READ_CALL_LOG)
     val SMS = listOf(READ_SMS)
+    val WATCH = buildList {
+        add(RECEIVE_SMS)
+        add(READ_SMS)
+        if (Build.VERSION.SDK_INT >= 33) add(POST_NOTIFICATIONS)
+    }
 
     fun wanted(consents: Consents): List<String> = buildList {
         if (consents.callSignals) addAll(CALLS)
         if (consents.smsLure) addAll(SMS)
+        if (consents.moneyWatch) addAll(WATCH)
     }
 
-    fun missing(context: Context, consents: Consents): List<String> = wanted(consents).filter {
+    fun missing(context: Context, consents: Consents): List<String> = wanted(consents).distinct().filter {
         ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
     }
 }
@@ -39,7 +50,7 @@ data class SignalReading(
     val phone: PhoneSignals,
     val context: RequestContext?,
     val lures: List<LureHit>,
-    val money: MoneySignal?,
+    val episode: EpisodeSignal?,
     val simulated: List<String>,
 )
 
@@ -56,9 +67,6 @@ object Signals {
     /** A message the user pasted into the check box; counts for the next payment only. */
     var pasted by mutableStateOf<LureHit?>(null)
 
-    /** This app's own payments (encrypted in AccountStore), kept in sync by the app. */
-    var history by mutableStateOf<List<MoneyTxn>>(emptyList())
-
     /** The automatic permission prompt is shown once per app start; after that the Home card asks. */
     var askedForPermissions = false
 
@@ -69,8 +77,12 @@ object Signals {
         classifier = loadLureModel(app)
     }
 
-    /** Off the main thread: may read SMS and query packages. */
-    fun read(consents: Consents): SignalReading {
+    /**
+     * Off the main thread: may read SMS and query packages. [payee] is the UPI ID being paid;
+     * [session] is how the Pay screen was used for this payment (c2-0.5), sent only with
+     * "Session checks" on.
+     */
+    fun read(consents: Consents, payee: String? = null, session: SessionSignal? = null): SignalReading {
         val now = System.currentTimeMillis()
         val real = PhoneSignals(
             call = if (consents.callSignals) sensor.readCall(now) else null,
@@ -85,19 +97,10 @@ object Signals {
             o.lureTag?.let { add(LureHit(it, 0.9)) }
         }
         val best = bestLureTags(lures)
-        // Money flow uses this app's payments plus bank alerts; sent only while Scam Shield is on.
-        val anyShield = consents.callSignals || consents.appChecks || consents.smsLure
-        val money = when {
-            o.taskMoney == true -> SignalOverrides.TASK_MONEY
-            !anyShield -> null
-            else -> {
-                val all = history + sms.txns
-                val paidBefore = all.filter { it.flow == Flow.OUT && now - it.ts > MoneyFlow.WINDOW_MS }
-                    .mapNotNull { it.counterparty }.toSet()
-                MoneyFlow.summarise(all, now, smsRead = consents.smsLure, paidBefore = paidBefore)
-            }
-        }
-        return SignalReading(phone, phone.toRequestContext(best, money), best, money, o.active)
+        // The background watcher's task-scam episode (c2-0.3); null while it is switched off.
+        val episode = runCatching { ShieldController.summary(app, consents, payee) }.getOrNull()
+        val ses = if (consents.sessionSignals) o.applyTo(session) else null
+        return SignalReading(phone, phone.toRequestContext(best, episode, ses), best, episode, o.active)
     }
 
     private fun loadLureModel(context: Context): LureClassifier = try {

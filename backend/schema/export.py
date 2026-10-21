@@ -1,6 +1,7 @@
 """Write the C2 decide contract as JSON Schema for the app and anyone else who mirrors it.
 
-    PYTHONPATH=backend:ml:data python -m schema.export        # writes contracts/c2_decide.schema.json
+    PYTHONPATH=backend:ml:data python -m schema.export
+    # writes contracts/c2_decide.schema.json and contracts/c2_episode.schema.json
 
 backend/tests/test_schema.py fails when the committed file is out of date with events.py.
 """
@@ -9,9 +10,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse
+from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
 
 OUT = Path(__file__).resolve().parents[2] / "contracts" / "c2_decide.schema.json"
+OUT_EPISODE = OUT.with_name("c2_episode.schema.json")
 
 
 def build_schema() -> dict:
@@ -23,14 +25,28 @@ def build_schema() -> dict:
     }
 
 
+def build_episode_schema() -> dict:
+    return {
+        "title": "RUKO C2: POST /v1/episode",
+        "contract_version": CONTRACT_VERSION,
+        "request": EpisodeEvent.model_json_schema(),
+        "response": EpisodeEventResponse.model_json_schema(),
+    }
+
+
 def render() -> str:
     return json.dumps(build_schema(), indent=2, ensure_ascii=False) + "\n"
+
+
+def render_episode() -> str:
+    return json.dumps(build_episode_schema(), indent=2, ensure_ascii=False) + "\n"
 
 
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(render(), encoding="utf-8", newline="\n")
-    print(f"wrote {OUT}")
+    OUT_EPISODE.write_text(render_episode(), encoding="utf-8", newline="\n")
+    print(f"wrote {OUT} and {OUT_EPISODE.name}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,176 @@
+{
+  "about": "Shared test cases for the task-scam episode. Run by backend/tests/test_episode.py and android EpisodeTrackerTest. Times are hours after base_ts. Only the fields in expect are checked; age_days and out_to_in_ratio within 0.01.",
+  "rules_version": "episode-0.2",
+  "base_ts": "2026-11-01T09:00:00+05:30",
+  "vectors": [
+    {
+      "name": "classic task scam: three rewards, then 1,000 -> 2,500 -> 6,000 to new payees",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl. Ref 101"}},
+        {"at_h": 5, "sms": {"from": "AX-SBIINB", "body": "Rs.200.00 credited to A/c XX12 by UPI from task.reward2@ybl. Ref 102"}},
+        {"at_h": 10, "sms": {"from": "AX-SBIINB", "body": "Rs.100.00 credited to A/c XX12 by UPI from task.reward3@ybl. Ref 103"}},
+        {"at_h": 20, "app": {"to": "unlock.level1@ybl", "amount": 1000}},
+        {"at_h": 30, "sms": {"from": "AX-SBIINB", "body": "INR 2,500.00 debited from A/c XX12 to VPA unlock.level2@ybl. Ref 104"}},
+        {"at_h": 40, "app": {"to": "unlock.level3@ybl", "amount": 6000}}
+      ],
+      "now_h": 41,
+      "payee": "unlock.level3@ybl",
+      "expect": {"state": "active", "age_days": 1.708, "bait_credits": 3, "bait_inr": 450, "outs": 3, "outs_inr": 9500,
+                 "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6000, "out_to_in_ratio": 21.11,
+                 "payee_seen_in_episode": true}
+    },
+    {
+      "name": "bait with no payments out stays watching",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-HDFCBK", "body": "Rs 150 credited to your A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 3, "sms": {"from": "AX-HDFCBK", "body": "Rs 200 credited to your A/c XX12 by UPI from task.reward2@ybl"}}
+      ],
+      "now_h": 5,
+      "expect": {"state": "watching", "bait_credits": 2, "bait_inr": 350, "outs": 0, "new_payees": 0,
+                 "escalation_steps": 0, "last_out_inr": null, "out_to_in_ratio": 0}
+    },
+    {
+      "name": "escalating payments with no bait stay none",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "contractor@okaxis", "amount": 1000}},
+        {"at_h": 24, "app": {"to": "contractor@okaxis", "amount": 2500}},
+        {"at_h": 48, "app": {"to": "contractor@okaxis", "amount": 6000}}
+      ],
+      "now_h": 49,
+      "expect": {"state": "none", "age_days": null, "bait_credits": 0, "outs": 0, "escalation_steps": 0}
+    },
+    {
+      "name": "cashback SMS is ignored",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-PAYTMB", "body": "Rs 15 cashback credited to your A/c XX12 via UPI"}}
+      ],
+      "now_h": 1,
+      "expect": {"state": "none", "bait_credits": 0}
+    },
+    {
+      "name": "a credited SMS from a phone number is ignored",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "+919812345670", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}}
+      ],
+      "now_h": 1,
+      "expect": {"state": "none", "bait_credits": 0}
+    },
+    {
+      "name": "dismissed stays dismissed when the same sender pays again",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from gig.payout@ybl"}},
+        {"at_h": 1, "dismiss": true},
+        {"at_h": 3, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from gig.payout@ybl"}}
+      ],
+      "now_h": 4,
+      "expect": {"state": "dismissed", "age_days": null, "outs": 0}
+    },
+    {
+      "name": "dismissed, then a new bait sender starts a fresh episode",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from gig.payout@ybl"}},
+        {"at_h": 1, "dismiss": true},
+        {"at_h": 5, "sms": {"from": "AX-SBIINB", "body": "Rs.120.00 credited to A/c XX12 by UPI from task.reward9@ybl"}}
+      ],
+      "now_h": 6,
+      "expect": {"state": "watching", "age_days": 0.042, "bait_credits": 1, "bait_inr": 120}
+    },
+    {
+      "name": "30 quiet days close the episode",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}}
+      ],
+      "now_h": 744,
+      "expect": {"state": "none", "age_days": null, "bait_credits": 0}
+    },
+    {
+      "name": "an app payment and its debit SMS count once",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 10, "app": {"to": "unlock.level1@ybl", "amount": 1000}},
+        {"at_h": 10.05, "sms": {"from": "AX-SBIINB", "body": "INR 1,000.00 debited from A/c XX12 to VPA unlock.level1@ybl"}}
+      ],
+      "now_h": 11,
+      "expect": {"state": "watching", "outs": 1, "outs_inr": 1000, "new_payees": 1}
+    },
+    {
+      "name": "a small credit from someone you paid before is not bait",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "friend.riya@okicici", "amount": 500}},
+        {"at_h": 5, "sms": {"from": "AX-SBIINB", "body": "Rs.200.00 credited to A/c XX12 by UPI from friend.riya@okicici"}}
+      ],
+      "now_h": 6,
+      "expect": {"state": "none", "bait_credits": 0}
+    },
+    {
+      "name": "everyday payments to the usual shop never escalate an episode",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "ganesh.kirana@okaxis", "amount": 150}},
+        {"at_h": 1, "sms": {"from": "AX-SBIINB", "body": "Rs.300.00 credited to A/c XX12 by UPI from cousin.ravi@ybl"}},
+        {"at_h": 20, "app": {"to": "ganesh.kirana@okaxis", "amount": 200}},
+        {"at_h": 44, "app": {"to": "ganesh.kirana@okaxis", "amount": 450}},
+        {"at_h": 68, "app": {"to": "ganesh.kirana@okaxis", "amount": 900}}
+      ],
+      "now_h": 69,
+      "expect": {"state": "watching", "outs": 0, "escalation_steps": 0}
+    },
+    {
+      "name": "a quiet month closes the episode even with everyday spending",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "ganesh.kirana@okaxis", "amount": 150}},
+        {"at_h": 1, "sms": {"from": "AX-SBIINB", "body": "Rs.300.00 credited to A/c XX12 by UPI from cousin.ravi@ybl"}},
+        {"at_h": 200, "app": {"to": "ganesh.kirana@okaxis", "amount": 200}},
+        {"at_h": 500, "app": {"to": "ganesh.kirana@okaxis", "amount": 250}}
+      ],
+      "now_h": 722,
+      "expect": {"state": "none"}
+    },
+    {
+      "name": "small payments are not episode payments",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 2, "app": {"to": "new.shop1@ybl", "amount": 100}},
+        {"at_h": 4, "app": {"to": "new.shop2@ybl", "amount": 200}},
+        {"at_h": 6, "app": {"to": "new.shop3@ybl", "amount": 450}}
+      ],
+      "now_h": 7,
+      "expect": {"state": "watching", "outs": 0, "escalation_steps": 0}
+    },
+    {
+      "name": "SMS off: no bait can be seen, credit fields are unknown",
+      "sms_read": false,
+      "events": [
+        {"at_h": 0, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 20, "app": {"to": "unlock.level1@ybl", "amount": 1000}},
+        {"at_h": 40, "app": {"to": "unlock.level2@ybl", "amount": 2500}}
+      ],
+      "now_h": 41,
+      "expect": {"state": "none", "bait_credits": null, "bait_inr": null, "out_to_in_ratio": null}
+    },
+    {
+      "name": "a payee paid before the episode is not an episode payment",
+      "sms_read": true,
+      "events": [
+        {"at_h": 0, "app": {"to": "unlock.level1@ybl", "amount": 300}},
+        {"at_h": 1, "sms": {"from": "AX-SBIINB", "body": "Rs.150.00 credited to A/c XX12 by UPI from task.reward1@ybl"}},
+        {"at_h": 2, "app": {"to": "unlock.level1@ybl", "amount": 1000}},
+        {"at_h": 3, "app": {"to": "unlock.level2@ybl", "amount": 2500}}
+      ],
+      "now_h": 4,
+      "expect": {"state": "watching", "outs": 1, "outs_inr": 2500, "new_payees": 1, "escalation_steps": 0}
+    }
+  ]
+}
