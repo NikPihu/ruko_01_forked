@@ -3,6 +3,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1            # start everything
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Regenerate # rebuild data first
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop       # stop the services
+#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BaitPump   # also pump the task-scam bait account
 #
 # Steps: venv + requirements, synthetic data (if missing), mock intel on 8001,
 # risk API with --demo-clock, mule pump, adb reverse so the phone's
@@ -15,6 +16,7 @@ param(
     [int]$Payers = 40,
     [switch]$Regenerate,
     [switch]$NoPump,
+    [switch]$BaitPump,
     [switch]$Stop
 )
 
@@ -94,6 +96,12 @@ Write-Host "risk API up on $ApiPort ($($health | ConvertTo-Json -Compress))"
 if (-not $NoPump) {
     & $Py -m sim.mule_pump --url "http://127.0.0.1:$IntelPort" --payers $Payers
     if ($LASTEXITCODE -ne 0) { throw "sim.mule_pump failed" }
+}
+
+# 5b. Task-scam bait account fanning out to 40 users, for the payment graph demo (/console/graph)
+if ($BaitPump) {
+    & $Py -m sim.bait_pump --api "http://127.0.0.1:$ApiPort" --intel "http://127.0.0.1:$IntelPort"
+    if ($LASTEXITCODE -ne 0) { throw "sim.bait_pump failed" }
 }
 
 # 6. Phone

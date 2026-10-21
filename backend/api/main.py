@@ -102,10 +102,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         now = datetime.now().astimezone()
         return now + clock["offset"] if clock["offset"] is not None else now
 
-    def run_discovery() -> list[dict]:
+    def run_discovery(min_band: str = "med") -> list[dict]:
         now = sim_now()
         try:
-            found["suspects"] = discovery.discover(graph, reviews, now)
+            found["suspects"] = discovery.discover(graph, reviews, now, min_band=min_band)
             found["last_run"] = discovery.last_run_summary(found["suspects"], now)
         except Exception as e:  # a broken run must never affect payments
             log.exception("discovery failed")
@@ -231,8 +231,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         return out
 
     @app.get("/v1/graph/suspects")
-    def graph_suspects() -> dict:
-        return {"suspects": run_discovery(), "last_run": found["last_run"],
+    def graph_suspects(min_band: str = "med") -> dict:
+        """Analysts see medium and high suspects by default; ?min_band=low shows everything."""
+        if min_band not in discovery.BAND_RANK:
+            raise HTTPException(422, "min_band must be low, med or high")
+        return {"suspects": run_discovery(min_band), "last_run": found["last_run"],
                 "approvals_needed": discovery.APPROVALS_NEEDED}
 
     @app.post("/v1/graph/suspects/{upi_id}/review")

@@ -1,6 +1,6 @@
 # Task-scam watcher and payment graph: plan (contracts c2-0.3, c2-0.4)
 
-Status: **design only, not built yet.** This file is the full brief for building it on any machine.
+Status: **built** on branch `feature/episode-watcher` (see §12, build notes). This file is the full brief for building it on any machine.
 It covers:
 - the phone: UI and the background watcher (§2–4);
 - the contracts (§5 and §8);
@@ -583,3 +583,28 @@ An attacker could send fake episodes to frame an honest shop.
 - [ ] The phone only warns; it never blocks a payment. Payment-time interruptions stay with the
       engine, which needs two families.
 - [ ] Age and gender are not used anywhere in the episode logic.
+
+## 12. Build notes (what changed from the plan while building it)
+- **Rules `episode-0.2`.** Only payments above `min_out_inr` (Rs 500) to payees the user had not
+  paid before the episode count as episode payments, for escalation and for staying active. With
+  the plan's rules, everyday shopping put 5.6% of normal payments inside an active episode (the
+  usual shop's Rs 150 -> 300 -> 600 looked like escalation, and an episode never went quiet); now
+  0.29%, with the same scam payments caught. Both state machines and the vectors follow.
+- **Family weight L 2.0 -> 3.5** (`rules-0.3`). With the episode as one lure signal and no bonus,
+  an active episode plus an amount far above the user's usual could not reach T2, which the §6
+  outcome table requires. One family alone still stays far below T1.
+- **Episode lookups get 1 s** (`LOOKUP_BUDGET_S`), not the payment path's 150 ms.
+- **Discovery uses linear money weights** and the analyst list defaults to medium and high bands
+  (`?min_band=low` for all). Log weights flagged mules' small cover payees almost like their
+  cash-out accounts.
+- **Offline rebuild warms up 7 days** (`WARMUP_DAYS`), standing in for the phone's 30-day backfill.
+- **Evaluation** (`data/eval/episode_results.json`, `graph_results.json`, charts in `data/eval/charts/`):
+  - Fresh mules (no list or bank knows the payee): task-scam rupees interrupted 49% (existing
+    stack) -> 58% (+ episode) -> 86% (+ payment graph); every task journey caught at its first
+    payment with the graph; false alarms unchanged at 0.07%. Known mules: 100% in all setups.
+  - Mules flagged before their first registry listing: 27% / 47% / 47% for none / partner / dpip
+    bank visibility. Analyst list precision 0% / 38% / 19%. With log weights more mules were
+    flagged early (40% / 53% / 60%, median 7.4 days) but the analyst list was 16% precise or less.
+- **Data leak found, not fixed:** `features/user_baseline.py` reads the whole ledger, so the payment
+  being judged is part of the user's "usual". The evaluations exclude scam payments from it.
+

@@ -4,15 +4,15 @@ Runs every hour in the demo (weekly in a real deployment) and produces a suspect
 not automatic blocks:
 1. Seeds: accounts with strong evidence (registry-listed, a flagged payee in a high-risk episode,
    or analyst-confirmed).
-2. Spread suspicion from the seeds along money edges with personalised PageRank. Weights grow with
-   the amount, with fast forwarding (short hold) and with fan-in from many RUKO users.
+2. Spread suspicion from the seeds along money edges with personalised PageRank. Weights are
+   proportional to the amount (so a mule's small "cover" payments to ordinary people carry little
+   suspicion, its big forwards to cash-out accounts carry most) and double for fast forwarding.
 3. Rings: connected groups among suspects and seeds; hubs are accounts many of them forward to.
 4. Each suspect gets a band, a reason in words, an evidence path and a ring id.
 5. A suspect only affects live scoring after two different analysts approve it (§9.5 step 5).
 """
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -38,23 +38,17 @@ class Review:
 
 
 def _weights(g: GraphStore) -> dict[str, dict[str, float]]:
-    """Undirected weights between accounts. Users are pass-through: two accounts paid in the same
-    victim's episode are linked through that victim, but a victim is never a suspect."""
+    """Undirected weights between accounts, proportional to the money. Users are pass-through: two
+    accounts paid in the same victim's episode are linked through that victim, but a victim is never
+    a suspect. (Log-scaled weights flagged a mule's cover payees almost like its cash-out accounts:
+    precision of medium and high suspects 16% against 38% with linear weights in the eval world.)"""
     w: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for (a, b), e in g.edges.items():
-        x = math.log1p(e.inr) * (2.0 if e.hold_min is not None and e.hold_min <= 30 else 1.0)
+        x = e.inr * (2.0 if e.hold_min is not None and e.hold_min <= 30 else 1.0)
         if "bank_flows" not in e.sources and not (a.startswith("u:") or b.startswith("u:")):
             x *= 0.5
         w[a][b] += x
         w[b][a] += x
-    # Fan-in from many RUKO users makes an account a stronger conduit.
-    for node, nbrs in w.items():
-        if node.startswith("u:"):
-            continue
-        users = sum(1 for n in nbrs if n.startswith("u:"))
-        if users >= 3:
-            for n in nbrs:
-                nbrs[n] *= 1 + math.log(users)
     return w
 
 
@@ -71,7 +65,10 @@ def seeds(g: GraphStore, reviews: dict[str, Review]) -> dict[str, str]:
     return out
 
 
-def discover(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[dict]:
+BAND_RANK = {"low": 0, "med": 1, "high": 2}
+
+
+def discover(g: GraphStore, reviews: dict[str, Review], now: datetime, min_band: str = "low") -> list[dict]:
     seed = seeds(g, reviews)
     if not seed:
         return []
@@ -100,11 +97,14 @@ def discover(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[d
     hubs = _hubs(g, set(candidates) | set(seed))
     out = []
     for n, rel in sorted(candidates.items(), key=lambda kv: -kv[1]):
+        band = next(b for t, b in BANDS if rel >= t)
+        if BAND_RANK[band] < BAND_RANK[min_band]:
+            continue
         why, path = _why(g, w, n, seed, hubs)
         e_first = [e.first_ts for (a, b), e in g.edges.items() if (a == n or b == n) and e.first_ts]
         rv = reviews.get(n)
         out.append({
-            "upi_id": n, "band": next(b for t, b in BANDS if rel >= t), "score": round(rel, 3),
+            "upi_id": n, "band": band, "score": round(rel, 3),
             "why": why, "evidence_path": path, "ring_id": rings.get(n),
             "is_hub": n in hubs, "first_seen": min(e_first).isoformat() if e_first else None,
             "registry_listed": bool(g.marks.get(n, {}).get("listed")),
