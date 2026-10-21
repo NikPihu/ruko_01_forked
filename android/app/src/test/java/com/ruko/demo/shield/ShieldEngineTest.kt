@@ -18,10 +18,11 @@ class ShieldEngineTest {
     private fun run(data: ShieldData, txns: List<MoneyTxn>, now: Double) = ShieldEngine.apply(rules, true, data, txns, h(now))
 
     @Test
-    fun watchingThenActiveEachNotifyOnce() {
+    fun watchingIsSilentAndActiveNotifiesOnce() {
         val first = run(ShieldData(), listOf(bait(0.0, "r1@ybl")), 0.1)
-        assertEquals(listOf(ShieldEngine.AlertKind.WATCHING), first.alerts.map { it.kind })
+        assertTrue("one stranger's credit alone is not shown", first.alerts.isEmpty())
         assertEquals(listOf("watching"), first.transitions.map { it.trigger })
+        assertEquals(EpisodeState.WATCHING, first.data.watcher.episode.state)
 
         val again = run(first.data, listOf(bait(1.0, "r1@ybl", 120.0)), 1.1)
         assertTrue("same state, no new alert", again.alerts.isEmpty())
@@ -37,7 +38,8 @@ class ShieldEngineTest {
     fun atMostTwoNotificationsAWeek() {
         var d = run(ShieldData(), listOf(bait(0.0, "r1@ybl")), 0.1).data
         d = run(d, listOf(appOut(1.0, "u1@ybl", 1_000.0), appOut(2.0, "u2@ybl", 2_500.0), appOut(3.0, "u3@ybl", 6_000.0)), 3.1).data
-        val third = run(d, listOf(smsOut(5.0, "u4@ybl", 15_000.0)), 5.1)
+        d = run(d, listOf(smsOut(4.0, "u4@ybl", 15_000.0)), 4.1).data // second alert of the week
+        val third = run(d, listOf(smsOut(5.0, "u5@ybl", 36_000.0)), 5.1)
         assertTrue("third alert in a week is held back", third.alerts.isEmpty())
         assertEquals(listOf("out_payment"), third.transitions.map { it.trigger }) // the server still hears of it
     }

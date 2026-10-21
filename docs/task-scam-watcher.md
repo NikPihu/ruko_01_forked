@@ -163,7 +163,7 @@ and the Python test both run every vector. Include at least:
 ### 4.4 What the phone does by itself (no server, never blocks a payment)
 | Moment | Action |
 |---|---|
-| NONE → WATCHING | One notification: "Got ₹150 for a 'task'? Real jobs never ask you to pay to get your earnings." / "‘टास्क’ के लिए ₹150 मिले? असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।" |
+| NONE → WATCHING | ~~One notification~~ Nothing shown (see §12): the episode is recorded and the `watching` event still goes to the server. |
 | WATCHING → ACTIVE | Notification plus a Home banner: "You received ₹450 from 3 unknown accounts and then paid ₹9,500 to 4 new people, each time more. This is how task scams work. Stop before paying more." |
 | A debit SMS from **another app** while ACTIVE | Notification after the fact: "You just paid ₹6,000. The next ask will be bigger. Don't pay more." |
 | Limit | At most one notification per state change, and at most 2 per week |
@@ -171,7 +171,8 @@ and the Python test both run every vector. Include at least:
 ### 4.5 UI changes
 - **Home** (`ui/HomeScreen.kt`):
   - A shield status chip: "On, watching money alerts" or "Off".
-  - An **episode card** when the state is WATCHING or ACTIVE, showing:
+  - An **episode card** when the state is ACTIVE, or the server answered `high` (§12; the plan
+    also showed it for WATCHING), showing:
     - the numbers, in words;
     - a "How this scam works" sheet;
     - buttons **Call 1930**, **Call my trusted contact** (`UserProfile.trustedMobile`) and
@@ -605,6 +606,16 @@ An attacker could send fake episodes to frame an honest shop.
   - Mules flagged before their first registry listing: 27% / 47% / 47% for none / partner / dpip
     bank visibility. Analyst list precision 0% / 38% / 19%. With log weights more mules were
     flagged early (40% / 53% / 60%, median 7.4 days) but the analyst list was 16% precise or less.
-- **Data leak found, not fixed:** `features/user_baseline.py` reads the whole ledger, so the payment
-  being judged is part of the user's "usual". The evaluations exclude scam payments from it.
+- **Data leak found:** `features/user_baseline.py` read the whole ledger, so the payment being
+  judged was part of the user's "usual". Fixed later: baselines use only payments before it.
+- **WATCHING is silent on the phone.** In testing, one small credit from a stranger (a refund,
+  cashback, a friend's first UPI) put the warning card on Home and sent a notification. That is
+  too common to warn about. The phone now records the episode and still sends the `watching`
+  event, but shows the card and a notification only at ACTIVE (bait, then 2+ escalating payments
+  to new payees), or when the server answers `high` for the accounts involved. The engine is
+  unchanged: WATCHING was already at most T1 there.
+- **R7 tranche only for the run's own payees** (`rules-0.5`). After a few payments to new payees,
+  a ₹100 payment to the user's usual kirana lit "several payments in a short time" and, with an
+  old scam-looking SMS, reached T1. R7 now counts only when this payment goes to a new payee or to
+  one already in the run (`payee_in_run`).
 

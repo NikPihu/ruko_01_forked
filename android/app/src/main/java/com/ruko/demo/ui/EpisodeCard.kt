@@ -60,20 +60,22 @@ fun ShieldStatusChip(watching: Boolean) {
 }
 
 /**
- * The background watcher's episode on Home, while it is WATCHING or ACTIVE: the numbers in words,
- * how the scam works, and three ways out. It only warns; payments are never blocked here.
+ * The background watcher's episode on Home, once there is a pattern to show: ACTIVE (bait, then
+ * escalating payments to new payees) or confirmed "high" by the server. A WATCHING episode (small
+ * money from a stranger, nothing more) stays off Home. The numbers in words, how the scam works,
+ * and three ways out. It only warns; payments are never blocked here.
  */
 @Composable
 fun EpisodeCard(data: ShieldData?, trustedName: String?, trustedMobile: String?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val ep = data?.watcher?.episode ?: return
-    if (!ep.state.live) return
+    val active = ep.state == EpisodeState.ACTIVE
+    val confirmed = ep.state.live && data.serverRisk == "high"
+    if (!active && !confirmed) return
     val s = EpisodeTracker(EpisodeStore.rules(context), true, data.watcher).summary(ShieldController.now())
     var howItWorks by remember { mutableStateOf(false) }
     var confirmDismiss by remember { mutableStateOf(false) }
-    val active = ep.state == EpisodeState.ACTIVE
-    val confirmed = data.serverRisk == "high"
-    val accent = if (active || confirmed) CacheColors.Danger else CacheColors.Warning
+    val accent = CacheColors.Danger
 
     Column(
         modifier = modifier.fillMaxWidth().cacheCard(borderColor = accent.copy(alpha = 0.7f)).padding(18.dp),
@@ -82,7 +84,7 @@ fun EpisodeCard(data: ShieldData?, trustedName: String?, trustedMobile: String?,
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(CacheIcons.Warning, contentDescription = null, tint = accent, modifier = Modifier.size(26.dp))
             Text(
-                stringResource(if (active || confirmed) R.string.episode_title_active else R.string.episode_title_watching),
+                stringResource(R.string.episode_title_active),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
