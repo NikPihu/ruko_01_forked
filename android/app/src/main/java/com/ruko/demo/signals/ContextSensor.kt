@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -116,8 +117,19 @@ class ContextSensor(private val app: Context) {
             startedMinAgo = if (active) since?.let { minutes(now - it) } else null,
             endedMinAgo = if (endedRecently) minutes(now - lastCallEndedAt) else null,
             callerNumber = number,
+            speakerOn = if (active) speakerOn() else null,
         )
     }
+
+    /** Call audio on the loudspeaker: the user is being talked through the payment while typing. */
+    private fun speakerOn(): Boolean? = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            audio.communicationDevice?.let { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+        } else {
+            @Suppress("DEPRECATION")
+            audio.isSpeakerphoneOn
+        }
+    }.getOrNull()
 
     fun readDevice(now: Long = System.currentTimeMillis()): DeviceReading {
         val remote = REMOTE_ACCESS_PACKAGES.mapNotNull(::packageInfo)

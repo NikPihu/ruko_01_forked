@@ -96,7 +96,7 @@ fun PayScreen(
 
         OutlinedTextField(
             value = vm.amountText,
-            onValueChange = { text -> vm.amountText = text.filter { it.isDigit() || it == '.' } },
+            onValueChange = vm::typeAmount,
             label = { Text(stringResource(R.string.pay_amount_label)) },
             prefix = { Text("₹", style = MaterialTheme.typography.headlineMedium) },
             textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),

@@ -5,6 +5,7 @@ import com.ruko.demo.net.CallKind
 import com.ruko.demo.net.CallSignal
 import com.ruko.demo.net.DeviceSignal
 import com.ruko.demo.net.EpisodeSignal
+import com.ruko.demo.net.SessionSignal
 import com.ruko.demo.net.Context as RequestContext
 
 /**
@@ -19,6 +20,7 @@ data class CallReading(
     val startedMinAgo: Double?,
     val endedMinAgo: Double?, // a call that finished within the last 30 minutes
     val callerNumber: String? = null, // in memory only; see toCallSignal for when it is sent
+    val speakerOn: Boolean? = null, // only read while a call is active
 ) {
     /**
      * The caller's number is sent only for an incoming SIM call from a number that is not in
@@ -35,6 +37,7 @@ data class CallReading(
         callerInContacts = callerInContacts,
         startedMinAgo = startedMinAgo,
         endedMinAgo = endedMinAgo,
+        speakerOn = speakerOn,
     )
 }
 
@@ -69,13 +72,18 @@ data class PhoneSignals(val call: CallReading?, val device: DeviceReading?) {
      * The `context` object of contract c2-0.2. A switched-off group is left null ("unknown");
      * with every group off and no lure, `context` itself is null (the user opted out).
      */
-    fun toRequestContext(lures: List<LureHit>, episode: EpisodeSignal? = null): RequestContext? {
-        if (call == null && device == null && lures.isEmpty() && episode == null) return null
+    fun toRequestContext(
+        lures: List<LureHit>,
+        episode: EpisodeSignal? = null,
+        session: SessionSignal? = null,
+    ): RequestContext? {
+        if (call == null && device == null && lures.isEmpty() && episode == null && session == null) return null
         return RequestContext(
             call = call?.toCallSignal(),
             device = device?.toDeviceSignal(),
             lures = lures.map { it.toLureSignal() },
             episode = episode,
+            session = session,
         )
     }
 }
@@ -105,6 +113,8 @@ data class SignalOverrides(
     val sideload: Boolean? = null,
     val screenRecorded: Boolean? = null,
     val lureTag: String? = null,
+    val speakerOn: Boolean? = null,
+    val coachedSession: Boolean? = null, // true: a coached Pay screen, false: a calm one
 ) {
     val active: List<String>
         get() = buildList {
@@ -116,6 +126,8 @@ data class SignalOverrides(
             if (sideload != null) add("device.sideloaded_last_24h")
             if (screenRecorded != null) add("screen_recorded")
             if (lureTag != null) add("lures")
+            if (speakerOn != null) add("call.speaker_on")
+            if (coachedSession != null) add("session")
         }
 
     /** Overrides only fill in groups the user consented to; a switched-off group stays null. */
@@ -128,6 +140,7 @@ data class SignalOverrides(
                 callerInContacts = callerInContacts ?: c.callerInContacts,
                 startedMinAgo = callMinutes?.toDouble() ?: c.startedMinAgo ?: if (onCall == true) 0.0 else null,
                 endedMinAgo = if (onCall == true) null else c.endedMinAgo,
+                speakerOn = speakerOn ?: c.speakerOn,
             )
         }
         val device = real.device?.let { d ->
@@ -146,5 +159,25 @@ data class SignalOverrides(
             )
         }
         return PhoneSignals(call, device)
+    }
+
+    /** The session the debug panel stands in for, so a demo does not depend on slow typing on stage. */
+    fun applyTo(real: SessionSignal?): SessionSignal? = when (coachedSession) {
+        null -> real
+        true -> COACHED_SESSION.copy(abandonedFlows30m = real?.abandonedFlows30m ?: 1)
+        false -> CALM_SESSION
+    }
+
+    companion object {
+        val COACHED_SESSION = SessionSignal(
+            amountDigits = 5, amountMedianGapS = 2.4, amountMaxGapS = 6.1, amountGapVsUsual = 4.8,
+            amountEdits = 1, payeePasted = true, pastedWithinSOfReturn = 6.0, appSwitches = 3,
+            awayS = 41.0, payScreenS = 212.0, abandonedFlows30m = 1,
+        )
+        val CALM_SESSION = SessionSignal(
+            amountDigits = 4, amountMedianGapS = 0.4, amountMaxGapS = 0.9, amountGapVsUsual = 1.0,
+            amountEdits = 0, payeePasted = false, pastedWithinSOfReturn = null, appSwitches = 0,
+            awayS = 0.0, payScreenS = 25.0, abandonedFlows30m = 0,
+        )
     }
 }

@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.4: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.5: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.4"
+const val CONTRACT_VERSION = "c2-0.5"
 
 @Serializable
 enum class CallKind {
@@ -51,6 +51,7 @@ data class CallSignal(
     @SerialName("caller_in_contacts") val callerInContacts: Boolean? = null,
     @SerialName("started_min_ago") val startedMinAgo: Double? = null,
     @SerialName("ended_min_ago") val endedMinAgo: Double? = null, // a call that just finished
+    @SerialName("speaker_on") val speakerOn: Boolean? = null, // c2-0.5: call on the loudspeaker at Pay
 )
 
 @Serializable
@@ -84,12 +85,32 @@ data class EpisodeSignal(
     @SerialName("rules_version") val rulesVersion: String? = null,
 )
 
+/**
+ * How the user behaved on the Pay screen of this payment (c2-0.5). Counts and rounded seconds
+ * only, never the keys typed or the other apps opened. Built by signals/SessionTracker.
+ */
+@Serializable
+data class SessionSignal(
+    @SerialName("amount_digits") val amountDigits: Int? = null,
+    @SerialName("amount_median_gap_s") val amountMedianGapS: Double? = null,
+    @SerialName("amount_max_gap_s") val amountMaxGapS: Double? = null,
+    @SerialName("amount_gap_vs_usual") val amountGapVsUsual: Double? = null, // null until 3 past payments
+    @SerialName("amount_edits") val amountEdits: Int? = null,
+    @SerialName("payee_pasted") val payeePasted: Boolean? = null,
+    @SerialName("pasted_within_s_of_return") val pastedWithinSOfReturn: Double? = null,
+    @SerialName("app_switches") val appSwitches: Int? = null,
+    @SerialName("away_s") val awayS: Double? = null,
+    @SerialName("pay_screen_s") val payScreenS: Double? = null,
+    @SerialName("abandoned_flows_30m") val abandonedFlows30m: Int? = null,
+)
+
 @Serializable
 data class Context(
     val call: CallSignal? = null,
     val device: DeviceSignal? = null,
     val lures: List<LureSignal> = emptyList(),
     val episode: EpisodeSignal? = null,
+    val session: SessionSignal? = null, // c2-0.5; null when "Session checks" is off
 )
 
 @Serializable

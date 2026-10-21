@@ -41,4 +41,19 @@
     <string name="episode_keep">नज़र रखते रहें</string>
     <string name="episode_ok">ठीक है</string>
     <string name="decision_task_job">यह टास्क या नौकरी वाला स्कैम लगता है: पहले छोटे इनाम, फिर कमाई अनलॉक करने के लिए बार-बार ज़्यादा पैसे माँगे जाते हैं। असली नौकरी पैसे नहीं माँगती।</string>
+    <!-- Reasons (contract reason codes) -->
+    <string name="reason_R1_live_unknown_call">आप ऐसे नंबर से बात कर रहे हैं, या अभी बात खत्म हुई है, जो आपके कॉन्टैक्ट में नहीं है</string>
+    <string name="reason_R2_remote_control">आपकी स्क्रीन देखने या चलाने वाला ऐप चालू है या अभी इंस्टॉल हुआ है</string>
+    <string name="reason_R3_mule_like_payee">यह खाता नया है और इसमें कई अनजान लोगों से पैसे आ रहे हैं</string>
+    <string name="reason_R4_unusual_amount">यह रकम आपके आम भुगतानों से बहुत ज़्यादा है</string>
+    <string name="reason_R5_lure_message">आपको हाल ही में ऐसा मैसेज मिला जो किसी जाने-माने स्कैम जैसा है</string>
+    <string name="reason_R6_new_payee_typed">आपने यह UPI ID खुद टाइप की है और इसे पहले कभी पैसे नहीं भेजे</string>
+    <string name="reason_R7_tranche_pattern">आप थोड़े समय में कई भुगतान कर रहे हैं</string>
+    <string name="reason_R8_intel_hit">इस खाते या नंबर की धोखाधड़ी के लिए शिकायत हो चुकी है</string>
+    <string name="reason_R9_story_mismatch">यह खाता किसी आम व्यक्ति का है, उसका नहीं जिसे आप पैसे भेजना बता रहे हैं</string>
+    <string name="reason_R10_bait_then_pay">आपको अनजान लोगों से छोटे पैसे मिले, और अब आप हर बार ज़्यादा पैसे भेज रहे हैं। टास्क और नौकरी वाले स्कैम ऐसे ही होते हैं</string>
+    <string name="reason_R11_ring_link">यह खाता उस गिरोह से जुड़ा है जिसने कई लोगों को छोटे ‘इनाम’ भेजे</string>
+    <string name="reason_R12_coached_session">लगता है कोई आपको बता रहा है कि क्या टाइप करना है: रकम धीरे-धीरे, एक-एक अंक करके डाली गई, या ऐप बदलते ही UPI ID पेस्ट की गई</string>
+    <string name="consent_session">भुगतान स्क्रीन की जाँच</string>
+    <string name="consent_session_desc">आप भुगतान स्क्रीन कैसे इस्तेमाल करते हैं: टाइप करने की रफ़्तार, पेस्ट करना, ऐप बदलना। फ़ोन से सिर्फ़ गिनती और समय जाता है, आप क्या टाइप करते हैं वह कभी नहीं।</string>
 </resources>

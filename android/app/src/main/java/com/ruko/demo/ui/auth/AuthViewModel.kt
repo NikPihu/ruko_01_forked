@@ -17,6 +17,7 @@ import com.ruko.demo.data.Validators
 import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
+import com.ruko.demo.signals.SessionTracker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,6 +48,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var recentPayees by mutableStateOf<List<String>>(emptyList())
         private set
     var payments by mutableStateOf<List<MoneyTxn>>(emptyList())
+        private set
+
+    // This user's usual typing rhythm for the amount (seconds between digits), last 10 payments.
+    var typingGaps by mutableStateOf<List<Double>>(emptyList())
         private set
 
     // ---- Sign up draft. Kept in memory only until the passcode step saves it. ----
@@ -94,6 +99,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             if (p != null) {
                 recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
                 payments = withContext(Dispatchers.IO) { store.loadPayments() }
+                typingGaps = withContext(Dispatchers.IO) { store.loadTypingGaps() }
             }
             state = if (p == null) AuthState.NeedsSignUp else AuthState.Locked
         }
@@ -310,6 +316,14 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** After a completed payment: keep how fast the amount was typed, so "slow" means slow for this user. */
+    fun rememberTypingGap(gapSeconds: Double?) {
+        if (gapSeconds == null) return
+        val updated = (typingGaps + gapSeconds).takeLast(SessionTracker.BASELINE_KEEP)
+        typingGaps = updated
+        viewModelScope.launch(Dispatchers.IO) { store.saveTypingGaps(updated) }
+    }
+
     /** Delete the account and every stored detail, then start again from sign up. */
     fun deleteAccount() {
         viewModelScope.launch {
@@ -318,6 +332,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             consents = Consents()
             recentPayees = emptyList()
             payments = emptyList()
+            typingGaps = emptyList()
             failedAttempts = 0
             lockedUntil = 0
             clearDraft()

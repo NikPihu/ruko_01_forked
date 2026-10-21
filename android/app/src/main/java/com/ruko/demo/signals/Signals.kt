@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.ruko.demo.BuildConfig
 import com.ruko.demo.data.Consents
 import com.ruko.demo.net.EpisodeSignal
+import com.ruko.demo.net.SessionSignal
 import com.ruko.demo.shield.ShieldController
 import kotlinx.serialization.json.Json
 import java.io.FileNotFoundException
@@ -76,8 +77,12 @@ object Signals {
         classifier = loadLureModel(app)
     }
 
-    /** Off the main thread: may read SMS and query packages. [payee] is the UPI ID being paid. */
-    fun read(consents: Consents, payee: String? = null): SignalReading {
+    /**
+     * Off the main thread: may read SMS and query packages. [payee] is the UPI ID being paid;
+     * [session] is how the Pay screen was used for this payment (c2-0.5), sent only with
+     * "Session checks" on.
+     */
+    fun read(consents: Consents, payee: String? = null, session: SessionSignal? = null): SignalReading {
         val now = System.currentTimeMillis()
         val real = PhoneSignals(
             call = if (consents.callSignals) sensor.readCall(now) else null,
@@ -94,7 +99,8 @@ object Signals {
         val best = bestLureTags(lures)
         // The background watcher's task-scam episode (c2-0.3); null while it is switched off.
         val episode = runCatching { ShieldController.summary(app, consents, payee) }.getOrNull()
-        return SignalReading(phone, phone.toRequestContext(best, episode), best, episode, o.active)
+        val ses = if (consents.sessionSignals) o.applyTo(session) else null
+        return SignalReading(phone, phone.toRequestContext(best, episode, ses), best, episode, o.active)
     }
 
     private fun loadLureModel(context: Context): LureClassifier = try {

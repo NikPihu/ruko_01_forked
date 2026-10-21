@@ -78,6 +78,7 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         Text(stringResource(R.string.profile_safety), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         ConsentRow(R.string.consent_calls, R.string.consent_calls_desc, c.callSignals) { vm.updateConsents(c.copy(callSignals = it)) }
         ConsentRow(R.string.consent_apps, R.string.consent_apps_desc, c.appChecks) { vm.updateConsents(c.copy(appChecks = it)) }
+        ConsentRow(R.string.consent_session, R.string.consent_session_desc, c.sessionSignals) { vm.updateConsents(c.copy(sessionSignals = it)) }
         ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) {
             // Watching money alerts needs SMS checks; switching SMS off switches it off too.
             vm.updateConsents(c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it))

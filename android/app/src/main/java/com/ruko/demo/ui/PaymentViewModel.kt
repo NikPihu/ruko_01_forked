@@ -17,6 +17,7 @@ import com.ruko.demo.net.PayerSays
 import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.net.RukoApi
 import com.ruko.demo.net.RukoJson
+import com.ruko.demo.signals.SessionTracker
 import com.ruko.demo.signals.Signals
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,16 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     // The user's current Scam Shield switches, kept in sync by the app from the account.
     var consents by mutableStateOf(Consents())
 
+    // This user's usual seconds between amount digits (last 10 payments), kept in sync by the app.
+    var typingGaps by mutableStateOf<List<Double>>(emptyList())
+
+    // How this Pay screen is being used (c2-0.5): typing rhythm, paste, app switches. Memory only.
+    private val session = SessionTracker()
+
+    // The typing rhythm of the last Pay, saved to the user's baseline once the payment completes.
+    var lastTypingGap: Double? = null
+        private set
+
     // Debug overrides that shaped the last request, shown as SIMULATED.
     var lastSimulated by mutableStateOf<List<String>>(emptyList())
         private set
@@ -70,11 +81,24 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         get() = entryMethod == EntryMethod.TYPED && (amountInr ?: 0.0) >= ASK_PAYEE_FROM_INR
 
     fun typePayee(text: String) {
+        session.onPayeeChange(upiId, text, SystemClock.elapsedRealtime())
         upiId = text
         entryMethod = EntryMethod.TYPED
     }
 
+    fun typeAmount(text: String) {
+        val clean = text.filter { it.isDigit() || it == '.' }
+        session.onAmountChange(amountText, clean, SystemClock.elapsedRealtime())
+        amountText = clean
+    }
+
+    /** The app went to the background or came back (another app, the call, WhatsApp). */
+    fun onAppBackground() = session.onBackground(SystemClock.elapsedRealtime())
+
+    fun onAppForeground() = session.onForeground(SystemClock.elapsedRealtime())
+
     fun pickSavedPayee(id: String) {
+        session.onPayeePicked()
         upiId = id
         entryMethod = EntryMethod.CONTACT
         payerSays = null
@@ -96,10 +120,13 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     fun pay(onDecided: (Decision) -> Unit) {
         val amount = amountInr ?: return
         checking = true
+        session.markPaid()
+        val sessionSignal = session.toSignal(SystemClock.elapsedRealtime(), typingGaps)
+        lastTypingGap = session.medianGapSeconds()
 
         viewModelScope.launch {
             val reading = try {
-                withContext(Dispatchers.IO) { Signals.read(consents, upiId) }
+                withContext(Dispatchers.IO) { Signals.read(consents, upiId, sessionSignal) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -137,7 +164,10 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         }
     }
 
+    /** Opening the Pay screen starts a new session; one left unpaid counts as abandoned. */
     fun reset() {
+        session.start(SystemClock.elapsedRealtime())
+        lastTypingGap = null
         upiId = ""
         amountText = ""
         entryMethod = EntryMethod.TYPED

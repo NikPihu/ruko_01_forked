@@ -343,6 +343,7 @@ private fun ColumnScope.PrivacyStep(vm: AuthViewModel) {
     val c = vm.draftConsents
     ConsentRow(R.string.consent_calls, R.string.consent_calls_desc, c.callSignals) { vm.draftConsents = c.copy(callSignals = it) }
     ConsentRow(R.string.consent_apps, R.string.consent_apps_desc, c.appChecks) { vm.draftConsents = c.copy(appChecks = it) }
+    ConsentRow(R.string.consent_session, R.string.consent_session_desc, c.sessionSignals) { vm.draftConsents = c.copy(sessionSignals = it) }
     ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) {
         vm.draftConsents = c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it)
     }

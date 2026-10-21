@@ -72,6 +72,8 @@
     <string name="reason_R7_tranche_pattern">You are making several payments in a short time</string>
     <string name="reason_R8_intel_hit">This account or number has been reported for fraud</string>
     <string name="reason_R10_bait_then_pay">You got small payments from strangers, and now you are paying out more and more. This is how task and job scams work</string>
+    <string name="reason_R11_ring_link">This account is linked to the group that sent small "reward" payments to many people</string>
+    <string name="reason_R12_coached_session">It looks like someone is telling you what to type: the amount was entered slowly, digit by digit, or the UPI ID was pasted right after you switched apps</string>
     <string name="reason_R9_story_mismatch">This account belongs to a private person, not who you said you are paying</string>
 
     <!-- Who are you paying? (contract field payer_says) -->
@@ -132,6 +134,8 @@
     <string name="consent_calls_desc">Whether you are on a call with a number not in your contacts.</string>
     <string name="consent_apps">App checks</string>
     <string name="consent_apps_desc">Whether a screen sharing or remote control app is installed.</string>
+    <string name="consent_session">Session checks</string>
+    <string name="consent_session_desc">How you use the Pay screen: typing speed, pasting, switching apps. Only counts and times leave the phone, never what you type.</string>
     <string name="consent_sms">SMS scam check</string>
     <string name="consent_sms_desc">Checks recent messages for scam scripts on the phone. Message text never leaves the phone.</string>
     <string name="privacy_points">• Your details are stored only on this phone, encrypted with a key that cannot leave it.\n• They are never backed up to the cloud or sent to Scam Shield.\n• Scam Shield only gets a one-way hash of the payee, the amount and yes/no signals.\n• You can delete everything at any time from your profile.</string>

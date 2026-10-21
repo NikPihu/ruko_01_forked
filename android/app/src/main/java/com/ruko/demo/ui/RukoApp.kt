@@ -34,9 +34,19 @@ private object Routes {
 @Composable
 fun RukoApp() {
     val auth: AuthViewModel = viewModel()
+    // One view model for the whole payment flow, scoped to the activity.
+    val vm: PaymentViewModel = viewModel()
 
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { auth.onBackground() }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { auth.onForeground() }
+    // Leaving the app mid-payment (for the call, WhatsApp, a chat) is part of the Pay session.
+    // Kept here, not in PaymentApp, so it still counts when the app locks while the user is away.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        auth.onBackground()
+        vm.onAppBackground()
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        auth.onForeground()
+        vm.onAppForeground()
+    }
 
     when (auth.state) {
         AuthState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -44,19 +54,18 @@ fun RukoApp() {
         }
         AuthState.NeedsSignUp -> SignUpFlow(auth)
         AuthState.Locked -> LoginScreen(auth)
-        AuthState.Unlocked -> PaymentApp(auth)
+        AuthState.Unlocked -> PaymentApp(auth, vm)
     }
 }
 
 /** Home, Pay, decision, PIN, Success (guide step 5), plus the profile. */
 @Composable
-private fun PaymentApp(auth: AuthViewModel) {
+private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
     val nav = rememberNavController()
-    // One view model for the whole payment flow, scoped to the activity.
-    val vm: PaymentViewModel = viewModel()
     // Signals are read with the user's current consents at the moment of Pay.
     SideEffect {
         vm.consents = auth.consents
+        vm.typingGaps = auth.typingGaps
     }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
@@ -98,6 +107,7 @@ private fun PaymentApp(auth: AuthViewModel) {
             PinScreen(vm, onConfirm = {
                 auth.rememberPayee(vm.upiId)
                 auth.rememberPayment(vm.upiId, vm.amountInr)
+                auth.rememberTypingGap(vm.lastTypingGap)
                 nav.navigate(Routes.SUCCESS) { popUpTo(Routes.HOME) }
             })
         }
