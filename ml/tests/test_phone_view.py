@@ -122,6 +122,42 @@ def test_episode_summary_is_sent_as_is():
     assert c.episode.model_dump() == ep and raw["episode"] is ep
 
 
+def contacts_view(traits=ALL_ON) -> PhoneView:
+    """u1 has paid her son (number-style UPI ID) and gets money from a friend; the mule is a stranger."""
+    users = pd.DataFrame({"user_id": ["u1"], "upi_id": ["u1@ybl"], "age_band": ["60+"]})
+    accounts = pd.DataFrame({
+        "upi_id": ["u1@ybl", "9812345670@ybl", "friend.k@okaxis", "secure.desk@okaxis", "shop@okaxis"],
+        "holder_type": ["person", "person", "person", "person", "merchant"],
+        "mobile": ["+919000000001", "+919812345670", "+919811111111", "+919822222222", "+919833333333"],
+        "is_mule": [False, False, False, True, False]})
+    led = pd.DataFrame({"ts": [T - timedelta(days=3), T - timedelta(days=2)],
+                        "from_upi": ["u1@ybl", "friend.k@okaxis"], "to_upi": ["9812345670@ybl", "u1@ybl"],
+                        "amount": [2000.0, 500.0]})
+    ev = pd.DataFrame(columns=["ts", "user_id", "event_type", "attrs"])
+    v = PhoneView({"users": users, "accounts": accounts, "context_events": ev, "ledger": led}, seed=0)
+    v.traits["u1"] = traits
+    return v
+
+
+@pytest.mark.parametrize("payee,entry,expected", [
+    ("friend.k@okaxis", "contact", True),       # paid by mobile number: the friend is saved
+    ("9812345670@ybl", "typed", True),          # the number inside a mobile-style UPI ID is saved
+    ("friend.k@okaxis", "typed", False),        # a name-style UPI ID typed by hand: no number to match
+    ("secure.desk@okaxis", "contact", False),   # mules are never in the address book
+    ("shop@okaxis", "qr", False),
+])
+def test_payee_in_contacts_follows_contact_match(payee, entry, expected):
+    c, raw = contacts_view().context_at("u1", T.timestamp(), payee=payee, entry=entry)
+    assert c.payee_in_contacts is expected and raw["payee_in_contacts"] is expected
+
+
+def test_payee_in_contacts_is_null_without_call_checks():
+    no_calls = Traits(call_signals=False, app_checks=False, sms=False, share_accounts=False,
+                      session_signals=False, android_15=True)
+    c, raw = contacts_view(no_calls).context_at("u1", T.timestamp(), payee="friend.k@okaxis", entry="contact")
+    assert c is None and raw["payee_in_contacts"] is None
+
+
 def test_device_features_are_all_null_when_scam_shield_is_off():
     f = device_features({"call": None, "device": None, "lure_hits": None, "episode": None, "session": None},
                         {"ts": [], "amounts": [], "payees": set(), "p95": None, "max": None, "median": None},

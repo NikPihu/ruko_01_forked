@@ -5,6 +5,8 @@ through the live engine's decide path (backend/api/main.py) without HTTP:
     tracker -> intel (the mock services' own code, clock at the payment) -> payment graph (every
     checked payment, plus the episode events phones with "Share suspicious accounts" on sent to
     POST /v1/episode, handled by the engine's own EpisodeService) -> build_features
+After each check the phone reports the payment completed (POST /v1/payment/outcome, c2-0.6), so
+"paid here before" counts as a known payee exactly as in the engine.
 The payer's baseline uses only earlier payments (Baselines.get(at=...), as the engine does).
 Device-only features (never sent) get the `dev_` prefix. Ground truth only labels the rows.
 
@@ -118,9 +120,11 @@ class EngineReplay:
 
     def step(self, req: DecideRequest, base: UserBaseline, trusted: bool = False, with_features: bool = True):
         upi = req.payee_upi_id.strip().lower()
-        state = self.tracker.update(req, new_payee=upi not in base.known_payees and not trusted)
-        # Every checked payment is a graph edge, and old edges expire (api/main.py decide_inner).
-        self.graph.add_payment(req.user_id, upi, req.amount_inr, req.ts)
+        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
+        paid_here = self.graph.paid_before(req.user_id, upi, req.ts)
+        state = self.tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not trusted)
+        # Every checked payment is a graph edge and a payment record; old ones expire (api/main.py).
+        self.graph.add_payment(req.user_id, upi, req.amount_inr, req.ts, request_id=req.request_id)
         self.graph.expire(req.ts)
         if not with_features:
             return state, None, None
@@ -128,7 +132,11 @@ class EngineReplay:
         res = self.intel.lookup(upi, call.caller_number if call else None, req.ts)
         ring = self.graph.account_signals(upi, req.ts)
         ring["approved_suspect"] = False  # two analysts approve discovered suspects live; none in a replay
-        return state, res, build_features(req, state, res, base, trusted, ring=ring)
+        return state, res, build_features(req, state, res, base, trusted, ring=ring, paid_here=paid_here)
+
+    def outcome(self, req: DecideRequest, status: str = "completed", ts: datetime | None = None) -> None:
+        """POST /v1/payment/outcome (c2-0.6): every payment in the world was completed."""
+        self.graph.record_outcome(req.request_id, req.user_id, req.payee_upi_id, req.amount_inr, status, ts or req.ts)
 
 
 def phone_stream(tables: dict[str, pd.DataFrame], view: PhoneView, feed: EpisodeFeed,
@@ -159,7 +167,7 @@ def phone_stream(tables: dict[str, pd.DataFrame], view: PhoneView, feed: Episode
         if is_scam and jid:
             pay_index = journey_paid.get(jid, 0)  # 0 = the journey's first scam payment
             journey_paid[jid] = pay_index + 1
-        ctx, raw = view.context_at(uid, t, feed.summary(uid, t, to))
+        ctx, raw = view.context_at(uid, t, feed.summary(uid, t, to), payee=to, entry=entry)
         says = view.payer_says(keyed_rng(seed, "payment", tx), entry, amount, is_scam, pb, to)
         req = DecideRequest(request_id=tx, user_id=uid, payee_upi_id=to, amount_inr=float(amount),
                             entry_method=entry, payer_says=says, ts=ts, context=ctx)
@@ -195,7 +203,8 @@ def replay(data_dir: str | Path, sample_normal: float = 0.25, warmup_days: float
         n_pay += 1
         keep = info["t"] >= keep_from and (info["is_scam"] or keyed_rng(seed, "keep", info["tx"]).random() < sample_normal)
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
-        _, res, feats = engine.step(req, base, with_features=keep)
+        state, res, feats = engine.step(req, base, with_features=keep)
+        engine.outcome(req)  # the phone reports the payment completed after the PIN
         if keep:
             uid, to, raw = req.user_id, req.payee_upi_id, info["raw"]
             tr = view.traits[uid]
@@ -207,6 +216,8 @@ def replay(data_dir: str | Path, sample_normal: float = 0.25, warmup_days: float
                 "playbook": info["playbook"], "label_is_scam": info["is_scam"], "label_stage": info["stage"],
                 "journey_pay_index": info["pay_index"], "weight": 1.0 if info["is_scam"] else 1.0 / sample_normal,
                 "payer_says": req.payer_says, "has_context": req.context is not None,
+                # What api/main.py hands the policy (S3 anywhere in the journey, or remote control now).
+                "control_seen": any(s == "S3" for s, _ in state.stage_path) or bool(feats["remote_control"]),
                 "has_episode": raw["episode"] is not None, "has_session": raw["session"] is not None,
                 "consent_call": tr.call_signals, "consent_app": tr.app_checks, "consent_sms": tr.sms,
                 "consent_share": tr.share_accounts, "consent_session": tr.session_signals,

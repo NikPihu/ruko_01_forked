@@ -74,6 +74,10 @@ def live_features(data_dir, items, monkeypatch) -> list[dict]:
         r = engine.post("/v1/decide", json=req.model_dump(mode="json"))
         r.raise_for_status()
         assert not r.json()["fail_open"]
+        # After the PIN the phone reports the payment completed (c2-0.6).
+        engine.post("/v1/payment/outcome", json={
+            "request_id": req.request_id, "user_id": req.user_id, "payee_upi_id": req.payee_upi_id,
+            "amount_inr": req.amount_inr, "status": "completed", "ts": req.ts.isoformat()}).raise_for_status()
     return seen
 
 
@@ -95,6 +99,7 @@ def test_replay_matches_the_live_engine(world, stream, monkeypatch):
             continue
         req = item[1]
         _, res, f = engine.step(req, baselines.get(req.user_id, at=req.ts))
+        engine.outcome(req)
         replayed.append(f)
         statuses.append(res.status)
         reqs.append(req)
@@ -113,3 +118,5 @@ def test_replay_matches_the_live_engine(world, stream, monkeypatch):
     assert sum(r.context is not None and r.context.episode is not None for r in reqs) >= 20
     assert sum(item[0] == "episode" for item in stream) >= 1
     assert sum(f["payee_registry_listed"] is True for f in replayed) >= 1
+    assert sum(f["payee_in_contacts"] is True for f in replayed) >= 5
+    assert sum(f["payee_in_contacts"] is False for f in replayed) >= 5

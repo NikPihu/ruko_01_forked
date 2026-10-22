@@ -10,6 +10,10 @@ Mirrors the Android app so that training rows look like real requests:
 - `episode`: the background watcher's summary (dataset/episodes.py), null without SMS checks.
 - `session`: the world's `pay_session` event for this payment (data/sim/session.py), null with
   "Session checks" off.
+- `payee_in_contacts` (ContactBook / ContactMatch): null with call checks off; otherwise true only
+  when the mobile number the payee is paid by, or the number inside a mobile-style UPI ID, is in
+  the address book. The address book follows data/sim/contacts.py: the people (never merchants or
+  mules) the user paid or got money from in the world.
 - toRequestContext: a switched-off group is null; everything off means `context: null`.
 
 Consent rates live in assumptions.yaml; SMS consent comes from the world (users.sms_consent).
@@ -19,7 +23,9 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 from bisect import bisect_left, bisect_right
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
@@ -31,6 +37,7 @@ from schema.events import CallSignal, Context, DeviceSignal, EpisodeSignal, Lure
 
 ASSUMPTIONS_PATH = Path(__file__).with_name("assumptions.yaml")
 SCAM_TAGS = ("arrest_threat", "kyc", "task_job", "trading_tip", "refund")
+MOBILE_VPA = re.compile(r"^([6-9]\d{9})@[a-z]+$")  # ContactMatch.MOBILE_VPA
 MIN, HOUR, DAY = 60.0, 3600.0, 86400.0
 INF = float("inf")
 EPOCH = pd.Timestamp("1970-01-01", tz="UTC")
@@ -118,7 +125,9 @@ class PhoneView:
         self.traits = {u: self._draw_traits(u, sms.get(u)) for u in users.user_id}
         acc = tables["accounts"]
         self.holder_type = dict(zip(acc.upi_id, acc.holder_type))
+        self.mobile = dict(zip(acc.upi_id, acc.mobile)) if "mobile" in acc else {}
         self.payments = OwnPayments(tables["ledger"], set(self.user_upi.values()))
+        self.address_book = self._address_books(acc, tables["ledger"])
         self._index_events(tables["context_events"])
 
     # ---------- setup ----------
@@ -131,6 +140,37 @@ class PhoneView:
         return Traits(call_signals=call < c["call_signals"], app_checks=app < c["app_checks"], sms=sms_on,
                       share_accounts=sms_on and share < c["share_accounts"],
                       session_signals=session < c["session_signals"], android_15=a15 < self.a["android_15_share"])
+
+    def _address_books(self, acc: pd.DataFrame, ledger: pd.DataFrame) -> dict[str, set[str]]:
+        """Mobile numbers saved on each user's phone (data/sim/contacts.py `address_book`, for every
+        user): the people the user paid or got money from. Merchants and mules are never saved. The
+        few never-paid strangers that file adds can never be payees, so they are left out here."""
+        if "is_mule" not in acc or "mobile" not in acc:
+            return {}
+        people = acc[(acc.holder_type == "person") & ~acc.is_mule.astype(bool)]
+        person_mobile = dict(zip(people.upi_id, people.mobile))
+        upi_user = {upi: uid for uid, upi in self.user_upi.items()}
+        book: dict[str, set[str]] = defaultdict(set)
+        for frm, to in zip(ledger.from_upi.tolist(), ledger.to_upi.tolist()):
+            if frm in upi_user and to in person_mobile and to != frm:
+                book[upi_user[frm]].add(person_mobile[to])
+            if to in upi_user and frm in person_mobile and frm != to:
+                book[upi_user[to]].add(person_mobile[frm])
+        return book
+
+    def payee_in_contacts(self, uid: str, payee: str, entry: str) -> bool | None:
+        """ContactMatch.payeeInContacts under the call-checks consent. Paying a saved contact
+        (`entry_method: contact`) is paying by mobile number, so the phone knows that number."""
+        if not self.traits[uid].call_signals:
+            return None
+        numbers = []
+        if entry == "contact" and self.mobile.get(payee):
+            numbers.append(self.mobile[payee])
+        m = MOBILE_VPA.match(payee.strip().lower())
+        if m:
+            numbers.append("+91" + m.group(1))
+        book = self.address_book.get(uid, set())
+        return any(n in book for n in numbers)
 
     def _index_events(self, ev: pd.DataFrame) -> None:
         self.calls: dict[str, list[Call]] = {}
@@ -272,20 +312,24 @@ class PhoneView:
             return None
         return self.pay_sessions.get(uid, {}).get(t)
 
-    def context_at(self, uid: str, t: float, episode: dict | None = None) -> tuple[Context | None, dict]:
+    def context_at(self, uid: str, t: float, episode: dict | None = None, payee: str | None = None,
+                   entry: str | None = None) -> tuple[Context | None, dict]:
         """The request's `context` (PhoneSignals.toRequestContext) and the raw readings.
         `episode` is the watcher's summary (dataset/episodes.py), None when the watcher is off."""
         call, call_raw = self.read_call(uid, t)
         device, device_raw = self.read_device(uid, t)
         lures, lure_hits = self.read_lures(uid, t)
         session = self.read_session(uid, t)
+        in_contacts = self.payee_in_contacts(uid, payee, entry or "") if payee else None
         raw = {"call": call_raw, "device": device_raw, "lure_hits": lure_hits, "episode": episode,
-               "session": session}
-        if call is None and device is None and not lures and episode is None and session is None:
+               "session": session, "payee_in_contacts": in_contacts}
+        if (call is None and device is None and not lures and episode is None and session is None
+                and in_contacts is None):
             return None, raw
         return Context(call=call, device=device, lures=lures,
                        episode=EpisodeSignal(**episode) if episode is not None else None,
-                       session=SessionSignal(**session) if session is not None else None), raw
+                       session=SessionSignal(**session) if session is not None else None,
+                       payee_in_contacts=in_contacts), raw
 
     # ---------- per payment draws ----------
 

@@ -34,9 +34,9 @@ FAMILIES: dict[str, list[str]] = {
     "L": ["dev_lure_max", *LURE_TAG_FEATURE.values(), "dev_lure_count_72h", "dev_lure_min_ago",
           "dev_ep_state", "dev_ep_age_days", "dev_ep_bait_credits", "dev_ep_bait_inr", "dev_ep_outs",
           "dev_ep_new_payees", "dev_ep_escalation", "dev_ep_out_to_in", "dev_ep_payee_seen"],
-    "B": ["dev_amount_log10", "dev_entry_typed", "dev_entry_qr", "dev_first_time_payee", "dev_hist_n",
-          "dev_amount_to_p95", "dev_amount_to_max", "dev_amount_to_median", "dev_out_1h", "dev_out_24h",
-          "dev_hour_share", *SESSION_FEATURE.values()],
+    "B": ["dev_amount_log10", "dev_entry_typed", "dev_entry_qr", "dev_first_time_payee", "dev_payee_in_contacts",
+          "dev_hist_n", "dev_amount_to_p95", "dev_amount_to_max", "dev_amount_to_median", "dev_out_1h",
+          "dev_out_24h", "dev_hour_share", *SESSION_FEATURE.values()],
 }
 ALL = [f for fam in FAMILIES.values() for f in fam]
 
@@ -109,6 +109,7 @@ def device_features(raw: dict, history: dict, amount: float, entry: str, payee: 
     f["dev_entry_typed"] = _b(entry == "typed")
     f["dev_entry_qr"] = _b(entry == "qr")
     f["dev_first_time_payee"] = _b(payee not in history["payees"])
+    f["dev_payee_in_contacts"] = _b(raw.get("payee_in_contacts"))  # c2-0.7; null without call checks
     f["dev_hist_n"] = float(n)
     f["dev_amount_to_p95"] = round(amount / history["p95"], 3) if warm and history["p95"] else None
     f["dev_amount_to_max"] = round(amount / history["max"], 3) if warm and history["max"] else None
