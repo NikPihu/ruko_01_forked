@@ -270,17 +270,35 @@ def test_trusted_payee_suppressed_but_not_under_control(engine, world):
     assert r["tier"] != "T0" or "ruko_unavailable" in r["reasons"]
 
 
-def _tiers_over_days(engine, user, context, n=4):
-    return [engine.post("/v1/decide", json=req(user=user, amount=60_000, context=context, rid=f"r_{i}",
+def _tiers_over_days(engine, user, context, n=4, payee=DEMO_MULE_UPI):
+    return [engine.post("/v1/decide", json=req(user=user, payee=payee, amount=60_000, context=context, rid=f"r_{i}",
                                                 ts=NOW + timedelta(days=i))).json()["tier"] for i in range(n)]
 
 
-def test_alert_budget_on_calm_days(engine, mock, world):
-    """No journey under way (no contact, no control): after 2 interruptions, medium risk only gets a tip."""
+def _calm_day_tiers(families: dict, n=4):
+    """The policy alone, on n calm days (stage S1: no journey under way), p_scam 0.6."""
+    from api.policy import Policy
+    pol = Policy()
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None}
+    s = {"p_scam": 0.6, "family_scores": families, "playbook": None}
+    return [pol.decide(s, f, "S1", False, "u_calm", NOW + timedelta(days=i)).tier for i in range(n)]
+
+
+def test_alert_budget_on_calm_days():
+    """Nothing wrong with the payee (behaviour + an old lure): after 2 interruptions, only a tip."""
+    assert _calm_day_tiers({"B": 0.8, "L": 0.85, "C": 0, "P": 0}) == ["T2", "T2", "T1", "T1"]
+
+
+def test_alert_budget_never_applies_when_the_payee_family_is_lit():
+    assert _calm_day_tiers({"B": 0.8, "L": 0, "C": 0, "P": 0.9}) == ["T2", "T2", "T2", "T2"]
+
+
+def test_alert_budget_never_silences_a_risky_payee(engine, mock, world):
+    """The same calm days, but the payee is the mule-like demo account: every one is interrupted."""
     pump(mock[1], world)
     tiers = _tiers_over_days(engine, users_in(world)[0], context={"lures": []})
-    assert tiers[:2] == ["T2", "T2"]
-    assert tiers[2:] == ["T1", "T1"]
+    assert all(t in ("T2", "T3", "T4") for t in tiers), tiers
 
 
 def test_alert_budget_never_silences_an_active_journey(engine, mock, world):

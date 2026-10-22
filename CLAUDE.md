@@ -112,7 +112,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 149 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
@@ -137,7 +137,9 @@ mind. Offline episode features for training:
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
 - `api/rule_scorer.py` (`rules-0.6`, hand-set fallback until `ml/model/predict.py` exists),
-  `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds), `api/intel.py`,
+  `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
+  applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
+  and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),
   `api/episode_events.py`.
 - `features/`: `build.py` (one feature builder; `FAMILY` map), `tracker.py` (stages S0 to S5),
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers

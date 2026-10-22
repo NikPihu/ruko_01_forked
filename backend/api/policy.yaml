@@ -25,6 +25,10 @@ alert_budget:
   # Never throttle while a journey is under way: someone has control of the screen (S3) or the
   # user is paying a new payee after being contacted (S4/S5). Fatigue control is for calm days.
   never_applies_in_stages: [S3, S4, S5]
+  # Never throttle when the payee itself looks risky (payee family lit: mule-like account, ring,
+  # registry): fatigue is about the user's nerves, not about who receives the money. Without
+  # this, the same payment to the same mule got T2 twice and then T1 for good.
+  never_applies_with_families: [P]
 
 pause_minutes: {T0: 0, T1: 0, T2: 0, T3: 30, T4: 60}
 

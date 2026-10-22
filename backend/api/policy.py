@@ -7,7 +7,8 @@ Rules, in order:
   4. Amount caps (small payments are never interrupted).
   5. Trusted payee -> T0, unless an override holds (intel hit, or the journey reached S3 control).
   6. Alert budget: too many interruptions in 30 days -> drop to T1 unless p_scam is very high.
-     Never applied while a journey is under way (S3 control, S4/S5 paying after contact).
+     Never applied while a journey is under way (S3 control, S4/S5 paying after contact), or
+     when a family named in never_applies_with_families is lit (the payee itself looks risky).
   7. Message key = tier + playbook, or the generic key for the tier.
 """
 from __future__ import annotations
@@ -79,7 +80,8 @@ class Policy:
         recent = [t for t in self._alerts.get(user_id, []) if t > now - timedelta(days=30)]
         in_journey = stage in budget["never_applies_in_stages"] or (
             control_seen and "S3" in budget["never_applies_in_stages"])
-        if (tier in INTERRUPTIVE and not in_journey and len(recent) >= budget["max_interruptive_per_30d"]
+        risky_payee = any(fam in lit for fam in budget.get("never_applies_with_families", []))
+        if (tier in INTERRUPTIVE and not in_journey and not risky_payee and len(recent) >= budget["max_interruptive_per_30d"]
                 and s["p_scam"] < budget["bypass_if_p_ge"]):
             tier = budget["drop_to"]
             applied.append("alert_budget")

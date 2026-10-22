@@ -70,6 +70,23 @@ The request/response shape the app must send is published in `../contracts/` (se
 The Android app sends contract `c2-0.1` (since PR #6). `../scripts/dev.ps1` / `dev.sh` start
 this stack and connect the phone in one step.
 
+## Same payment, same tier
+
+Two things used to make an identical payment land in different tiers:
+- **A slow intel source.** A lookup that missed the 150 ms budget was cancelled and its answer lost,
+  so the payee looked "unknown" (no payee family) on one payment and risky on the next.
+  `api/intel.py` now lets it finish in the background and caches it; when a source misses the
+  budget but answered in the last 30 minutes (`STALE_S`), that answer is used and the status says
+  `cached:ok`. A payee never seen before is still `timeout` (unknown, never safe).
+- **The alert budget** (`policy.yaml`) dropped a third T2+ in 30 days to T1, even for payments to
+  a mule-like payee. It now never applies when the payee family is lit
+  (`never_applies_with_families: [P]`).
+
+What still changes the tier, on purpose: each user's own history (₹5,000 is unusual for one user
+and normal for another), repeat payments to a new payee (R7, the tranche run), and what the phone
+reports at that moment (a call, a scam SMS still inside 72 h, the Pay-screen session).
+Tests: `tests/test_consistency.py`.
+
 ## Task-scam watcher and payment graph (contracts c2-0.3, c2-0.4)
 
 Brief: `../docs/task-scam-watcher.md` (build notes at its end).
