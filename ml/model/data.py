@@ -28,6 +28,13 @@ SERVER_FAMILIES["P"] += ["payee_is_person"]
 STAGE_FEATURES = SERVER_FAMILIES.pop("S")
 DEVICE_FAMILIES = device_features.FAMILIES
 
+# Checks that only run in certain situations: "who are you paying?" is asked only for typed payments
+# of Rs 2,000 or more, and the caller is looked up only during an incoming SIM call from a stranger.
+# Whether they ran says something about OTHER families (amount, entry, call), so a family model would
+# learn "not asked = safe" from the gaps. Only a positive finding counts, as in the rules engine
+# (`if f["story_mismatch"]`): unknown and "no finding" are both 0, never a reason to relax.
+POSITIVE_ONLY = {"story_mismatch", "caller_registry_listed", "caller_fri_level"}
+
 # What a bank's per-transaction fraud system sees today, for the ablation (deck slide 7).
 TXN_ONLY = ["amount_inr", "amount_to_max_90d", "amount_to_median_90d", "first_time_payee", "entry_typed",
             "hour_ist", "payee_is_person", "payee_verified_merchant"]
@@ -49,6 +56,8 @@ def _num(v) -> float:
 def encode_features(f: dict, ts_hour: float | None = None) -> dict[str, float]:
     """One feature dict (from build_features, plus optional dev_ keys) -> numeric dict."""
     out = {k: _num(v) for k, v in f.items() if k not in ("lure_tag", "payee_holder_type")}
+    for k in POSITIVE_ONLY & out.keys():
+        out[k] = 0.0 if math.isnan(out[k]) else out[k]
     tag = f.get("lure_tag")
     for t in LURE_TAGS:
         out[f"lure_is_{t}"] = 1.0 if tag == t else 0.0
@@ -61,24 +70,26 @@ def encode_features(f: dict, ts_hour: float | None = None) -> dict[str, float]:
 
 def encode_frame(df: pd.DataFrame) -> pd.DataFrame:
     """The training table -> a float frame with every server and device feature column."""
-    x = pd.DataFrame(index=df.index)
+    cols: dict[str, pd.Series | np.ndarray] = {}
     for col in df.columns:
         if col in ("lure_tag", "payee_holder_type"):
             continue
         s = df[col]
         if s.dtype == bool or s.dtype == object or str(s.dtype) in ("boolean", "str", "string"):
-            x[col] = s.map(_num).astype("float64")
+            cols[col] = s.map(_num).astype("float64")
         elif pd.api.types.is_numeric_dtype(s):
-            x[col] = s.astype("float64")
+            cols[col] = s.astype("float64")
+        if col in POSITIVE_ONLY and col in cols:
+            cols[col] = cols[col].fillna(0.0)
     for t in LURE_TAGS:
-        x[f"lure_is_{t}"] = (df["lure_tag"] == t).astype("float64")
+        cols[f"lure_is_{t}"] = (df["lure_tag"] == t).astype("float64")
     ht = df["payee_holder_type"]
-    x["payee_is_person"] = np.where(ht.isna(), np.nan, (ht == "person").astype("float64"))
-    x["hour_ist"] = df["ts"].dt.tz_convert("Asia/Kolkata").dt.hour.astype("float64")
+    cols["payee_is_person"] = np.where(ht.isna(), np.nan, (ht == "person").astype("float64"))
+    cols["hour_ist"] = df["ts"].dt.tz_convert("Asia/Kolkata").dt.hour.astype("float64")
     # World checks only, never model inputs: patterns that should NOT predict scams in a realistic world.
-    x["audit_round_100"] = (df["amount"] % 100 == 0).astype("float64")
-    x["audit_payer_asked"] = df["payer_says"].notna().astype("float64")
-    return x.copy()  # one block, not hundreds of fragments
+    cols["audit_round_100"] = (df["amount"] % 100 == 0).astype("float64")
+    cols["audit_payer_asked"] = df["payer_says"].notna().astype("float64")
+    return pd.DataFrame(cols, index=df.index)
 
 
 def server_features() -> list[str]:

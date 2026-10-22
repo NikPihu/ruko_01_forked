@@ -3,28 +3,58 @@
 Owner: Diwansu Pilania. Everything here lives in `ml/`. Changes other folders need are in §12.
 
 ## 0. Status
-Synced with `main` at 372aa73 (contract c2-0.5, engine rules-0.4).
+Synced with `main` at 9003aad (contract c2-0.7, engine rules-0.6).
 
 | | Done | Check |
 |---|---|---|
-| M0 | `.venv` + `ml/requirements.txt` | `pytest ml/tests backend/tests`: 153 passed (23 ML, 130 backend), pandas 3.0 |
-| M2 | `dataset/phone_view.py` (the app's exact readings: call, device, lures, session), `dataset/episodes.py` (the backend's own episode state machine + episode events), `dataset/graph.py`, `dataset/replay.py`, `dataset/worlds.py` | replay == live engine, feature for feature, with episode events and the payment graph (`test_replay_parity.py`) |
+| M0 | `.venv` + `ml/requirements.txt` | `pytest ml/tests backend/tests`: 44 ML + 157 backend passed, pandas 3.0 |
+| M2 | `dataset/phone_view.py` (the app's exact readings: call, device, lures, session, payee in contacts), `dataset/episodes.py` (the backend's own episode state machine + episode events), `dataset/graph.py`, `dataset/replay.py` (incl. payment outcomes, c2-0.6), `dataset/worlds.py` | replay == live engine, feature for feature, with episode events, outcomes and the payment graph (`test_replay_parity.py`) |
 | M3 | `model/metrics.py` (deck slide 7), `model/experiments.py` (ablation incl. the current rules engine) | runs; the world is still too easy to rank models (§12) |
 | M4a | `model/lure_corpus.py` (3,643 synthetic EN / HI / Hinglish SMS), `model/lure_train.py` → `artifacts/lure.json` + `lure_vectors.json` | unseen templates: 84% scams caught, 0 false alarms (with the §12 Manjeet rule) |
+| M5 | `model/train.py` (LightGBM per family C/L/P/B + isotonic + logistic combiner), `model/predict.py` (`score(features)`, drop-in for `api/rule_scorer.score`), `model/evaluate.py`, `serve.py`, `artifacts/v0/server_model.json` (lgbm-0.1) | `test_predict.py`: Meena T3/T4, kirana T0, rule 1 (unknown never safer), p95 < 10 ms; held-out world below |
+
+**lgbm-0.1 vs rules-0.6 on a held-out world** (`dev_test`, seed 12, never used in training; both through
+backend/api/policy.py; `ml/runs/evaluate_dev_test.json`):
+
+| | rules-0.6 | lgbm-0.1 | deck target |
+|---|---|---|---|
+| Scam payments interrupted (T2+) | 82.1% | 94.7% | |
+| Scam rupees interrupted | 85.3% | 98.5% | |
+| Paused (T3+) | 61.9% | 93.9% | |
+| Caught at the journey's first payment | 80.8% | 92.1% | >= 70% |
+| Legit interruptions per 1,000 | 6.09 | 0.00 | <= 5 |
+| T3+ precision | 47.6% | 100% | >= 1 in 4 |
+
+Read these with `data/eval/realism/FINDINGS.md` in mind: the simulated world is too easy (mule account
+age alone separates mules), so the ML numbers mostly show that the pipeline works end to end. They
+will drop when the world gets realistic; retrain with the same two commands then.
+
+Model notes:
+- A family score is the family's likelihood ratio squashed as LR / (LR + 10): the family is lit (>= 0.5)
+  when its evidence alone makes a scam at least 10x likelier. Out of fold, families light on 0.2-0.6% of
+  legit payments.
+- `story_mismatch` and the caller lookups only run in some situations ("who are you paying?" for typed
+  payments from Rs 2,000; caller checks for incoming SIM calls from strangers). Unknown and "no finding"
+  are both 0 for them (`model.data.POSITIVE_ONLY`), as in the rules engine. Without this, the payee model
+  learned "not asked = safe" (40% of rows, up to 0.98 lower p_scam).
+- Reasons: the best reason of each lit family first, then the strongest remaining ones (max 4).
+- The playbook still comes from the rules engine's matcher (`api/rule_scorer._playbook`).
 
 Synthetic worlds come from `data/sim` (Nikunj; pay-screen sessions by Jagdeep). `ml/` only adds what
 the world does not say: which Scam Shield groups each phone has on (`dataset/assumptions.yaml`) and the
 "who are you paying?" answers, plus the lure texts.
 
-Known issue: replaying the `dev` world (360k payments) takes about 10 minutes, 6x slower since the
-payment graph, and it slows as the graph grows (`GraphStore.account_signals` scans every bait sender
-and every payer of busy shops). Needs an incremental index before the 20,000-user worlds.
+Known issue: replaying a 5,000-user world (360k payments) takes about 6 minutes, and it slows as the
+payment graph grows (`GraphStore.account_signals` scans every bait sender and every payer of busy shops).
 
 Commands (repo root, `PYTHONPATH=backend;ml;data`, `.venv\Scripts\python`):
 ```
 python -m dataset.worlds dev                      # world -> ml/data/worlds/dev
 python -m dataset.replay --data ml/data/worlds/dev --out ml/data/tables/dev.parquet
 python -m model.experiments --table ml/data/tables/dev.parquet
+python -m model.train --table ml/data/tables/dev.parquet --out ml/model/artifacts/v0
+python -m model.evaluate --table ml/data/tables/dev_test.parquet   # a world the model never saw
+python -m serve --data data --port 8000 --demo-clock                # the engine with the ML scorer
 python -m model.lure_corpus && python -m model.lure_train
 python -m pytest ml/tests
 ```
@@ -279,8 +309,7 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    transaction-only clearly below RUKO.
 
 **Jagdeep (backend):**
-1. Fixed in 372aa73, thanks: baselines now use only earlier payments. `CLAUDE.md` rule 9 still says
-   "Known leak, not fixed".
+1. Done: baselines use only earlier payments (372aa73), and `CLAUDE.md` now says so.
 2. **The tracker still misses WhatsApp/VoIP scam calls.** `features/tracker.py` counts contact only when
    `caller_in_contacts is False`, and `rule_scorer` R1 needs `caller_unknown`. A real phone sends `null`
    for VoIP calls and outgoing SIM calls (ContextSensor never gets those numbers). In the replay, 29% of
@@ -290,10 +319,11 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    and contact status, and sends every lure regardless of the 0.6 threshold. The app can do neither,
    so evaluation numbers for call scams are optimistic. `ml/dataset/phone_view.py` follows the app
    (tested) and can be reused.
-4. **`GraphStore.expire` scans every edge on every `/v1/decide`**, and `account_signals` scans every
+4. **The payment graph scans everything on every `/v1/decide`:** `GraphStore.expire` walks every edge
+   and every payment, `paid_before` (c2-0.6) every payment into the payee, and `account_signals` every
    bait sender and every payer of the payee. Fine for a demo, but not at the deck's 3,000 decisions/s.
-   `ml/dataset/graph.py` keeps a heap of expiry times and gives identical results
-   (`ml/tests/test_graph_expiry.py`).
+   `ml/dataset/graph.py` keeps heaps of expiry times and an index of completed payments, and gives
+   identical results (`ml/tests/test_graph_expiry.py`); `account_signals` still needs an index.
 5. Contract: add optional `context.device_model = {version, c, l, b, p, reasons}` (bump version,
    export, examples). In `features/build.py`, pass `device_c`, `device_l`, `device_b` and `device_p` into
    the features (null when absent).
@@ -311,9 +341,7 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    space must split words).
 4. Unit test: score every text in `ml/model/artifacts/lure_vectors.json`. `probs` must match to 1e-6,
    and `tag` / `scam_tag` must match exactly.
-5. `CLAUDE.md` is out of date: the contract is c2-0.5 (not c2-0.4), the engine is rules-0.4, `ml/` is
-   no longer "not started", and `lure.json` exists.
-6. Later (M4b): `device_model.json` + `DeviceModel.kt`, and the private device features in
+5. Later (M4b): `device_model.json` + `DeviceModel.kt`, and the private device features in
    `ml/dataset/device_features.py` (own-history stats; the session numbers are already measured).
    Then send `context.device_model`.
 
