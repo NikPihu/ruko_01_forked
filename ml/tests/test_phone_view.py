@@ -73,7 +73,7 @@ def test_switched_off_groups_are_null_and_all_off_is_no_context():
     apps_only = Traits(call_signals=False, app_checks=True, sms=False, android_15=True, pace=1.0)
     c, _ = ctx(view(traits=apps_only))
     assert c.call is None and c.device is not None and c.lures == []
-    assert c.money is not None and c.money.bait_credits is None and c.money.credits_inr is None
+    assert c.episode is None and c.session is None  # no watcher, no session numbers for this payment
 
 
 @pytest.mark.parametrize("android_15,session,expected", [(True, True, True), (True, False, False),
@@ -98,18 +98,46 @@ def test_lures_sent_only_from_threshold_and_best_per_tag():
     assert len(raw["lure_hits"]) == 4
 
 
-def test_money_flow_counts_bait_and_escalation_like_the_app():
-    pays = [(T - timedelta(hours=30), "bait@ybl", "u1@ybl", 150), (T - timedelta(hours=29), "bait@ybl", "u1@ybl", 200),
-            (T - timedelta(hours=20), "u1@ybl", "mule@okaxis", 1000), (T - timedelta(hours=10), "u1@ybl", "mule@okaxis", 2500),
-            (T - timedelta(hours=2), "u1@ybl", "mule@okaxis", 6000)]
-    v = view(payments=pays)
+PAYS = [(T - timedelta(hours=30), "bait@ybl", "u1@ybl", 150), (T - timedelta(hours=29), "bait@ybl", "u1@ybl", 200),
+        (T - timedelta(hours=20), "u1@ybl", "mule@okaxis", 1000), (T - timedelta(hours=10), "u1@ybl", "mule@okaxis", 2500),
+        (T - timedelta(hours=2), "u1@ybl", "mule@okaxis", 6000)]
+WATCHING = Traits(call_signals=True, app_checks=True, sms=True, android_15=True, pace=1.0, money_watch=True)
+
+
+def test_episode_follows_the_watcher_state_machine():
+    v = view(payments=PAYS, traits=WATCHING)
     v.ledger.ins["u1@ybl"][3][:] = [True, True]  # both alerts parsed
+    c, raw = v.context_at("u1", T.timestamp(), "mule@okaxis")
+    e = c.episode
+    assert (e.state, e.bait_credits, e.bait_inr, e.outs, e.new_payees, e.escalation_steps, e.last_out_inr) ==         ("active", 2, 350.0, 3, 1, 2, 6000)
+    assert e.age_days == 1.25 and e.payee_seen_in_episode is True and e.rules_version == "episode-0.2"
+    assert raw["money"]["bait_credits"] == 2  # the on-device reading is still there, never sent
+    # Read again earlier: the watcher starts over and sees only what had happened by then.
+    c, _ = v.context_at("u1", (T - timedelta(hours=15)).timestamp(), "shop@okaxis")
+    assert (c.episode.state, c.episode.outs, c.episode.payee_seen_in_episode) == ("watching", 1, False)
+
+
+def test_episode_is_null_without_the_watcher_and_bait_unread_alerts_do_not_count():
+    c, _ = ctx(view(payments=PAYS))  # SMS checks on, watcher off
+    assert c.episode is None
+    v = view(payments=PAYS, traits=WATCHING)
+    v.ledger.ins["u1@ybl"][3][:] = [False, False]  # the parser could read neither alert
     c, _ = ctx(v)
-    m = c.money
-    assert (m.bait_credits, m.debits, m.new_payees, m.escalation_steps, m.last_debit_inr) == (2, 3, 1, 2, 6000)
-    no_sms = Traits(call_signals=True, app_checks=True, sms=False, android_15=True, pace=1.0)
-    c, _ = ctx(view(payments=pays, traits=no_sms))
-    assert c.money.bait_credits is None and c.money.debits == 3
+    assert (c.episode.state, c.episode.bait_credits, c.episode.age_days) == ("none", 0, None)
+
+
+def test_session_is_this_payments_pay_screen_and_null_when_switched_off():
+    s = {"amount_digits": 5, "amount_median_gap_s": 2.4, "amount_max_gap_s": 5.1, "amount_edits": 0,
+         "payee_pasted": True, "pasted_within_s_of_return": 4.0, "app_switches": 2, "away_s": 40.5,
+         "pay_screen_s": 210.0, "amount_gap_vs_usual": None, "abandoned_flows_30m": 1}
+    v = view([(T, "pay_session", s)])
+    c, _ = ctx(v)
+    assert c.session.model_dump() == s
+    c, _ = ctx(v, T + timedelta(minutes=1))  # another moment: no session numbers, unknown
+    assert c.session is None
+    off = Traits(call_signals=False, app_checks=False, sms=False, android_15=True, pace=1.0, session_checks=False)
+    c, _ = ctx(view([(T, "pay_session", s)], traits=off))
+    assert c is None
 
 
 def test_device_features_are_all_null_when_scam_shield_is_off():

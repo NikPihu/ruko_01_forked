@@ -2,13 +2,15 @@
 # Every number here is an assumption, not a measured fact. Change them here, never in code.
 # Per-user values are drawn independently of whether the user gets scammed, so a missing signal
 # can never become a stand-in for "safe".
-version: phone-view-0.1
+version: phone-view-0.2
 
 # Share of users who switch each Scam Shield group on. SMS checks are off by default (deck A2).
 consent:
   call_signals: 0.65     # READ_PHONE_STATE, READ_CONTACTS, READ_CALL_LOG
   app_checks: 0.70       # remote access, accessibility, sideloads, screen capture (no permission)
   sms: 0.30              # lure checks and bank SMS alerts (READ_SMS)
+  money_watch_given_sms: 0.60  # task-scam watcher (Consents.moneyWatch, off by default), among SMS users
+  session_checks: 0.90   # Consents.sessionSignals, on by default (c2-0.5); some switch it off
 android_15_share: 0.35   # has the screen-capture callback; before Android 15 it is null
 
 # Copied from the Android app; change them only together with the app.
@@ -18,9 +20,9 @@ phone:
   notification_lures_visible: false  # SmsScan reads SMS only, not notifications
   lure_send_threshold: 0.6           # LURE_SEND_THRESHOLD
   lure_window_h: 72                  # SmsScan.WINDOW_MS
-  money_window_h: 72                 # MoneyFlow.WINDOW_MS
-  bait_max_inr: 500                  # MoneyFlow.BAIT_MAX_INR
-  escalation_factor: 1.5             # MoneyFlow.ESCALATION_FACTOR
+  money_window_h: 72                 # on-device 72 h money reading (device features only)
+  bait_max_inr: 500                  # same as episode_rules.json bait_max_inr
+  escalation_factor: 1.5             # same as episode_rules.json escalation_factor
   remote_session_minutes: 120        # assumption: a remote-control session lasts this long
   bank_sms_parse_rate: 0.9           # assumption: share of bank alerts BankSms.parse can read
 
