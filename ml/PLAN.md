@@ -12,6 +12,8 @@ Synced with `main` at 9003aad (contract c2-0.7, engine rules-0.6).
 | M3 | `model/metrics.py` (deck slide 7), `model/experiments.py` (ablation incl. the current rules engine) | runs; the world is still too easy to rank models (§12) |
 | M4a | `model/lure_corpus.py` (3,643 synthetic EN / HI / Hinglish SMS), `model/lure_train.py` → `artifacts/lure.json` + `lure_vectors.json` | unseen templates: 84% scams caught, 0 false alarms (with the §12 Manjeet rule) |
 | M5 | `model/train.py` (LightGBM per family C/L/P/B + isotonic + logistic combiner), `model/predict.py` (`score(features)`, drop-in for `api/rule_scorer.score`), `model/evaluate.py`, `serve.py`, `artifacts/v0/server_model.json` (lgbm-0.1) | `test_predict.py`: Meena T3/T4, kirana T0, rule 1 (unknown never safer), p95 < 10 ms; held-out world below |
+| M4b | `model/device/train.py` (3 small LightGBM families C/L/B on the phone-side features + isotonic + combiner + local warning), `model/device/score.py` (pure-Python JSON scorer), `device_kotlin/DeviceModel.kt` + `DeviceModelTest.kt`, `artifacts/v0/device_model.json` (device-0.1, 107 KB) + `device_vectors.json` | JSON == LightGBM to 1e-12 incl. all missing-value modes (`test_device_model.py`); the Kotlin scorer gives Python's answers for all 29 vectors (compiled and run here with IntelliJ's kotlinc); held out: local warning on 64% of scam payments, 0 per 1,000 legit |
+| M6 | `model/tune.py` -> `artifacts/v0/policy_proposal_rules-0.6.yaml`, `policy_proposal_lgbm-0.1.yaml` | tuned on `dev_calib`, checked on `dev_test` (below); `test_tune.py` |
 
 **lgbm-0.1 vs rules-0.6 on a held-out world** (`dev_test`, seed 12, never used in training; both through
 backend/api/policy.py; `ml/runs/evaluate_dev_test.json`):
@@ -28,6 +30,20 @@ backend/api/policy.py; `ml/runs/evaluate_dev_test.json`):
 Read these with `data/eval/realism/FINDINGS.md` in mind: the simulated world is too easy (mule account
 age alone separates mules), so the ML numbers mostly show that the pipeline works end to end. They
 will drop when the world gets realistic; retrain with the same two commands then.
+
+**Threshold tuning** (`python -m model.tune`, legit interruptions <= 4 per 1,000, T3+ precision >= 1 in 4;
+tuned on `dev_calib`, checked on `dev_test`; `ml/runs/tune_dev_calib.json`):
+
+| Held-out world | T1/T2/T3 min_p | Scam rupees interrupted | Caught at 1st payment | Legit interruptions / 1,000 | T3+ precision |
+|---|---|---|---|---|---|
+| rules-0.6, today's policy.yaml | 0.30 / 0.50 / 0.75 | 85.3% | 80.8% | **6.09** (over the deck's 5) | 47.6% |
+| rules-0.6, proposed | 0.20 / 0.60 / 0.70 | 74.9% | 73.5% | **3.93** | 35.4% |
+| lgbm-0.1, today's policy.yaml | 0.30 / 0.50 / 0.75 | 98.5% | 92.1% | 0.00 | 100% |
+| lgbm-0.1, proposed | 0.20 / 0.30 / 0.50 | 98.6% | 94.0% | 0.00 | 100% |
+
+For the engine as it runs today (rules-0.6), the proposal trades about 10 points of scam rupees for staying
+inside the deck's alert budget. The lgbm-0.1 proposal only reflects how easy the world still is; re-tune it on
+the realistic world before anyone adopts it.
 
 Model notes:
 - A family score is the family's likelihood ratio squashed as LR / (LR + 10): the family is lit (>= 0.5)
@@ -55,6 +71,8 @@ python -m model.experiments --table ml/data/tables/dev.parquet
 python -m model.train --table ml/data/tables/dev.parquet --out ml/model/artifacts/v0
 python -m model.evaluate --table ml/data/tables/dev_test.parquet   # a world the model never saw
 python -m serve --data data --port 8000 --demo-clock                # the engine with the ML scorer
+python -m model.device.train --table ml/data/tables/dev.parquet --test ml/data/tables/dev_test.parquet
+python -m model.tune --table ml/data/tables/dev_calib.parquet --test ml/data/tables/dev_test.parquet
 python -m model.lure_corpus && python -m model.lure_train
 python -m pytest ml/tests
 ```
@@ -329,8 +347,11 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    the features (null when absent).
 6. `api/main.py`: choose the scorer with a flag (`--scorer rules|ml`), and make `/health` report the
    active scorer's `model_version` (today it always reports the rule scorer's).
-7. `policy.yaml`: adopt the values from `tune.py`, and make T3 match the deck (3+ families, or a live
-   call + mule-like payee).
+7. `policy.yaml`: `ml/model/artifacts/v0/policy_proposal_rules-0.6.yaml` (T1/T2/T3 = 0.20 / 0.60 / 0.70)
+   brings today's engine from 6.09 to 3.93 legit interruptions per 1,000 on a held-out world (deck: at most 5),
+   at about 10 points fewer scam rupees interrupted. Only the tier numbers change. The deck's T3 rule
+   (3+ families, or a live call + mule-like payee) still differs from `policy.yaml` (2 families); that is a
+   product call, not a tuning one.
 
 **Manjeet (android):**
 1. Copy `ml/model/artifacts/lure.json` to `app/src/main/assets/lure.json` (18,824 n-grams, 1.5 MB).
@@ -341,9 +362,11 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    space must split words).
 4. Unit test: score every text in `ml/model/artifacts/lure_vectors.json`. `probs` must match to 1e-6,
    and `tag` / `scam_tag` must match exactly.
-5. Later (M4b): `device_model.json` + `DeviceModel.kt`, and the private device features in
-   `ml/dataset/device_features.py` (own-history stats; the session numbers are already measured).
-   Then send `context.device_model`.
+5. **On-device model (ready):** follow `ml/device_kotlin/README.md`. Copy `artifacts/v0/device_model.json` to
+   `assets/`, `DeviceModel.kt` to `signals/` and `DeviceModelTest.kt` to the unit tests (they read the vectors from
+   `ml/model/artifacts/v0`). Then compute the features in `ml/dataset/device_features.py` from readings the app
+   already has, with null for anything it cannot measure. `result.warn` is a gentle local warning only, never a
+   block. Sending `p`, family scores and reasons needs Jagdeep's `context.device_model` field.
 
 **Deck wording:** slide 4 says Meena is "on a WhatsApp call ... with a number not in her contacts".
 The phone cannot know that for a WhatsApp call. It knows that a VoIP call is active and how long it
