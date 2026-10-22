@@ -2,6 +2,7 @@ package com.ruko.demo.ui.auth
 
 import android.app.Application
 import android.os.SystemClock
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -9,18 +10,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruko.demo.DemoConfig
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.data.Consents
 import com.ruko.demo.data.Passcode
+import com.ruko.demo.data.PaymentHistory
+import com.ruko.demo.data.PaymentRecord
+import com.ruko.demo.data.PaymentState
 import com.ruko.demo.data.UserProfile
 import com.ruko.demo.data.Validators
+import com.ruko.demo.net.ApiClient
+import com.ruko.demo.net.PaymentOutcome
+import com.ruko.demo.net.PaymentStatus
+import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
 import com.ruko.demo.signals.SessionTracker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -53,6 +64,13 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     // This user's usual typing rhythm for the amount (seconds between digits), last 10 payments.
     var typingGaps by mutableStateOf<List<Double>>(emptyList())
         private set
+
+    // Every payment started here, oldest first: payment id, Scam Shield's decision, the outcome.
+    var history by mutableStateOf<List<PaymentRecord>>(emptyList())
+        private set
+    private var reporting = false
+    // History saves run one at a time, in order, so a slow save never overwrites a newer list.
+    private val historyIo = Dispatchers.IO.limitedParallelism(1)
 
     // ---- Sign up draft. Kept in memory only until the passcode step saves it. ----
     var step by mutableStateOf(SignUpStep.WELCOME)
@@ -100,6 +118,12 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 recentPayees = withContext(Dispatchers.IO) { store.loadRecentPayees() }
                 payments = withContext(Dispatchers.IO) { store.loadPayments() }
                 typingGaps = withContext(Dispatchers.IO) { store.loadTypingGaps() }
+                // A payment still pending when the app was closed was never paid here.
+                val now = System.currentTimeMillis()
+                val loaded = withContext(Dispatchers.IO) { store.loadHistory() }
+                history = PaymentHistory.trim(PaymentHistory.closeAbandoned(loaded, now), now)
+                if (history != loaded) withContext(historyIo) { store.saveHistory(history) }
+                reportOutcomes()
             }
             state = if (p == null) AuthState.NeedsSignUp else AuthState.Locked
         }
@@ -316,6 +340,67 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Scam Shield answered (or could not): the payment enters the history as pending. */
+    fun recordCheck(record: PaymentRecord) {
+        updateHistory(PaymentHistory.add(history, record, System.currentTimeMillis()))
+    }
+
+    /** The PIN was entered (COMPLETED) or the user tapped Cancel (CANCELLED). */
+    fun settlePayment(id: String, state: PaymentState) {
+        updateHistory(PaymentHistory.settle(history, id, state, System.currentTimeMillis()))
+        reportOutcomes()
+    }
+
+    /** A new Pay screen: anything still pending was left without paying. */
+    fun closeAbandonedPayments() {
+        val closed = PaymentHistory.closeAbandoned(history, System.currentTimeMillis())
+        if (closed != history) {
+            updateHistory(closed)
+            reportOutcomes()
+        }
+    }
+
+    /**
+     * Tell the server what happened to each finished payment (POST /v1/payment/outcome, c2-0.6), so
+     * the payment graph has it. Off the payment path; whatever fails is sent again next time.
+     */
+    fun reportOutcomes() {
+        if (reporting) return
+        val pending = PaymentHistory.toReport(history)
+        if (pending.isEmpty()) return
+        reporting = true
+        viewModelScope.launch {
+            val done = mutableSetOf<String>()
+            for (p in pending) {
+                val outcome = PaymentOutcome(
+                    requestId = p.id, userId = DemoConfig.USER_ID, payeeUpiId = p.payee, amountInr = p.amountInr,
+                    status = if (p.state == PaymentState.COMPLETED) PaymentStatus.COMPLETED else PaymentStatus.CANCELLED,
+                    ts = RequestBuilder.istIso(p.outcomeTs ?: p.ts),
+                )
+                try {
+                    withContext(Dispatchers.IO) { ApiClient.events.paymentOutcome(outcome) }
+                    done += p.id
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: HttpException) {
+                    // The server refused it (e.g. 422): sending it again will not help.
+                    if (e.code() in 400..499 && e.code() != 408 && e.code() != 429) done += p.id
+                    Log.w(TAG, "payment outcome refused: ${e.code()}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "payment outcome not sent, will retry", e)
+                    break // offline: try the rest later
+                }
+            }
+            if (done.isNotEmpty()) updateHistory(PaymentHistory.markReported(history, done))
+            reporting = false
+        }
+    }
+
+    private fun updateHistory(updated: List<PaymentRecord>) {
+        history = updated
+        viewModelScope.launch(historyIo) { store.saveHistory(updated) }
+    }
+
     /** After a completed payment: keep how fast the amount was typed, so "slow" means slow for this user. */
     fun rememberTypingGap(gapSeconds: Double?) {
         if (gapSeconds == null) return
@@ -333,6 +418,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             recentPayees = emptyList()
             payments = emptyList()
             typingGaps = emptyList()
+            history = emptyList()
             failedAttempts = 0
             lockedUntil = 0
             clearDraft()
@@ -357,6 +443,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         code.toSet().size == 1 || code in WEAK_CODES || code == mobile.takeLast(Passcode.LENGTH)
 
     companion object {
+        private const val TAG = "CachePayAuth"
         const val MAX_ATTEMPTS = 5
         const val LOCKOUT_MS = 30_000L
         const val AUTO_LOCK_MS = 60_000L

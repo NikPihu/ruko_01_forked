@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.5: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.7: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.5"
+const val CONTRACT_VERSION = "c2-0.7"
 
 @Serializable
 enum class CallKind {
@@ -111,6 +111,9 @@ data class Context(
     val lures: List<LureSignal> = emptyList(),
     val episode: EpisodeSignal? = null,
     val session: SessionSignal? = null, // c2-0.5; null when "Session checks" is off
+    // c2-0.7: the payee (its UPI ID, or the mobile it was paid by) is a saved contact. Only this
+    // yes/no leaves the phone, never names or numbers; null when contacts cannot be read.
+    @SerialName("payee_in_contacts") val payeeInContacts: Boolean? = null,
 )
 
 @Serializable
@@ -171,6 +174,34 @@ data class DecideResponse(
     val stage: String? = null,
     @SerialName("evidence_id") val evidenceId: String? = null,
     @SerialName("fail_open") val failOpen: Boolean = false,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
+// ---------- Payment outcome (c2-0.6): after the PIN or Cancel, off the payment path ----------
+
+@Serializable
+enum class PaymentStatus {
+    @SerialName("completed") COMPLETED, // the user entered the PIN
+    @SerialName("cancelled") CANCELLED, // the user left without paying
+}
+
+/** The payment id is the /v1/decide `request_id`. Payee and amount are repeated so the server can
+ * record the payment even when its check never arrived (timeout, fail open). Safe to retry. */
+@Serializable
+data class PaymentOutcome(
+    @SerialName("request_id") val requestId: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("payee_upi_id") val payeeUpiId: String,
+    @SerialName("amount_inr") val amountInr: Double,
+    val status: PaymentStatus,
+    val ts: String,
+)
+
+@Serializable
+data class PaymentOutcomeResponse(
+    @SerialName("request_id") val requestId: String,
+    val status: PaymentStatus,
+    val recorded: Boolean,
     @SerialName("contract_version") val contractVersion: String? = null,
 )
 

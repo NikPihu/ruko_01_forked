@@ -110,6 +110,22 @@ def test_split_tranches_still_caught(engine, mock, world):
     assert "R7_tranche_pattern" in r["reasons"] or r["tier"] >= "T2"
 
 
+def test_usual_shop_after_new_payees_is_not_a_tranche(engine, world):
+    """Two payments to new payees, then the usual kirana: the kirana payment is not part of the run,
+    so an old scam-looking SMS alone (one family) leaves it silent."""
+    users = world[1]["users"].set_index("user_id")
+    user = next(u for u in users_in(world) if DEMO_KIRANA_UPI in baseline(world, u).known_payees)
+    others = [users.loc[u].upi_id for u in users_in(world, "Delhi")[:2]]
+    lure = {"lures": [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 600}]}
+    for i, payee in enumerate(others):
+        engine.post("/v1/decide", json=req(user=user, payee=payee, amount=2_000, context=lure,
+                                           rid=f"r_new_{i}", ts=NOW + timedelta(minutes=3 * i)))
+    r = engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=100, entry="contact",
+                                           context=lure, rid="r_kirana", ts=NOW + timedelta(minutes=9))).json()
+    assert r["tier"] == "T0", r
+    assert "R7_tranche_pattern" not in r["reasons"]
+
+
 TASK_PAYEE = "prime.task.rewards@ybl"
 ACTIVE_EPISODE = {"state": "active", "age_days": 4.2, "bait_credits": 3, "bait_inr": 450, "outs": 3,
                   "outs_inr": 9_500, "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6_000,
@@ -254,17 +270,35 @@ def test_trusted_payee_suppressed_but_not_under_control(engine, world):
     assert r["tier"] != "T0" or "ruko_unavailable" in r["reasons"]
 
 
-def _tiers_over_days(engine, user, context, n=4):
-    return [engine.post("/v1/decide", json=req(user=user, amount=60_000, context=context, rid=f"r_{i}",
+def _tiers_over_days(engine, user, context, n=4, payee=DEMO_MULE_UPI):
+    return [engine.post("/v1/decide", json=req(user=user, payee=payee, amount=60_000, context=context, rid=f"r_{i}",
                                                 ts=NOW + timedelta(days=i))).json()["tier"] for i in range(n)]
 
 
-def test_alert_budget_on_calm_days(engine, mock, world):
-    """No journey under way (no contact, no control): after 2 interruptions, medium risk only gets a tip."""
+def _calm_day_tiers(families: dict, n=4):
+    """The policy alone, on n calm days (stage S1: no journey under way), p_scam 0.6."""
+    from api.policy import Policy
+    pol = Policy()
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None}
+    s = {"p_scam": 0.6, "family_scores": families, "playbook": None}
+    return [pol.decide(s, f, "S1", False, "u_calm", NOW + timedelta(days=i)).tier for i in range(n)]
+
+
+def test_alert_budget_on_calm_days():
+    """Nothing wrong with the payee (behaviour + an old lure): after 2 interruptions, only a tip."""
+    assert _calm_day_tiers({"B": 0.8, "L": 0.85, "C": 0, "P": 0}) == ["T2", "T2", "T1", "T1"]
+
+
+def test_alert_budget_never_applies_when_the_payee_family_is_lit():
+    assert _calm_day_tiers({"B": 0.8, "L": 0, "C": 0, "P": 0.9}) == ["T2", "T2", "T2", "T2"]
+
+
+def test_alert_budget_never_silences_a_risky_payee(engine, mock, world):
+    """The same calm days, but the payee is the mule-like demo account: every one is interrupted."""
     pump(mock[1], world)
     tiers = _tiers_over_days(engine, users_in(world)[0], context={"lures": []})
-    assert tiers[:2] == ["T2", "T2"]
-    assert tiers[2:] == ["T1", "T1"]
+    assert all(t in ("T2", "T3", "T4") for t in tiers), tiers
 
 
 def test_alert_budget_never_silences_an_active_journey(engine, mock, world):
@@ -449,3 +483,56 @@ def test_evidence_chain_verifies_with_scoreless_episode_records(tmp_path):
     store.write({**base, "id": "e_2", "tier": "episode_high", "p_scam": None})
     assert store.verify() == {"ok": True, "rows_checked": 2, "first_bad_id": None}
     assert store.get("e_2")["p_scam"] is None
+
+
+# ---------- c2-0.7: saved contacts and payees paid here before ----------
+
+def _new_payee_case(world, i=0):
+    """A user, someone they never paid, and an amount 2x their usual largest (so behaviour lights)."""
+    users = world[1]["users"].set_index("user_id")
+    user = users_in(world)[10 + i]
+    base = baseline(world, user)
+    payee = next(users.loc[u].upi_id for u in users_in(world, "Delhi")[i:] if users.loc[u].upi_id not in base.known_payees)
+    return user, payee, round(base.max_90d * 2)
+
+
+LURE = [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 600}]
+
+
+def test_saved_contact_softens_new_payee_only(engine, world):
+    user, payee, amount = _new_payee_case(world)
+    stranger = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                                  context={"lures": LURE, "payee_in_contacts": False}, rid="r_s")).json()
+    contact = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                                 context={"lures": LURE, "payee_in_contacts": True}, rid="r_c",
+                                                 ts=NOW + timedelta(minutes=1))).json()
+    assert "R6_new_payee_typed" in stranger["reasons"]
+    assert "R6_new_payee_typed" not in contact["reasons"]
+    # The other families are untouched: the scam-like message still counts.
+    assert "R5_lure_message" in contact["reasons"] and contact["tier"] != "T0"
+    ev = engine.get(f"/v1/evidence/{contact['evidence_id']}").json()
+    assert ev["features"]["payee_in_contacts"] is True and ev["features"]["first_time_payee"] is True
+
+
+def test_unknown_contacts_are_not_softened(engine, world):
+    """Rule 1: null (contacts not readable) is treated like a stranger, never like a contact."""
+    user, payee, amount = _new_payee_case(world, 1)
+    r = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                           context={"lures": LURE, "payee_in_contacts": None})).json()
+    assert "R6_new_payee_typed" in r["reasons"]
+
+
+def test_payee_paid_here_before_is_known(engine, world):
+    user, payee, amount = _new_payee_case(world, 2)
+    first = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_first")).json()
+    assert "R6_new_payee_typed" in first["reasons"]
+    engine.post("/v1/payment/outcome", json={"request_id": "p_first", "user_id": user, "payee_upi_id": payee,
+                                             "amount_inr": amount, "status": "completed",
+                                             "ts": (NOW + timedelta(minutes=2)).isoformat()})
+    again = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_again",
+                                               ts=NOW + timedelta(hours=2))).json()
+    assert "R6_new_payee_typed" not in again["reasons"]
+    if again["evidence_id"]:
+        assert engine.get(f"/v1/evidence/{again['evidence_id']}").json()["features"]["first_time_payee"] is False

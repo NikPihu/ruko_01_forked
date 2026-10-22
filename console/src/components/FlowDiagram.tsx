@@ -101,7 +101,8 @@ export function FlowDiagram({ story, onSelect }: { story: Story; onSelect?: (upi
             const mx = (x1 + x2) / 2;
             const label =
               l.kind === "bait" ? `${l.from} sent ${inr(l.inr)} in “rewards” to ${l.users ?? 0} users`
-              : l.kind === "pay" ? `${l.users ?? 0} users paid ${l.to} ${inr(l.inr)} in ${l.n ?? 0} payments`
+              : l.kind === "pay" ? `${l.users ?? 0} users checked ${l.n ?? 0} payments to ${l.to} (${inr(l.inr)}); `
+                + `${l.completed ?? 0} went through (${inr(l.completed_inr ?? 0)})`
               : `${l.from} moved ${inr(l.inr)} to ${l.to}`;
             return (
               <path key={`f${i}`} d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2 - 6},${y2}`} fill="none"

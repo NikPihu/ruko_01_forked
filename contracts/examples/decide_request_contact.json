@@ -1,0 +1,16 @@
+{
+  "request_id": "3d9f6b21-7c4e-4a0b-9e58-1f2a6c8d4b70",
+  "user_id": "u_demo_meena",
+  "payee_upi_id": "kiran.sinha@paytm",
+  "amount_inr": 2000,
+  "entry_method": "contact",
+  "ts": "2026-11-07T11:05:00+05:30",
+  "context": {
+    "call": null,
+    "device": null,
+    "lures": [],
+    "episode": null,
+    "session": null,
+    "payee_in_contacts": true
+  }
+}

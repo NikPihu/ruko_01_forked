@@ -1,5 +1,5 @@
 import { api, type Alert, type EpisodeCase, type Story } from "../api";
-import { inr, PLAYBOOKS, STAGES, TIERS, userLabel, when } from "../format";
+import { inr, PAYMENT_STATUS, PLAYBOOKS, STAGES, TIERS, userLabel, when } from "../format";
 import { reasonFamily, reasonText } from "../reasons";
 import { FlowDiagram } from "../components/FlowDiagram";
 import { Card, Check, Empty, Loading, TierChip, exploreHref, go, useLoad } from "../components/ui";
@@ -65,7 +65,8 @@ export function PaymentCase({ id }: { id: string }) {
     const all = await api.alerts("T1");
     const alert = all.find((a) => a.alert_id === id) ?? null;
     const story = alert ? await api.story(alert.payee) : null;
-    return { alert, story };
+    const payment = alert?.payment_id ? await api.payment(alert.payment_id).catch(() => null) : null;
+    return { alert, story, payment };
   }, [id]);
   if (!data) return <Loading error={error} loading={loading} />;
   if (!data.alert) return <Empty title="Alert not found">It may have been cleared by a demo reset. <a href="#/alerts">Back to alerts</a></Empty>;
@@ -79,6 +80,11 @@ export function PaymentCase({ id }: { id: string }) {
           <div className="row"><TierChip tier={a.tier} />{a.playbook && <span className="chip">{PLAYBOOKS[a.playbook] ?? a.playbook}</span>}</div>
           <h1 style={{ marginTop: 8 }}>{inr(a.amount_inr)} to <span className="mono">{a.payee}</span></h1>
           <p>{userLabel(a.user_hash)} · {when(a.ts)} · UPI ID {a.entry_method === "typed" ? "typed by hand" : `entered by ${a.entry_method}`}</p>
+          {a.payment_id && (
+            <p>Payment ID <a className="mono" href={exploreHref(a.payee, a.payment_id)}>{a.payment_id}</a> · What the user did:{" "}
+              <b>{PAYMENT_STATUS[data.payment?.status ?? "checked"]}</b>
+              {data.payment?.outcome_ts ? ` (${when(data.payment.outcome_ts)})` : ""}</p>
+          )}
         </div>
       </div>
 

@@ -6,8 +6,6 @@
     <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
     <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
     <string name="shield_working">स्कैम शील्ड एक बैंक अलर्ट जाँच रहा है</string>
-    <string name="shield_watching_title">‘टास्क’ के लिए पैसे मिले?</string>
-    <string name="shield_watching_text">‘टास्क’ के लिए %1$s मिले? असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
     <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
     <string name="shield_active_text">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
     <string name="shield_out_title">और पैसे मत भेजिए</string>
@@ -27,7 +25,6 @@
     <string name="delete_history_title">पैसों का इतिहास मिटाएँ?</string>
     <string name="delete_history_body">स्कैम शील्ड ने जो बैंक अलर्ट और भुगतान देखे हैं, वे मिट जाएँगे। नज़र अभी से फिर शुरू होगी।</string>
     <string name="delete_history_confirm">इतिहास मिटाएँ</string>
-    <string name="episode_title_watching">‘टास्क’ वाले पैसों से सावधान</string>
     <string name="episode_title_active">यह टास्क स्कैम लगता है</string>
     <string name="episode_body_watching">आपको %2$d अनजान खातों से %1$s मिले। असली नौकरी कमाई पाने के लिए पैसे नहीं माँगती।</string>
     <string name="episode_body_active">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
@@ -56,4 +53,51 @@
     <string name="reason_R12_coached_session">लगता है कोई आपको बता रहा है कि क्या टाइप करना है: रकम धीरे-धीरे, एक-एक अंक करके डाली गई, या ऐप बदलते ही UPI ID पेस्ट की गई</string>
     <string name="consent_session">भुगतान स्क्रीन की जाँच</string>
     <string name="consent_session_desc">आप भुगतान स्क्रीन कैसे इस्तेमाल करते हैं: टाइप करने की रफ़्तार, पेस्ट करना, ऐप बदलना। फ़ोन से सिर्फ़ गिनती और समय जाता है, आप क्या टाइप करते हैं वह कभी नहीं।</string>
+
+    <!-- Payment history (c2-0.6) -->
+    <string name="history_title">भुगतान इतिहास</string>
+    <string name="history_note">यहाँ शुरू किया गया हर भुगतान, इस फ़ोन पर 90 दिन तक एन्क्रिप्ट करके रखा जाता है। हर भुगतान की एक पेमेंट आईडी है, जिससे आप बैंक या स्कैम शील्ड सहायता के साथ उसे ट्रेस कर सकते हैं।</string>
+    <string name="history_empty">अभी कोई भुगतान नहीं। आप जो भी भुगतान शुरू करेंगे, वह यहाँ अपनी पेमेंट आईडी के साथ दिखेगा।</string>
+    <string name="history_status_completed">भुगतान हो गया</string>
+    <string name="history_status_cancelled">रद्द किया</string>
+    <string name="history_status_pending">जारी है</string>
+    <string name="history_result_t0">कोई ख़तरा नहीं मिला</string>
+    <string name="history_result_t1">सलाह दिखाई गई</string>
+    <string name="history_result_t2">चेतावनी दिखाई गई</string>
+    <string name="history_result_t3">सुरक्षा के लिए रोका गया</string>
+    <string name="history_result_unavailable">सुरक्षा जाँच उपलब्ध नहीं थी</string>
+    <string name="history_payment_id">पेमेंट आईडी</string>
+    <string name="history_copy">कॉपी करें</string>
+    <string name="history_copied">पेमेंट आईडी कॉपी हो गई</string>
+    <string name="history_when">कब</string>
+    <string name="history_to">किसे</string>
+    <string name="history_amount">राशि</string>
+    <string name="history_entered">यूपीआई आईडी</string>
+    <string name="history_shield">स्कैम शील्ड</string>
+    <string name="history_reasons">क्यों</string>
+    <string name="history_status">स्थिति</string>
+    <string name="history_sync">स्कैम शील्ड को भेजा गया</string>
+    <string name="history_sync_done">हाँ</string>
+    <string name="history_sync_waiting">भेजना बाक़ी है</string>
+    <string name="history_close">बंद करें</string>
+    <string name="entry_typed">हाथ से टाइप किया</string>
+    <string name="entry_contact">सेव किया हुआ प्राप्तकर्ता</string>
+    <string name="entry_qr">क्यूआर कोड स्कैन किया</string>
+    <string name="entry_collect">कलेक्ट रिक्वेस्ट</string>
+    <string name="success_payment_id">पेमेंट आईडी: %1$s</string>
+
+    <!-- Pay a mobile number / contacts (c2-0.7) -->
+    <string name="contacts_title">मोबाइल नंबर पर भुगतान</string>
+    <string name="contacts_search">नाम खोजें या मोबाइल नंबर लिखें</string>
+    <string name="contacts_finding">इस नंबर से जुड़ी यूपीआई आईडी खोजी जा रही है…</string>
+    <string name="contacts_bad_number">यह सही मोबाइल नंबर नहीं है।</string>
+    <string name="contacts_not_linked">इस नंबर से कोई यूपीआई आईडी नहीं जुड़ी है।</string>
+    <string name="contacts_unreachable">अभी यह नंबर नहीं खोजा जा सका। फिर कोशिश करें, या यूपीआई आईडी से भुगतान करें।</string>
+    <string name="contacts_permission">किसी जानने वाले को चुनने के लिए कॉन्टैक्ट्स की अनुमति दें। आपके कॉन्टैक्ट्स इसी फ़ोन पर रहते हैं: स्कैम शील्ड को सिर्फ़ यह पता चलता है कि जिसे आप भुगतान कर रहे हैं वह सेव है या नहीं, नाम या नंबर कभी नहीं।</string>
+    <string name="contacts_none">कोई कॉन्टैक्ट नहीं मिला।</string>
+    <string name="contacts_pay_number">%1$s को भुगतान करें</string>
+    <string name="contacts_not_saved">आपके कॉन्टैक्ट्स में नहीं</string>
+    <string name="pay_contact">सेव किया कॉन्टैक्ट, मोबाइल नंबर से भुगतान</string>
+    <string name="pay_mobile_typed">मोबाइल नंबर हाथ से लिखा</string>
+    <string name="pay_registered_name">बैंक में नाम: %1$s · %2$s</string>
 </resources>

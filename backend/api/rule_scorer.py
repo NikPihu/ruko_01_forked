@@ -12,7 +12,9 @@ import math
 
 from features.session import T as SESSION
 
-MODEL_VERSION = "rules-0.4"
+MODEL_VERSION = "rules-0.6"
+# rules-0.6: a first-time payee who is a saved contact on the phone is a weaker "new payee" sign.
+# rules-0.5: R7 (tranche) counts only when this payment goes to a payee in the run of new payees.
 # L rose from 2.0 in rules-0.3: it now carries the phone's 30-day task-scam episode, which is as
 # strong as live call context. One family alone still stays far below any tier (p < 0.15).
 FAMILY_WEIGHT = {"C": 3.2, "L": 3.5, "P": 3.2, "B": 2.4}
@@ -95,12 +97,19 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
     elif ratio is None and f["amount_inr"] >= 50_000:
         add("B", 0.4, "R4_unusual_amount")
     if f["first_time_payee"]:
-        add("B", 0.35 if f["entry_typed"] else 0.15, "R6_new_payee_typed")
-    if f["attempts_72h"] >= 2:
+        # A saved contact never paid is still new (scammers ask victims to save their number), but
+        # weaker than a stranger's ID typed by hand. Missing or null is unknown: no softening.
+        weak = f.get("payee_in_contacts") is True or not f["entry_typed"]
+        add("B", 0.15 if weak else 0.35, "R6_new_payee_typed")
+    # A tranche run is money split across new payees. A payment to an established payee outside the
+    # run (the usual kirana after a few new payees) is not part of it.
+    # Missing (rows built before rules-0.5) is unknown, and unknown is never safe: counts as in the run.
+    run = f["attempts_72h"] if f.get("payee_in_run") is not False else 0
+    if run >= 2:
         add("B", 0.7, "R7_tranche_pattern")
-    elif f["attempts_72h"] >= 1:
+    elif run >= 1:
         add("B", 0.4, "R7_tranche_pattern")
-    if (f["new_payee_sum_to_max_90d"] or 0) >= 3 and f["attempts_72h"] >= 1:
+    if (f["new_payee_sum_to_max_90d"] or 0) >= 3 and run >= 1:
         add("B", 0.6, "R7_tranche_pattern")
     # Coached session (c2-0.5): the Pay screen was used the way a guided victim uses it.
     if f["session_dictated"]:

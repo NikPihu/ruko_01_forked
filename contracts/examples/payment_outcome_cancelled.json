@@ -1,0 +1,8 @@
+{
+  "request_id": "6f1c2a0e-3b7d-4e7a-9a51-2d8c0f4b9e13",
+  "user_id": "u_demo_meena",
+  "payee_upi_id": "secure.settlement.desk@okaxis",
+  "amount_inr": 95000,
+  "status": "cancelled",
+  "ts": "2026-11-07T10:41:30+05:30"
+}

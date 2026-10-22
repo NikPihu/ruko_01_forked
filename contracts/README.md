@@ -8,17 +8,20 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `examples/decide_request_meena.json` | Meena paying the demo mule mid-call (expect T3/T4) |
 | `examples/decide_request_minimal.json` | Kirana purchase, `context: null` (expect T0) |
 | `c2_episode.schema.json` | JSON Schema of `POST /v1/episode` (c2-0.4), from `python -m schema.export` |
+| `c2_payment_outcome.schema.json` | JSON Schema of `POST /v1/payment/outcome` (c2-0.6), from `python -m schema.export` |
 | `episode_rules.json` | Every episode threshold; the phone copies it into `android/app/src/main/assets/` |
 | `examples/episode_vectors.json` | Timelines the phone and the server must agree on (run by both test suites) |
 | `examples/episode_event_*.json` | Episode events (watching, active) and a `high` reply |
 | `examples/decide_request_coached.json` | Meena being talked through the payment: slow dictated amount, UPI ID pasted right after switching apps, call on speaker (c2-0.5) |
+| `examples/decide_request_contact.json` | Meena pays Kiran Sinha, a saved contact she has never paid, by mobile number: `payee_in_contacts: true` (c2-0.7) |
 | `examples/decide_request_task_episode.json` | Task scam seen by the phone's background watcher: `context.episode` ACTIVE (c2-0.3) |
 | `examples/decide_response_*.json` | T3, T0 and fail-open responses |
+| `examples/payment_outcome_*.json` | The Meena payment cancelled, the kirana payment completed, and a reply (c2-0.6) |
 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.5`** (see the changelog at the end). c2-0.1, c2-0.3 and c2-0.4 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.7`** (see the changelog at the end). c2-0.1, c2-0.3, c2-0.4, c2-0.5 and c2-0.6 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -66,6 +69,16 @@ give up after its own short timeout and let the payment go through (fail open, T
   (`session:`). They count as **behaviour-family** evidence, so they can never interrupt a payment
   on their own. `call.speaker_on` only adds weight to the live-call (context) signal.
 
+- `payee_in_contacts` (c2-0.7): `true` when the payee is a saved contact on the phone, matched by the
+  mobile number it is paid by (UPI number mapper) or the number inside a mobile-style UPI ID
+  (`9876543210@oksbi`); `false` when contacts were readable and nothing matched (a name-style UPI ID
+  typed by hand is `false`: the phone cannot see a contact behind it); `null` when contacts cannot
+  be read or call checks are off. Only this yes/no leaves the phone, never names or numbers. The
+  engine treats it as **behaviour-family** evidence that only softens "new payee" (R6): a contact
+  never paid is still a new payee, and it never lowers call, lure or payee-intel signals. Whether a
+  payee is *known* is the server's call: the bank's history, or a payment this user completed
+  (c2-0.6 outcomes).
+
 **Unknown ≠ safe:** a signal the phone did not or could not measure must be `null` (or left out).
 It must never be `false` or `0`. For example, if call-state permission was denied, send
 `"caller_in_contacts": null`, not `true`.
@@ -112,6 +125,26 @@ episode plus payee-family evidence on an account is `high`), `reasons`, `message
 (`episode_task_scam_confirmed` / `episode_task_scam_possible`), `case_id` when an analyst case was
 opened. Never a score.
 
+## POST /v1/payment/outcome (c2-0.6)
+
+The payment id is the `/v1/decide` `request_id`: one UUID per Pay tap, kept in the phone's payment
+history, the server's payment graph (`GET /v1/payments/{id}`) and the analyst console. After the
+PIN or Cancel, the phone sends what happened, in the background and off the payment path; it
+retries until it gets an answer. The phone's own history (encrypted, 90 days) shows every payment
+with its id, Scam Shield's decision in words and this outcome.
+
+| Field | Notes |
+|---|---|
+| `request_id` | the payment id: the same UUID as the payment's `/v1/decide` request |
+| `user_id` | the same id `/v1/decide` uses (pseudonymised on the server) |
+| `payee_upi_id`, `amount_inr` | repeated, so the payment is recorded even when its check never reached the server (timeout, fail open) |
+| `status` | `completed` (PIN entered) \| `cancelled` (Cancel, or left without paying) |
+| `ts` | when it was completed or cancelled, ISO 8601 with timezone |
+
+Reply: `request_id`, the `status` the server holds (the first final status wins), `recorded`
+(`false` for a repeat, a conflicting status, or another user's payment id). A completed payment adds
+to the user -> payee edge's `completed` count; a cancelled one does not. Unknown fields get 422.
+
 ## Demo identities (from `data/sim/accounts.py`)
 | Who | ID |
 |---|---|
@@ -137,6 +170,8 @@ These are what the app needs to change to stop getting 422s:
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.7**: `context.payee_in_contacts`. Engine `rules-0.6`: a first-time payee who is a saved contact is a weaker R6; a payee this user completed a payment to (c2-0.6) counts as known. Additive: c2-0.6 requests still validate.
+- **c2-0.6**: `POST /v1/payment/outcome` (`PaymentOutcome`, `PaymentOutcomeResponse`, `c2_payment_outcome.schema.json`). The `/v1/decide` `request_id` is now the payment id. Additive: c2-0.5 requests still validate.
 - **c2-0.5**: `context.session` (`SessionSignal`), `call.speaker_on`, reason `R12_coached_session`. Additive: c2-0.4 requests still validate.
 - **c2-0.4**: `POST /v1/episode` (`EpisodeEvent`, `EpisodeAccount`, `EpisodeEventResponse`, `c2_episode.schema.json`), reason `R11_ring_link` (payment graph), `context.money` removed. Rules `episode-0.2`: only payments above Rs 500 to payees not paid before the episode count as episode payments.
 - **c2-0.3**: `context.episode` (`EpisodeSignal`), shared `episode_rules.json` and `examples/episode_vectors.json`. `context.money` deprecated (still accepted). The engine no longer lets one phone summary light two families.

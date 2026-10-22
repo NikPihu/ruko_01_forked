@@ -39,7 +39,8 @@ from api.policy import Policy
 from api.episode_events import EpisodeService
 from graph import discover as discovery
 from graph.store import GraphStore
-from schema.events import CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse
+from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
+                           PaymentOutcome, PaymentOutcomeResponse)
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
@@ -137,7 +138,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
         is_trusted = upi in trusted.get(req.user_id, set())
-        state = tracker.update(req, new_payee=upi not in base.known_payees and not is_trusted)
+        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
+        paid_here = graph.paid_before(req.user_id, upi, req.ts)
+        state = tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not is_trusted)
         ms["tracker"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -148,12 +151,12 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         t = time.perf_counter()
         # The payment graph: this check is an edge, and the payee's crowd / loop signals are read
         # from what episodes already added (no extra lookups on the payment path).
-        graph.add_payment(req.user_id, upi, req.amount_inr, req.ts)
+        graph.add_payment(req.user_id, upi, req.amount_inr, req.ts, request_id=req.request_id)
         graph.expire(req.ts)
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
-        feats = build_features(req, state, res, base, is_trusted, ring=ring)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -183,9 +186,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 evidence.write(row)
 
         reasons = s["reasons"] if d.tier != "T0" else []
+        graph.set_decision(req.request_id, d.tier, reasons, evidence_id)
         if d.tier != "T0":
             alerts.append({
-                "alert_id": evidence_id or f"a_{uuid.uuid4().hex[:12]}", "ts": req.ts.isoformat(),
+                "alert_id": evidence_id or f"a_{uuid.uuid4().hex[:12]}", "payment_id": req.request_id,
+                "ts": req.ts.isoformat(),
                 "user_hash": pseudonym(req.user_id), "payee": upi, "amount_inr": req.amount_inr,
                 "tier": d.tier, "reasons": reasons, "message_key": d.message_key,
                 "playbook": s["playbook"], "stage": state.stage, "pause_minutes": d.pause_minutes,
@@ -222,6 +227,17 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 fh.write(json.dumps({"ts": req.ts.isoformat(), "request_id": req.request_id,
                                      "tier": resp.tier, **{f"ms_{k}": round(v, 2) for k, v in ms.items()}}) + "\n")
         return resp
+
+    @app.post("/v1/payment/outcome", response_model=PaymentOutcomeResponse)
+    def payment_outcome(o: PaymentOutcome) -> PaymentOutcomeResponse:
+        """After the PIN or Cancel (c2-0.6): the payment's outcome goes into the payment graph.
+        Never on the payment path; the phone retries until it gets an answer."""
+        ts = o.ts
+        if clock["offset"] is not None:
+            ts = datetime.now(o.ts.tzinfo) + clock["offset"]
+        status, recorded = graph.record_outcome(o.request_id, o.user_id, o.payee_upi_id, o.amount_inr,
+                                                o.status, ts)
+        return PaymentOutcomeResponse(request_id=o.request_id, status=status, recorded=recorded)
 
     @app.post("/v1/episode", response_model=EpisodeEventResponse)
     async def episode_event(ev: EpisodeEvent) -> EpisodeEventResponse:
@@ -270,6 +286,19 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     def graph_story(upi_id: str) -> dict:
         """The account's money flow as a short story: who baited whom, who paid it, where it went."""
         return graph.story(upi_id, sim_now())
+
+    @app.get("/v1/graph/payments/{upi_id}")
+    def graph_payments(upi_id: str, limit: int = 20) -> dict:
+        """Payments into an account, newest first, each with its payment id, decision and outcome."""
+        return graph.payments_for(upi_id, limit=max(1, min(limit, 100)))
+
+    @app.get("/v1/payments/{payment_id}")
+    def payment_by_id(payment_id: str) -> dict:
+        """Trace one payment by its id (the /v1/decide request_id) from the check to its outcome."""
+        p = graph.payment(payment_id)
+        if p is None:
+            raise HTTPException(404, "no payment with that id in the last 30 days")
+        return p
 
     @app.get("/v1/graph/suspects")
     def graph_suspects(min_band: str = "med") -> dict:

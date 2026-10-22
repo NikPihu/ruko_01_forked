@@ -67,8 +67,19 @@ fun PayScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            InitialAvatar(vm.upiId)
+            InitialAvatar(vm.payeeName ?: vm.upiId)
             Column {
+                vm.payeeName?.let { name ->
+                    Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    // The name the bank account is registered in: a scammer's "Sai" may not be Sai's account.
+                    vm.registeredName?.let {
+                        Text(
+                            stringResource(R.string.pay_registered_name, it, vm.payeeMobile.orEmpty()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CacheColors.TextSecondary,
+                        )
+                    }
+                }
                 Text(
                     text = vm.upiId.trim().ifEmpty { stringResource(R.string.pay_upi_hint) },
                     style = MaterialTheme.typography.titleMedium,
@@ -76,7 +87,14 @@ fun PayScreen(
                     maxLines = 1,
                 )
                 Text(
-                    text = stringResource(if (vm.entryMethod == EntryMethod.TYPED) R.string.pay_typed else R.string.pay_saved),
+                    text = stringResource(
+                        when {
+                            vm.payeeMobile != null && vm.entryMethod == EntryMethod.CONTACT -> R.string.pay_contact
+                            vm.payeeMobile != null -> R.string.pay_mobile_typed
+                            vm.entryMethod == EntryMethod.TYPED -> R.string.pay_typed
+                            else -> R.string.pay_saved
+                        },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = CacheColors.TextSecondary,
                 )

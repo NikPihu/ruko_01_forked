@@ -8,7 +8,7 @@ A web app for fraud analysts. It reads the risk engine's API and shows, in plain
 | **Alerts & cases** | Every payment RUKO warned on, paused or held (`/v1/alerts`), and every task-scam case opened from phones' episode reports (`/v1/cases`) |
 | **Case detail** | What RUKO did and why (reasons in words), the scam journey (contacted → hooked → paying), the evidence record, and the money flow around the payee |
 | **Mule suspects** | Accounts the payment graph links to scam accounts, grouped by ring, with approve / reject. A suspect counts in live checks only after two different analysts approve it. |
-| **Account explorer** | Any UPI ID's money flow in one picture: who sent “rewards” → which RUKO users → who they paid → where that money went next, with the money loop in red |
+| **Account explorer** | Any UPI ID's money flow in one picture: who sent “rewards” → which RUKO users → who they paid → where that money went next, with the money loop in red. Below it, every payment into the account with its payment ID, RUKO's decision and whether the user paid or cancelled. Paste a payment ID from the app to jump to that payment. |
 | **Evaluation** | Today's systems vs + phone episode vs + payment graph, and how early mules are found before the registry lists them |
 
 The money-flow picture comes from `GET /v1/graph/story/{upi}`. The engine collapses the graph into

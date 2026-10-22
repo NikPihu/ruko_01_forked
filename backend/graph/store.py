@@ -1,7 +1,8 @@
 """Payment graph: who pays whom, built only from what RUKO could really see (task-scam-watcher.md §9).
 
 Sources (never the simulator's full ledger or its labels):
-    /v1/decide      user -> payee, every payment check
+    /v1/decide      user -> payee, every payment check (one Payment record per request_id)
+    /v1/payment/outcome   whether that payment was completed or cancelled (c2-0.6)
     /v1/episode     bait sender -> user, user -> payee (other apps too, through bank SMS)
     payee's bank    payee -> where it forwards money (only when that bank shares)
 RUKO users are pseudonymised; other accounts stay plain because they must be looked up.
@@ -26,13 +27,38 @@ CROWD_BAIT_USERS = 5        # distinct users with a bait credit from one account
 CROWD_EPISODE_USERS = 3     # distinct users' episodes in which one account was a payee
 CROWD_FANIN_6H = 10         # distinct RUKO users paying one account in 6 hours
 MAX_EVENTS_PER_USER_DAY = 20
+MAX_UNCHECKED_OUTCOMES_PER_USER_DAY = 20   # outcomes for payments the server never checked
 NEW_USER_WEIGHT = 0.5       # crowd votes from users first seen in the last 24 h count for less
+
+
+@dataclass
+class Payment:
+    """One payment, traced by its id (the /v1/decide request_id), from the check to its outcome."""
+    request_id: str
+    user: str                   # pseudonymised user node, never the user id
+    payee: str
+    inr: float
+    ts: datetime                # the check, or the outcome when the check never reached the server
+    checked: bool               # the server answered /v1/decide for it
+    tier: Optional[str] = None
+    reasons: list[str] = field(default_factory=list)
+    evidence_id: Optional[str] = None
+    status: str = "checked"     # checked -> completed | cancelled
+    outcome_ts: Optional[datetime] = None
+
+    def view(self) -> dict:
+        return {"payment_id": self.request_id, "user": self.user, "payee": self.payee, "inr": self.inr,
+                "ts": self.ts.isoformat(), "checked": self.checked, "tier": self.tier, "reasons": self.reasons,
+                "evidence_id": self.evidence_id, "status": self.status,
+                "outcome_ts": self.outcome_ts.isoformat() if self.outcome_ts else None}
 
 
 @dataclass
 class Edge:
     n: int = 0
     inr: float = 0.0
+    paid_n: int = 0             # payments on this edge the phone reported completed
+    paid_inr: float = 0.0
     first_ts: Optional[datetime] = None
     last_ts: Optional[datetime] = None
     sources: set[str] = field(default_factory=set)
@@ -62,6 +88,8 @@ class GraphStore:
         self.first_seen: dict[str, datetime] = {}
         self.flows_seen: dict[str, Optional[bool]] = {}         # account -> bank flows visible?
         self._events_today: dict[tuple[str, str], int] = defaultdict(int)
+        self.payments: dict[str, Payment] = {}                  # request_id -> payment
+        self.payments_into: dict[str, list[str]] = defaultdict(list)   # payee -> request_ids, oldest first
 
     def reset(self) -> None:
         self.__init__()
@@ -77,10 +105,49 @@ class GraphStore:
     def _seen(self, node: str, ts: datetime) -> None:
         self.first_seen[node] = min(self.first_seen.get(node, ts), ts)
 
-    def add_payment(self, user_id: str, payee: str, inr: float, ts: datetime) -> None:
+    def add_payment(self, user_id: str, payee: str, inr: float, ts: datetime, request_id: Optional[str] = None) -> None:
         u = user_node(user_id)
+        payee = payee.strip().lower()
         self._seen(u, ts)
-        self._edge(u, payee.strip().lower(), inr, ts, "decide")
+        self._edge(u, payee, inr, ts, "decide")
+        if request_id and request_id not in self.payments:
+            self.payments[request_id] = Payment(request_id, u, payee, inr, ts, checked=True)
+            self.payments_into[payee].append(request_id)
+
+    def set_decision(self, request_id: str, tier: str, reasons: list[str], evidence_id: Optional[str]) -> None:
+        p = self.payments.get(request_id)
+        if p is not None:
+            p.tier, p.reasons, p.evidence_id = tier, list(reasons), evidence_id
+
+    def record_outcome(self, request_id: str, user_id: str, payee: str, inr: float, status: str,
+                       ts: datetime) -> tuple[str, bool]:
+        """The phone's report of what happened after the check. Returns (status held, recorded).
+        The first final status wins; another user's payment id is never touched."""
+        u = user_node(user_id)
+        payee = payee.strip().lower()
+        p = self.payments.get(request_id)
+        if p is None:
+            # The check never reached the server (timeout, fail open): still one payment of this user.
+            key = (u, "outcome:" + ts.date().isoformat())
+            self._events_today[key] += 1
+            if self._events_today[key] > MAX_UNCHECKED_OUTCOMES_PER_USER_DAY:
+                return status, False
+            self._seen(u, ts)
+            self._edge(u, payee, inr, ts, "outcome")
+            p = self.payments[request_id] = Payment(request_id, u, payee, inr, ts, checked=False)
+            self.payments_into[payee].append(request_id)
+        elif p.user != u:
+            return status, False
+        if p.status != "checked":
+            return p.status, False
+        p.status, p.outcome_ts = status, ts
+        if status == "completed":
+            e = self.edges.get((u, p.payee))
+            if e is not None:
+                e.paid_n += 1
+                e.paid_inr += p.inr
+                e.last_ts = max(e.last_ts or ts, ts)
+        return status, True
 
     def add_episode(self, ev, now: datetime) -> bool:
         """Edges from an episode event. False when the device sent more than its daily cap."""
@@ -135,6 +202,11 @@ class GraphStore:
             del self.edges[k]
             self.out[a].discard(b)
             self.inn[b].discard(a)
+        for rid in [rid for rid, p in self.payments.items() if now - (p.outcome_ts or p.ts) > KEEP]:
+            p = self.payments.pop(rid)
+            ids = self.payments_into.get(p.payee)
+            if ids and rid in ids:
+                ids.remove(rid)
 
     # ---------- signals ----------
 
@@ -208,6 +280,26 @@ class GraphStore:
 
     # ---------- reads for the console (C5) ----------
 
+    def payment(self, request_id: str) -> Optional[dict]:
+        p = self.payments.get(request_id.strip())
+        return p.view() if p else None
+
+    def paid_before(self, user_id: str, payee: str, before: datetime) -> bool:
+        """This user completed a payment to this payee before `before` (the phone said so, c2-0.6)."""
+        u, acc = user_node(user_id), payee.strip().lower()
+        return any((p := self.payments.get(r)) is not None and p.user == u and p.status == "completed"
+                   and (p.outcome_ts or p.ts) < before for r in self.payments_into.get(acc, ()))
+
+    def payments_for(self, account: str, limit: int = 20) -> dict:
+        """Payments into one account, newest first, with counts by status."""
+        acc = account.strip().lower()
+        ps = [self.payments[r] for r in self.payments_into.get(acc, ()) if r in self.payments]
+        counts = {s: sum(1 for p in ps if p.status == s) for s in ("checked", "completed", "cancelled")}
+        paid_inr = round(sum(p.inr for p in ps if p.status == "completed"), 2)
+        recent = sorted(ps, key=lambda p: p.outcome_ts or p.ts, reverse=True)[:limit]
+        return {"account": acc, "total": len(ps), "by_status": counts, "completed_inr": paid_inr,
+                "payments": [p.view() for p in recent]}
+
     def story(self, account: str, now: datetime, max_side: int = 6) -> dict:
         """One account's money flow as a short left-to-right story for analysts:
         bait senders -> RUKO users (one group) -> payees -> where the payees send money on,
@@ -254,9 +346,11 @@ class GraphStore:
             us = {u for u in self.inn.get(p, ()) if u.startswith("u:")} & users
             es = [self.edges[(u, p)] for u in us if (u, p) in self.edges]
             n, inr = sum(e.n for e in es), round(sum(e.inr for e in es), 2)
-            payee_nodes.append(node(p, users=len(us), payments=n, inr=inr))
+            paid_n, paid_inr = sum(e.paid_n for e in es), round(sum(e.paid_inr for e in es), 2)
+            payee_nodes.append(node(p, users=len(us), payments=n, inr=inr, completed=paid_n, completed_inr=paid_inr))
             if us:
-                links.append({"from": "users", "to": p, "kind": "pay", "users": len(us), "n": n, "inr": inr})
+                links.append({"from": "users", "to": p, "kind": "pay", "users": len(us), "n": n, "inr": inr,
+                              "completed": paid_n, "completed_inr": paid_inr})
 
         cash: dict[str, dict] = {}
         for p in payees:
@@ -303,7 +397,8 @@ class GraphStore:
             nxt -= nodes
             nodes |= nxt
             frontier = nxt
-        edges = [{"from": a, "to": b, "n": e.n, "inr": round(e.inr, 2), "sources": sorted(e.sources),
+        edges = [{"from": a, "to": b, "n": e.n, "inr": round(e.inr, 2), "completed": e.paid_n,
+                  "completed_inr": round(e.paid_inr, 2), "sources": sorted(e.sources),
                   "last_ts": e.last_ts.isoformat() if e.last_ts else None}
                  for (a, b), e in self.edges.items() if a in nodes and b in nodes]
         return {"center": start, "nodes": [{"id": n, "kind": "ruko_user" if n.startswith("u:") else "account",

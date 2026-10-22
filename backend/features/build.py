@@ -34,7 +34,8 @@ FAMILY = {
     # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
     "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
-    "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B",
+    "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
+    "payee_in_contacts": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
     # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
     "session_dictated": "B", "session_pasted_after_switch": "B", "session_app_switches": "B",
@@ -44,7 +45,9 @@ FAMILY = {
 
 
 def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
-                   base: UserBaseline, trusted: bool, ring: dict | None = None) -> dict:
+                   base: UserBaseline, trusted: bool, ring: dict | None = None,
+                   paid_here: bool = False) -> dict:
+    """`paid_here`: RUKO saw this user complete a payment to this payee before (c2-0.6 outcomes)."""
     ctx = req.context
     call = ctx.call if ctx else None
     dev = ctx.device if ctx else None
@@ -117,9 +120,12 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["amount_inr"] = req.amount_inr
     f["amount_to_max_90d"] = round(req.amount_inr / base.max_90d, 3) if base.max_90d else None
     f["amount_to_median_90d"] = round(req.amount_inr / base.median_90d, 3) if base.median_90d else None
-    f["first_time_payee"] = req.payee_upi_id.lower() not in base.known_payees
+    f["first_time_payee"] = req.payee_upi_id.lower() not in base.known_payees and not paid_here
+    # c2-0.7: a saved contact on the phone. Softens "new payee" only; never makes a payment safe.
+    f["payee_in_contacts"] = ctx.payee_in_contacts if ctx else None
     f["entry_typed"] = req.entry_method == "typed"
     f["attempts_72h"] = st.attempts_72h
+    f["payee_in_run"] = st.payee_in_run
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
     f["trusted_payee"] = trusted
     f.update(session_features(ctx.session if ctx else None))

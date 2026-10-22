@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ruko.demo.data.PaymentState
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.ui.auth.AuthState
 import com.ruko.demo.ui.auth.AuthViewModel
@@ -28,6 +29,8 @@ private object Routes {
     const val SUCCESS = "success"
     const val PROFILE = "profile"
     const val DEBUG = "debug"
+    const val HISTORY = "history"
+    const val CONTACTS = "contacts"
 }
 
 /** Sign up or login first; the payment app only exists once the account is unlocked. */
@@ -77,11 +80,14 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 trustedName = auth.profile?.trustedName,
                 trustedMobile = auth.profile?.trustedMobile,
                 onPay = {
+                    auth.closeAbandonedPayments()
                     vm.reset()
                     nav.navigate(Routes.PAY)
                 },
                 onProfile = { nav.navigate(Routes.PROFILE) },
                 onDebug = { nav.navigate(Routes.DEBUG) },
+                onHistory = { nav.navigate(Routes.HISTORY) },
+                onPayContact = { nav.navigate(Routes.CONTACTS) },
             )
         }
         composable(Routes.PAY) {
@@ -90,6 +96,8 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 recentPayees = auth.recentPayees,
                 onBack = { nav.popBackStack() },
                 onDecided = { decision ->
+                    // Every check enters the history, with its payment id (the request_id).
+                    vm.checkedPayment?.let(auth::recordCheck)
                     // Silence is a feature: T0 goes straight to the PIN with nothing shown.
                     val silent = decision is Decision.Result && decision.response.tier == "T0"
                     nav.navigate(if (silent) Routes.PIN else Routes.DECISION)
@@ -100,7 +108,10 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
             DecisionScreen(
                 vm = vm,
                 onContinue = { nav.navigate(Routes.PIN) },
-                onCancel = { nav.popBackStack(Routes.HOME, inclusive = false) },
+                onCancel = {
+                    vm.checkedPayment?.let { auth.settlePayment(it.id, PaymentState.CANCELLED) }
+                    nav.popBackStack(Routes.HOME, inclusive = false)
+                },
             )
         }
         composable(Routes.PIN) {
@@ -108,6 +119,7 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 auth.rememberPayee(vm.upiId)
                 auth.rememberPayment(vm.upiId, vm.amountInr)
                 auth.rememberTypingGap(vm.lastTypingGap)
+                vm.checkedPayment?.let { auth.settlePayment(it.id, PaymentState.COMPLETED) }
                 nav.navigate(Routes.SUCCESS) { popUpTo(Routes.HOME) }
             })
         }
@@ -116,6 +128,15 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
         }
         composable(Routes.PROFILE) {
             ProfileScreen(auth, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.CONTACTS) {
+            ContactsScreen(vm, onBack = { nav.popBackStack() }, onReady = {
+                auth.closeAbandonedPayments()
+                nav.navigate(Routes.PAY) { popUpTo(Routes.HOME) }
+            })
+        }
+        composable(Routes.HISTORY) {
+            HistoryScreen(auth.history, onOpen = auth::reportOutcomes, onBack = { nav.popBackStack() })
         }
         composable(Routes.DEBUG) {
             DebugPanel(vm, auth.consents, onBack = { nav.popBackStack() })

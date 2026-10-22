@@ -238,8 +238,6 @@
     <string name="shield_channel_name">Scam Shield alerts</string>
     <string name="shield_channel_desc">Warnings when your money alerts look like a task or job scam.</string>
     <string name="shield_working">Scam Shield is checking a money alert</string>
-    <string name="shield_watching_title">Got money for a “task”?</string>
-    <string name="shield_watching_text">Got %1$s for a “task”? Real jobs never ask you to pay to get your earnings.</string>
     <string name="shield_active_title">This looks like a task scam</string>
     <string name="shield_active_text">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
     <string name="shield_out_title">Do not pay more</string>
@@ -259,7 +257,6 @@
     <string name="delete_history_title">Delete money history?</string>
     <string name="delete_history_body">This removes the money alerts and payments Scam Shield has seen. Watching continues from now.</string>
     <string name="delete_history_confirm">Delete history</string>
-    <string name="episode_title_watching">Be careful with “task” money</string>
     <string name="episode_title_active">This looks like a task scam</string>
     <string name="episode_body_watching">You received %1$s from %2$d unknown accounts. Real jobs never ask you to pay to get your earnings.</string>
     <string name="episode_body_active">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
@@ -278,4 +275,51 @@
     <string name="debug_sim_bait">Simulate bait credit</string>
     <string name="debug_sim_debit">Simulate outgoing debit</string>
     <string name="debug_plus_day">+1 day</string>
+
+    <!-- Payment history (c2-0.6) -->
+    <string name="history_title">Payment history</string>
+    <string name="history_note">Every payment you start here, stored encrypted on this phone for 90 days. Each has a payment ID to trace it with your bank or Scam Shield support.</string>
+    <string name="history_empty">No payments yet. Each payment you start will appear here with its payment ID.</string>
+    <string name="history_status_completed">Paid</string>
+    <string name="history_status_cancelled">Cancelled</string>
+    <string name="history_status_pending">In progress</string>
+    <string name="history_result_t0">No concerns found</string>
+    <string name="history_result_t1">Tip shown</string>
+    <string name="history_result_t2">Warning shown</string>
+    <string name="history_result_t3">Paused for safety</string>
+    <string name="history_result_unavailable">Safety check unavailable</string>
+    <string name="history_payment_id">Payment ID</string>
+    <string name="history_copy">Copy</string>
+    <string name="history_copied">Payment ID copied</string>
+    <string name="history_when">When</string>
+    <string name="history_to">To</string>
+    <string name="history_amount">Amount</string>
+    <string name="history_entered">UPI ID</string>
+    <string name="history_shield">Scam Shield</string>
+    <string name="history_reasons">Why</string>
+    <string name="history_status">Status</string>
+    <string name="history_sync">Shared with Scam Shield</string>
+    <string name="history_sync_done">Yes</string>
+    <string name="history_sync_waiting">Waiting to send</string>
+    <string name="history_close">Close</string>
+    <string name="entry_typed">Typed by hand</string>
+    <string name="entry_contact">Saved payee</string>
+    <string name="entry_qr">Scanned QR code</string>
+    <string name="entry_collect">Collect request</string>
+    <string name="success_payment_id">Payment ID: %1$s</string>
+
+    <!-- Pay a mobile number / contacts (c2-0.7) -->
+    <string name="contacts_title">Pay a mobile number</string>
+    <string name="contacts_search">Search a name or type a mobile number</string>
+    <string name="contacts_finding">Finding the UPI ID linked to this number…</string>
+    <string name="contacts_bad_number">That is not a valid mobile number.</string>
+    <string name="contacts_not_linked">No UPI ID is linked to this number.</string>
+    <string name="contacts_unreachable">Could not look up this number right now. Try again, or pay by UPI ID.</string>
+    <string name="contacts_permission">Allow Contacts to pick someone you know. Your contacts stay on this phone: Scam Shield only learns whether the person you pay is saved, never names or numbers.</string>
+    <string name="contacts_none">No contact matches.</string>
+    <string name="contacts_pay_number">Pay %1$s</string>
+    <string name="contacts_not_saved">Not in your contacts</string>
+    <string name="pay_contact">Saved contact, paid by mobile number</string>
+    <string name="pay_mobile_typed">Mobile number typed by hand</string>
+    <string name="pay_registered_name">Bank name: %1$s · %2$s</string>
 </resources>

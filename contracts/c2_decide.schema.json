@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.5",
+  "contract_version": "c2-0.7",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -169,6 +169,18 @@
               }
             ],
             "default": null
+          },
+          "payee_in_contacts": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payee In Contacts"
           }
         },
         "title": "Context",
@@ -754,7 +766,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.5",
+        "default": "c2-0.7",
         "title": "Contract Version",
         "type": "string"
       }
