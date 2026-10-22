@@ -3,15 +3,22 @@
 Owner: Diwansu Pilania. Everything here lives in `ml/`. Changes other folders need are in §12.
 
 ## 0. Status
+Synced with `main` at 372aa73 (contract c2-0.5, engine rules-0.4).
+
 | | Done | Check |
 |---|---|---|
-| M0 | `.venv` + `ml/requirements.txt`; `pytest ml/tests backend/tests` | 71 passed (backend also passes on pandas 3.0) |
-| M2 | `dataset/phone_view.py` (the app's exact readings), `dataset/replay.py`, `dataset/worlds.py` | replay == live engine, feature for feature (`test_replay_parity.py`) |
-| M3 | `model/metrics.py` (deck slide 7), `model/experiments.py` (ablation incl. rules-0.2) | runs; the current world is too easy to rank models (§12 Nikunj) |
+| M0 | `.venv` + `ml/requirements.txt` | `pytest ml/tests backend/tests`: 153 passed (23 ML, 130 backend), pandas 3.0 |
+| M2 | `dataset/phone_view.py` (the app's exact readings: call, device, lures, session), `dataset/episodes.py` (the backend's own episode state machine + episode events), `dataset/graph.py`, `dataset/replay.py`, `dataset/worlds.py` | replay == live engine, feature for feature, with episode events and the payment graph (`test_replay_parity.py`) |
+| M3 | `model/metrics.py` (deck slide 7), `model/experiments.py` (ablation incl. the current rules engine) | runs; the world is still too easy to rank models (§12) |
 | M4a | `model/lure_corpus.py` (3,643 synthetic EN / HI / Hinglish SMS), `model/lure_train.py` → `artifacts/lure.json` + `lure_vectors.json` | unseen templates: 84% scams caught, 0 false alarms (with the §12 Manjeet rule) |
 
-Synthetic worlds come from Nikunj's simulator; Nikunj owns that work. `ml/` only adds the phone view
-(consents, pay-screen behaviour) and the lure texts.
+Synthetic worlds come from `data/sim` (Nikunj; pay-screen sessions by Jagdeep). `ml/` only adds what
+the world does not say: which Scam Shield groups each phone has on (`dataset/assumptions.yaml`) and the
+"who are you paying?" answers, plus the lure texts.
+
+Known issue: replaying the `dev` world (360k payments) takes about 10 minutes, 6x slower since the
+payment graph, and it slows as the graph grows (`GraphStore.account_signals` scans every bait sender
+and every payer of busy shops). Needs an incremental index before the 20,000-user worlds.
 
 Commands (repo root, `PYTHONPATH=backend;ml;data`, `.venv\Scripts\python`):
 ```
@@ -251,42 +258,49 @@ prevalence, fairness slices, known gaps, versioning.
 | M8 | full evaluation + model card | `results.json` with every metric in §9 |
 
 ## 12. Needed from other owners
-Measured on the `dev` world (5,000 users × 60 days, `ml/runs/experiments_dev.json`).
+Measured on the `dev` world (5,000 users × 60 days, simulator as of 372aa73, `ml/runs/experiments_dev.json`).
 
-**Nikunj (data/sim): the world is too easy to show RUKO's value.** Every model scores 90–100%:
-transaction-only reaches PR-AUC 0.95, and today's stack (with lists) 0.995.
-1. **Mules are listed before victims pay:** 94% of scam payments go to a payee already on the I4C
+**Nikunj (data/sim): the world is still too easy to show RUKO's value.** Every model scores 95–100%
+(transaction-only PR-AUC 0.95; today's stack with lists 0.998). `data/eval/realism/FINDINGS.md` reaches
+the same verdict, and its fix list (mule account age, scam-only phone signals, amounts, too few
+positives, uniform normal life) covers most of what ML needs. In addition:
+1. **Mules are listed before victims pay:** 95% of scam payments go to a payee already on the I4C
    registry, because mules are reused for the whole 60 days. Make mules short-lived (used for a few
-   days, then dropped) with new ones appearing all the time. Most scam payments should reach accounts
-   no list knows yet (the deck's Gap 2).
-2. **Giveaways:** a model using only round-to-₹100 + typed + hour + "question asked" reaches PR-AUC
-   0.53 (base rate 0.002). Scam payments are round 72% of the time vs 1%, and typed 100% vs 3%.
-   Normal life needs round amounts (rent, family, fees, deposits) and typed payments of ₹2,000 or
-   more to new payees (landlord deposit, second-hand purchase, contractor, school fees). Some scams
-   should use QR codes, saved contacts or non-round amounts.
-3. **Large legit payments** (festival and wedding gifts, medical emergencies, deposits, vehicles), so
-   the amount alone is not a scam flag.
-4. **Hard negatives with phone context:** unknown calls during legit payments (seller or delivery agent
-   on the line), real AnyDesk support while paying a bill, gig workers and sellers getting many small
-   credits, merchant cashback, community collections (many payers, money forwarded to vendors).
-5. The 9 red-team journeys from deck page A3.
-6. **Done when** `python -m model.experiments` shows the giveaway set near the base rate and
+   days, then dropped) with new ones appearing all the time, so most scam payments reach accounts no
+   list knows yet (the deck's Gap 2).
+2. **Session leak (`data/sim/session.py`, with Jagdeep):** the "dictated amount" sign is on for 41% of
+   scam payments and 0.0% of normal ones, because a legit user's digit rhythm never breaks. Add legit
+   slow or dictated typing: an amount read off a bill or invoice, a family member saying it, typing
+   while distracted.
+3. Typed payments of ₹2,000 or more to new payees in normal life (landlord deposit, second-hand
+   purchase, contractor, school fees). Today "the app asked who you are paying" is itself a scam flag.
+4. The 9 red-team journeys from deck page A3.
+5. **Done when** `python -m model.experiments` shows the giveaway set near the base rate and
    transaction-only clearly below RUKO.
 
 **Jagdeep (backend):**
-1. **The tracker misses WhatsApp/VoIP scam calls.** `features/tracker.py` counts contact only when
-   `caller_in_contacts is False`, and `rule_scorer` R1 needs `caller_unknown`. A real phone sends
-   `null` for VoIP calls and outgoing SIM calls (ContextSensor never gets those numbers). In the
-   replay, 50% of scam payments stay at stage S0. Treat an active VoIP call (or a call with unknown
-   contact status) as possible contact.
-2. Contract: add optional `context.device_model = {version, c, l, b, p, reasons}` (bump version,
-   export, examples). In `features/build.py`, pass `device_c`, `device_l`, `device_b` and `device_p`
-   into the features (null when absent).
-3. `api/main.py`: choose the scorer with a flag (`--scorer rules|ml`), and make `/health` report the
-   active scorer's `model_version` (today it always reports `rules-0.2`).
-4. `policy.yaml`: adopt the values from `tune.py`, and make T3 match the deck (3+ families, or a live
+1. Fixed in 372aa73, thanks: baselines now use only earlier payments. `CLAUDE.md` rule 9 still says
+   "Known leak, not fixed".
+2. **The tracker still misses WhatsApp/VoIP scam calls.** `features/tracker.py` counts contact only when
+   `caller_in_contacts is False`, and `rule_scorer` R1 needs `caller_unknown`. A real phone sends `null`
+   for VoIP calls and outgoing SIM calls (ContextSensor never gets those numbers). In the replay, 29% of
+   scam payments stay at stage S0. Treat an active VoIP call (or a call with unknown contact status) as
+   possible contact.
+3. **Evaluation realism:** `data/eval/episode_eval.py` `phone_context` gives VoIP calls a caller number
+   and contact status, and sends every lure regardless of the 0.6 threshold. The app can do neither,
+   so evaluation numbers for call scams are optimistic. `ml/dataset/phone_view.py` follows the app
+   (tested) and can be reused.
+4. **`GraphStore.expire` scans every edge on every `/v1/decide`**, and `account_signals` scans every
+   bait sender and every payer of the payee. Fine for a demo, but not at the deck's 3,000 decisions/s.
+   `ml/dataset/graph.py` keeps a heap of expiry times and gives identical results
+   (`ml/tests/test_graph_expiry.py`).
+5. Contract: add optional `context.device_model = {version, c, l, b, p, reasons}` (bump version,
+   export, examples). In `features/build.py`, pass `device_c`, `device_l`, `device_b` and `device_p` into
+   the features (null when absent).
+6. `api/main.py`: choose the scorer with a flag (`--scorer rules|ml`), and make `/health` report the
+   active scorer's `model_version` (today it always reports the rule scorer's).
+7. `policy.yaml`: adopt the values from `tune.py`, and make T3 match the deck (3+ families, or a live
    call + mule-like payee).
-5. FYI: a fresh `pip install -r backend/requirements.txt` now gets pandas 3.0. The backend tests pass on it.
 
 **Manjeet (android):**
 1. Copy `ml/model/artifacts/lure.json` to `app/src/main/assets/lure.json` (18,824 n-grams, 1.5 MB).
@@ -297,9 +311,11 @@ transaction-only reaches PR-AUC 0.95, and today's stack (with lists) 0.995.
    space must split words).
 4. Unit test: score every text in `ml/model/artifacts/lure_vectors.json`. `probs` must match to 1e-6,
    and `tag` / `scam_tag` must match exactly.
-5. Later (M4b): `device_model.json` + `DeviceModel.kt`, and the device features in §6.2. That means
-   own-history stats and pay-screen session data (time on screen, paste, amount edits, backgrounded,
-   cancelled attempts), in-app only with no new permissions. Then send `context.device_model`.
+5. `CLAUDE.md` is out of date: the contract is c2-0.5 (not c2-0.4), the engine is rules-0.4, `ml/` is
+   no longer "not started", and `lure.json` exists.
+6. Later (M4b): `device_model.json` + `DeviceModel.kt`, and the private device features in
+   `ml/dataset/device_features.py` (own-history stats; the session numbers are already measured).
+   Then send `context.device_model`.
 
 **Deck wording:** slide 4 says Meena is "on a WhatsApp call ... with a number not in her contacts".
 The phone cannot know that for a WhatsApp call. It knows that a VoIP call is active and how long it

@@ -1,16 +1,18 @@
-"""What one phone would see and send at a Pay tap, rebuilt from the simulated world.
+"""What one phone would see and send at a Pay tap, rebuilt from the simulated world (contract c2-0.5).
 
 Mirrors the Android app so that training rows look like real requests:
 - ContextSensor.readCall: VoIP calls never expose the number, so `caller_in_contacts` is null for
   them; outgoing SIM calls carry no number either; a call that ended in the last 30 minutes is
-  still reported (kind, `ended_min_ago`).
+  still reported (kind, `ended_min_ago`). `speaker_on` is null: the simulator has no loudspeaker.
 - PhoneSignals: the caller's number is sent only for an incoming SIM call from a non-contact;
   `remote_access_active` needs the Android 15 screen-capture callback, otherwise it is null.
 - SmsScan / bestLureTags: lures come from SMS only, last 72 h, best confidence per tag, >= 0.6.
-- MoneyFlow.summarise: 72 h money summary; credits only when SMS checks are on.
+- `episode`: the background watcher's summary (dataset/episodes.py), null without SMS checks.
+- `session`: the world's `pay_session` event for this payment (data/sim/session.py), null with
+  "Session checks" off.
 - toRequestContext: a switched-off group is null; everything off means `context: null`.
 
-Invented numbers (consent rates, pay-screen behaviour, ...) live in assumptions.yaml.
+Consent rates live in assumptions.yaml; SMS consent comes from the world (users.sms_consent).
 """
 from __future__ import annotations
 
@@ -25,7 +27,7 @@ from statistics import median
 import pandas as pd
 import yaml
 
-from schema.events import CallSignal, Context, DeviceSignal, LureSignal, MoneySignal
+from schema.events import CallSignal, Context, DeviceSignal, EpisodeSignal, LureSignal, SessionSignal
 
 ASSUMPTIONS_PATH = Path(__file__).with_name("assumptions.yaml")
 SCAM_TAGS = ("arrest_threat", "kyc", "task_job", "trading_tip", "refund")
@@ -56,29 +58,19 @@ def minutes(seconds: float) -> float:
     return round(max(seconds, 0.0) / 6.0) / 10.0
 
 
-def escalation_steps(amounts: list[float], factor: float) -> int:
-    """MoneyFlow.escalationSteps: payments in a row, ending with the latest, each >= factor x the one before."""
-    steps = 0
-    for i in range(len(amounts) - 1, 0, -1):
-        if amounts[i] >= factor * amounts[i - 1]:
-            steps += 1
-        else:
-            break
-    return steps
-
-
 @dataclass(frozen=True)
 class Traits:
     """Per user, fixed for the run, drawn independently of whether the user is scammed."""
     call_signals: bool
     app_checks: bool
-    sms: bool
+    sms: bool              # SMS checks: lure scan and the background episode watcher
+    share_accounts: bool   # "Share suspicious accounts": episode events reach the server
+    session_signals: bool
     android_15: bool
-    pace: float  # personal speed on the pay screen; 1 is typical
 
     @property
     def any_shield(self) -> bool:
-        return self.call_signals or self.app_checks or self.sms
+        return self.call_signals or self.app_checks or self.sms or self.session_signals
 
 
 @dataclass
@@ -91,27 +83,18 @@ class Call:
     in_contacts: bool
 
 
-class Ledger:
-    """Every user's own payments and credits, in time order (epoch seconds)."""
+class OwnPayments:
+    """Every user's own payments, oldest first (the phone's app history + debit SMS)."""
 
-    def __init__(self, ledger: pd.DataFrame, user_upis: set[str], seed: int, parse_rate: float):
+    def __init__(self, ledger: pd.DataFrame, user_upis: set[str]):
         self.outs: dict[str, tuple[list[float], list[str], list[float]]] = {}
-        self.ins: dict[str, tuple[list[float], list[str], list[float], list[bool]]] = {}
-        led = ledger.sort_values("ts", kind="stable")
+        led = ledger[ledger.from_upi.isin(user_upis)].sort_values("ts", kind="stable")
         for t, frm, to, amt in zip(epoch_seconds(led.ts), led.from_upi.tolist(), led.to_upi.tolist(),
                                    led.amount.tolist()):
-            if frm in user_upis:
-                o = self.outs.setdefault(frm, ([], [], []))
-                o[0].append(t), o[1].append(to), o[2].append(float(amt))
-            if to in user_upis:
-                i = self.ins.setdefault(to, ([], [], [], []))
-                i[0].append(t), i[1].append(frm), i[2].append(float(amt))
-        # Which bank alerts the phone's parser can read: fixed per credit, drawn per user in order.
-        for upi, (ts, _, _, parsed) in self.ins.items():
-            rng = keyed_rng(seed, "sms_parse", upi)
-            parsed.extend(rng.random() < parse_rate for _ in ts)
+            o = self.outs.setdefault(frm, ([], [], []))
+            o[0].append(t), o[1].append(to), o[2].append(float(amt))
 
-    def outs_before(self, upi: str, t: float, since: float = -INF):
+    def before(self, upi: str, t: float, since: float = -INF):
         ts, to, amt = self.outs.get(upi, ([], [], []))
         lo, hi = bisect_left(ts, since), bisect_left(ts, t)
         return ts[lo:hi], to[lo:hi], amt[lo:hi]
@@ -120,39 +103,34 @@ class Ledger:
         ts, to, _ = self.outs.get(upi, ([], [], []))
         return set(to[:bisect_left(ts, t)])
 
-    def ins_before(self, upi: str, t: float, since: float):
-        ts, frm, amt, parsed = self.ins.get(upi, ([], [], [], []))
-        lo, hi = bisect_left(ts, since), bisect_left(ts, t)
-        return ts[lo:hi], frm[lo:hi], amt[lo:hi], parsed[lo:hi]
-
 
 class PhoneView:
     """Rebuilds, for any user and moment, the `context` the phone would send and the private
     readings the on-device model uses."""
 
-    def __init__(self, tables: dict[str, pd.DataFrame], assumptions: dict | None = None, seed: int = 0,
-                 ledger: Ledger | None = None):
+    def __init__(self, tables: dict[str, pd.DataFrame], assumptions: dict | None = None, seed: int = 0):
         self.a = assumptions or load_assumptions()
         self.p = self.a["phone"]
         self.seed = seed
         users = tables["users"]
         self.user_upi = dict(zip(users.user_id, users.upi_id))
-        self.traits = {u: self._draw_traits(u, age) for u, age in zip(users.user_id, users.age_band)}
+        sms = dict(zip(users.user_id, users.sms_consent)) if "sms_consent" in users else {}
+        self.traits = {u: self._draw_traits(u, sms.get(u)) for u in users.user_id}
         acc = tables["accounts"]
         self.holder_type = dict(zip(acc.upi_id, acc.holder_type))
-        self.ledger = ledger or Ledger(tables["ledger"], set(self.user_upi.values()), seed,
-                                       self.p["bank_sms_parse_rate"])
+        self.payments = OwnPayments(tables["ledger"], set(self.user_upi.values()))
         self._index_events(tables["context_events"])
 
     # ---------- setup ----------
 
-    def _draw_traits(self, user_id: str, age_band: str) -> Traits:
+    def _draw_traits(self, user_id: str, sms: bool | None) -> Traits:
         r = keyed_rng(self.seed, "traits", user_id)
-        c, s = self.a["consent"], self.a["session"]
-        return Traits(
-            call_signals=r.random() < c["call_signals"], app_checks=r.random() < c["app_checks"],
-            sms=r.random() < c["sms"], android_15=r.random() < self.a["android_15_share"],
-            pace=r.lognormvariate(0, s["pace_sigma"]) * s["pace_by_age"].get(age_band, 1.0))
+        c = self.a["consent"]
+        call, app, sms_draw, share, session, a15 = (r.random() for _ in range(6))
+        sms_on = bool(sms) if sms is not None else sms_draw < c["sms"]
+        return Traits(call_signals=call < c["call_signals"], app_checks=app < c["app_checks"], sms=sms_on,
+                      share_accounts=sms_on and share < c["share_accounts"],
+                      session_signals=session < c["session_signals"], android_15=a15 < self.a["android_15_share"])
 
     def _index_events(self, ev: pd.DataFrame) -> None:
         self.calls: dict[str, list[Call]] = {}
@@ -161,6 +139,7 @@ class PhoneView:
         self.accessibility: dict[str, list[float]] = {}
         self.remote_sessions: dict[str, list[float]] = {}
         self.lures: dict[str, list[tuple[float, str, float]]] = {}
+        self.pay_sessions: dict[str, dict[float, dict]] = {}
         lure_types = {"sms_lure"} | ({"notification_lure"} if self.p["notification_lures_visible"] else set())
         open_calls: dict[tuple[str, str], list[Call]] = {}
         ev = ev.sort_values("ts", kind="stable")
@@ -192,6 +171,8 @@ class PhoneView:
                 self.remote_sessions.setdefault(uid, []).append(t)
             elif etype in lure_types:
                 self.lures.setdefault(uid, []).append((t, at["tag"], float(at["conf"])))
+            elif etype == "pay_session":  # logged at the payment's own time
+                self.pay_sessions.setdefault(uid, {})[t] = at
         for cs in self.calls.values():
             cs.sort(key=lambda c: c.start)
         self.call_starts = {u: [c.start for c in cs] for u, cs in self.calls.items()}
@@ -285,47 +266,26 @@ class PhoneView:
                 for tag, conf, ago in sorted(best.values(), key=lambda h: -h[1])]
         return sent, hits
 
-    def read_money(self, uid: str, t: float) -> tuple[MoneySignal | None, dict | None]:
-        """MoneyFlow.summarise over this app's payments and (with SMS checks on) bank credit alerts."""
-        tr = self.traits[uid]
-        if not tr.any_shield:
-            return None, None
-        upi = self.user_upi[uid]
-        since = t - self.p["money_window_h"] * HOUR
-        o_ts, o_to, o_amt = self.ledger.outs_before(upi, t, since)
-        paid_before = self.ledger.payees_before(upi, since)
-        paid = paid_before | set(o_to)
-        new_payees = len({p for p in o_to if p not in paid_before})
-        raw = {"debits": len(o_amt), "debits_inr": sum(o_amt), "new_payees": new_payees,
-               "escalation_steps": escalation_steps(o_amt, self.p["escalation_factor"]),
-               "last_debit_inr": o_amt[-1] if o_amt else None,
-               "bait_credits": None, "bait_inr": None, "credits_inr": None, "bait_30d": None}
-        if tr.sms:
-            i_ts, i_from, i_amt, parsed = self.ledger.ins_before(upi, t, since)
-            seen = [(f, a) for f, a, ok in zip(i_from, i_amt, parsed) if ok]
-            bait = [a for f, a in seen if a <= self.p["bait_max_inr"] and f not in paid]
-            raw.update(bait_credits=len(bait), bait_inr=sum(bait), credits_inr=sum(a for _, a in seen))
-            # 30-day view for the on-device episode features (the phone keeps 30 days encrypted).
-            m_ts, m_from, m_amt, m_ok = self.ledger.ins_before(upi, t, t - 30 * DAY)
-            paid_30 = self.ledger.payees_before(upi, t)
-            raw["bait_30d"] = sum(1 for f, a, ok in zip(m_from, m_amt, m_ok)
-                                  if ok and a <= self.p["bait_max_inr"] and f not in paid_30)
-        sig = MoneySignal(
-            bait_credits=raw["bait_credits"], credits_inr=raw["credits_inr"], debits=raw["debits"],
-            debits_inr=raw["debits_inr"], new_payees=new_payees, escalation_steps=raw["escalation_steps"],
-            last_debit_inr=raw["last_debit_inr"])
-        return sig, raw
+    def read_session(self, uid: str, t: float) -> dict | None:
+        """The Pay-screen numbers of the payment at `t` (c2-0.5); None with session checks off."""
+        if not self.traits[uid].session_signals:
+            return None
+        return self.pay_sessions.get(uid, {}).get(t)
 
-    def context_at(self, uid: str, t: float) -> tuple[Context | None, dict]:
-        """The request's `context` (PhoneSignals.toRequestContext) and the raw readings."""
+    def context_at(self, uid: str, t: float, episode: dict | None = None) -> tuple[Context | None, dict]:
+        """The request's `context` (PhoneSignals.toRequestContext) and the raw readings.
+        `episode` is the watcher's summary (dataset/episodes.py), None when the watcher is off."""
         call, call_raw = self.read_call(uid, t)
         device, device_raw = self.read_device(uid, t)
         lures, lure_hits = self.read_lures(uid, t)
-        money, money_raw = self.read_money(uid, t)
-        raw = {"call": call_raw, "device": device_raw, "lure_hits": lure_hits, "money": money_raw}
-        if call is None and device is None and not lures and money is None:
+        session = self.read_session(uid, t)
+        raw = {"call": call_raw, "device": device_raw, "lure_hits": lure_hits, "episode": episode,
+               "session": session}
+        if call is None and device is None and not lures and episode is None and session is None:
             return None, raw
-        return Context(call=call, device=device, lures=lures, money=money), raw
+        return Context(call=call, device=device, lures=lures,
+                       episode=EpisodeSignal(**episode) if episode is not None else None,
+                       session=SessionSignal(**session) if session is not None else None), raw
 
     # ---------- per payment draws ----------
 
@@ -341,29 +301,12 @@ class PhoneView:
         answers, weights = zip(*table.items())
         return rng.choices(answers, weights=weights)[0]
 
-    def session(self, rng: random.Random, uid: str, entry: str, is_scam: bool, playbook: str | None,
-                first_time: bool) -> dict:
-        """Pay-screen behaviour for one attempt, measured inside the app."""
-        s = self.a["session"]
-        coached = is_scam and rng.random() < s["coached_rate"].get(playbook or "", s["coached_rate"]["default"])
-        kind = "coached" if coached else "normal"
-        speed = "coached" if coached else ("new_payee" if first_time else "normal")
-        secs = rng.lognormvariate(math.log(s["seconds_median"][speed] * self.traits[uid].pace), s["seconds_sigma"])
-        return {
-            "seconds": round(secs, 1),
-            "pasted": entry == "typed" and rng.random() < s["pasted_upi_rate"][kind],
-            "edits": _poisson(rng, s["amount_edits_mean"][kind]),
-            "backgrounded": rng.random() < s["backgrounded_rate"][kind],
-            "cancelled_10m": int(rng.random() < s["cancelled_10m_rate"][kind]),
-            "coached": coached,  # ground truth, for evaluation only; never a feature
-        }
-
-    # ---------- own history (all UPI apps: this app + bank SMS) ----------
+    # ---------- own history (all UPI apps: this app + debit SMS) ----------
 
     def own_history(self, uid: str, t: float, days: int = 90) -> dict:
         upi = self.user_upi[uid]
-        ts, _, amt = self.ledger.outs_before(upi, t, t - days * DAY)
-        return {"ts": ts, "amounts": amt, "payees": self.ledger.payees_before(upi, t),
+        ts, _, amt = self.payments.before(upi, t, t - days * DAY)
+        return {"ts": ts, "amounts": amt, "payees": self.payments.payees_before(upi, t),
                 "p95": _quantile(amt, 0.95) if amt else None, "max": max(amt) if amt else None,
                 "median": median(amt) if amt else None}
 
@@ -374,12 +317,3 @@ def _quantile(xs: list[float], q: float) -> float:
     lo = math.floor(k)
     hi = min(lo + 1, len(s) - 1)
     return s[lo] + (s[hi] - s[lo]) * (k - lo)
-
-
-def _poisson(rng: random.Random, mean: float) -> int:
-    limit, k, p = math.exp(-mean), 0, 1.0
-    while True:
-        p *= rng.random()
-        if p <= limit:
-            return k
-        k += 1

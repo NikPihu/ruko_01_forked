@@ -1,34 +1,42 @@
-"""Features of the on-device model. Computed on the phone, never sent.
+"""Features of the on-device model (contract c2-0.5 inputs plus private readings). Never sent.
 
 This module is also the spec for the Android side: every feature's meaning and null rule is here.
 `None` means the phone could not measure it (group switched off, no permission, too little
-history). It never means "safe".
+history). It never means "safe" (CLAUDE.md rule 1).
 
-The device model runs only when at least one Scam Shield group is on. Its three families:
+The device model runs only when at least one Scam Shield group is on. Its three families keep the
+engine's rule 5 (one source of evidence never lights two families):
     C  calls and remote control
-    L  lure messages and small "reward" credits
-    B  the user's own spending (all UPI apps, via this app's history and bank SMS) and
-       behaviour on the pay screen
+    L  lure messages and the whole task-scam episode (one phone summary -> one family)
+    B  the user's own spending (all UPI apps) and behaviour on the Pay screen
 """
 from __future__ import annotations
 
 import math
 
+from features.episode import STATE_CODE
+
 COLD_START_PAYMENTS = 10  # fewer own payments in 90 days -> personal comparisons are unknown
 LURE_TAG_FEATURE = {"arrest_threat": "dev_lure_arrest", "kyc": "dev_lure_kyc", "task_job": "dev_lure_task",
                     "trading_tip": "dev_lure_trading", "refund": "dev_lure_refund"}
+# contracts/README.md `session` fields -> device features (same numbers the phone sends).
+SESSION_FEATURE = {"amount_digits": "dev_sess_digits", "amount_median_gap_s": "dev_sess_median_gap_s",
+                   "amount_max_gap_s": "dev_sess_max_gap_s", "amount_gap_vs_usual": "dev_sess_gap_vs_usual",
+                   "amount_edits": "dev_sess_edits", "payee_pasted": "dev_sess_pasted",
+                   "pasted_within_s_of_return": "dev_sess_paste_after_return_s",
+                   "app_switches": "dev_sess_app_switches", "away_s": "dev_sess_away_s",
+                   "pay_screen_s": "dev_sess_pay_screen_s", "abandoned_flows_30m": "dev_sess_abandoned_30m"}
 
 FAMILIES: dict[str, list[str]] = {
     "C": ["dev_call_active", "dev_call_voip", "dev_call_unknown", "dev_call_incoming", "dev_call_minutes",
           "dev_call_ended_min_ago", "dev_call_foreign", "dev_remote_installed", "dev_remote_min_ago",
           "dev_screen_recorded", "dev_accessibility", "dev_sideloaded_24h"],
     "L": ["dev_lure_max", *LURE_TAG_FEATURE.values(), "dev_lure_count_72h", "dev_lure_min_ago",
-          "dev_bait_72h", "dev_bait_inr_72h", "dev_bait_30d", "dev_sent_to_received_72h"],
+          "dev_ep_state", "dev_ep_age_days", "dev_ep_bait_credits", "dev_ep_bait_inr", "dev_ep_outs",
+          "dev_ep_new_payees", "dev_ep_escalation", "dev_ep_out_to_in", "dev_ep_payee_seen"],
     "B": ["dev_amount_log10", "dev_entry_typed", "dev_entry_qr", "dev_first_time_payee", "dev_hist_n",
           "dev_amount_to_p95", "dev_amount_to_max", "dev_amount_to_median", "dev_out_1h", "dev_out_24h",
-          "dev_new_payees_72h", "dev_escalation_steps", "dev_hour_share",
-          "dev_sess_seconds", "dev_sess_pasted", "dev_sess_edits", "dev_sess_backgrounded",
-          "dev_sess_cancelled_10m"],
+          "dev_hour_share", *SESSION_FEATURE.values()],
 }
 ALL = [f for fam in FAMILIES.values() for f in fam]
 
@@ -37,8 +45,12 @@ def _b(x) -> float | None:
     return None if x is None else float(bool(x))
 
 
+def _n(x) -> float | None:
+    return None if x is None else float(x)
+
+
 def device_features(raw: dict, history: dict, amount: float, entry: str, payee: str, t: float,
-                    session: dict, any_shield: bool, escalation_factor: float = 1.5) -> dict:
+                    any_shield: bool, escalation_factor: float = 1.5) -> dict:
     """raw: PhoneView.context_at readings; history: PhoneView.own_history; t: epoch seconds."""
     if not any_shield:
         return dict.fromkeys(ALL)
@@ -61,9 +73,8 @@ def device_features(raw: dict, history: dict, amount: float, entry: str, payee: 
     f["dev_accessibility"] = None if dev is None else _b(dev["accessibility"])
     f["dev_sideloaded_24h"] = None if dev is None else _b(dev["sideloaded_24h"])
 
-    # L: every scam-tag message in 72 h, at any confidence (null when SMS checks are off)
+    # L: every scam-tag SMS in 72 h at any confidence (null without SMS checks), and the episode
     hits = raw["lure_hits"]
-    money = raw["money"]
     if hits is None:
         for k in ("dev_lure_max", *LURE_TAG_FEATURE.values(), "dev_lure_count_72h", "dev_lure_min_ago"):
             f[k] = None
@@ -73,14 +84,25 @@ def device_features(raw: dict, history: dict, amount: float, entry: str, payee: 
             f[name] = max((c for tg, c, _ in hits if tg == tag), default=0.0)
         f["dev_lure_count_72h"] = float(len(hits))
         f["dev_lure_min_ago"] = min((ago for _, _, ago in hits), default=None)
-    sms_money = money is not None and money["bait_credits"] is not None
-    f["dev_bait_72h"] = float(money["bait_credits"]) if sms_money else None
-    f["dev_bait_inr_72h"] = float(money["bait_inr"]) if sms_money else None
-    f["dev_bait_30d"] = float(money["bait_30d"]) if sms_money else None
-    f["dev_sent_to_received_72h"] = (round((money["debits_inr"] + amount) / money["credits_inr"], 3)
-                                     if sms_money and money["credits_inr"] else None)
+    ep = raw["episode"]
+    if ep is None:
+        for k in FAMILIES["L"][FAMILIES["L"].index("dev_ep_state"):]:
+            f[k] = None
+    else:
+        f["dev_ep_state"] = float(STATE_CODE[ep["state"]])
+        f["dev_ep_age_days"] = _n(ep["age_days"])
+        f["dev_ep_bait_credits"] = _n(ep["bait_credits"])
+        f["dev_ep_bait_inr"] = _n(ep["bait_inr"])
+        f["dev_ep_outs"] = _n(ep["outs"])
+        f["dev_ep_new_payees"] = _n(ep["new_payees"])
+        steps, last = ep["escalation_steps"], ep["last_out_inr"]
+        # Does this payment continue the run? (same rule as features.build)
+        f["dev_ep_escalation"] = (None if steps is None else
+                                  float(steps + 1 if last and amount >= escalation_factor * last else 0))
+        f["dev_ep_out_to_in"] = _n(ep["out_to_in_ratio"])
+        f["dev_ep_payee_seen"] = _b(ep["payee_seen_in_episode"])
 
-    # B: this payment against the user's own history, and the pay screen
+    # B: this payment against the user's own history, and the Pay screen
     n = len(history["amounts"])
     warm = n >= COLD_START_PAYMENTS
     f["dev_amount_log10"] = math.log10(amount)
@@ -93,20 +115,11 @@ def device_features(raw: dict, history: dict, amount: float, entry: str, payee: 
     f["dev_amount_to_median"] = round(amount / history["median"], 3) if warm and history["median"] else None
     f["dev_out_1h"] = float(sum(1 for x in history["ts"] if x >= t - 3600))
     f["dev_out_24h"] = float(sum(1 for x in history["ts"] if x >= t - 86400))
-    f["dev_new_payees_72h"] = None if money is None else float(money["new_payees"])
-    if money is None:
-        f["dev_escalation_steps"] = None
-    else:
-        steps = money["escalation_steps"]
-        last = money["last_debit_inr"]
-        # Does this payment continue the run? (same rule as features.build)
-        f["dev_escalation_steps"] = float(steps + 1 if last and amount >= escalation_factor * last else 0)
     f["dev_hour_share"] = _hour_share(history["ts"], t) if warm else None
-    f["dev_sess_seconds"] = session["seconds"]
-    f["dev_sess_pasted"] = _b(session["pasted"])
-    f["dev_sess_edits"] = float(session["edits"])
-    f["dev_sess_backgrounded"] = _b(session["backgrounded"])
-    f["dev_sess_cancelled_10m"] = float(session["cancelled_10m"])
+    ses = raw["session"]
+    for key, name in SESSION_FEATURE.items():
+        v = None if ses is None else ses.get(key)
+        f[name] = _b(v) if isinstance(v, bool) else _n(v)
     return f
 
 

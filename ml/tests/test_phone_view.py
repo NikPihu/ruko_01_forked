@@ -11,17 +11,21 @@ from dataset.phone_view import PhoneView, Traits
 IST = timezone(timedelta(hours=5, minutes=30))
 T = datetime(2026, 11, 1, 10, 0, tzinfo=IST)
 STRANGER, FOREIGN = "+919812345670", "+923001234567"
-ALL_ON = Traits(call_signals=True, app_checks=True, sms=True, android_15=True, pace=1.0)
+ALL_ON = Traits(call_signals=True, app_checks=True, sms=True, share_accounts=True, session_signals=True,
+                android_15=True)
+OFF = Traits(call_signals=False, app_checks=False, sms=False, share_accounts=False, session_signals=False,
+             android_15=True)
+SESSION = {"amount_digits": 5, "amount_median_gap_s": 3.1, "amount_max_gap_s": 6.0, "amount_gap_vs_usual": 4.2,
+           "amount_edits": 1, "payee_pasted": True, "pasted_within_s_of_return": 4.0, "app_switches": 2,
+           "away_s": 41.0, "pay_screen_s": 210.0, "abandoned_flows_30m": 1}
 
 
-def view(events=(), payments=(), traits=ALL_ON) -> PhoneView:
+def view(events=(), traits=ALL_ON) -> PhoneView:
     users = pd.DataFrame({"user_id": ["u1"], "upi_id": ["u1@ybl"], "age_band": ["60+"]})
-    accounts = pd.DataFrame({"upi_id": ["u1@ybl", "shop@okaxis", "mule@okaxis", "bait@ybl"],
-                             "holder_type": ["person", "merchant", "person", "person"]})
+    accounts = pd.DataFrame({"upi_id": ["u1@ybl", "shop@okaxis"], "holder_type": ["person", "merchant"]})
     ev = pd.DataFrame([{"ts": ts, "user_id": "u1", "event_type": et, "attrs": json.dumps(at)}
                        for ts, et, at in events], columns=["ts", "user_id", "event_type", "attrs"])
-    led = pd.DataFrame([{"ts": ts, "from_upi": f, "to_upi": to, "amount": a} for ts, f, to, a in payments],
-                       columns=["ts", "from_upi", "to_upi", "amount"])
+    led = pd.DataFrame(columns=["ts", "from_upi", "to_upi", "amount"])
     v = PhoneView({"users": users, "accounts": accounts, "context_events": ev, "ledger": led}, seed=0)
     v.traits["u1"] = traits
     return v
@@ -33,14 +37,15 @@ def call(start, minutes, number, kind="sim", direction="incoming", in_contacts=F
     return [(start, "call_started", at), (end, "call_ended", {**at, "duration_min": minutes})]
 
 
-def ctx(v: PhoneView, at=T):
-    return v.context_at("u1", at.timestamp())
+def ctx(v: PhoneView, at=T, episode=None):
+    return v.context_at("u1", at.timestamp(), episode)
 
 
 def test_voip_call_has_no_number_and_unknown_contact_status():
     c, raw = ctx(view(call(T - timedelta(minutes=38), 90, FOREIGN, kind="voip")))
     assert (c.call.active, c.call.kind, c.call.started_min_ago) == (True, "voip", 38.0)
     assert c.call.caller_in_contacts is None and c.call.caller_number is None and c.call.direction is None
+    assert c.call.speaker_on is None  # the simulator has no loudspeaker: unknown
     assert raw["call"]["foreign"] is None  # the phone cannot know
 
 
@@ -67,13 +72,13 @@ def test_a_call_that_ended_within_30_minutes_still_counts():
 
 
 def test_switched_off_groups_are_null_and_all_off_is_no_context():
-    off = Traits(call_signals=False, app_checks=False, sms=False, android_15=True, pace=1.0)
-    c, _ = ctx(view(call(T - timedelta(minutes=5), 30, STRANGER), traits=off))
+    c, _ = ctx(view(call(T - timedelta(minutes=5), 30, STRANGER), traits=OFF))
     assert c is None
-    apps_only = Traits(call_signals=False, app_checks=True, sms=False, android_15=True, pace=1.0)
+    apps_only = Traits(call_signals=False, app_checks=True, sms=False, share_accounts=False,
+                       session_signals=False, android_15=True)
     c, _ = ctx(view(traits=apps_only))
     assert c.call is None and c.device is not None and c.lures == []
-    assert c.money is not None and c.money.bait_credits is None and c.money.credits_inr is None
+    assert c.episode is None and c.session is None
 
 
 @pytest.mark.parametrize("android_15,session,expected", [(True, True, True), (True, False, False),
@@ -83,7 +88,8 @@ def test_remote_access_active_needs_the_android_15_capture_callback(android_15, 
                {"pkg": "com.anydesk.anydeskandroid", "is_remote_access": True, "sideloaded": False})]
     if session:
         events.append((T - timedelta(minutes=22), "remote_session_notice", {"pkg": "com.anydesk.anydeskandroid"}))
-    tr = Traits(call_signals=True, app_checks=True, sms=True, android_15=android_15, pace=1.0)
+    tr = Traits(call_signals=True, app_checks=True, sms=True, share_accounts=False, session_signals=True,
+                android_15=android_15)
     c, _ = ctx(view(events, traits=tr))
     assert c.device.remote_access_active is expected
     assert c.device.remote_app_installed_min_ago == 25.0
@@ -98,22 +104,37 @@ def test_lures_sent_only_from_threshold_and_best_per_tag():
     assert len(raw["lure_hits"]) == 4
 
 
-def test_money_flow_counts_bait_and_escalation_like_the_app():
-    pays = [(T - timedelta(hours=30), "bait@ybl", "u1@ybl", 150), (T - timedelta(hours=29), "bait@ybl", "u1@ybl", 200),
-            (T - timedelta(hours=20), "u1@ybl", "mule@okaxis", 1000), (T - timedelta(hours=10), "u1@ybl", "mule@okaxis", 2500),
-            (T - timedelta(hours=2), "u1@ybl", "mule@okaxis", 6000)]
-    v = view(payments=pays)
-    v.ledger.ins["u1@ybl"][3][:] = [True, True]  # both alerts parsed
-    c, _ = ctx(v)
-    m = c.money
-    assert (m.bait_credits, m.debits, m.new_payees, m.escalation_steps, m.last_debit_inr) == (2, 3, 1, 2, 6000)
-    no_sms = Traits(call_signals=True, app_checks=True, sms=False, android_15=True, pace=1.0)
-    c, _ = ctx(view(payments=pays, traits=no_sms))
-    assert c.money.bait_credits is None and c.money.debits == 3
+def test_session_is_the_payments_own_pay_session_event_and_respects_the_switch():
+    events = [(T, "pay_session", SESSION), (T - timedelta(minutes=9), "pay_session", {**SESSION, "app_switches": 0})]
+    c, _ = ctx(view(events))
+    assert c.session.model_dump() == SESSION
+    no_session = Traits(call_signals=True, app_checks=True, sms=True, share_accounts=False,
+                        session_signals=False, android_15=True)
+    c, _ = ctx(view(events, traits=no_session))
+    assert c.session is None
+
+
+def test_episode_summary_is_sent_as_is():
+    ep = {"state": "active", "age_days": 2.5, "bait_credits": 3, "bait_inr": 450.0, "outs": 3, "outs_inr": 9500.0,
+          "new_payees": 3, "escalation_steps": 2, "last_out_inr": 6000.0, "out_to_in_ratio": 21.11,
+          "payee_seen_in_episode": False, "rules_version": "episode-0.2"}
+    c, raw = ctx(view(traits=OFF), episode=ep)  # the watcher's summary alone is enough for a context
+    assert c.episode.model_dump() == ep and raw["episode"] is ep
 
 
 def test_device_features_are_all_null_when_scam_shield_is_off():
-    f = device_features({"call": None, "device": None, "lure_hits": None, "money": None},
+    f = device_features({"call": None, "device": None, "lure_hits": None, "episode": None, "session": None},
                         {"ts": [], "amounts": [], "payees": set(), "p95": None, "max": None, "median": None},
-                        500.0, "qr", "shop@okaxis", T.timestamp(), {}, any_shield=False)
+                        500.0, "qr", "shop@okaxis", T.timestamp(), any_shield=False)
     assert set(f) == set(ALL) and all(v is None for v in f.values())
+
+
+def test_device_features_keep_unknown_session_fields_unknown():
+    raw = {"call": None, "device": None, "lure_hits": None, "episode": None,
+           "session": {**SESSION, "amount_gap_vs_usual": None, "pasted_within_s_of_return": None}}
+    hist = {"ts": [], "amounts": [], "payees": set(), "p95": None, "max": None, "median": None}
+    f = device_features(raw, hist, 95_000.0, "typed", "mule@okaxis", T.timestamp(), any_shield=True)
+    assert f["dev_sess_gap_vs_usual"] is None and f["dev_sess_paste_after_return_s"] is None
+    assert f["dev_sess_pasted"] == 1.0 and f["dev_sess_app_switches"] == 2.0
+    assert f["dev_amount_to_p95"] is None  # no history: unknown, not "normal"
+    assert f["dev_ep_state"] is None and f["dev_lure_max"] is None

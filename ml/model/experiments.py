@@ -4,7 +4,7 @@
 
 Every row is scored by a model that never saw that payer (5 folds grouped by user). All rows use
 one LightGBM setup, so differences come from the features, not the tuning. The current engine
-(`api/rule_scorer`, rules-0.2) is scored on the same rows for reference.
+(`api/rule_scorer`, whatever version is on the branch) is scored on the same rows for reference.
 """
 from __future__ import annotations
 
@@ -68,8 +68,9 @@ def run(table: Path, per_1000: float = 5.0) -> dict:
     groups = df["user_id"].to_numpy()
     results = {"table": str(table), "alert_budget_per_1000": per_1000}
     t0 = time.perf_counter()
-    results["rules-0.2 (current engine)"] = evaluate(df, rules_scores(df), per_1000)
-    print(summary_line("rules-0.2 (current engine)", results["rules-0.2 (current engine)"]), flush=True)
+    engine = f"{rule_scorer.MODEL_VERSION} (current engine)"
+    results[engine] = evaluate(df, rules_scores(df), per_1000)
+    print(summary_line(engine, results[engine]), flush=True)
     for name, cols in feature_sets().items():
         missing = [c for c in cols if c not in x.columns]
         if missing:
