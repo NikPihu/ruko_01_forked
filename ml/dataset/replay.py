@@ -31,6 +31,7 @@ from dataset.phone_view import DAY, PhoneView, epoch_seconds, keyed_rng, load_as
 from features.build import build_features
 from features.tracker import StageTracker
 from features.user_baseline import UserBaseline
+from graph.store import GraphStore
 from intel_mock import bank, dot_fri, i4c_registry, npci
 from intel_mock.store import Store
 from schema.events import DecideRequest
@@ -82,20 +83,29 @@ class IntelReplay:
 
 
 class EngineReplay:
-    """The engine's decide path up to the scorer: tracker -> intel -> build_features."""
+    """The engine's decide path up to the scorer: tracker -> intel -> payment graph -> build_features.
+
+    The graph sees every payment check, as the live engine does. Not replayed (yet): `/v1/episode`
+    reports and analyst approvals, so `payee_approved_suspect` is always False here."""
 
     def __init__(self, store: Store):
         self.tracker = StageTracker()
         self.intel = IntelReplay(store)
+        self.graph = GraphStore()
 
     def step(self, req: DecideRequest, base: UserBaseline, trusted: bool = False, with_features: bool = True):
         upi = req.payee_upi_id.strip().lower()
         state = self.tracker.update(req, new_payee=upi not in base.known_payees and not trusted)
+        # Same order as api.main.decide_inner: this check is an edge before its signals are read.
+        self.graph.add_payment(req.user_id, upi, req.amount_inr, req.ts)
+        self.graph.expire(req.ts)
         if not with_features:
             return state, None, None
         call = req.context.call if req.context else None
         res = self.intel.lookup(upi, call.caller_number if call else None, req.ts)
-        return state, res, build_features(req, state, res, base, trusted)
+        ring = self.graph.account_signals(upi, req.ts)
+        ring["approved_suspect"] = False  # no analyst reviews in a replay
+        return state, res, build_features(req, state, res, base, trusted, ring=ring)
 
 
 def bank_baseline(view: PhoneView, uid: str, t: float) -> UserBaseline:
@@ -146,7 +156,7 @@ def replay(data_dir: str | Path, sample_normal: float = 0.25, warmup_days: float
         rng = keyed_rng(seed, "payment", tx)
         keep = t >= keep_from and (is_scam or rng.random() < sample_normal)
         base = bank_baseline(view, uid, t)
-        ctx, raw = view.context_at(uid, t)
+        ctx, raw = view.context_at(uid, t, to)
         says = view.payer_says(rng, entry, amount, is_scam, pb, to)
         req = DecideRequest(request_id=tx, user_id=uid, payee_upi_id=to, amount_inr=float(amount),
                             entry_method=entry, payer_says=says, ts=ts.to_pydatetime(), context=ctx)
@@ -165,7 +175,8 @@ def replay(data_dir: str | Path, sample_normal: float = 0.25, warmup_days: float
                 "journey_pay_index": pay_index, "weight": 1.0 if is_scam else 1.0 / sample_normal,
                 "payer_says": says, "has_context": ctx is not None,  # the tracker stage is feature `stage`
                 "consent_call": tr.call_signals, "consent_app": tr.app_checks, "consent_sms": tr.sms,
-                "android_15": tr.android_15, "coached": sess["coached"],
+                "android_15": tr.android_15, "consent_money_watch": tr.money_watch,
+                "consent_session": tr.session_checks, "coached": sess["coached"],
                 "intel_status": json.dumps(res.status, sort_keys=True),
                 # Audit only: never model inputs.
                 "audit_age_band": age, "audit_language": lang, "audit_region": region,

@@ -42,7 +42,8 @@ def requests(world):
     view = PhoneView(tables, seed=0)
     # Every phone signal on for most users, so the comparison covers every feature; a few opted out.
     for i, uid in enumerate(view.traits):
-        view.traits[uid] = Traits(i % 7 != 0, i % 7 != 0, i % 7 != 0, i % 2 == 0, 1.0)
+        on = i % 7 != 0
+        view.traits[uid] = Traits(on, on, on, i % 2 == 0, 1.0, money_watch=on, session_checks=i % 5 != 0)
     users = dict(zip(tables["users"].upi_id, tables["users"].user_id))
     led = tables["ledger"]
     led = led[(led.ts >= CUT) & led.from_upi.isin(users)].sort_values("ts", kind="stable")
@@ -50,7 +51,7 @@ def requests(world):
     out = []
     for tx, ts, frm, to, amount, entry, scam in zip(picked.tx_id, picked.ts, picked.from_upi, picked.to_upi,
                                                     picked.amount, picked.entry_method, picked.label_is_scam):
-        ctx, _ = view.context_at(users[frm], ts.timestamp())
+        ctx, _ = view.context_at(users[frm], ts.timestamp(), to)
         says = view.payer_says(keyed_rng(0, "payment", tx), entry, amount, bool(scam), "digital_arrest", to)
         out.append(DecideRequest(request_id=tx, user_id=users[frm], payee_upi_id=to, amount_inr=float(amount),
                                  entry_method=entry, payer_says=says, ts=ts.to_pydatetime(), context=ctx))
@@ -105,3 +106,6 @@ def test_replay_matches_the_live_engine(world, requests, monkeypatch):
     assert sum("caller_registry" in s for s in statuses) >= 1  # incoming SIM call from a stranger
     assert sum(r.context is None for r in requests) >= 3
     assert sum(f["payee_registry_listed"] is True for f in replayed) >= 1
+    assert sum(r.context is not None and r.context.episode is not None for r in requests) >= 20
+    assert sum(f["episode_state"] not in (None, 0) for f in replayed) >= 1  # an open episode
+    assert sum(r.context is not None and r.context.session is not None for r in requests) >= 20
