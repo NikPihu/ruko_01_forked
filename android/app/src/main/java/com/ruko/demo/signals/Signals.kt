@@ -59,6 +59,8 @@ object Signals {
     private lateinit var app: Context
     lateinit var sensor: ContextSensor
         private set
+    lateinit var contacts: ContactBook
+        private set
     var classifier: LureClassifier = KeywordLureClassifier
         private set
 
@@ -74,15 +76,22 @@ object Signals {
         if (::app.isInitialized) return
         app = context.applicationContext
         sensor = ContextSensor(app)
+        contacts = ContactBook(app)
         classifier = loadLureModel(app)
     }
 
     /**
      * Off the main thread: may read SMS and query packages. [payee] is the UPI ID being paid;
      * [session] is how the Pay screen was used for this payment (c2-0.5), sent only with
-     * "Session checks" on.
+     * "Session checks" on. [payeeMobile] is the mobile number the payee was paid by, if any; it is
+     * only matched against the phone's contacts (c2-0.7), never sent.
      */
-    fun read(consents: Consents, payee: String? = null, session: SessionSignal? = null): SignalReading {
+    fun read(
+        consents: Consents,
+        payee: String? = null,
+        session: SessionSignal? = null,
+        payeeMobile: String? = null,
+    ): SignalReading {
         val now = System.currentTimeMillis()
         val real = PhoneSignals(
             call = if (consents.callSignals) sensor.readCall(now) else null,
@@ -100,7 +109,14 @@ object Signals {
         // The background watcher's task-scam episode (c2-0.3); null while it is switched off.
         val episode = runCatching { ShieldController.summary(app, consents, payee) }.getOrNull()
         val ses = if (consents.sessionSignals) o.applyTo(session) else null
-        return SignalReading(phone, phone.toRequestContext(best, episode, ses), best, episode, o.active)
+        // Contacts are read under the call-checks consent, which asked for that permission.
+        val inContacts = when {
+            !consents.callSignals -> null
+            o.payeeInContacts != null -> o.payeeInContacts
+            payee != null -> runCatching { contacts.payeeInContacts(payee, payeeMobile) }.getOrNull()
+            else -> null
+        }
+        return SignalReading(phone, phone.toRequestContext(best, episode, ses, inContacts), best, episode, o.active)
     }
 
     private fun loadLureModel(context: Context): LureClassifier = try {

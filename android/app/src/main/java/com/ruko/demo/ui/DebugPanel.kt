@@ -93,6 +93,7 @@ fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
         BoolOverride("call.speaker_on", o.speakerOn) { set(o.copy(speakerOn = it)) }
         // Yes = a coached Pay screen (slow dictated amount, UPI ID pasted after switching apps).
         BoolOverride("session.coached", o.coachedSession) { set(o.copy(coachedSession = it)) }
+        BoolOverride("payee_in_contacts", o.payeeInContacts) { set(o.copy(payeeInContacts = it)) }
         SecondaryButton(stringResource(R.string.debug_clear), onClick = { set(SignalOverrides()) })
 
         SectionTitle(R.string.debug_watcher)

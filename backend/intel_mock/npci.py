@@ -48,7 +48,8 @@ def mapper(mobile: str, request: Request) -> dict:
     acct = s.by_mobile.get(mobile.strip())
     if acct is None or acct["created_at"] > s.now:
         raise HTTPException(404, {"mapped": False})
-    return {"mapped": True, "mobile": acct["mobile"], "upi_id": acct["upi_id"]}
+    # Like a real UPI app, the payer sees the name the account is registered in before paying.
+    return {"mapped": True, "mobile": acct["mobile"], "upi_id": acct["upi_id"], "registered_name": acct["holder_name"]}
 
 
 class PayRequest(BaseModel):

@@ -129,6 +129,12 @@ if ($Adb) {
     if ($devices) {
         & $Adb reverse "tcp:$phonePort" "tcp:$ApiPort" | Out-Null
         Write-Host "phone: adb reverse tcp:$phonePort -> laptop tcp:$ApiPort"
+        # The mock NPCI's UPI number mapper (mobile -> UPI ID), as a real PSP app would call it.
+        & $Adb reverse "tcp:8001" "tcp:$IntelPort" | Out-Null
+        Write-Host "phone: adb reverse tcp:8001 -> laptop tcp:$IntelPort (UPI number mapper)"
+        # The demo user's address book (people really paid in the world, plus a few never paid).
+        & $Py -m sim.contacts --data data --adb | Out-Null
+        if ($LASTEXITCODE -eq 0) { Write-Host "phone: Meena's contacts are in the phone's Contacts" }
     } else {
         Write-Host "no phone or emulator connected; run later: adb reverse tcp:$phonePort tcp:$ApiPort"
     }

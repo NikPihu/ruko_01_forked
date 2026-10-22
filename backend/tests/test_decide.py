@@ -465,3 +465,56 @@ def test_evidence_chain_verifies_with_scoreless_episode_records(tmp_path):
     store.write({**base, "id": "e_2", "tier": "episode_high", "p_scam": None})
     assert store.verify() == {"ok": True, "rows_checked": 2, "first_bad_id": None}
     assert store.get("e_2")["p_scam"] is None
+
+
+# ---------- c2-0.7: saved contacts and payees paid here before ----------
+
+def _new_payee_case(world, i=0):
+    """A user, someone they never paid, and an amount 2x their usual largest (so behaviour lights)."""
+    users = world[1]["users"].set_index("user_id")
+    user = users_in(world)[10 + i]
+    base = baseline(world, user)
+    payee = next(users.loc[u].upi_id for u in users_in(world, "Delhi")[i:] if users.loc[u].upi_id not in base.known_payees)
+    return user, payee, round(base.max_90d * 2)
+
+
+LURE = [{"tag": "arrest_threat", "conf": 0.85, "min_ago": 600}]
+
+
+def test_saved_contact_softens_new_payee_only(engine, world):
+    user, payee, amount = _new_payee_case(world)
+    stranger = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                                  context={"lures": LURE, "payee_in_contacts": False}, rid="r_s")).json()
+    contact = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                                 context={"lures": LURE, "payee_in_contacts": True}, rid="r_c",
+                                                 ts=NOW + timedelta(minutes=1))).json()
+    assert "R6_new_payee_typed" in stranger["reasons"]
+    assert "R6_new_payee_typed" not in contact["reasons"]
+    # The other families are untouched: the scam-like message still counts.
+    assert "R5_lure_message" in contact["reasons"] and contact["tier"] != "T0"
+    ev = engine.get(f"/v1/evidence/{contact['evidence_id']}").json()
+    assert ev["features"]["payee_in_contacts"] is True and ev["features"]["first_time_payee"] is True
+
+
+def test_unknown_contacts_are_not_softened(engine, world):
+    """Rule 1: null (contacts not readable) is treated like a stranger, never like a contact."""
+    user, payee, amount = _new_payee_case(world, 1)
+    r = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                           context={"lures": LURE, "payee_in_contacts": None})).json()
+    assert "R6_new_payee_typed" in r["reasons"]
+
+
+def test_payee_paid_here_before_is_known(engine, world):
+    user, payee, amount = _new_payee_case(world, 2)
+    first = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_first")).json()
+    assert "R6_new_payee_typed" in first["reasons"]
+    engine.post("/v1/payment/outcome", json={"request_id": "p_first", "user_id": user, "payee_upi_id": payee,
+                                             "amount_inr": amount, "status": "completed",
+                                             "ts": (NOW + timedelta(minutes=2)).isoformat()})
+    again = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_again",
+                                               ts=NOW + timedelta(hours=2))).json()
+    assert "R6_new_payee_typed" not in again["reasons"]
+    if again["evidence_id"]:
+        assert engine.get(f"/v1/evidence/{again['evidence_id']}").json()["features"]["first_time_payee"] is False

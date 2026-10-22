@@ -65,23 +65,26 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
 
-## Contract (current: c2-0.6)
+## Contract (current: c2-0.7)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
-  payer_says?, ts (+05:30), context {call, device, lures, episode, session}`; response tier T0 to
+  payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`.
 - `context.session` (c2-0.5): how the Pay screen of this payment was used (digit rhythm, paste
   after an app switch, app switches, time away, abandoned tries), counts and rounded seconds only;
   `null` when "Session checks" is off. All its signs are family B, so they can never interrupt on
   their own. `call.speaker_on` (c2-0.5) only adds weight to the C call signal. Field meanings are
   in `contracts/README.md`; phone and simulator must measure them the same way.
+- `context.payee_in_contacts` (c2-0.7): yes/no/null, the payee (paid by mobile number, or a
+  mobile-style UPI ID) is a saved contact. Never names or numbers. It only softens "new payee" (R6);
+  a payee is *known* when the bank's history or a completed payment here (c2-0.6) says so.
 - `POST /v1/payment/outcome` (c2-0.6): after the PIN or Cancel, the phone reports `completed` or
   `cancelled` for a payment, in the background. The payment id is the `/v1/decide` `request_id`;
   it is kept in the phone's history, the payment graph (`GET /v1/payments/{id}`) and the console.
 - `POST /v1/episode`: the phone's task-scam watcher reports a state change with at most 10
   accounts, only with "Share suspicious accounts" on; reply `episode_risk` in words.
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1, c2-0.3, c2-0.4 and
-  c2-0.5 requests still validate.
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.6
+  requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`. Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
@@ -96,7 +99,8 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
 The script makes `.venv`, generates `data/*.parquet` if missing (`-Regenerate` to rebuild), builds
 the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Node 18+), starts mock
 intel on 8001 and the API with `--demo-clock`, pumps the demo mule (and with `-BaitPump` the bait
-account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to the next free port
+account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
+Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
 (8002 on Manjeet's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
 
 - Analyst console: `http://127.0.0.1:<api port>/console/` (dev server: `cd console && npm run dev`,
@@ -108,8 +112,8 @@ account), and runs `adb reverse`. If laptop port 8000 is taken, the API moves to
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 144 tests (with PYTHONPATH set)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 58 tests
+.venv/Scripts/python -m pytest backend/tests -q          # 149 tests (with PYTHONPATH set)
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -132,7 +136,7 @@ mind. Offline episode features for training:
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
-- `api/rule_scorer.py` (`rules-0.5`, hand-set fallback until `ml/model/predict.py` exists),
+- `api/rule_scorer.py` (`rules-0.6`, hand-set fallback until `ml/model/predict.py` exists),
   `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds), `api/intel.py`,
   `api/episode_events.py`.
 - `features/`: `build.py` (one feature builder; `FAMILY` map), `tracker.py` (stages S0 to S5),
@@ -148,20 +152,23 @@ mind. Offline episode features for training:
 
 **Android** (`android/app/src/main/java/com/ruko/demo/`)
 - `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer, bank
-  SMS parser, `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
-  encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), debug panel (long press
+  SMS parser, `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
+  encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
 
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
   stream so the core world and demo identities never shift; `sim/session.py` adds Pay-screen
-  sessions the same way). `sim/mule_pump.py`, `sim/bait_pump.py` prepare live demos.
+  sessions the same way). `sim/mule_pump.py`, `sim/bait_pump.py` prepare live demos; `sim/contacts.py` builds a demo user's
+  address book (people really paid, plus a few never paid) and seeds it on the emulator.
 - `eval/`: `episode_eval.py`, `graph_eval.py`, `session_eval.py` (ground truth used for scoring
   only), `realism/` (`compare.py`, `FINDINGS.md`); `redteam/` is empty. `data/manifest.json` and `data/sample_v0/` are committed;
   `data/*.parquet` is git ignored.
 
 ## Demo identities
-- User `u_demo_meena` (Cache Pay passcode on the emulator: 482915).
+- User `u_demo_meena` (Cache Pay passcode on the emulator: 482915). Contacts: Sai Das, Aarav Yadav,
+  Rahul Kumar, Aarav Mishra (paid before), Arjun Pandey (sends her money), Kiran Sinha, Sunil Yadav,
+  Nikhil Singh (never paid).
 - Demo mule `secure.settlement.desk@okaxis`; kirana `shreeganesh.kirana@okaxis`.
 - Meena scenario (call + remote access + ₹95,000, "government") → T3 `t3_digital_arrest`.
 - Bait pump `--check` → T3 `t3_task_job` with R10, R3, R9, R11.

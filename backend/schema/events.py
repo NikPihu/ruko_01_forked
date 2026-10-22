@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.6"
+CONTRACT_VERSION = "c2-0.7"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -95,6 +95,9 @@ class Context(_M):
     lures: list[LureSignal] = Field(default_factory=list)
     episode: Optional[EpisodeSignal] = None  # c2-0.3 (the c2-0.2 `money` group was removed in c2-0.4)
     session: Optional[SessionSignal] = None  # c2-0.5
+    # c2-0.7: the payee's UPI ID, or the mobile number it was paid by, is a saved contact on the
+    # phone. Only this yes/no leaves the phone, never names or numbers. null = contacts not readable.
+    payee_in_contacts: Optional[bool] = None
 
 
 class DecideRequest(_M):

@@ -30,6 +30,7 @@ private object Routes {
     const val PROFILE = "profile"
     const val DEBUG = "debug"
     const val HISTORY = "history"
+    const val CONTACTS = "contacts"
 }
 
 /** Sign up or login first; the payment app only exists once the account is unlocked. */
@@ -86,6 +87,7 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 onProfile = { nav.navigate(Routes.PROFILE) },
                 onDebug = { nav.navigate(Routes.DEBUG) },
                 onHistory = { nav.navigate(Routes.HISTORY) },
+                onPayContact = { nav.navigate(Routes.CONTACTS) },
             )
         }
         composable(Routes.PAY) {
@@ -126,6 +128,12 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
         }
         composable(Routes.PROFILE) {
             ProfileScreen(auth, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.CONTACTS) {
+            ContactsScreen(vm, onBack = { nav.popBackStack() }, onReady = {
+                auth.closeAbandonedPayments()
+                nav.navigate(Routes.PAY) { popUpTo(Routes.HOME) }
+            })
         }
         composable(Routes.HISTORY) {
             HistoryScreen(auth.history, onOpen = auth::reportOutcomes, onBack = { nav.popBackStack() })

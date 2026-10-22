@@ -20,10 +20,14 @@ import com.ruko.demo.net.RukoApi
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.signals.SessionTracker
 import com.ruko.demo.signals.Signals
+import com.ruko.demo.signals.toE164
+import retrofit2.HttpException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+enum class ResolveError { BAD_NUMBER, NOT_LINKED, UNREACHABLE }
 
 sealed interface Decision {
     data class Result(val response: DecideResponse, val millis: Long) : Decision
@@ -39,6 +43,18 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
 
     // TYPED when the UPI ID was typed, CONTACT when it was picked from saved payees.
     var entryMethod by mutableStateOf(EntryMethod.TYPED)
+
+    // Paying by mobile number (c2-0.7): who it is and the number used. Cleared when the UPI ID is edited.
+    var payeeName by mutableStateOf<String?>(null)
+        private set
+    var registeredName by mutableStateOf<String?>(null)
+        private set
+    var payeeMobile by mutableStateOf<String?>(null)
+        private set
+    var resolving by mutableStateOf(false)
+        private set
+    var resolveError by mutableStateOf<ResolveError?>(null)
+        private set
 
     // Optional answer to "Who are you paying?" for a new payee.
     var payerSays by mutableStateOf<PayerSays?>(null)
@@ -89,6 +105,49 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         session.onPayeeChange(upiId, text, SystemClock.elapsedRealtime())
         upiId = text
         entryMethod = EntryMethod.TYPED
+        clearMobilePayee()
+    }
+
+    /**
+     * Pay a mobile number: a saved contact ([name] set, [picked] true) or a number typed by hand.
+     * The UPI number mapper (the mock NPCI) gives the UPI ID linked to it and its registered name.
+     */
+    fun payMobile(name: String?, mobile: String, picked: Boolean, onReady: () -> Unit) {
+        val e164 = toE164(mobile) ?: run { resolveError = ResolveError.BAD_NUMBER; return }
+        resolveError = null
+        resolving = true
+        viewModelScope.launch {
+            val mapped = try {
+                withContext(Dispatchers.IO) { ApiClient.npci.mapper(e164) }.takeIf { it.mapped && it.upiId != null }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpException) {
+                null // 404: no UPI ID is linked to this number
+            } catch (e: Exception) {
+                Log.w(TAG, "UPI number mapper not reachable", e)
+                resolving = false
+                resolveError = ResolveError.UNREACHABLE
+                return@launch
+            }
+            resolving = false
+            if (mapped == null) {
+                resolveError = ResolveError.NOT_LINKED
+                return@launch
+            }
+            reset()
+            upiId = mapped.upiId!!
+            entryMethod = if (picked) EntryMethod.CONTACT else EntryMethod.TYPED
+            payeeName = name ?: mapped.registeredName
+            registeredName = mapped.registeredName
+            payeeMobile = e164
+            onReady()
+        }
+    }
+
+    private fun clearMobilePayee() {
+        payeeName = null
+        registeredName = null
+        payeeMobile = null
     }
 
     fun typeAmount(text: String) {
@@ -104,6 +163,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
 
     fun pickSavedPayee(id: String) {
         session.onPayeePicked()
+        clearMobilePayee()
         upiId = id
         entryMethod = EntryMethod.CONTACT
         payerSays = null
@@ -131,7 +191,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
 
         viewModelScope.launch {
             val reading = try {
-                withContext(Dispatchers.IO) { Signals.read(consents, upiId, sessionSignal) }
+                withContext(Dispatchers.IO) { Signals.read(consents, upiId, sessionSignal, payeeMobile) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -169,6 +229,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
                 id = request.requestId,
                 ts = System.currentTimeMillis(),
                 payee = request.payeeUpiId,
+                payeeName = payeeName,
                 amountInr = amount,
                 entryMethod = request.entryMethod.name.lowercase(),
                 tier = answer?.tier,
@@ -190,6 +251,8 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         payerSays = null
         decision = null
         checkedPayment = null
+        clearMobilePayee()
+        resolveError = null
     }
 
     private companion object {

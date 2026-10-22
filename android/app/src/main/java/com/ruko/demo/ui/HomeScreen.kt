@@ -59,6 +59,7 @@ fun HomeScreen(
     onProfile: () -> Unit,
     onDebug: () -> Unit,
     onHistory: () -> Unit,
+    onPayContact: () -> Unit,
 ) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
@@ -78,7 +79,7 @@ fun HomeScreen(
                 trailing = { ShieldStatusChip(consents.moneyWatch) },
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TransferAction(CacheIcons.Phone, R.string.home_to_mobile, onPay, Modifier.weight(1f))
+                    TransferAction(CacheIcons.Phone, R.string.home_to_mobile, onPayContact, Modifier.weight(1f))
                     TransferAction(CacheIcons.Bank, R.string.home_to_bank, onPay, Modifier.weight(1f))
                     TransferAction(CacheIcons.ArrowDown, R.string.home_receive, demoOnly, Modifier.weight(1f))
                     TransferAction(CacheIcons.Rupee, R.string.home_check_balance, demoOnly, Modifier.weight(1f))
