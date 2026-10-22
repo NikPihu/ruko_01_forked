@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.6: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.7: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.6"
+const val CONTRACT_VERSION = "c2-0.7"
 
 @Serializable
 enum class CallKind {
@@ -111,6 +111,9 @@ data class Context(
     val lures: List<LureSignal> = emptyList(),
     val episode: EpisodeSignal? = null,
     val session: SessionSignal? = null, // c2-0.5; null when "Session checks" is off
+    // c2-0.7: the payee (its UPI ID, or the mobile it was paid by) is a saved contact. Only this
+    // yes/no leaves the phone, never names or numbers; null when contacts cannot be read.
+    @SerialName("payee_in_contacts") val payeeInContacts: Boolean? = null,
 )
 
 @Serializable

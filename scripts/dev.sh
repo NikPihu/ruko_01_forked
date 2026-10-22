@@ -65,6 +65,8 @@ echo "risk API up on $API_PORT"
 if command -v adb >/dev/null 2>&1 && adb devices | grep -q "	device$"; then
   adb reverse tcp:8000 "tcp:$API_PORT" >/dev/null
   echo "phone: adb reverse tcp:8000 -> laptop tcp:$API_PORT"
+  adb reverse tcp:8001 tcp:8001 >/dev/null   # mock NPCI's UPI number mapper
+  "$PY" -m sim.contacts --data data --adb >/dev/null && echo "phone: Meena's contacts are in the phone's Contacts"
 else
   echo "no phone found; run later: adb reverse tcp:8000 tcp:$API_PORT"
 fi

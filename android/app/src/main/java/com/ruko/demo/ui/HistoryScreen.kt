@@ -84,7 +84,10 @@ private fun HistoryRow(p: PaymentRecord, onClick: () -> Unit) {
     ) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(shieldColor(p.tier)))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(p.payee, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(p.payeeName ?: p.payee, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (p.payeeName != null) {
+                Text(p.payee, style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary, maxLines = 1)
+            }
             Text(
                 "${whenText(p.ts)} · ${shieldText(p.tier)}",
                 style = MaterialTheme.typography.bodySmall,
@@ -124,7 +127,7 @@ private fun PaymentDetail(p: PaymentRecord, onClose: () -> Unit) {
                     cm.setPrimaryClip(ClipData.newPlainText("Payment ID", p.id))
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 }) { Text(stringResource(R.string.history_copy), color = CacheColors.PrimaryLight) }
-                Field(stringResource(R.string.history_to)) { Text(p.payee) }
+                Field(stringResource(R.string.history_to)) { Text(listOfNotNull(p.payeeName, p.payee).joinToString(" · ")) }
                 Field(stringResource(R.string.history_when)) { Text(whenText(p.ts)) }
                 Field(stringResource(R.string.history_entered)) { Text(entryText(p.entryMethod)) }
                 Field(stringResource(R.string.history_shield)) { Text(shieldText(p.tier), color = shieldColor(p.tier)) }

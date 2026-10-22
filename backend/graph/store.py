@@ -284,6 +284,12 @@ class GraphStore:
         p = self.payments.get(request_id.strip())
         return p.view() if p else None
 
+    def paid_before(self, user_id: str, payee: str, before: datetime) -> bool:
+        """This user completed a payment to this payee before `before` (the phone said so, c2-0.6)."""
+        u, acc = user_node(user_id), payee.strip().lower()
+        return any((p := self.payments.get(r)) is not None and p.user == u and p.status == "completed"
+                   and (p.outcome_ts or p.ts) < before for r in self.payments_into.get(acc, ()))
+
     def payments_for(self, account: str, limit: int = 20) -> dict:
         """Payments into one account, newest first, with counts by status."""
         acc = account.strip().lower()

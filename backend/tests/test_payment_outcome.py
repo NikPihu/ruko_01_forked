@@ -115,7 +115,7 @@ def test_a_payment_is_traced_from_check_to_outcome(engine):
     d = decide(engine, "pay-1")
     r = outcome(engine, "pay-1", "completed")
     assert r.status_code == 200 and r.json() == {"request_id": "pay-1", "status": "completed", "recorded": True,
-                                                 "contract_version": "c2-0.6"}
+                                                 "contract_version": "c2-0.7"}
     p = engine.get("/v1/payments/pay-1").json()
     assert p["payment_id"] == "pay-1" and p["tier"] == d["tier"] and p["status"] == "completed" and p["checked"]
     listed = engine.get(f"/v1/graph/payments/{DEMO_KIRANA_UPI}").json()
@@ -136,3 +136,16 @@ def test_cancel_then_retry_are_two_payments(engine):
 def test_unknown_payment_id_is_404_and_bad_status_is_422(engine):
     assert engine.get("/v1/payments/nope").status_code == 404
     assert outcome(engine, "pay-x", "pending").status_code == 422
+
+
+def test_paid_before_needs_a_completed_payment_by_the_same_user():
+    g = GraphStore()
+    checked(g, user="u_a")
+    assert not g.paid_before("u_a", PAYEE, NOW + timedelta(hours=1))  # only checked
+    g.record_outcome("p1", "u_a", PAYEE, 2_000, "completed", NOW + timedelta(minutes=1))
+    assert g.paid_before("u_a", PAYEE.upper(), NOW + timedelta(hours=1))
+    assert not g.paid_before("u_a", PAYEE, NOW)          # not before it happened
+    assert not g.paid_before("u_b", PAYEE, NOW + timedelta(hours=1))
+    checked(g, rid="p2", user="u_c")
+    g.record_outcome("p2", "u_c", PAYEE, 2_000, "cancelled", NOW)
+    assert not g.paid_before("u_c", PAYEE, NOW + timedelta(hours=1))

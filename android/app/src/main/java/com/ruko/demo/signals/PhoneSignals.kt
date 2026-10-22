@@ -76,14 +76,20 @@ data class PhoneSignals(val call: CallReading?, val device: DeviceReading?) {
         lures: List<LureHit>,
         episode: EpisodeSignal? = null,
         session: SessionSignal? = null,
+        payeeInContacts: Boolean? = null,
     ): RequestContext? {
-        if (call == null && device == null && lures.isEmpty() && episode == null && session == null) return null
+        if (call == null && device == null && lures.isEmpty() && episode == null && session == null &&
+            payeeInContacts == null
+        ) {
+            return null
+        }
         return RequestContext(
             call = call?.toCallSignal(),
             device = device?.toDeviceSignal(),
             lures = lures.map { it.toLureSignal() },
             episode = episode,
             session = session,
+            payeeInContacts = payeeInContacts,
         )
     }
 }
@@ -115,6 +121,7 @@ data class SignalOverrides(
     val lureTag: String? = null,
     val speakerOn: Boolean? = null,
     val coachedSession: Boolean? = null, // true: a coached Pay screen, false: a calm one
+    val payeeInContacts: Boolean? = null,
 ) {
     val active: List<String>
         get() = buildList {
@@ -128,6 +135,7 @@ data class SignalOverrides(
             if (lureTag != null) add("lures")
             if (speakerOn != null) add("call.speaker_on")
             if (coachedSession != null) add("session")
+            if (payeeInContacts != null) add("payee_in_contacts")
         }
 
     /** Overrides only fill in groups the user consented to; a switched-off group stays null. */

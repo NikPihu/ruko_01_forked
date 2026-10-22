@@ -9,6 +9,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 /** Endpoints owned by Jagdeep. Feedback (POST /v1/feedback) is added in step 8. */
@@ -28,6 +29,21 @@ interface RukoApi {
     suspend fun paymentOutcome(@Body outcome: PaymentOutcome): PaymentOutcomeResponse
 }
 
+/** The mock NPCI, playing the part a real PSP app talks to. Not part of the RUKO contract. */
+interface NpciApi {
+    /** UPI number mapper: the UPI ID linked to a mobile number (+91XXXXXXXXXX), and its registered name. */
+    @GET("npci/mapper/{mobile}")
+    suspend fun mapper(@Path("mobile") mobile: String): MapperResponse
+}
+
+@kotlinx.serialization.Serializable
+data class MapperResponse(
+    val mapped: Boolean,
+    val mobile: String? = null,
+    @kotlinx.serialization.SerialName("upi_id") val upiId: String? = null,
+    @kotlinx.serialization.SerialName("registered_name") val registeredName: String? = null,
+)
+
 object ApiClient {
 
     // Guide step 8: 1 s client timeout. On timeout the app proceeds and shows
@@ -40,6 +56,13 @@ object ApiClient {
 
     // Episode events are off the payment path: the server looks every account up, so allow longer.
     val events: RukoApi = retrofit(OkHttpClient.Builder().callTimeout(15, TimeUnit.SECONDS).build())
+
+    val npci: NpciApi = Retrofit.Builder()
+        .baseUrl(BuildConfig.NPCI_BASE_URL)
+        .client(OkHttpClient.Builder().callTimeout(5, TimeUnit.SECONDS).build())
+        .addConverterFactory(RukoJson.asConverterFactory("application/json".toMediaType()))
+        .build()
+        .create(NpciApi::class.java)
 
     private fun retrofit(client: OkHttpClient): RukoApi = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)

@@ -20,6 +20,7 @@ data class PaymentRecord(
     val id: String,
     val ts: Long, // when Pay was tapped, epoch millis
     val payee: String,
+    @SerialName("payee_name") val payeeName: String? = null, // the contact's name, or the bank's registered name
     @SerialName("amount_inr") val amountInr: Double,
     @SerialName("entry_method") val entryMethod: String, // typed, contact, qr, collect
     val tier: String? = null, // Scam Shield's decision; null = safety check unavailable

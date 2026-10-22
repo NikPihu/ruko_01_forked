@@ -138,7 +138,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
         is_trusted = upi in trusted.get(req.user_id, set())
-        state = tracker.update(req, new_payee=upi not in base.known_payees and not is_trusted)
+        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
+        paid_here = graph.paid_before(req.user_id, upi, req.ts)
+        state = tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not is_trusted)
         ms["tracker"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -154,7 +156,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
-        feats = build_features(req, state, res, base, is_trusted, ring=ring)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()

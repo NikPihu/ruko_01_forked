@@ -29,6 +29,12 @@ android {
             "API_BASE_URL",
             "\"${localProps.getProperty("API_BASE_URL", "http://127.0.0.1:8000/")}\""
         )
+        // The mock NPCI (UPI number mapper: mobile -> UPI ID), as a PSP app would call NPCI.
+        buildConfigField(
+            "String",
+            "NPCI_BASE_URL",
+            "\"${localProps.getProperty("NPCI_BASE_URL", "http://127.0.0.1:8001/")}\""
+        )
     }
 
     buildTypes {

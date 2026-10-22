@@ -307,4 +307,19 @@
     <string name="entry_qr">Scanned QR code</string>
     <string name="entry_collect">Collect request</string>
     <string name="success_payment_id">Payment ID: %1$s</string>
+
+    <!-- Pay a mobile number / contacts (c2-0.7) -->
+    <string name="contacts_title">Pay a mobile number</string>
+    <string name="contacts_search">Search a name or type a mobile number</string>
+    <string name="contacts_finding">Finding the UPI ID linked to this number…</string>
+    <string name="contacts_bad_number">That is not a valid mobile number.</string>
+    <string name="contacts_not_linked">No UPI ID is linked to this number.</string>
+    <string name="contacts_unreachable">Could not look up this number right now. Try again, or pay by UPI ID.</string>
+    <string name="contacts_permission">Allow Contacts to pick someone you know. Your contacts stay on this phone: Scam Shield only learns whether the person you pay is saved, never names or numbers.</string>
+    <string name="contacts_none">No contact matches.</string>
+    <string name="contacts_pay_number">Pay %1$s</string>
+    <string name="contacts_not_saved">Not in your contacts</string>
+    <string name="pay_contact">Saved contact, paid by mobile number</string>
+    <string name="pay_mobile_typed">Mobile number typed by hand</string>
+    <string name="pay_registered_name">Bank name: %1$s · %2$s</string>
 </resources>
