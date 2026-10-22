@@ -1,64 +1,60 @@
-"""The replay must compute exactly the features the live engine computes for the same requests.
+"""The replay must compute exactly the features the live engine computes for the same phones.
 
-Both sides get the same world (ledger cut 3 days before the end) and the same request sequence
-from after the cut. The live side is the real engine over HTTP against the real mock services,
-with the mock clock set to each request's time; the replay side calls the same code directly.
+Both sides get the same world and the same time-ordered stream of what the phones send: episode
+events (POST /v1/episode) and payments (POST /v1/decide). The live side is the real engine over
+HTTP against the real mock services, with the mock clock set to each message's time; the replay
+side runs the same code without HTTP on the payment path.
 """
 import math
-from datetime import timedelta
 
 import httpx
-import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
 import api.main
 from api import rule_scorer
-from dataset.phone_view import PhoneView, Traits, keyed_rng
-from dataset.replay import EngineReplay, bank_baseline
+from dataset.episodes import EpisodeFeed
+from dataset.phone_view import PhoneView, Traits
+from dataset.replay import EngineReplay, load_world, phone_stream, world_start
+from features.user_baseline import Baselines
 from intel_mock.app import create_app as create_mock
 from intel_mock.store import Store
-from schema.events import DecideRequest
 from sim.config import SimConfig
 from sim.generate import build_world, write_world
 
-CFG = SimConfig(seed=3, n_users=300, n_days=20, scam_rate=0.05)
-CUT = CFG.end - timedelta(days=3)
+CFG = SimConfig(seed=3, n_users=300, n_days=20, scam_rate=0.08)
 
 
 @pytest.fixture(scope="module")
 def world(tmp_path_factory):
-    tables = build_world(CFG)
-    led = tables["ledger"]
-    truncated = {**tables, "ledger": led[led.ts < CUT].reset_index(drop=True)}
     out = tmp_path_factory.mktemp("world")
-    write_world(truncated, CFG, out)
-    return tables, truncated, out
-
-
-@pytest.fixture(scope="module")
-def requests(world):
-    tables = world[0]
-    view = PhoneView(tables, seed=0)
-    # Every phone signal on for most users, so the comparison covers every feature; a few opted out.
-    for i, uid in enumerate(view.traits):
-        on = i % 7 != 0
-        view.traits[uid] = Traits(on, on, on, i % 2 == 0, 1.0, money_watch=on, session_checks=i % 5 != 0)
-    users = dict(zip(tables["users"].upi_id, tables["users"].user_id))
-    led = tables["ledger"]
-    led = led[(led.ts >= CUT) & led.from_upi.isin(users)].sort_values("ts", kind="stable")
-    picked = pd.concat([led[led.label_is_scam], led[~led.label_is_scam].head(150)]).sort_values("ts", kind="stable")
-    out = []
-    for tx, ts, frm, to, amount, entry, scam in zip(picked.tx_id, picked.ts, picked.from_upi, picked.to_upi,
-                                                    picked.amount, picked.entry_method, picked.label_is_scam):
-        ctx, _ = view.context_at(users[frm], ts.timestamp(), to)
-        says = view.payer_says(keyed_rng(0, "payment", tx), entry, amount, bool(scam), "digital_arrest", to)
-        out.append(DecideRequest(request_id=tx, user_id=users[frm], payee_upi_id=to, amount_inr=float(amount),
-                                 entry_method=entry, payer_says=says, ts=ts.to_pydatetime(), context=ctx))
+    write_world(build_world(CFG), CFG, out)
     return out
 
 
-def live_features(data_dir, reqs, monkeypatch):
+@pytest.fixture(scope="module")
+def stream(world):
+    tables, manifest = load_world(world)
+    view = PhoneView(tables, seed=0)
+    # Most phones with everything on, so every feature is exercised; every 7th phone opted out.
+    for i, uid in enumerate(view.traits):
+        on = i % 7 != 0
+        view.traits[uid] = Traits(call_signals=on, app_checks=on, sms=on, share_accounts=on and i % 2 == 0,
+                                  session_signals=on, android_15=i % 2 == 0)
+    feed = EpisodeFeed(view.traits, world_start(manifest))
+    items = list(phone_stream(tables, view, feed, seed=0))
+    # Every episode event and scam payment, plus every 12th other payment (the live side is slow).
+    picked, n = [], 0
+    for item in items:
+        if item[0] == "pay" and not item[2]["is_scam"]:
+            n += 1
+            if n % 12:
+                continue
+        picked.append(item)
+    return picked
+
+
+def live_features(data_dir, items, monkeypatch) -> list[dict]:
     mock_app = create_mock(data_dir)
     mock = TestClient(mock_app)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=mock_app), base_url="http://mock")
@@ -68,11 +64,20 @@ def live_features(data_dir, reqs, monkeypatch):
     seen = []
     app.state.score = lambda f: (seen.append(dict(f)), rule_scorer.score(f))[1]
     engine = TestClient(app)
-    for req in reqs:
+    for item in items:
+        if item[0] == "episode":
+            mock.post("/sim/clock", json={"set": item[1]["ts"]}).raise_for_status()
+            engine.post("/v1/episode", json=item[1]).raise_for_status()
+            continue
+        req = item[1]
         mock.post("/sim/clock", json={"set": req.ts.isoformat()}).raise_for_status()
         r = engine.post("/v1/decide", json=req.model_dump(mode="json"))
         r.raise_for_status()
         assert not r.json()["fail_open"]
+        # After the PIN the phone reports the payment completed (c2-0.6).
+        engine.post("/v1/payment/outcome", json={
+            "request_id": req.request_id, "user_id": req.user_id, "payee_upi_id": req.payee_upi_id,
+            "amount_inr": req.amount_inr, "status": "completed", "ts": req.ts.isoformat()}).raise_for_status()
     return seen
 
 
@@ -82,20 +87,25 @@ def same(a, b) -> bool:
     return a == b and type(a) is type(b)
 
 
-def test_replay_matches_the_live_engine(world, requests, monkeypatch):
-    tables, truncated, data_dir = world
-    live = live_features(data_dir, requests, monkeypatch)
+def test_replay_matches_the_live_engine(world, stream, monkeypatch):
+    live = live_features(world, stream, monkeypatch)
 
-    history = PhoneView(truncated, seed=0)  # the bank's view: payments before the cut only
-    engine = EngineReplay(Store.load(data_dir))
-    replayed, statuses = [], []
-    for req in requests:
-        _, res, f = engine.step(req, bank_baseline(history, req.user_id, req.ts.timestamp()))
+    engine = EngineReplay(Store.load(world), world)
+    baselines = Baselines.from_data(world)
+    replayed, statuses, reqs = [], [], []
+    for item in stream:
+        if item[0] == "episode":
+            engine.episode_event(item[1])
+            continue
+        req = item[1]
+        _, res, f = engine.step(req, baselines.get(req.user_id, at=req.ts))
+        engine.outcome(req)
         replayed.append(f)
         statuses.append(res.status)
+        reqs.append(req)
 
-    assert len(live) == len(replayed) == len(requests)
-    for req, a, b in zip(requests, live, replayed):
+    assert len(live) == len(replayed) == len(reqs)
+    for req, a, b in zip(reqs, live, replayed):
         assert a.keys() == b.keys()
         diff = {k: (a[k], b[k]) for k in a if not same(a[k], b[k])}
         assert not diff, f"{req.request_id}: live vs replay {diff}"
@@ -103,9 +113,10 @@ def test_replay_matches_the_live_engine(world, requests, monkeypatch):
     # The comparison must have exercised the interesting paths, not just empty lookups.
     assert sum(s.get("bank") == "ok" for s in statuses) >= 20
     assert sum(s.get("bank") == "not_shared" for s in statuses) >= 5
-    assert sum("caller_registry" in s for s in statuses) >= 1  # incoming SIM call from a stranger
-    assert sum(r.context is None for r in requests) >= 3
+    assert sum(r.context is None for r in reqs) >= 3
+    assert sum(r.context is not None and r.context.session is not None for r in reqs) >= 20
+    assert sum(r.context is not None and r.context.episode is not None for r in reqs) >= 20
+    assert sum(item[0] == "episode" for item in stream) >= 1
     assert sum(f["payee_registry_listed"] is True for f in replayed) >= 1
-    assert sum(r.context is not None and r.context.episode is not None for r in requests) >= 20
-    assert sum(f["episode_state"] not in (None, 0) for f in replayed) >= 1  # an open episode
-    assert sum(r.context is not None and r.context.session is not None for r in requests) >= 20
+    assert sum(f["payee_in_contacts"] is True for f in replayed) >= 5
+    assert sum(f["payee_in_contacts"] is False for f in replayed) >= 5
