@@ -11,7 +11,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
-| `ml/` | Diwansu Pilania | Scorer, families, reasons, playbooks, lure model (not started: a planning `README.md` and empty `artifacts/`) |
+| `ml/` | Diwansu Pilania | Training data replay, model experiments, lure classifier (`lure.json` trained); plan and status in `ml/PLAN.md` |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
 | `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
@@ -64,6 +64,20 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
+13. **No LLM in the decision path.** Rules (and later LightGBM) decide tiers. An LLM may only draft
+    analyst summaries or playbook descriptions from structured evidence.
+14. **Age, gender and language are never model or rule inputs.** They are used only to audit
+    outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
+
+## Conventions
+- Features are defined once, in `backend/features/build.py` (with its `FAMILY` map). Training,
+  replay and evaluation import it; never re-implement a feature. Phone-side episode logic is defined
+  once in `contracts/episode_rules.json`; Pay-screen session fields are defined in
+  `contracts/README.md` and the simulator (`sim/session.py`) must measure them the same way.
+- Every decision writes an evidence record, off the latency path.
+- Every user-facing message has English and Hindi strings.
+- Add a test with every rule, feature or reason code.
+- Python: type hints; Pydantic models mirror `contracts/`.
 
 ## Contract (current: c2-0.7)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
@@ -113,12 +127,23 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest ml/tests -q               # ML (needs: pip install -r ml/requirements.txt)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
 compileSdk 37, targetSdk 34, minSdk 26. The system `java` (Java 8) does not work.
-`android/local.properties` (not committed) needs `sdk.dir` and optionally `API_BASE_URL`.
+`android/local.properties` (not committed) needs `sdk.dir` and optionally `API_BASE_URL`
+(or set `ANDROID_HOME` to the SDK folder instead).
+
+`ml/tests` is broken on `main` as of 2026-10-22: `ml/dataset/phone_view.py` still imports
+`MoneySignal`, which was removed from the contract in c2-0.4 (owner: Diwansu). Fix it there,
+not by bringing `money` back.
+
+Functional backend tests that need the payee to be recognised should not depend on machine speed:
+use generous time limits like the `engine` fixture in `test_session.py` (intel budget and
+`api.main.DEADLINE_S` raised). Keep the real 150 ms / 200 ms limits only in timing tests. With the
+real limits, a busy machine turns the demo mule into "unknown payee" and a T3 test sees T1.
 
 Evaluation (slow, minutes): `python -m eval.episode_eval`, `python -m eval.graph_eval`,
 `python -m eval.session_eval` write `data/eval/*_results.json` and `data/eval/charts/*.svg`
@@ -178,6 +203,12 @@ mind. Offline episode features for training:
 
 ## Not built yet
 Real T1 to T4 alert screens (the decision screen is a placeholder), feedback endpoint and buttons,
-the trained ML model and `lure.json`, `docker-compose.yml` / `Makefile`, Redis / Postgres, signed
-release APK. SMS permissions are a demo-build feature only (Play Store does not allow them for a
-payment app). `ml/README.md` describes the planned ML layout; none of it exists yet.
+the trained server model (`ml/model/predict.py`; the engine still uses `rules-0.6`), copying
+`ml/model/artifacts/lure.json` into `android/app/src/main/assets/` (the app still uses its keyword
+fallback), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
+does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
+from other folders (its §12).
+
+`.claude/SPEC.md` (local, not in git) is the original long spec. Parts of it are older than the
+code (e.g. its endpoint names and repo layout); when they disagree, this file and the code win.

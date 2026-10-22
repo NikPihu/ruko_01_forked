@@ -2,12 +2,27 @@
 import json
 from pathlib import Path
 
+import httpx
 import pytest
+from fastapi.testclient import TestClient
 
+import api.main
+from api.main import create_app as create_engine
 from features.session import dictated, hesitation, pasted_after_switch, session_features
 from schema.events import DecideRequest, SessionSignal
-from test_decide import (MEENA_CONTEXT, UNKNOWN_CALLER, baseline, engine, mock, pump, req,  # noqa: F401
+from test_decide import (MEENA_CONTEXT, UNKNOWN_CALLER, baseline, mock, pump, req,  # noqa: F401
                          users_in, world)
+
+
+@pytest.fixture()
+def engine(world, mock, monkeypatch):
+    """These tests check the decision logic, not speed: with the real 150 ms intel budget a busy
+    test machine can turn the mule into "unknown payee" and the test fails for the wrong reason.
+    Timing has its own tests in test_decide.py."""
+    monkeypatch.setattr(api.main, "DEADLINE_S", 10.0)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=mock[0]), base_url="http://mock")
+    return TestClient(create_engine(world[0], intel_client=client, intel_cache_ttl_s=0, log_path=None,
+                                    evidence_async=False, intel_budget_s=5.0))
 
 COACHED = {"amount_digits": 5, "amount_median_gap_s": 2.4, "amount_max_gap_s": 6.1,
            "amount_gap_vs_usual": 4.8, "amount_edits": 1, "payee_pasted": True,
