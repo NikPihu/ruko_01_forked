@@ -58,6 +58,11 @@ class DeviceModel private constructor(
 
     private class Family(val features: List<String>, val trees: List<Tree>, val isoX: DoubleArray, val isoY: DoubleArray)
 
+    /** The families in scoring order (C, L, B) and the features each one reads. */
+    val familyOrder: List<String> get() = order
+
+    fun familyFeatures(family: String): List<String> = families.getValue(family).features
+
     fun score(features: Map<String, Double?>): Result {
         val priorOdds = prior / (1 - prior)
         val raw = LinkedHashMap<String, Double>()
