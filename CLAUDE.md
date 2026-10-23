@@ -128,7 +128,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # ML (needs: pip install -r ml/requirements.txt)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 75 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -181,7 +181,12 @@ mind. Offline episode features for training:
 - `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer, bank
   SMS parser, `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
   encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
-  "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
+  "Cache Pay" on Home; "Preview alert screens" shows T1 to T4 without the server), `EpisodeCard.kt`.
+  `ui/alerts/`: T1 `TipBanner` on the PIN screen, T2 `ExplainCard` (5 s read gate, `SlideToConfirm`),
+  T3 `PauseScreen` (countdown, trusted person, 1930, wait reminder, "I know this person"), T4
+  `ReviewScreen`; `AlertText.kt` maps `message_key` to words (unknown key → the tier's generic);
+  `PaymentViewModel.onAlertAction` is the one place feedback will be sent (c2-0.8). Alerts use the
+  profile language. Hindi strings in `res/values-hi/`.
 
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
@@ -202,10 +207,10 @@ mind. Offline episode features for training:
 - Coached example (`contracts/examples/decide_request_coached.json`) → T3 or T4 with R12 and R1.
 
 ## Not built yet
-Real T1 to T4 alert screens (the decision screen is a placeholder), feedback endpoint and buttons,
-the trained server model (`ml/model/predict.py`; the engine still uses `rules-0.6`), copying
-`ml/model/artifacts/lure.json` into `android/app/src/main/assets/` (the app still uses its keyword
-fallback), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+Feedback endpoint (`/v1/feedback`, c2-0.8; the app only logs alert actions and "I know this
+person" still calls the demo `POST /v1/trusted`), pause enforcement and `pause_until` (the app
+counts `pause_minutes` from the answer), T4 review polling (no review endpoint), the trained server
+model (`ml/model/predict.py`; the engine still uses `rules-0.6`), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).

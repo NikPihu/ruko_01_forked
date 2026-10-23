@@ -27,6 +27,10 @@ interface RukoApi {
     /** What happened after the check (c2-0.6), sent in the background by the payment history. */
     @POST("v1/payment/outcome")
     suspend fun paymentOutcome(@Body outcome: PaymentOutcome): PaymentOutcomeResponse
+
+    /** "I know this person" (demo endpoint, unauthenticated): this user trusts this payee. */
+    @POST("v1/trusted/{user_id}/{payee_upi_id}")
+    suspend fun trust(@Path("user_id") userId: String, @Path("payee_upi_id") payee: String): ResponseBody
 }
 
 /** The mock NPCI, playing the part a real PSP app talks to. Not part of the RUKO contract. */

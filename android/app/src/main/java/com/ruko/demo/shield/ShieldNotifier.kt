@@ -42,7 +42,7 @@ object ShieldNotifier {
         post(context, CONFIRMED_ID, c.getString(R.string.shield_confirmed_title), c.getString(R.string.shield_confirmed_text))
     }
 
-    private fun post(context: Context, id: Int, title: String, body: String) {
+    fun post(context: Context, id: Int, title: String, body: String) {
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {

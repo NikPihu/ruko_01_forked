@@ -30,13 +30,31 @@ data class LureModel(
 
 /**
  * Character n-gram TF-IDF + logistic regression, scored the way scikit-learn does, so a
- * message gets the same tag here as in Python:
+ * message gets the same probabilities here as in Python:
  * char_wb n-grams → counts × idf → L2 norm → coef · v + intercept → softmax.
+ *
+ * The tag is the most likely *scam* tag, with confidence 1 - P(normal) (ml/PLAN.md §12): scam
+ * types that look alike (KYC and refund) split their probability, but together they are sure.
+ * It is `normal` when P(normal) is the larger half.
  */
 class LinearLureClassifier(private val model: LureModel) : LureClassifier {
     override val version: String = model.version
+    private val normal = model.classes.indexOf("normal")
 
     override fun classify(text: String): LureHit {
+        val probs = probabilities(text)
+        if (normal < 0) {
+            val best = probs.indices.maxBy { probs[it] }
+            return LureHit(model.classes[best], probs[best])
+        }
+        val pScam = 1.0 - probs[normal]
+        if (pScam <= probs[normal]) return LureHit("normal", probs[normal])
+        val best = probs.indices.filter { it != normal }.maxBy { probs[it] }
+        return LureHit(model.classes[best], pScam)
+    }
+
+    /** One probability per class, in the model's class order. */
+    fun probabilities(text: String): List<Double> {
         val counts = HashMap<Int, Int>()
         val input = if (model.lowercase) text.lowercase() else text
         for (gram in charWbNgrams(input, model.ngramRange[0], model.ngramRange[1])) {
@@ -48,9 +66,7 @@ class LinearLureClassifier(private val model: LureModel) : LureClassifier {
         val scores = model.classes.indices.map { k ->
             model.intercept[k] + if (norm == 0.0) 0.0 else weights.entries.sumOf { (i, w) -> model.coef[k][i] * w / norm }
         }
-        val probs = softmax(scores)
-        val best = probs.indices.maxBy { probs[it] }
-        return LureHit(model.classes[best], probs[best])
+        return softmax(scores)
     }
 }
 
@@ -117,11 +133,12 @@ private fun round1(value: Double) = kotlin.math.round(value * 10) / 10
 
 /**
  * scikit-learn's char_wb analyzer: each whitespace separated word is padded with one space
- * on each side, then cut into n-grams; a word shorter than n is counted once, whole.
+ * on each side, then cut into n-grams; a word shorter than n is counted once, whole. Words split
+ * on Unicode whitespace, as Python's str.split() does (a no-break space splits words too).
  */
 fun charWbNgrams(text: String, minN: Int, maxN: Int): List<String> {
     val out = ArrayList<String>()
-    for (word in text.split(Regex("\\s+")).filter { it.isNotEmpty() }) {
+    for (word in text.split(UNICODE_SPACE).filter { it.isNotEmpty() }) {
         val w = " $word "
         for (n in minN..maxN) {
             var offset = 0
@@ -135,6 +152,8 @@ fun charWbNgrams(text: String, minN: Int, maxN: Int): List<String> {
     }
     return out
 }
+
+private val UNICODE_SPACE = Regex("(?U)\\s+")
 
 private fun softmax(scores: List<Double>): List<Double> {
     val max = scores.max()

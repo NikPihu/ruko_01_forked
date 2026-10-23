@@ -123,7 +123,7 @@ object Signals {
         val text = context.assets.open(LURE_ASSET).bufferedReader().use { it.readText() }
         LinearLureClassifier(Json { ignoreUnknownKeys = true }.decodeFromString(LureModel.serializer(), text))
     } catch (e: FileNotFoundException) {
-        KeywordLureClassifier // lure.json from Diwansu is due at H28
+        KeywordLureClassifier // no lure.json in assets: keyword fallback
     } catch (e: Exception) {
         Log.w("Signals", "bad $LURE_ASSET, using keywords", e)
         KeywordLureClassifier
