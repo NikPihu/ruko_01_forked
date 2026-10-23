@@ -1,0 +1,14 @@
+name: refund_qr
+title: "Caller promises a refund and sends a QR code that actually takes money"
+status: known
+source: "rules: data/playbooks/playbooks.yaml (the engine's list); this card: the story for the agents"
+summary: >
+  A caller says a refund, cashback or prize is due and sends a QR code or collect request to
+  "receive" it. Scanning and entering the PIN sends money instead.
+steps:
+  - Call from an unknown number about a refund
+  - QR code or collect request, not typed
+  - Payment while the call is on
+reason_codes: [R1_live_unknown_call, R6_new_payee_typed]
+advice_en: "You never scan a QR code or enter your UPI PIN to receive money."
+advice_hi: "पैसे पाने के लिए कभी QR स्कैन नहीं करना होता और न ही UPI PIN डालना होता है।"

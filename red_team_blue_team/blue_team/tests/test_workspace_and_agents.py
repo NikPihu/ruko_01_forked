@@ -1,0 +1,184 @@
+import json
+
+from blue_team import analyst, investigator, llm
+
+# The missed 'relative' calls, not their dictated twins that RUKO already names digital_arrest (test_misnamed.py).
+GOOD = {"all": [{"feature": "on_call", "op": "is", "value": True}, {"feature": "payer_says", "op": "eq", "value": "family"},
+                {"not": {"feature": "session_dictated", "op": "is", "value": True}}]}
+
+
+def card(**kw):
+    c = {"name": "relative_voice_clone", "title": "Voice-clone 'relative in trouble' call",
+         "summary": "A caller sounding like a relative asks for urgent money.", "steps": ["call", "pay"],
+         "signals": ["CALL_ON", "SAYS_FAMILY"], "matcher": GOOD, "reason_codes": ["R1_live_unknown_call"],
+         "advice_en": "Hang up and call your relative back on their saved number.",
+         "advice_hi": "फ़ोन काटें और अपने रिश्तेदार को उनके सेव नंबर पर वापस कॉल करें।",
+         "ai_powered": {"likely": True, "why": "VoIP call, family story"}, "confidence": "medium",
+         "evidence": [{"source": "get_cluster_overview", "fact": "SAYS_FAMILY in most cases"},
+                      {"source": "test_matcher", "fact": "names every case, no legit payments"}]}
+    c.update(kw)
+    return c
+
+
+def test_hdbscan_finds_both_new_scams_and_keeps_them_apart(ws):
+    groups = [{i.split("_")[0] for i in c.case_ids} for c in ws.clusters.clusters if c.kind == "new"]
+    assert {"rep0"} in groups and {"rep2"} in groups
+
+
+def test_tools_expose_no_ground_truth(ws, new_cluster):
+    blob = json.dumps([ws.overview(new_cluster), ws.case(ws.cluster_by_id[new_cluster].case_ids[0]),
+                       ws.payee("mule0_0@ybl")], default=str)
+    for word in ("label", "is_scam", "journey", "is_mule", "flow"):
+        assert word not in blob
+
+
+def test_backtest_and_gates(ws, new_cluster):
+    bt = ws.test_matcher(GOOD, new_cluster)
+    assert bt["cluster_case_recall"] == 1.0 and bt["legit_payments_named_per_1000"] == 0 and bt["gate_failures"] == []
+    broad = ws.test_matcher({"feature": "amount_inr", "op": ">", "value": 0}, new_cluster)
+    assert any("legit" in g for g in broad["gate_failures"])
+    assert ws.test_matcher({"feature": "nope", "op": "is", "value": True}, new_cluster)["valid"] is False
+
+
+def test_card_checks():
+    assert investigator.check_card(card(), set()) == []
+    errs = investigator.check_card(card(name="Bad Name", advice_hi="hang up", reason_codes=["R99"]), set())
+    assert len(errs) == 3
+    assert investigator.check_card(card(), {"relative_voice_clone"})
+
+
+def test_offline_investigator_and_analyst(ws, new_cluster):
+    draft = investigator.investigate_offline(ws, new_cluster, set())
+    assert draft["gate_failures"] == [] and draft["backtest"]["cluster_case_recall"] >= 0.6
+    assert investigator.check_card(draft["card"], set()) == []
+    rev = analyst.review_offline(ws, new_cluster, draft)
+    assert rev["verdict"] in analyst.VERDICTS
+
+
+class FakeBedrock:
+    """Plays back scripted model turns and records what the agent sent."""
+
+    def __init__(self, turns):
+        self.turns, self.calls = list(turns), []
+
+    def converse(self, **kw):
+        self.calls.append(kw)
+        content = self.turns.pop(0)
+        return {"output": {"message": {"role": "assistant", "content": content}}, "stopReason": "tool_use",
+                "usage": {"inputTokens": 10, "outputTokens": 5}}
+
+
+def use(name, inp, i):
+    return {"toolUse": {"toolUseId": f"t{i}", "name": name, "input": inp}}
+
+
+def test_investigator_agent_loop_retries_until_the_card_is_valid(ws, new_cluster):
+    rt = FakeBedrock([
+        [{"text": "Looking."}, use("get_cluster_overview", {}, 1)],
+        [use("test_matcher", {"matcher": GOOD}, 2)],
+        [use("submit_playbook", card(advice_hi="no hindi"), 3)],       # rejected: advice_hi not Hindi
+        [use("submit_playbook", card(), 4)],
+    ])
+    draft = investigator.investigate(ws, new_cluster, rt, "fake-model", set())
+    assert draft["card"]["name"] == "relative_voice_clone" and draft["drafted_by"] == "fake-model"
+    assert draft["backtest"]["cluster_case_recall"] == 1.0
+    assert draft["usage"]["turns"] == 4
+    sent = json.dumps(rt.calls[-1]["messages"], ensure_ascii=False)
+    assert "Devanagari" in sent                                       # the model was told what to fix
+
+
+def test_agent_that_never_submits_falls_back_to_offline(ws, new_cluster):
+    rt = FakeBedrock([[{"text": "I think it is a scam."}]] * 20)
+    draft = investigator.investigate(ws, new_cluster, rt, "fake-model", set())
+    assert draft["drafted_by"].startswith("offline")
+
+
+def test_analyst_agent_needs_a_known_playbook_for_variant(ws, new_cluster):
+    draft = investigator.investigate_offline(ws, new_cluster, set())
+    rt = FakeBedrock([
+        [use("submit_review", {"verdict": "variant_of_known", "nearest_playbook": "made_up", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)],
+        [use("submit_review", {"verdict": "new_scam", "rationale": "no known playbook has a family story", "confidence": "medium", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 2)],
+    ])
+    rev = analyst.review(ws, new_cluster, draft, rt, "fake-model")
+    assert rev["verdict"] == "new_scam" and rev["reviewed_by"] == "fake-model"
+
+
+def test_tool_errors_go_back_to_the_model(ws, new_cluster):
+    rt = FakeBedrock([[use("get_case", {"case_id": "nope"}, 1)], [use("no_such_tool", {}, 2)],
+                      [use("submit_review", {"verdict": "insufficient_evidence", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 3)]])
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 5)
+    assert res.final["verdict"] == "insufficient_evidence"
+    statuses = [c["toolResult"]["status"] for m in rt.calls[-1]["messages"] if m["role"] == "user"
+                for c in m["content"] if "toolResult" in c]
+    assert statuses[:2] == ["error", "error"]
+
+
+def test_filtered_replies_are_dropped_and_retried(ws, new_cluster):
+    blocked = [{"text": "- The generated text has been blocked by our content filters."}]
+    rt = FakeBedrock([blocked, blocked,
+                      [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)]])
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 6)
+    assert res.final["verdict"] == "new_scam"
+    sent = rt.calls[-1]["messages"]
+    assert all("blocked by our content filters" not in json.dumps(m) for m in sent if m["role"] == "assistant")
+    assert sum("content filter" in json.dumps(m) for m in sent if m["role"] == "user") == 1   # one nudge, not two
+
+
+def test_a_model_that_is_always_filtered_gives_up_early(ws, new_cluster):
+    rt = FakeBedrock([[{"text": "- The generated text has been blocked by our content filters."}]] * 10)
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 10)
+    assert res.final is None and res.turns == llm.MAX_FILTERED
+
+
+def test_agent_is_told_to_submit_before_its_turns_run_out(ws, new_cluster):
+    rt = FakeBedrock([[use("get_cluster_overview", {}, i)] for i in range(5)])
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 5)
+    assert "Only 2 turns left: call submit_review" in json.dumps(rt.calls[3]["messages"])
+
+
+class NoForcedChoice(FakeBedrock):
+    """A model that can use tools but refuses toolChoice, like some open-weight models on Bedrock."""
+
+    def converse(self, **kw):
+        if "toolChoice" in kw.get("toolConfig", {}):
+            from botocore.exceptions import ClientError
+            raise ClientError({"Error": {"Code": "ValidationException",
+                                         "Message": "This model doesn't support the toolChoice field."}}, "Converse")
+        return super().converse(**kw)
+
+
+def test_tool_choice_is_forced_when_allowed_and_dropped_when_refused(ws, new_cluster):
+    submit = [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)]
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    rt = FakeBedrock([submit])
+    llm.run_agent(rt, "forced-ok", "sys", "task", tools, "submit_review", 3)
+    assert rt.calls[0]["toolConfig"]["toolChoice"] == {"any": {}}
+    rt = NoForcedChoice([submit])
+    res = llm.run_agent(rt, "no-forced", "sys", "task", tools, "submit_review", 3)
+    assert res.final["verdict"] == "new_scam" and llm.FORCED_CHOICE["no-forced"] is False
+    assert "toolChoice" not in rt.calls[0]["toolConfig"]
+
+
+def test_ping_checks_tool_use():
+    assert llm.ping(FakeBedrock([[use("say_ok", {"word": "ok"}, 1)]]), "m1") == "tools"
+    assert llm.ping(NoForcedChoice([[use("say_ok", {"word": "ok"}, 1)]]), "m2") == "tools (no forced choice)"
+
+
+def test_a_drafted_rule_failing_the_gates_is_replaced_by_the_code_search(ws, new_cluster):
+    trap = {"all": [{"feature": "on_call", "op": "is", "value": True}, {"feature": "caller_unknown", "op": "is", "value": True}]}
+    rt = FakeBedrock([[use("submit_playbook", card(matcher=trap), i)] for i in range(3)])
+    draft = investigator.investigate(ws, new_cluster, rt, "fake-model", set())
+    assert "code search" in draft["drafted_by"] and draft["gate_failures"] == []
+    assert draft["card"]["drafted_matcher"]["rule"] == trap and draft["card"]["title"] == card()["title"]
+
+
+def test_analyst_sees_lure_ignored_similarity(ws, new_cluster):
+    draft = investigator.investigate_offline(ws, new_cluster, set())
+    got = analyst._tools(ws, new_cluster, draft)[0].fn({})
+    sims = got["signal_similarity_lures_ignored"]
+    assert isinstance(sims["trading_group"], float)                  # 6 named trading cases in the fixture
+    assert str(sims["fake_kyc_apk"]).startswith("unknown")           # none named: nothing to compare with

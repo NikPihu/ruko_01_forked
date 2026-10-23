@@ -1,0 +1,91 @@
+# Every blue-team number lives here (CLAUDE.md rule 6). Code reads it through blue_team.config.
+
+breach:
+  # A case is a report (1930 / NCRP complaint) joined to the complainant's own payments to the
+  # reported accounts, made before the report was filed.
+  sources: [1930, ncrp]
+  interrupt_tiers: [T2, T3, T4]      # the shield "held" only if a case payment reached one of these
+  # missed  = no case payment was interrupted (the shield broke)
+  # unnamed = interrupted, but no playbook named the scam (the user got a generic warning)
+  include: [missed, unnamed]
+
+cluster:
+  # Chosen on the seed-21 breach world (ARI 0.58 vs the true scam types, 78% purity), checked on a
+  # second seed; see README.md "Results".
+  ngram_range: [1, 2]                # token n-grams over a case's sequence
+  max_df: 0.8                        # drop tokens in more than 80% of breaches (PAY, NEW_PAYEE, ...)
+  svd_components: 16                 # TF-IDF -> dense space for HDBSCAN (capped at n_cases - 1)
+  min_cluster_size: 4
+  min_samples: 3
+  selection: leaf                    # leaf: many small, pure groups; eom merged unrelated scams
+  # A cluster is a known scam if its centroid is this close (cosine) to the centroid of the cases a
+  # known or approved playbook named; below it, the cluster is a candidate new scam.
+  known_similarity: 0.80
+  # ... or if this share of its cases were already named by a playbook (a known scam that slipped).
+  known_named_share: 0.5
+
+misnamed:                            # held cases (interrupted + named, still paid and complained)
+  enabled: true
+  min_cases: 8                       # a playbook needs this many held complaints to be split
+  # Flag a subgroup whose lure-ignored fit to the playbook's other held complaints is below this.
+  # On both breach worlds the fit did NOT separate real from misnamed subgroups (0.67-0.76 for both),
+  # so code only proposes; the agents judge each subgroup, including "correctly named".
+  fit_below: 0.85
+
+gates:                               # code checks every drafted matcher before humans see it
+  min_cluster_recall: 0.6            # share of the cluster's payments the matcher names
+  max_legit_per_1000: 0.5            # weighted legit payments it would name, per 1,000 (2.0 let 'any VoIP call' through)
+  max_known_overlap: 0.3             # share of known-playbook payments it would steal
+
+agents:
+  provider: auto                     # bedrock | offline (deterministic drafts, no network) | auto (Bedrock if it answers)
+  region: ap-southeast-2             # AWS_REGION overrides
+  # Tried in order until one answers *with a tool call*; the first that does is used for the run.
+  # No Anthropic models: on Bedrock they need a use-case form that asks for an organisation.
+  # Open-weight models first (stronger tool use, no content filter of their own), then Amazon Nova,
+  # which worked on the first runs but whose own filter blocked many replies about scams.
+  # Which exist depends on the region: `python -m blue_team probe --all --region <r>` shows them.
+  models:
+    - openai.gpt-oss-120b-1:0
+    - qwen.qwen3-235b-a22b-2507-v1:0
+    - deepseek.v3-v1:0
+    - apac.amazon.nova-pro-v1:0
+    - apac.amazon.nova-lite-v1:0
+  # Everything `probe --all` tries (ids differ by region; a missing one just reports an error).
+  candidates:
+    - openai.gpt-oss-120b-1:0
+    - openai.gpt-oss-20b-1:0
+    - qwen.qwen3-235b-a22b-2507-v1:0
+    - qwen.qwen3-32b-v1:0
+    - deepseek.v3-v1:0
+    - mistral.mistral-large-2407-v1:0
+    - mistral.mistral-large-2402-v1:0
+    - us.meta.llama4-maverick-17b-instruct-v1:0
+    - us.meta.llama3-3-70b-instruct-v1:0
+    - meta.llama3-1-70b-instruct-v1:0
+    - global.amazon.nova-2-lite-v1:0
+    - us.amazon.nova-premier-v1:0
+    - us.amazon.nova-pro-v1:0
+    - apac.amazon.nova-pro-v1:0
+    - apac.amazon.nova-lite-v1:0
+    - apac.amazon.nova-micro-v1:0
+  max_tokens: 4096
+  temperature: 0.0                   # repeatable runs: evaluation compares runs, so randomness only adds noise
+  investigator_max_turns: 16
+  analyst_max_turns: 8
+
+analyst_offline:                     # the no-LLM analyst's fixed rules (a baseline; the LLM analyst reasons)
+  variant_similarity: 0.8            # IDF-weighted token profile vs a known playbook's cases, lures ignored
+  lookalike_legit_per_1000: 2.5      # a matcher this broad describes everyday payments
+
+review:
+  approvals_needed: 2                # two different analysts (same rule as graph/discover.py)
+
+console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
+  worlds:
+    - name: "seed 33 world (prompts never tuned on it)"
+      table: ml/data/tables/breach_s33.parquet
+      data: data/sim_v2_out/breach_s33
+    - name: "seed 21 world"
+      table: ml/data/tables/breach.parquet
+      data: data/sim_v2_out/breach
