@@ -1,0 +1,25 @@
+name: trading_group
+title: "WhatsApp / Telegram 'stock tips' group: fake profits on a fake app, deposits grow for weeks"
+confidence: guess
+sources: ["data/sim/scams.py trading_group", "SEBI / I4C advisories on fake trading apps"]
+weight: 0.16
+targets: {salaried: 2.0, shopkeeper: 1.5, senior: 1.2, homemaker: 0.8, student: 0.5, gig_worker: 0.5}
+start_hours: [8, 22]
+steps:
+  - id: tips
+    stage: S1
+    events: [{type: notification_lure, tag: trading_tip, conf: [0.6, 0.9]}]
+    repeat: {int: [2, 5]}
+    repeat_gap_min: {log: [360, 1800]}
+    decide: {pressure: 0.5}           # joins the group / installs the app
+  - id: first_deposit
+    gap_min: {log: [480, 2400]}
+    ask: {amount: {log: [2000, 8000]}, entry: {typed: 0.85, qr: 0.15}, round: 0.6, pressure: 0.5, mule: same}
+  - id: fake_profit
+    stage: S2
+    gap_min: {log: [120, 720]}
+    crew_pays: {amount: {of: prev, x: [0.1, 0.3]}}
+  - id: top_ups
+    gap_min: {log: [480, 2400]}
+    ask: {amount: {of: prev, x: [1.5, 2.5]}, repeat: {int: [2, 5]}, entry: {typed: 0.9, qr: 0.1},
+          round: 0.6, pressure: 0.6, mule: rotate}

@@ -1,0 +1,22 @@
+name: relative_emergency
+title: "Voice-clone call: 'Papa, I've been arrested / had an accident, send money now' from a new number"
+confidence: guess
+emerging: true          # ml/PLAN.md §7: kept out of training worlds with --exclude-emerging (discovery test)
+sources: ["ml/PLAN.md §3.2 emerging playbooks", "news reports of AI voice-clone frauds (2024-25)"]
+weight: 0.06
+targets: {senior: 3.0, homemaker: 2.0, salaried: 1.0, shopkeeper: 1.2, student: 0.2, gig_worker: 0.5}
+start_hours: [8, 23]
+steps:
+  - id: panic_call
+    stage: S1
+    events: [{type: call, kind: {voip: 0.6, sim: 0.4}, direction: incoming, minutes: {log: [4, 20]}}]
+    decide: {pressure: 1.3}             # believes it is really the child / relative
+  - id: send_now
+    gap_min: [1, 6]
+    ask: {during_call: true, amount: {log: [10000, 90000]}, split: {int: [1, 2]}, entry: {typed: 0.9, qr: 0.1},
+          round: 0.85, pressure: 1.1, mule: same}
+  - id: more_needed
+    p: 0.35
+    gap_min: {log: [30, 360]}
+    events: [{type: call, kind: same, direction: incoming, minutes: {log: [2, 8]}}]
+    ask: {during_call: true, amount: {log: [10000, 60000]}, entry: {typed: 1.0}, round: 0.85, pressure: 0.9, mule: second}

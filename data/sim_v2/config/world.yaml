@@ -1,0 +1,13 @@
+# One run of the sandbox. Override on the command line: python -m sim_v2 build --users 500 --days 14
+seed: 7
+users: 500                 # goal: 20000 (keep small while we inspect and improve)
+days: 14                   # goal: 60
+end: "2026-11-07T00:00:00+05:30"
+world: train               # train: more scams to learn from | eval: realistic prevalence
+victim_rate:               # share of users who are approached by a scam crew in the window (pro-rated to days/60)
+  train: 0.08              # per 60 days, pro-rated to the run length: ~8% approached, ~4.5% lose money
+  eval: 0.01               # per 60 days; ml/PLAN.md §3.3 test world
+exclude_emerging: false    # true: leave out playbooks marked emerging (held out for discovery tests)
+randomise: false           # true: draw every 'range' in assumptions.yaml per world (domain randomisation)
+users_per_locality: 250    # a locality = shops + region; 500 users = 2 localities, identical inside the 20k world
+localities_per_crew: 4     # one scam crew per playbook per 4 localities (1,000 users)
