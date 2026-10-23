@@ -469,7 +469,7 @@ def test_alerts_list_the_interrupted_payments_newest_first(engine, mock, world):
 
 def test_eval_results_are_served_when_present(engine):
     r = engine.get("/v1/eval").json()
-    assert set(r) == {"episode", "graph"}  # null until data/eval/*_results.json exist
+    assert set(r) == {"episode", "graph", "ai_lures"}  # null until their results files exist
 
 
 def test_evidence_chain_verifies_with_scoreless_episode_records(tmp_path):

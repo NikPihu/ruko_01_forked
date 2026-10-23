@@ -34,7 +34,8 @@ export function Evaluation() {
   const { data, error, loading } = useLoad(() => api.evaluation());
   if (!data) return <Loading error={error} loading={loading} />;
   const ep = data.episode, gr = data.graph;
-  if (!ep && !gr) {
+  const ai = data.ai_lures;
+  if (!ep && !gr && !ai) {
     return <Card><Empty title="No evaluation results yet">Run <code>python -m eval.episode_eval</code> and <code>python -m eval.graph_eval</code>.</Empty></Card>;
   }
 
@@ -61,6 +62,24 @@ export function Evaluation() {
             treat these as early indications, not proof.</p>
         </div>
       </div>
+
+      {ai && (
+        <Card title="AI-written scam messages: does the phone's lure model catch them?">
+          <p className="ink2" style={{ marginTop: 0 }}>
+            {ai.scam_messages} polished, personalised scam messages written the way AI writes them, in phrasings the
+            model never saw (English, Hindi, Hinglish), plus {ai.honest_messages} honest look-alikes (real OTPs,
+            bank and RBI notices, refunds). Scored exactly as the phone does. Small hand-written set: an early check.
+          </p>
+          <div className="grid grid-4">
+            <Stat label="Scam messages caught" value={pct(ai.caught)} sub={`unseen templates before: ${pct(ai.baseline_caught_unseen_templates)}`} />
+            <Stat label="Right scam type" value={pct(ai.right_scam_type)} />
+            <Stat label="False alarms on honest messages" value={pct(ai.false_alarms)} />
+            <Stat label="By scam type" value={Object.keys(ai.by_scam_type).length}
+              sub={Object.entries(ai.by_scam_type).map(([k, v]) => `${k.replace("_", " ")} ${pct(v)}`).join(" · ")} />
+          </div>
+          {ai.missed.length > 0 && <p className="muted" style={{ marginBottom: 0 }}>Missed: {ai.missed.map((m) => `${m.tag} (${m.lang}): "${m.text}…"`).join(" · ")}</p>}
+        </Card>
+      )}
 
       {fresh && known && ep && (
         <>

@@ -376,6 +376,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         for name in ("episode", "graph"):
             f = eval_dir / f"{name}_results.json"
             out[name] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+        # A3: the lure model on AI-written scam messages (python -m evalsuite.ai_lures)
+        f = Path(__file__).resolve().parents[1] / "evalsuite" / "ai_lures_results.json"
+        out["ai_lures"] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
         return out
 
     # ---------- payment graph for the analyst console (contract C5, §9.7) ----------

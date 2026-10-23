@@ -160,7 +160,22 @@ export interface EvalVisibility {
   rings: number;
 }
 
+export interface AiLures {
+  model_version: string | null;
+  messages: number;
+  scam_messages: number;
+  honest_messages: number;
+  caught: number | null;
+  right_scam_type: number | null;
+  false_alarms: number | null;
+  baseline_caught_unseen_templates: number;
+  by_scam_type: Record<string, number>;
+  by_language: Record<string, { messages: number; flagged: number }>;
+  missed: { tag: string; lang: string; got: string; conf: number; text: string }[];
+}
+
 export interface EvalResults {
+  ai_lures?: AiLures | null;
   episode: {
     world: { users: number; task_journeys: number; task_inr: number };
     conditions: Record<"known_mules" | "fresh_mules", Record<"A" | "B" | "C", EvalCondition>>;

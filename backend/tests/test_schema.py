@@ -122,3 +122,12 @@ def test_watch_event_never_carries_text():
     from schema.events import WatchEvent
     with pytest.raises(ValidationError):
         WatchEvent.model_validate({**load("watch_event_lure.json"), "text": "Your account is under arrest"})
+
+
+def test_ai_written_lure_check_runs_and_has_no_false_alarms():
+    """A3: the lure model on AI-written scam messages, scored the way the phone scores."""
+    pytest.importorskip("sklearn")
+    from evalsuite.ai_lures import run
+    r = run()
+    assert r["scam_messages"] >= 20 and r["honest_messages"] >= 10
+    assert r["caught"] >= 0.8 and r["false_alarms"] <= 0.1
