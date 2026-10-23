@@ -1,0 +1,27 @@
+name: electricity_disconnection
+title: "'Your electricity will be cut tonight, call this officer' SMS, then a call and a screen-share app"
+confidence: guess
+sources: ["state power utility and police advisories on bill-update SMS fraud"]
+weight: 0.06
+targets: {senior: 2.0, homemaker: 1.5, shopkeeper: 1.5, salaried: 1.0, student: 0.4, gig_worker: 0.8}
+start_hours: [17, 22]
+steps:
+  - id: cut_off_sms
+    stage: S1
+    events: [{type: sms_lure, tag: kyc, conf: [0.6, 0.9], has_link: false}]   # closest contract tag: 'kyc'
+    decide: {pressure: 0.7}            # calls the 'officer'
+  - id: officer_call
+    stage: S2
+    gap_min: [2, 30]
+    events: [{type: call, kind: {sim: 0.8, voip: 0.2}, direction: outgoing, minutes: {log: [10, 40]}}]
+  - id: screen_share
+    stage: S3
+    p: 0.7
+    gap_min: [3, 10]
+    events: [{type: remote_app}]
+  - id: pay_bill
+    gap_min: [3, 15]
+    ask: {during_call: true, amount: {log: [10, 500]}, entry: {typed: 0.6, qr: 0.4}, round: 0.3, pressure: 0.9, mule: same}
+  - id: drained
+    gap_min: [5, 30]
+    ask: {amount: {log: [10000, 120000]}, split: {int: [1, 3]}, entry: {typed: 1.0}, round: 0.3, pressure: 1.2, mule: second}

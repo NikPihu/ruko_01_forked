@@ -1,0 +1,631 @@
+{
+ "datasets": {
+  "skullagos_upi_2024": {
+   "meta": {
+    "rows": 250000,
+    "positives": 480,
+    "positive_rate": 0.00192,
+    "currency": "INR",
+    "label": "fraud_flag",
+    "real": false,
+    "notes": [
+     "No payer or payee ids, so no per-user history."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": false,
+     "payee_id": false,
+     "p2p_p2m": true,
+     "inr_upi": true,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": {
+    "anchors": {
+     "p2m_share_of_volume": {
+      "got": 0.438,
+      "target": 0.633,
+      "pass": false,
+      "error": 0.195
+     },
+     "p2m_share_of_value": {
+      "got": 0.44,
+      "target": 0.302,
+      "pass": false,
+      "error": 0.138
+     },
+     "avg_ticket_p2p_inr": {
+      "got": 1308.681,
+      "target": 2320,
+      "pass": false,
+      "error": 0.436
+     },
+     "avg_ticket_p2m_inr": {
+      "got": 1320.073,
+      "target": 582,
+      "pass": false,
+      "error": 1.268
+     },
+     "p2p_share_below_500": {
+      "got": 0.427,
+      "target": 0.59,
+      "pass": false,
+      "error": 0.163
+     },
+     "p2m_share_below_500": {
+      "got": 0.424,
+      "target": 0.86,
+      "pass": false,
+      "error": 0.436
+     }
+    },
+    "bank_mix_l1_vs_npci": 1.0,
+    "score": 0.0
+   },
+   "behaviour": {
+    "hour_l1_vs_xente": 0.172,
+    "night_share_1to5": 0.0329,
+    "score": 0.8278748845354543
+   },
+   "labels": {
+    "best_single_column": {
+     "sender_age_group": 0.5231,
+     "sender_bank": 0.5086,
+     "receiver_age_group": 0.5084,
+     "network_type": 0.5078,
+     "amount (INR)": 0.4981,
+     "transaction_status": 0.497,
+     "sender_state": 0.4922,
+     "day_of_week": 0.4908,
+     "transaction type": 0.4901,
+     "is_weekend": 0.4866,
+     "hour_of_day": 0.4864,
+     "receiver_bank": 0.4841,
+     "device_type": 0.4787,
+     "merchant_category": 0.4764
+    },
+    "depth2_tree_auc": 0.5014,
+    "verdict": "no learnable signal (labels look random)",
+    "score": 0.2
+   },
+   "transfer": {
+    "lift_on_others": {
+     "belbino_banking_upi": 0.95,
+     "razorpay_upi_sim": 2.4,
+     "saml_d": 0.94,
+     "ibm_amlworld_hi_small": 1.02,
+     "paysim": 1.17,
+     "xente_real": 4.38
+    },
+    "score": 0.1095
+   },
+   "total": 0.331,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 0.828,
+    "labels": 0.2,
+    "transfer": 0.11
+   }
+  },
+  "belbino_banking_upi": {
+   "meta": {
+    "rows": 84728,
+    "positives": 685,
+    "positive_rate": 0.008084694551978095,
+    "currency": "INR",
+    "label": "is_fraud",
+    "real": false,
+    "notes": [
+     "UPI debits only (of 550k mixed-channel rows).",
+     "P2P/P2M inferred: merchant_category 'Peer Transfer' = P2P."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": false,
+     "payee_id": false,
+     "p2p_p2m": true,
+     "inr_upi": true,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": {
+    "anchors": {
+     "p2m_share_of_volume": {
+      "got": 0.929,
+      "target": 0.633,
+      "pass": false,
+      "error": 0.296
+     },
+     "p2m_share_of_value": {
+      "got": 0.927,
+      "target": 0.302,
+      "pass": false,
+      "error": 0.625
+     },
+     "avg_ticket_p2p_inr": {
+      "got": 1379.642,
+      "target": 2320,
+      "pass": false,
+      "error": 0.405
+     },
+     "avg_ticket_p2m_inr": {
+      "got": 1348.447,
+      "target": 582,
+      "pass": false,
+      "error": 1.317
+     },
+     "p2p_share_below_500": {
+      "got": 0.395,
+      "target": 0.59,
+      "pass": false,
+      "error": 0.195
+     },
+     "p2m_share_below_500": {
+      "got": 0.409,
+      "target": 0.86,
+      "pass": false,
+      "error": 0.451
+     }
+    },
+    "bank_mix_l1_vs_npci": null,
+    "score": 0.0
+   },
+   "behaviour": {
+    "hour_l1_vs_xente": 0.555,
+    "night_share_1to5": 0.2074,
+    "score": 0.4451756853592541
+   },
+   "labels": {
+    "best_single_column": {
+     "transaction_hour": 0.5091,
+     "transaction_amount": 0.5079,
+     "transaction_status": 0.5051,
+     "state": 0.504,
+     "transaction_type": 0.5,
+     "transaction_direction": 0.5,
+     "kyc_status": 0.4946,
+     "credit_score": 0.4932,
+     "channel": 0.4886,
+     "merchant_category": 0.4882,
+     "account_balance": 0.4872,
+     "account_type": 0.4846,
+     "loan_type": 0.4824,
+     "has_loan": 0.4793,
+     "emi_amount": 0.4677
+    },
+    "depth2_tree_auc": 0.4797,
+    "verdict": "no learnable signal (labels look random)",
+    "score": 0.2
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 0.95,
+     "razorpay_upi_sim": 1.52,
+     "saml_d": 1.14,
+     "ibm_amlworld_hi_small": 1.11,
+     "paysim": 0.77,
+     "xente_real": 1.01
+    },
+    "score": 0.10600000000000001
+   },
+   "total": 0.273,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 0.445,
+    "labels": 0.2,
+    "transfer": 0.106
+   }
+  },
+  "razorpay_upi_sim": {
+   "meta": {
+    "rows": 4074,
+    "positives": 215,
+    "positive_rate": 0.05277368679430535,
+    "currency": "INR",
+    "label": "is_suspicious (rule score)",
+    "real": false,
+    "notes": [
+     "Successful payments only. Label is the generator's own rule score, not fraud.",
+     "Payer = device fingerprint (no user id)."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": true,
+     "payee_id": false,
+     "p2p_p2m": false,
+     "inr_upi": true,
+     "time_of_day": false
+    },
+    "score": 0.4
+   },
+   "npci": {
+    "anchors": {},
+    "bank_mix_l1_vs_npci": 0.632,
+    "score": 0.0
+   },
+   "behaviour": {
+    "hour_l1_vs_xente": 1.086,
+    "night_share_1to5": 0.0,
+    "payments_per_user_cv": 1.928,
+    "payments_per_user_p50_p90": [
+     7.0,
+     44.20000000000002
+    ],
+    "score": 0.0
+   },
+   "labels": {
+    "best_single_column": {
+     "amount": 0.8736,
+     "hour_of_day": 0.8483,
+     "attempt_count": 0.8057,
+     "amount_slab": 0.658,
+     "bank": 0.5068,
+     "currency": 0.4999,
+     "payment_method": 0.4999,
+     "is_night_transaction": 0.4999,
+     "is_weekend": 0.4999,
+     "upi_app": 0.4742
+    },
+    "depth2_tree_auc": 0.9258,
+    "verdict": "learnable, not trivial",
+    "score": 1.0
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 1.07,
+     "belbino_banking_upi": 1.05,
+     "saml_d": 1.07,
+     "ibm_amlworld_hi_small": 0.77,
+     "paysim": 1.02,
+     "xente_real": 0.84
+    },
+    "score": 0.10350000000000001
+   },
+   "total": 0.316,
+   "parts": {
+    "schema": 0.4,
+    "npci": 0.0,
+    "behaviour": 0.0,
+    "labels": 1.0,
+    "transfer": 0.104
+   }
+  },
+  "saml_d": {
+   "meta": {
+    "rows": 2000000,
+    "positives": 1950,
+    "positive_rate": 0.000975,
+    "currency": "GBP",
+    "label": "Is_laundering",
+    "real": false,
+    "notes": [
+     "First 2,000,000 rows. Laundering_type is the answer key and is dropped."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": true,
+     "payee_id": true,
+     "p2p_p2m": false,
+     "inr_upi": false,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": null,
+   "behaviour": {
+    "hour_l1_vs_xente": 0.196,
+    "night_share_1to5": 0.0635,
+    "payments_per_user_cv": 2.072,
+    "payments_per_user_p50_p90": [
+     12.0,
+     52.0
+    ],
+    "score": 0.8041463601969236
+   },
+   "labels": {
+    "best_single_column": {
+     "Payment_type": 0.6892,
+     "Received_currency": 0.5974,
+     "Amount": 0.5914,
+     "Receiver_bank_location": 0.5842,
+     "Payment_currency": 0.5344,
+     "Sender_bank_location": 0.5092
+    },
+    "depth2_tree_auc": 0.6078,
+    "verdict": "learnable, not trivial",
+    "score": 1.0
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 1.08,
+     "belbino_banking_upi": 1.1,
+     "razorpay_upi_sim": 14.13,
+     "ibm_amlworld_hi_small": 4.96,
+     "paysim": 1.36,
+     "xente_real": 0.78
+    },
+    "score": 0.123
+   },
+   "total": 0.489,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 0.804,
+    "labels": 1.0,
+    "transfer": 0.123
+   }
+  },
+  "ibm_amlworld_hi_small": {
+   "meta": {
+    "rows": 2000000,
+    "positives": 1498,
+    "positive_rate": 0.000749,
+    "currency": "mixed (mostly USD)",
+    "label": "Is Laundering",
+    "real": false,
+    "notes": [
+     "First 2,000,000 rows of 5.08M."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": true,
+     "payee_id": true,
+     "p2p_p2m": false,
+     "inr_upi": false,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": null,
+   "behaviour": {
+    "hour_l1_vs_xente": 0.794,
+    "night_share_1to5": 0.1809,
+    "payments_per_user_cv": 22.789,
+    "payments_per_user_p50_p90": [
+     2.0,
+     10.0
+    ],
+    "score": 0.20592645207079896
+   },
+   "labels": {
+    "best_single_column": {
+     "format": 0.8921,
+     "amount_received": 0.7143,
+     "amount_paid": 0.7138,
+     "from_bank": 0.5826,
+     "to_bank": 0.5623,
+     "pay_currency": 0.5368,
+     "recv_currency": 0.5324
+    },
+    "depth2_tree_auc": 0.9339,
+    "verdict": "learnable, not trivial",
+    "score": 1.0
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 1.02,
+     "belbino_banking_upi": 1.04,
+     "razorpay_upi_sim": 0.66,
+     "saml_d": 4.66,
+     "paysim": 1.02,
+     "xente_real": 0.91
+    },
+    "score": 0.10200000000000001
+   },
+   "total": 0.396,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 0.206,
+    "labels": 1.0,
+    "transfer": 0.102
+   }
+  },
+  "paysim": {
+   "meta": {
+    "rows": 2000000,
+    "positives": 2036,
+    "positive_rate": 0.001018,
+    "currency": "generic (mobile money)",
+    "label": "isFraud",
+    "real": false,
+    "notes": [
+     "First 2,000,000 rows in time order. Balance columns were removed earlier (they leak the label).",
+     "PAYMENT treated as P2M, other types as P2P."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": false,
+     "payee_id": true,
+     "p2p_p2m": true,
+     "inr_upi": false,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": null,
+   "behaviour": {
+    "hour_l1_vs_xente": 0.27,
+    "night_share_1to5": 0.0071,
+    "score": 0.7295550026134379
+   },
+   "labels": {
+    "best_single_column": {
+     "type": 0.8465,
+     "amount": 0.698,
+     "seen_user": 0.4998
+    },
+    "depth2_tree_auc": 0.6338,
+    "verdict": "learnable, not trivial",
+    "score": 1.0
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 1.08,
+     "belbino_banking_upi": 1.0,
+     "razorpay_upi_sim": 0.63,
+     "saml_d": 1.41,
+     "ibm_amlworld_hi_small": 1.46,
+     "xente_real": 15.84
+    },
+    "score": 0.12450000000000001
+   },
+   "total": 0.478,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 0.73,
+    "labels": 1.0,
+    "transfer": 0.125
+   }
+  },
+  "xente_real": {
+   "meta": {
+    "rows": 95662,
+    "positives": 193,
+    "positive_rate": 0.00201752001839811,
+    "currency": "UGX",
+    "label": "FraudResult",
+    "real": true,
+    "notes": [
+     "Real transactions (Uganda, Nov 2018 to Feb 2019). Payee = provider."
+    ]
+   },
+   "schema": {
+    "checks": {
+     "payer_history": true,
+     "payee_id": true,
+     "p2p_p2m": false,
+     "inr_upi": false,
+     "time_of_day": true
+    },
+    "score": 0.6
+   },
+   "npci": null,
+   "behaviour": {
+    "hour_l1_vs_xente": 0.0,
+    "night_share_1to5": 0.0167,
+    "payments_per_user_cv": 3.792,
+    "payments_per_user_p50_p90": [
+     7.0,
+     58.0
+    ],
+    "score": 1.0
+   },
+   "labels": {
+    "best_single_column": {
+     "Value": 0.9883,
+     "ProviderId": 0.886,
+     "ProductId": 0.8623,
+     "ProductCategory": 0.6992,
+     "ChannelId": 0.6841,
+     "PricingStrategy": 0.6096
+    },
+    "depth2_tree_auc": 0.9792,
+    "verdict": "too easy (a simple rule gives the label away)",
+    "score": 0.3
+   },
+   "transfer": {
+    "lift_on_others": {
+     "skullagos_upi_2024": 1.07,
+     "belbino_banking_upi": 0.91,
+     "razorpay_upi_sim": 4.71,
+     "saml_d": 6.19,
+     "ibm_amlworld_hi_small": 1.51,
+     "paysim": 1.23
+    },
+    "score": 0.137
+   },
+   "total": 0.381,
+   "parts": {
+    "schema": 0.6,
+    "npci": 0.0,
+    "behaviour": 1.0,
+    "labels": 0.3,
+    "transfer": 0.137
+   }
+  }
+ },
+ "transfer_matrix": {
+  "skullagos_upi_2024": {
+   "skullagos_upi_2024": 1.02,
+   "belbino_banking_upi": 0.95,
+   "razorpay_upi_sim": 1.07,
+   "saml_d": 1.08,
+   "ibm_amlworld_hi_small": 1.02,
+   "paysim": 1.08,
+   "xente_real": 1.07
+  },
+  "belbino_banking_upi": {
+   "skullagos_upi_2024": 0.95,
+   "belbino_banking_upi": 0.95,
+   "razorpay_upi_sim": 1.05,
+   "saml_d": 1.1,
+   "ibm_amlworld_hi_small": 1.04,
+   "paysim": 1.0,
+   "xente_real": 0.91
+  },
+  "razorpay_upi_sim": {
+   "skullagos_upi_2024": 2.4,
+   "belbino_banking_upi": 1.52,
+   "razorpay_upi_sim": 21.11,
+   "saml_d": 14.13,
+   "ibm_amlworld_hi_small": 0.66,
+   "paysim": 0.63,
+   "xente_real": 4.71
+  },
+  "saml_d": {
+   "skullagos_upi_2024": 0.94,
+   "belbino_banking_upi": 1.14,
+   "razorpay_upi_sim": 1.07,
+   "saml_d": 631.73,
+   "ibm_amlworld_hi_small": 4.66,
+   "paysim": 1.41,
+   "xente_real": 6.19
+  },
+  "ibm_amlworld_hi_small": {
+   "skullagos_upi_2024": 1.02,
+   "belbino_banking_upi": 1.11,
+   "razorpay_upi_sim": 0.77,
+   "saml_d": 4.96,
+   "ibm_amlworld_hi_small": 3.28,
+   "paysim": 1.46,
+   "xente_real": 1.51
+  },
+  "paysim": {
+   "skullagos_upi_2024": 1.17,
+   "belbino_banking_upi": 0.77,
+   "razorpay_upi_sim": 1.02,
+   "saml_d": 1.36,
+   "ibm_amlworld_hi_small": 1.02,
+   "paysim": 286.44,
+   "xente_real": 1.23
+  },
+  "xente_real": {
+   "skullagos_upi_2024": 4.38,
+   "belbino_banking_upi": 1.01,
+   "razorpay_upi_sim": 0.84,
+   "saml_d": 0.78,
+   "ibm_amlworld_hi_small": 0.91,
+   "paysim": 15.84,
+   "xente_real": 237.64
+  }
+ },
+ "weights": {
+  "schema": 0.25,
+  "npci": 0.25,
+  "behaviour": 0.15,
+  "labels": 0.2,
+  "transfer": 0.15
+ }
+}

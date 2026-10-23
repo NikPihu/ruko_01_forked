@@ -1,0 +1,49 @@
+# Honest situations that look like scams (hard negatives, ml/PLAN.md §3.2 and §12).
+# rate = expected times per user per 30 days (per persona if a dict). Payments are flow 'normal'
+# (or 'gig_payout') with column scenario = the name below, so they are never labelled scam.
+# Event and ask fields use the same syntax as playbooks (see playbooks/README.md).
+landlord_deposit:
+  why: "Moving house: typed, large, round, to a brand-new payee, while on a call with an unknown number"
+  rate: 0.02
+  conf: guess
+  events: [{type: call, kind: {sim: 1.0}, direction: incoming, in_contacts: false, minutes: {log: [3, 15]}}]
+  pay: {to: new_person, amount: {log: [10000, 60000]}, entry: {typed: 1.0}, round: 0.9, gap_min: [1, 5]}
+delivery_on_call:
+  why: "Cash-on-delivery paid by QR while the delivery agent (unknown number) is on the line"
+  rate: 0.4
+  conf: guess
+  events: [{type: call, kind: {sim: 1.0}, direction: incoming, in_contacts: false, minutes: {log: [1, 4]}}]
+  pay: {to: new_shop, amount: {log: [200, 3000]}, entry: {qr: 1.0}, round: 0.2, gap_min: [0.5, 3]}
+it_support_anydesk:
+  why: "Real IT support / a relative on AnyDesk while paying a bill"
+  rate: {senior: 0.08, salaried: 0.04, shopkeeper: 0.04, homemaker: 0.03, student: 0.01, gig_worker: 0.01}
+  conf: guess
+  events: [{type: remote_app}, {type: call, kind: {sim: 0.6, voip: 0.4}, direction: outgoing, in_contacts: true, minutes: {log: [5, 40]}}]
+  pay: {to: biller, amount: {log: [300, 6000]}, entry: {typed: 0.6, qr: 0.4}, round: 0.1, gap_min: [5, 30]}
+festival_gift:
+  why: "Festival / wedding gifts to family: large, round, typed or contact"
+  rate: 0.25
+  conf: guess
+  pay: {to: contact, amount: {log: [1100, 25000]}, entry: {contact: 0.7, typed: 0.3}, round: 1.0, repeat: {int: [1, 3]}}
+community_collection:
+  why: "Society / mandal / class fund: many people pay one account that forwards to vendors (mule-like fan-in)"
+  rate: 0.3
+  conf: guess
+  pay: {to: collection, amount: {log: [101, 2100]}, entry: {contact: 0.5, typed: 0.3, qr: 0.2}, round: 0.9}
+gig_credits:
+  why: "Gig workers and sellers get many small credits a day (like scam 'rewards')"
+  rate: {gig_worker: 20.0, shopkeeper: 6.0}
+  conf: guess
+  credit: {from: platform, amount: {log: [40, 800]}, flow: gig_payout}
+medical_emergency:
+  why: "Big hospital bill, paid in a hurry while on the phone with family"
+  rate: 0.015
+  conf: guess
+  events: [{type: call, kind: {sim: 1.0}, direction: incoming, in_contacts: true, minutes: {log: [5, 30]}}]
+  pay: {to: hospital, amount: {log: [5000, 90000]}, entry: {qr: 0.6, typed: 0.4}, round: 0.5, gap_min: [5, 60], split: {int: [1, 2]}}
+second_hand_purchase:
+  why: "Buying a used phone / bike from a stranger: typed, new payee, on a call with them"
+  rate: 0.03
+  conf: guess
+  events: [{type: call, kind: {sim: 0.8, voip: 0.2}, direction: incoming, in_contacts: false, minutes: {log: [2, 20]}}]
+  pay: {to: new_person, amount: {log: [2000, 40000]}, entry: {typed: 1.0}, round: 0.8, gap_min: [1, 20]}

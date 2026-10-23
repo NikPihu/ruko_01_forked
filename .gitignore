@@ -22,3 +22,8 @@ logs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# sim_v1 output worlds (regenerate with python -m sim_v1.generate)
+data/sim_v1_out/
+# sim_v2 worlds (python -m sim_v2 build)
+data/sim_v2_out/

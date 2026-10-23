@@ -1,0 +1,25 @@
+{
+  "_about": "Real, published UPI aggregates used as calibration targets for sim_v1. tier=official: NPCI data (direct or via dataful.in mirror of NPCI); tier=secondary: government release quoted by a secondary source (PIB page blocks automated fetch).",
+  "month": "2026-09",
+  "p2p_p2m": {
+    "tier": "official",
+    "source": "NPCI UPI Ecosystem Statistics, P2P and P2M, via https://dataful.in/datasets/431/",
+    "months": {
+      "2026-07": {"p2p_volume_mn": 8686.5, "p2p_value_cr": 2081267.3, "p2m_volume_mn": 14971.85, "p2m_value_cr": 906613.19},
+      "2026-08": {"p2p_volume_mn": 8998.95, "p2p_value_cr": 2087035.27, "p2m_volume_mn": 15510.01, "p2m_value_cr": 895320.68},
+      "2026-09": {"p2p_volume_mn": 8839.27, "p2p_value_cr": 2050409.53, "p2m_volume_mn": 15229.11, "p2m_value_cr": 886987.14}
+    }
+  },
+  "targets": {
+    "p2m_share_of_volume": {"value": 0.633, "tolerance": 0.03, "tier": "official", "derived_from": "p2p_p2m 2026-09: 15229.11 / (15229.11 + 8839.27)"},
+    "p2m_share_of_value": {"value": 0.302, "tolerance": 0.04, "tier": "official", "derived_from": "p2p_p2m 2026-09 values"},
+    "avg_ticket_p2p_inr": {"value": 2320, "tolerance_rel": 0.15, "tier": "official", "derived_from": "2050409.53 cr / 8839.27 mn"},
+    "avg_ticket_p2m_inr": {"value": 582, "tolerance_rel": 0.15, "tier": "official", "derived_from": "886987.14 cr / 15229.11 mn"},
+    "p2m_share_below_500": {"value": 0.86, "tolerance": 0.04, "tier": "secondary", "source": "PIB, Ministry of Finance, 'UPI completes 10 years' (PRID 2257087), quoted via web search"},
+    "p2p_share_below_500": {"value": 0.59, "tolerance": 0.05, "tier": "secondary", "source": "same PIB release"}
+  },
+  "bank_volume_share": {
+    "tier": "official",
+    "source": "data/external/reference_datasets/npci/Ecosystem-Statistics-UPI-Chargeback-2026-Sep.xlsx (beneficiary bank, total txns during the month); computed by data/eval/datasets/references.py npci_bank_shares()"
+  }
+}

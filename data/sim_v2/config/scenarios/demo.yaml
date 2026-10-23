@@ -1,0 +1,29 @@
+# Fully scripted actors the backend tests, Android app, console and contracts refer to by name.
+# These are exact on purpose (CLAUDE.md "Demo identities"); everything else in the world is ranged.
+meena:
+  user_id: u_demo_meena
+  upi_id: 7423938499@ibl
+  mobile: "+917423938499"
+  name: Meena Kulkarni
+  region: Pune
+  age_band: "60+"
+  language: hi
+  persona: senior
+  sms_consent: true
+  never_scammed: true
+kirana:
+  upi_id: shreeganesh.kirana@okaxis
+  name: Shree Ganesh Kirana
+  region: Pune
+  verified: true
+  pune_share: 0.8            # main shop for 80% of Pune users
+demo_mule:
+  upi_id: secure.settlement.desk@okaxis
+  kind: plain
+  created_days_before_end: 4
+  external_payers_per_day: 6
+  never_reported: true
+demo_journeys:
+  playbook: digital_arrest
+  count: 3
+  hours_before_end: [8, 46]
