@@ -710,7 +710,11 @@ PAGE.scorecard = async () => {
 };
 
 // ---------------------------------------------------------------- go
-(async () => { await loadRuns(); route(); setInterval(() => loadRuns(run), 10000); })();
+(async () => {
+  try { await loadRuns(); } catch (e) { /* the server is starting or stopped: the page says so below */ }
+  route();
+  setInterval(() => loadRuns(run).catch(() => {}), 10000);
+})();
 </script>
 </body>
 </html>

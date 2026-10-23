@@ -35,3 +35,13 @@ it dominates. It is the only place that uses the simulator's answer key.
 
 Adding a playbook: drop a new sim_v2 YAML here (unique `name`, `emerging: true`); the console picks
 it up. The `python -m redteam` runner Nikunj's notes mention is not in this folder.
+
+## First result (offline agents, 4,000 users x 30 days, seed 41)
+
+1,609 scam journeys, 1,436 by these 50 playbooks (all 50 attacked), 845 red-team scam payments.
+**RUKO (lgbm-0.2 + policy) interrupted 2.8% of them**, which bears out Nikunj's claim (97.5% missed),
+while it still interrupted digital_arrest 100%, fake_kyc_apk 100%, refund_qr 89% and
+fake_customer_care 85% of their payments. Then the blue team: 304 complaints (275 missed), 24 HDBSCAN
+groups; all 50 red-team playbooks produced complaints, 49 landed in a group, 19 are the majority of
+a group that got a drafted playbook, 14 of those judged a new scam (offline analyst; run with Bedrock
+for the LLM agents).
