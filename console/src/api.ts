@@ -228,6 +228,39 @@ export interface AlertHealth {
   i_know_them: { accepted?: number; refused?: number };
 }
 
+export interface RingAccount {
+  upi_id: string;
+  role: "seed" | "suspect";
+  why: string | null;
+  band: "low" | "med" | "high" | null;
+  is_hub: boolean;
+  hub_score: number;
+  hub_parts: Record<string, number>;
+  payers: number;
+  inr_in: number;
+  inr_out: number;
+  fastest_hold_min: number | null;
+  automated: boolean;
+  automation_why: string | null;
+  registry_listed: boolean;
+  approved: boolean;
+}
+
+export interface Ring {
+  ring_id: string;
+  size: number;
+  accounts: RingAccount[];
+  hubs: string[];
+  victims: number;
+  baited_users: number;
+  money_from_victims_inr: number;
+  fastest_hold_min: number | null;
+  automated: boolean;
+  links: { from: string; to: string; inr: number; n: number; hold_min: number | null; sources: string[] }[];
+  victims_per_account: Record<string, number>;
+  summary: string;
+}
+
 export interface EmergingPattern {
   pattern_id: string;
   description: string;
@@ -273,6 +306,7 @@ export const api = {
   },
   explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
   alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
+  rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
   emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
   reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {
     const r = await fetch(`/v1/patterns/${encodeURIComponent(id)}/review`, {

@@ -412,6 +412,18 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         return {"suspects": run_discovery(min_band), "last_run": found["last_run"],
                 "approvals_needed": discovery.APPROVALS_NEEDED}
 
+    @app.get("/v1/graph/rings")
+    def graph_rings() -> dict:
+        """Mule rings: members, hubs (with a hub score), victims, money and speed (analyst console)."""
+        return {"as_of": sim_now().isoformat(), "rings": discovery.ring_view(graph, reviews, sim_now())}
+
+    @app.get("/v1/graph/rings/{ring_id}")
+    def graph_ring(ring_id: str) -> dict:
+        ring = next((r for r in discovery.ring_view(graph, reviews, sim_now()) if r["ring_id"] == ring_id), None)
+        if ring is None:
+            raise HTTPException(404, "no such ring now (ring ids change when the graph changes)")
+        return ring
+
     @app.post("/v1/graph/suspects/{upi_id}/review")
     def graph_review(upi_id: str, body: ReviewBody) -> dict:
         if body.decision not in ("approve", "reject"):

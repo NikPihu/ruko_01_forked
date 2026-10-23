@@ -8,12 +8,14 @@ import { Overview } from "./pages/Overview";
 import { Suspects } from "./pages/Suspects";
 import { PaymentExplain, Transactions } from "./pages/Transactions";
 import { Emerging } from "./pages/Emerging";
+import { RingDetail, Rings } from "./pages/Rings";
 
 const NAV = [
   { key: "", label: "Overview", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
   { key: "alerts", label: "Alerts & cases", icon: "M12 2 1 21h22zm0 5 7.5 12h-15zm-1 4v4h2v-4zm0 5v2h2v-2z" },
   { key: "transactions", label: "Transactions", icon: "M3 5h18v2H3zm0 6h18v2H3zm0 6h12v2H3z" },
   { key: "emerging", label: "Emerging patterns", icon: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.6-6.2 4.6 2.4-7.4L2 9.4h7.6z" },
+  { key: "rings", label: "Scam rings", icon: "M12 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM5 14a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm14 0a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM11 8h2v3l4.5 3.3-1.2 1.6L12 12.8l-4.3 3.1-1.2-1.6L11 11z" },
   { key: "suspects", label: "Mule suspects", icon: "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" },
   { key: "explore", label: "Account explorer", icon: "M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" },
   { key: "evaluation", label: "Evaluation", icon: "M4 20h16v2H4zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z" },
@@ -38,6 +40,8 @@ export function App() {
   else if (section === "transactions" && path[1]) page = <PaymentExplain id={decodeURIComponent(path[1])} />;
   else if (section === "transactions") page = <Transactions />;
   else if (section === "emerging") page = <Emerging />;
+  else if (section === "rings" && path[1]) page = <RingDetail id={path[1]} />;
+  else if (section === "rings") page = <Rings />;
   else if (section === "suspects") page = <Suspects />;
   else if (section === "explore") page = <Explore upi={query.get("upi") ?? ""} payment={query.get("payment") ?? ""} />;
   else if (section === "evaluation") page = <Evaluation />;
