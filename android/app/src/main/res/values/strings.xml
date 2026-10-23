@@ -8,6 +8,12 @@
     <string name="home_hero_tagline">Scam Shield by RUKO is on. A risky payment gets a pause and a reason.</string>
     <string name="home_check_server">Check Scam Shield</string>
     <string name="home_api_address">API: %1$s</string>
+    <string name="home_server_checking">Checking Scam Shield…</string>
+    <string name="home_server_ok_title">Scam Shield is connected</string>
+    <string name="home_server_ok_body">Every payment is checked for scam signs before your PIN.</string>
+    <string name="home_server_down_title">Scam Shield can\'t be reached</string>
+    <string name="home_server_down_body">Payments still go through, but without a safety check. Try again in a moment.</string>
+    <string name="home_server_model">Server model: %1$s</string>
     <string name="home_profile">Profile</string>
     <string name="home_help">Help</string>
     <string name="home_money_transfers">Money Transfers</string>
