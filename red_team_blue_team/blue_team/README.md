@@ -87,9 +87,16 @@ The clustering settings were chosen on seed 21, so its numbers are optimistic; s
 honest one. Small worlds give 4 to 10 complaints per new scam: the method needs a few weeks of
 complaints before a pattern clusters.
 
-The LLM agents are tested here only with a scripted fake Bedrock client (`tests/`). Run
-`probe` and `run` with a key to see the real Nova / Claude agents; compare with
-`evaluate`.
+**First LLM run (gpt-oss-120b on Bedrock, Sydney; about 0.8M tokens in, 46k out):** every card came
+from the model, with real stories and multi-condition rules, but the analyst got only 3 of 10
+verdicts right (offline: 6). It called known scams "new" when their lure was missing (fake_kyc_apk,
+fake_customer_care, task_job, trading_group) and two of its rules failed the gates (one used
+`caller_unknown is true`, which is null on VoIP calls). Changes since: rules may name tokens
+(`{"token": "CALLER_UNKNOWN"}`), the analyst gets the lure-ignored similarity to each known
+playbook and is told a missing lure is not a new scam, and a rule failing the gates is replaced by
+the code search while the model's text is kept. Re-run and `evaluate` to see the effect.
+
+The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
 ## What other folders need (not done here)
 

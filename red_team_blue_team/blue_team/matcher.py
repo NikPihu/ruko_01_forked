@@ -36,6 +36,9 @@ def normalize(node: Any) -> Any:
     It only renames operators and converts literal values; it adds no new power."""
     if not isinstance(node, dict):
         return node
+    if set(node) == {"token"}:
+        from blue_team.tokens import TOKENS   # tokens are defined in this format, so no import cycle at load
+        return TOKENS.get(str(node["token"]), node)
     if "all" in node or "any" in node:
         key = "all" if "all" in node else "any"
         kids = node[key]
@@ -93,6 +96,9 @@ def _check(node: Any, depth: int, errors: list[str]) -> int:
         return sum(_check(c, depth + 1, errors) for c in children)
     if keys == {"not"}:
         return _check(node["not"], depth + 1, errors)
+    if keys == {"token"}:
+        errors.append(f"unknown token {node['token']!r}")
+        return 0
     if not {"feature", "op"} <= keys or keys - {"feature", "op", "value"}:
         errors.append(f"a leaf needs feature, op and value, got {sorted(keys)}")
         return 0

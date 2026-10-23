@@ -47,12 +47,16 @@ CARD_SCHEMA = {
 
 MATCHER_HELP = f"""Matcher format (JSON). A leaf: {{"feature": <field>, "op": <op>, "value": <value>}}.
 Combine with {{"all": [...]}}, {{"any": [...]}}, {{"not": {{...}}}}. At most {matcher.MAX_LEAVES} leaves, depth {matcher.MAX_DEPTH}.
+Shortcut (recommended): {{"token": "CALLER_UNKNOWN"}} uses that token's exact rule, e.g.
+{{"all": [{{"token": "CALL_ON"}}, {{"token": "CALLER_UNKNOWN"}}, {{"token": "SAYS_FAMILY"}}]}}.
 ops: is (true/false), eq, ne, in, not_in (list), >=, <=, >, < (numbers), is_null, not_null.
 An unmeasured field (null) never satisfies a comparison.
 Fields: {", ".join(sorted(matcher.FIELDS))}.
 entry_method is typed|qr|contact|collect; payer_says is government|company|family|shop|investment|other;
 lure_tag is arrest_threat|kyc|task_job|trading_tip|refund; payee_holder_type is person|merchant;
-episode_state is 0 none, 1 watching, 2 active."""
+episode_state is 0 none, 1 watching, 2 active.
+On a WhatsApp / VoIP call the phone cannot see the number, so caller_unknown is null, not true:
+use the CALLER_UNKNOWN token, which covers both."""
 
 TOKEN_GLOSSARY = "\n".join(f"- {name}: {matcher.describe(rule)}" for name, rule in tokens.TOKENS.items()) + \
     "\n- GAP_*: time between two payments of the case (under 10 min, under 1 h, under 1 day, over 1 day)"
@@ -157,6 +161,17 @@ def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[st
     if card is None:
         card, bt = offline_card(ws, cluster_id, taken)
         how = f"offline (the {model_id} investigator submitted no valid card in {res.turns} turns)"
+    elif bt and bt.get("gate_failures"):
+        # Keep the model's story, but use the code-searched rule if it passes where the model's did not.
+        rule = offline_card(ws, cluster_id, taken)[0]["matcher"]
+        alt = ws.test_matcher(rule, cluster_id)
+        if not alt["gate_failures"]:
+            card = {**card, "matcher": matcher.normalize(rule),
+                    "drafted_matcher": {"rule": card["matcher"], "gate_failures": bt["gate_failures"]}}
+            bt = alt
+            how = f"{model_id} (matcher: code search; the drafted one failed the gates)"
+        else:
+            how = model_id
     else:
         how = model_id
     return _draft(card, bt, cluster_id, how, res)

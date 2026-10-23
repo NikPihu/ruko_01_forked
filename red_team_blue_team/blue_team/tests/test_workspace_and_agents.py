@@ -162,3 +162,17 @@ def test_tool_choice_is_forced_when_allowed_and_dropped_when_refused(ws, new_clu
 def test_ping_checks_tool_use():
     assert llm.ping(FakeBedrock([[use("say_ok", {"word": "ok"}, 1)]]), "m1") == "tools"
     assert llm.ping(NoForcedChoice([[use("say_ok", {"word": "ok"}, 1)]]), "m2") == "tools (no forced choice)"
+
+
+def test_a_drafted_rule_failing_the_gates_is_replaced_by_the_code_search(ws, new_cluster):
+    trap = {"all": [{"feature": "on_call", "op": "is", "value": True}, {"feature": "caller_unknown", "op": "is", "value": True}]}
+    rt = FakeBedrock([[use("submit_playbook", card(matcher=trap), i)] for i in range(3)])
+    draft = investigator.investigate(ws, new_cluster, rt, "fake-model", set())
+    assert "code search" in draft["drafted_by"] and draft["gate_failures"] == []
+    assert draft["card"]["drafted_matcher"]["rule"] == trap and draft["card"]["title"] == card()["title"]
+
+
+def test_analyst_sees_lure_ignored_similarity(ws, new_cluster):
+    draft = investigator.investigate_offline(ws, new_cluster, set())
+    got = analyst._tools(ws, new_cluster, draft)[0].fn({})
+    assert set(got["signal_similarity_lures_ignored"]) >= {"trading_group", "digital_arrest"}

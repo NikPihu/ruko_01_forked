@@ -35,6 +35,15 @@ drafted a playbook card for a cluster of victim complaints that RUKO's shield di
   lure SMS, so the known rule could not fire). Then the right fix is the known playbook, not a new one;
 - lookalike_not_scam: honest everyday behaviour (the matcher would name many legit payments);
 - insufficient_evidence: too few or too mixed cases to say.
+A missing lure is not evidence of a new scam. The phone often does not see the lure SMS (SMS checks
+off, the message came on WhatsApp or Telegram, or the classifier did not know it) and the episode
+watcher may be off, so a known scam whose lure was missed is exactly what reaches this queue as
+"unnamed". Judge by the signals that remain: for example sideload + accessibility is fake_kyc_apk,
+payer says "investment" is trading_group, remote control + a company story on an outgoing or unknown
+call is fake_customer_care, repeated deposits to new payees after small credits is task_job.
+get_candidate gives signal_similarity_lures_ignored to every known playbook (0-1, from the cases
+that playbook names, lure and episode tokens left out, rare tokens weighted up); 0.8 or more
+strongly suggests variant_of_known. A new_scam needs a mechanism no known playbook describes.
 Check the investigator's claims against the cases yourself; run test_matcher if a number looks off;
 compare with the nearest known playbooks. Do not invent evidence. Your verdict is advice to two
 human analysts, who decide. Finish by calling submit_review."""
@@ -52,8 +61,10 @@ def _tools(ws: Workspace, cluster_id: str, draft: dict) -> list[llm.Tool]:
         return {"accepted": True}
 
     return [
-        llm.Tool("get_candidate", "The investigator's draft card and the code backtest of its matcher.", empty,
-                 lambda i: {"card": draft["card"], "backtest": draft["backtest"], "gate_failures": draft["gate_failures"]}),
+        llm.Tool("get_candidate", "The investigator's draft card, the code backtest of its matcher, and the cluster's "
+                 "signal similarity to every known playbook with lures ignored.", empty,
+                 lambda i: {"card": draft["card"], "backtest": draft["backtest"], "gate_failures": draft["gate_failures"],
+                            "signal_similarity_lures_ignored": similarities(ws, cluster_id)}),
         llm.Tool("get_cluster_overview", "Size, dates, amounts, distinctive tokens, payees, RUKO's response.", empty,
                  lambda i: ws.overview(cluster_id)),
         llm.Tool("get_case", "One complaint and its payments.",
@@ -83,6 +94,10 @@ def review(ws: Workspace, cluster_id: str, draft: dict, rt, model_id: str) -> di
     out["transcript"] = res.transcript
     out["usage"] = {"turns": res.turns, "tokens_in": res.tokens_in, "tokens_out": res.tokens_out}
     return out
+
+
+def similarities(ws: Workspace, cluster_id: str) -> dict[str, float]:
+    return {pb.name: round(profile_similarity(ws, cluster_id, pb.name), 2) for pb in ws.playbooks if pb.status == "known"}
 
 
 def profile_similarity(ws: Workspace, cluster_id: str, playbook: str) -> float:

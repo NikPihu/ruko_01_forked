@@ -68,3 +68,11 @@ def test_common_spellings_are_normalized_not_trusted():
     assert n["all"][0]["value"] is True and n["all"][1] == {"feature": "amount_inr", "op": ">=", "value": 1000.0}
     assert n["all"][2] == {"feature": "on_call", "op": "is", "value": True} and n["all"][3]["value"] == ["family"]
     assert matcher.validate(matcher.normalize({"feature": "on_call", "op": "exec", "value": 1}))  # still rejected
+
+
+def test_token_leaves_expand_to_the_tokens_exact_rule():
+    voip = features(on_call=True, voip_call=True, caller_unknown=None)
+    rule = matcher.normalize({"all": [{"token": "CALL_ON"}, {"token": "CALLER_UNKNOWN"}]})
+    assert matcher.validate(rule) == [] and matcher.matches(rule, voip)
+    assert not matcher.matches({"feature": "caller_unknown", "op": "is", "value": True}, voip)   # the trap it avoids
+    assert any("unknown token" in e for e in matcher.validate(matcher.normalize({"token": "NOPE"})))
