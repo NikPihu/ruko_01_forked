@@ -1,0 +1,83 @@
+name: caller_listed_typed_new_payee
+title: Caller Listed, Typed Entry, New Payee
+status: review
+summary: This scam involves a call from a listed caller, a typed payment entry, and a new payee. The caller
+  may pose as a family member or friend to gain trust.
+steps:
+- The victim receives a call from a listed caller.
+- The caller poses as a family member or friend.
+- The victim is instructed to make a payment.
+- The payment is entered via typed method.
+- The payee is new.
+signals: []
+reason_codes:
+- R1_live_unknown_call
+- R6_new_payee_typed
+advice_en: Verify the caller's identity before making any payments.
+advice_hi: से पेमेंट करने से पहले का पहचान करें.
+ai_powered:
+  likely: false
+  why: No evidence of AI tools.
+confidence: medium
+open_questions: []
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: caller_registry_listed
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: first_time_payee
+      op: is
+      value: true
+evidence:
+  run_id: 20261023-135626
+  cluster_id: c01
+  cases: 7
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.64
+backtest:
+  valid: true
+  cluster_payment_recall: 1.0
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 0.085
+  known_playbook_payments_also_matched: 0.027
+  other_clusters_case_recall:
+    c02: 0.25
+  gate_failures: &id001 []
+rule_in_words: (caller_registry_listed is True AND entry_method eq typed AND first_time_payee is True)
+gate_failures: *id001
+drafted_by: apac.amazon.nova-pro-v1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: fake_customer_care
+  rationale: The draft playbook 'caller_listed_typed_new_payee' is a variant of the known playbook 'fake_customer_care'.
+    Both involve a call from an unknown or listed caller, and a payment to a new payee. The main difference
+    is that the draft playbook specifies a typed payment entry, while the known playbook does not specify
+    the entry method. However, the overall mechanism is similar, so the right fix is likely the known
+    playbook, not a new one.
+  required_changes: null
+  confidence: medium
+  reviewed_by: apac.amazon.nova-pro-v1:0
+mule_accounts:
+- upi_id: khankirana277@paytm
+  cases: 4
+- upi_id: ananya.pawar70826@ybl
+  cases: 1
+- upi_id: patelgeneral664@oksbi
+  cases: 1
+- upi_id: rahul.thakur37531@axl
+  cases: 1
+label_tx_ids:
+- t_0070262
+- t_0084601
+- t_0077867
+- t_0096179
+- t_0100029
+- t_0098685
+- t_0116379
+reviews: []

@@ -29,12 +29,12 @@ def workspace(table: Path, world: Path, scorer: str = "ml", as_of: pd.Timestamp 
     return Workspace(scored, cases, res, breach.presumed_legit(scored, comp), pbs)
 
 
-def connect(provider: str, log=print):
+def connect(provider: str, log=print, model: str | None = None):
     """(client, model id) for Bedrock, or (None, None) for offline. `auto` falls back to offline."""
     if provider == "offline":
         return None, None
     try:
-        rt, model = llm.connect()
+        rt, model = llm.connect([model] if model else None, log=log)
         log(f"agents: Bedrock {model}")
         return rt, model
     except llm.LLMUnavailable as e:
@@ -45,7 +45,7 @@ def connect(provider: str, log=print):
 
 
 def run(table: Path, world: Path, scorer: str = "ml", provider: str | None = None, as_of: pd.Timestamp | None = None,
-        out_root: Path | None = None, playbook_root: Path | None = None, log=print) -> dict:
+        out_root: Path | None = None, playbook_root: Path | None = None, log=print, model: str | None = None) -> dict:
     provider = provider or config.load()["agents"]["provider"]
     run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     out = (out_root or config.RUNS) / run_id
@@ -57,7 +57,7 @@ def run(table: Path, world: Path, scorer: str = "ml", provider: str | None = Non
     new = [c for c in ws.clusters.clusters if c.kind == "new"]
     log(f"{len(ws.clusters.clusters)} clusters ({len(new)} new), {len(ws.clusters.noise)} breaches in no cluster")
 
-    rt, model = connect(provider, log)
+    rt, model = connect(provider, log, model)
     taken = {pb.name for pb in playbook_db.load(("known", "review", "approved"), playbook_root)}
     candidates = []
     for c in new:

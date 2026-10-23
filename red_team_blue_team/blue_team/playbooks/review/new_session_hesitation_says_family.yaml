@@ -1,0 +1,115 @@
+name: new_session_hesitation_says_family
+title: 'Unnamed pattern from 6 complaints: session hesitation, says family, session abandoned, says other,
+  session dictated'
+status: review
+summary: '6 complaints from 6 users describe payments RUKO did not stop. Most share: session hesitation,
+  says family, session abandoned, says other, session dictated. Median payment Rs 14,162; 12 payee accounts.
+  Drafted without an LLM: an analyst should write the story.'
+steps:
+- 'Complaint pattern: session hesitation, says family, session abandoned, says other, session dictated'
+- Victim pays a new payee the scammer chose
+signals:
+- SESSION_HESITATION
+- SAYS_FAMILY
+- SESSION_ABANDONED
+- SAYS_OTHER
+- SESSION_DICTATED
+- AMT_10K_50K
+reason_codes:
+- R12_coached_session
+advice_en: Other people reported payments like this as scams. Stop, check with someone you trust, and
+  call 1930 if unsure.
+advice_hi: दूसरे लोगों ने ऐसे भुगतानों को धोखा बताया है। रुकें, किसी भरोसेमंद व्यक्ति से पूछें, और शक
+  हो तो 1930 पर कॉल करें।
+ai_powered:
+  likely: false
+  why: not assessed offline
+confidence: low
+open_questions:
+- What story did the scammer tell? (no LLM draft)
+match:
+- priority: 100
+  rule:
+    feature: session_dictated
+    op: is
+    value: true
+evidence:
+  run_id: 20261023-135626
+  cluster_id: c08
+  cases: 6
+  scorer: lgbm-0.2
+  nearest_known: task_job
+  similarity: 0.544
+backtest:
+  valid: true
+  cluster_payment_recall: 0.5
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 0.472
+  known_playbook_payments_also_matched: 0.128
+  other_clusters_case_recall:
+    c00: 0.78
+    c05: 0.75
+    c06: 0.71
+    c07: 0.4
+    c09: 0.25
+    c10: 0.5
+    c11: 0.33
+  gate_failures: &id001 []
+rule_in_words: session_dictated is True
+gate_failures: *id001
+drafted_by: offline (the apac.amazon.nova-pro-v1:0 investigator submitted no valid card in 12 turns)
+analyst:
+  verdict: new_scam
+  nearest_playbook: task_job
+  rationale: The draft playbook describes a cluster with distinctive tokens such as SESSION_HESITATION,
+    SAYS_FAMILY, and SESSION_DICTATED, which are not covered by any known playbooks. The nearest known
+    playbook, 'task_job', has a low similarity of 0.544. The matcher backtest shows a high cluster case
+    recall of 1, indicating that the matcher is effective in identifying the cases in this cluster.
+  required_changes: null
+  confidence: high
+  reviewed_by: apac.amazon.nova-pro-v1:0
+mule_accounts:
+- upi_id: neha.gupta92684@ybl
+  cases: 1
+- upi_id: shettymart270@ybl
+  cases: 1
+- upi_id: ajay.chauhan83037@okicici
+  cases: 1
+- upi_id: ramesh.mishra35602@ybl
+  cases: 1
+- upi_id: asha.gupta32340@axl
+  cases: 1
+- upi_id: guptastore974@axl
+  cases: 1
+- upi_id: 9207823692@oksbi
+  cases: 1
+- upi_id: raoprovision616@axl
+  cases: 1
+- upi_id: 9526482619@ybl
+  cases: 1
+- upi_id: pooja.singh38716@ybl
+  cases: 1
+- upi_id: sanjay.iyer72024@okhdfcbank
+  cases: 1
+- upi_id: vivaan.verma48476@okaxis
+  cases: 1
+label_tx_ids:
+- t_0097202
+- t_0097296
+- t_0098750
+- t_0101318
+- t_0102514
+- t_0114259
+- t_0114365
+- t_0114390
+- t_0114416
+- t_0127056
+- t_0127251
+- t_0127326
+- t_0127351
+- t_0157002
+- t_0157707
+- t_0158783
+- t_0160712
+- t_0160721
+reviews: []

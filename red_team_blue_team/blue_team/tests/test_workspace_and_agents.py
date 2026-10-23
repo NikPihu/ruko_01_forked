@@ -127,3 +127,10 @@ def test_a_model_that_is_always_filtered_gives_up_early(ws, new_cluster):
     tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
     res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 10)
     assert res.final is None and res.turns == llm.MAX_FILTERED
+
+
+def test_agent_is_told_to_submit_before_its_turns_run_out(ws, new_cluster):
+    rt = FakeBedrock([[use("get_cluster_overview", {}, i)] for i in range(5)])
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 5)
+    assert "Only 2 turns left: call submit_review" in json.dumps(rt.calls[3]["messages"])

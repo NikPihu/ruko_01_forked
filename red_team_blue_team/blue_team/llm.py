@@ -20,6 +20,7 @@ from blue_team import config
 
 FILTERED = "blocked by our content filters"   # Amazon Nova's reply when its own filter fires
 MAX_FILTERED = 3
+LAST_CALL_TURNS = 2                            # when to tell the agent to submit what it has
 
 
 class LLMUnavailable(RuntimeError):
@@ -56,7 +57,7 @@ def client(region: str | None = None):
                         config=Config(retries={"max_attempts": 4, "mode": "standard"}, read_timeout=120))
 
 
-def connect(models: list[str] | None = None, rt=None) -> tuple[Any, str]:
+def connect(models: list[str] | None = None, rt=None, log=None) -> tuple[Any, str]:
     """(bedrock-runtime client, the first model id that answers). Raises LLMUnavailable."""
     from botocore.exceptions import BotoCoreError, ClientError
     models = models or config.load()["agents"]["models"]
@@ -72,6 +73,8 @@ def connect(models: list[str] | None = None, rt=None) -> tuple[Any, str]:
             return rt, m
         except (ClientError, BotoCoreError) as e:
             errors.append(f"{m}: {str(e)[:160]}")
+            if log:
+                log(f"agents: skipping {m}: {str(e)[:160]}")
     raise LLMUnavailable("no Bedrock model answered:\n  " + "\n  ".join(errors))
 
 
@@ -103,6 +106,9 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
     res = AgentResult(final=None, model_id=model_id)
     for turn in range(max_turns):
         res.turns = turn + 1
+        if max_turns - turn == LAST_CALL_TURNS and messages[-1]["role"] == "user":
+            messages[-1]["content"].append({"text": f"(Only {LAST_CALL_TURNS} turns left: call {final} now with your "
+                                                    "best answer so far.)"})
         t0 = time.perf_counter()
         r = rt.converse(modelId=model_id, system=[{"text": system}], messages=messages,
                         toolConfig={"tools": [t.spec() for t in tools]},

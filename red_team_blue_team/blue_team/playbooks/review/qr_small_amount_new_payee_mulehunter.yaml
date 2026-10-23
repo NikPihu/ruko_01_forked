@@ -1,0 +1,83 @@
+name: qr_small_amount_new_payee_mulehunter
+title: QR small amount to new payee with high mule hunter score
+status: review
+summary: Victims receive a QR code from an unknown source for a small amount, which they scan and pay
+  to a new payee with a high mule hunter score.
+steps:
+- Victim receives a QR code from an unknown source.
+- Victim scans the QR code and pays a small amount.
+- Payment is made to a new payee with a high mule hunter score.
+signals:
+- ENTRY_QR
+- AMT_UNDER_1K
+- NEW_PAYEE
+- PAYEE_MULEHUNTER
+reason_codes:
+- R6_new_payee_typed
+- R3_mule_like_payee
+advice_en: Do not scan QR codes from unknown sources.
+advice_hi: मानव सुत्रों से QR कोड को स्कैन न करें.
+ai_powered:
+  likely: false
+  why: No evidence of AI tools.
+confidence: medium
+open_questions: []
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: amount_inr
+      op: <
+      value: 1000
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_mulehunter
+      op: '>='
+      value: 0.5
+evidence:
+  run_id: 20261023-135626
+  cluster_id: c09
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: refund_qr
+  similarity: 0.429
+backtest:
+  valid: true
+  cluster_payment_recall: 0.5
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.07
+  known_playbook_payments_also_matched: 0.004
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND amount_inr < 1000 AND first_time_payee is True AND payee_mulehunter
+  >= 0.5)
+gate_failures: *id001
+drafted_by: apac.amazon.nova-pro-v1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: refund_qr
+  rationale: The draft playbook 'qr_small_amount_new_payee_mulehunter' describes a mechanism similar to
+    the known playbook 'refund_qr'. The core mechanism of receiving a QR code from an unknown source and
+    paying to a new payee is already covered by the 'refund_qr' playbook. The main differences are the
+    addition of the mule hunter score and the amount being under 1K, which are more common in the cluster.
+    Therefore, the draft playbook should be considered a variant of the known playbook 'refund_qr'.
+  required_changes: null
+  confidence: medium
+  reviewed_by: apac.amazon.nova-pro-v1:0
+mule_accounts:
+- upi_id: ajay.mehta64790@oksbi
+  cases: 3
+- upi_id: neha.patel27185@ybl
+  cases: 1
+label_tx_ids:
+- t_0062941
+- t_0103945
+- t_0103981
+- t_0106015
+- t_0106088
+- t_0100804
+reviews: []

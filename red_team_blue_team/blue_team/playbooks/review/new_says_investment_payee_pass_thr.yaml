@@ -1,0 +1,112 @@
+name: new_says_investment_payee_pass_thr
+title: 'Unnamed pattern from 9 complaints: says investment, payee pass through, session paste after switch,
+  amt 1k 10k, entry typed'
+status: review
+summary: '9 complaints from 9 users describe payments RUKO did not stop. Most share: says investment,
+  payee pass through, session paste after switch, amt 1k 10k, entry typed. Median payment Rs 6,944; 14
+  payee accounts. Drafted without an LLM: an analyst should write the story.'
+steps:
+- 'Complaint pattern: says investment, payee pass through, session paste after switch, amt 1k 10k, entry
+  typed'
+- Victim pays a new payee the scammer chose
+signals:
+- SAYS_INVESTMENT
+- PAYEE_PASS_THROUGH
+- SESSION_PASTE_AFTER_SWITCH
+- AMT_1K_10K
+- ENTRY_TYPED
+- AMT_10K_50K
+reason_codes:
+- R6_new_payee_typed
+advice_en: Other people reported payments like this as scams. Stop, check with someone you trust, and
+  call 1930 if unsure.
+advice_hi: दूसरे लोगों ने ऐसे भुगतानों को धोखा बताया है। रुकें, किसी भरोसेमंद व्यक्ति से पूछें, और शक
+  हो तो 1930 पर कॉल करें।
+ai_powered:
+  likely: false
+  why: not assessed offline
+confidence: low
+open_questions:
+- What story did the scammer tell? (no LLM draft)
+match:
+- priority: 100
+  rule:
+    feature: payer_says
+    op: eq
+    value: investment
+evidence:
+  run_id: 20261023-135626
+  cluster_id: c11
+  cases: 9
+  scorer: lgbm-0.2
+  nearest_known: trading_group
+  similarity: 0.332
+backtest:
+  valid: true
+  cluster_payment_recall: 0.812
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 0.108
+  known_playbook_payments_also_matched: 0.0
+  other_clusters_case_recall:
+    c10: 0.12
+  gate_failures: &id001 []
+rule_in_words: payer_says eq investment
+gate_failures: *id001
+drafted_by: offline (the apac.amazon.nova-pro-v1:0 investigator submitted no valid card in 4 turns)
+analyst:
+  verdict: new_scam
+  nearest_playbook: fake_customer_care
+  rationale: The cluster c11 has distinct tokens such as 'SAYS_INVESTMENT', 'PAYEE_PASS_THROUGH', and
+    'SESSION_PASTE_AFTER_SWITCH' that are more common in this cluster than in the known playbooks. The
+    comparison with the nearest known playbooks shows significant differences, suggesting that the mechanism
+    is new.
+  required_changes: null
+  confidence: medium
+  reviewed_by: apac.amazon.nova-pro-v1:0
+mule_accounts:
+- upi_id: vivaan.shetty29852@oksbi
+  cases: 2
+- upi_id: geeta.patel96176@oksbi
+  cases: 2
+- upi_id: 6697637893@okicici
+  cases: 1
+- upi_id: rajesh.rao48537@oksbi
+  cases: 1
+- upi_id: 7641139651@ybl
+  cases: 1
+- upi_id: 7935925523@ybl
+  cases: 1
+- upi_id: meena.mehta47691@okhdfcbank
+  cases: 1
+- upi_id: vivaan.ghosh37190@ybl
+  cases: 1
+- upi_id: 7640163436@okicici
+  cases: 1
+- upi_id: ajay.sharma26022@axl
+  cases: 1
+- upi_id: guptaprovision877@oksbi
+  cases: 1
+- upi_id: nikhil.verma56084@okhdfcbank
+  cases: 1
+- upi_id: isha.mishra99062@okaxis
+  cases: 1
+- upi_id: aditya.thakur39267@ybl
+  cases: 1
+label_tx_ids:
+- t_0048185
+- t_0051313
+- t_0054420
+- t_0051335
+- t_0055774
+- t_0061370
+- t_0051058
+- t_0054208
+- t_0062476
+- t_0088002
+- t_0139747
+- t_0144815
+- t_0153552
+- t_0167788
+- t_0187514
+- t_0190693
+reviews: []

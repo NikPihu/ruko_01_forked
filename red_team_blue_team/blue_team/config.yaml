@@ -42,7 +42,7 @@ agents:
     - apac.amazon.nova-lite-v1:0
   max_tokens: 4096
   temperature: 0.2
-  investigator_max_turns: 12
+  investigator_max_turns: 16
   analyst_max_turns: 8
 
 analyst_offline:                     # the no-LLM analyst's fixed rules (a baseline; the LLM analyst reasons)

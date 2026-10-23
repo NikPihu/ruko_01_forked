@@ -30,6 +30,7 @@ def main() -> None:
     r.add_argument("--scorer", choices=["ml", "rules"], default="ml")
     r.add_argument("--llm", choices=["bedrock", "offline", "auto"], default=None, help="default: config.yaml agents.provider")
     r.add_argument("--as-of", default=None, help="only complaints filed by this time (ISO), to replay discovery over time")
+    r.add_argument("--model", default=None, help="one Bedrock model id instead of the config.yaml list")
     sub.add_parser("queue", help="candidates waiting for analysts")
     s = sub.add_parser("show")
     s.add_argument("name")
@@ -56,7 +57,7 @@ def main() -> None:
         from blue_team import pipeline
         as_of = pd.Timestamp(a.as_of, tz="UTC") if a.as_of and pd.Timestamp(a.as_of).tzinfo is None else (
             pd.Timestamp(a.as_of) if a.as_of else None)
-        pipeline.run(a.table, a.data, a.scorer, a.llm, as_of)
+        pipeline.run(a.table, a.data, a.scorer, a.llm, as_of, model=a.model)
     elif a.cmd == "queue":
         from blue_team import review
         q = review.queue()
