@@ -249,8 +249,9 @@ mind. Offline episode features for training:
   check"): the last 3 days of SMS labelled on the phone ("matches a scam script" from `lure.json`,
   "looks AI-written" from `assets/ai_text.json` only for personal senders and 12+ words, hidden
   until that model exists, "OTP: never share this"); an OTP during a call gets a full warning, and
-  `SmsReceiver` posts it as a notification live ("SMS scam check" + "Call checks" on). Nothing is
-  sent. Hindi strings in `res/values-hi/`.
+  `SmsReceiver` posts it as a notification live ("SMS scam check" + "Call checks" on). A new SMS
+  that matches a scam script gets a "may be a scam" notification (scam type, plus "looks
+  AI-written" when known; never the text) that opens Message check. Nothing is sent. Hindi strings in `res/values-hi/`.
 
 **ML** (`ml/`, on the path as `model.*`)
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine

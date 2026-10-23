@@ -83,12 +83,16 @@ object Signals {
 
     var overrides by mutableStateOf(SignalOverrides())
 
+    /** A screen a notification asked to open ("messages"); the app opens it once unlocked. */
+    var openScreen by mutableStateOf<String?>(null)
+
     /** A message the user pasted into the check box; counts for the next payment only. */
     var pasted by mutableStateOf<LureHit?>(null)
 
     /** The automatic permission prompt is shown once per app start; after that the Home card asks. */
     var askedForPermissions = false
 
+    @Synchronized
     fun init(context: Context) {
         if (::app.isInitialized) return
         app = context.applicationContext

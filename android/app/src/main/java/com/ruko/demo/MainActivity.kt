@@ -19,6 +19,12 @@ import java.util.function.Consumer
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        /** Notification extra: the screen to open, e.g. [OPEN_MESSAGES]. */
+        const val EXTRA_OPEN = "open"
+        const val OPEN_MESSAGES = "messages"
+    }
+
     // Android 15+: tells us whether this window is being recorded or mirrored.
     private val recordingCallback = Consumer<Int> { state ->
         Signals.sensor.screenRecorded = state == WindowManager.SCREEN_RECORDING_STATE_VISIBLE
@@ -32,6 +38,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         Signals.init(this)
+        Signals.openScreen = intent?.getStringExtra(EXTRA_OPEN) ?: Signals.openScreen
         // Keep account details out of the recent apps thumbnail.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             setRecentsScreenshotEnabled(false)
@@ -43,6 +50,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(EXTRA_OPEN)?.let { Signals.openScreen = it }
     }
 
     override fun onStart() {

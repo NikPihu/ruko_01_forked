@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ruko.demo.MainActivity
 import com.ruko.demo.data.PaymentState
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.ui.alerts.AlertScreen
@@ -97,6 +99,14 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
         vm.typingGaps = auth.typingGaps
         vm.pastPayments = auth.history.filter { it.state == PaymentState.COMPLETED }
             .map { PastPayment(it.ts / 1000.0, it.payee.trim().lowercase(), it.amountInr) }
+    }
+
+    // A tapped "may be a scam" notification opens Message check.
+    LaunchedEffect(Signals.openScreen) {
+        if (Signals.openScreen == MainActivity.OPEN_MESSAGES) {
+            Signals.openScreen = null
+            nav.navigate(Routes.MESSAGES) { launchSingleTop = true }
+        }
     }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {

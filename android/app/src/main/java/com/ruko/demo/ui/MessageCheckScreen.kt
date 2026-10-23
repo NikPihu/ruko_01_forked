@@ -155,7 +155,10 @@ private fun Label(text: String, color: Color) {
 }
 
 @Composable
-private fun scamTagText(tag: String): String = stringResource(
+private fun scamTagText(tag: String): String = stringResource(scamTagRes(tag))
+
+/** The words for a lure tag (also used by the "may be a scam" notification). */
+fun scamTagRes(tag: String): Int =
     when (tag) {
         "arrest_threat" -> R.string.msg_tag_arrest_threat
         "kyc" -> R.string.msg_tag_kyc
@@ -163,5 +166,4 @@ private fun scamTagText(tag: String): String = stringResource(
         "task_job" -> R.string.msg_tag_task_job
         "trading_tip" -> R.string.msg_tag_trading_tip
         else -> R.string.msg_tag_other
-    },
-)
+    }

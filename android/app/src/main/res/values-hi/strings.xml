@@ -203,6 +203,9 @@
     <string name="msg_ai_note">ठग अब AI से ऐसे साफ़-सुथरे, जल्दबाज़ी वाले मैसेज लिखते हैं। यह सिर्फ़ संकेत है, सबूत नहीं: भेजने वाले से किसी और तरीके से पुष्टि करें।</string>
     <string name="msg_otp_call_title">कॉल के दौरान एक कोड आया है</string>
     <string name="msg_otp_call_text">कॉल पर जो भी यह कोड माँगे, वह ठग है। बैंक, पुलिस और कंपनियाँ कभी OTP नहीं माँगतीं। कोड न बताएं; कॉल काट दें।</string>
+    <string name="msg_scam_notify_title">यह मैसेज स्कैम हो सकता है</string>
+    <string name="msg_scam_notify_text">एक नया SMS %1$s जैसा लगता है। उसके लिंक न खोलें, वापस कॉल न करें, कोड न बताएं, पैसे न भेजें। मैसेज जाँच में देखने के लिए टैप करें।</string>
+    <string name="msg_scam_notify_ai">यह AI से लिखा भी लगता है।</string>
     <string name="msg_tag_arrest_threat">नकली पुलिस या गिरफ़्तारी की धमकी</string>
     <string name="msg_tag_kyc">नकली KYC या खाता बंद</string>
     <string name="msg_tag_refund">नकली रिफ़ंड</string>

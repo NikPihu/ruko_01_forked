@@ -422,6 +422,9 @@
     <string name="msg_ai_note">Scammers now use AI to write polished, urgent messages like this. This is a hint, not proof: check with the sender another way.</string>
     <string name="msg_otp_call_title">A code arrived while you are on a call</string>
     <string name="msg_otp_call_text">Someone on a call asking for this code is a scammer. Banks, police and companies never ask for an OTP. Do not read it out; hang up.</string>
+    <string name="msg_scam_notify_title">This message may be a scam</string>
+    <string name="msg_scam_notify_text">A new SMS looks like a %1$s. Do not click its links, call back, share codes or pay. Tap to see it in Message check.</string>
+    <string name="msg_scam_notify_ai">It also looks AI-written.</string>
     <string name="msg_tag_arrest_threat">fake police or arrest threat</string>
     <string name="msg_tag_kyc">fake KYC or account block</string>
     <string name="msg_tag_refund">fake refund</string>
