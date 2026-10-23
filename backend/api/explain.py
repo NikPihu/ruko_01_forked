@@ -179,7 +179,8 @@ INPUT_WORDS: dict[str, Callable[[Any], Optional[str]]] = {
     "payee_repeat_ratio": lambda v: f"{v:.0%} of its payers come back (low means one-off victims)",
     "payee_pass_through_24h": lambda v: f"{v:.0%} of money in is sent on within 24 h",
     "payee_median_hold_min": lambda v: f"money stays a median of {v:.0f} min before it moves on",
-    "payee_holder_type": lambda v: f"the payee is a {v}",
+    "payee_holder_type": lambda v: ("the UPI ID belongs to a personal account (not a business)" if v == "person"
+                                    else f"the UPI ID belongs to a {v} account"),
     "payee_verified_merchant": lambda v: "the payee is a verified merchant",
     "story_mismatch": lambda v: "the user said 'government / company', but the payee is a person",
     "vpa_invalid": lambda v: "the UPI ID does not resolve",
@@ -192,7 +193,7 @@ INPUT_WORDS: dict[str, Callable[[Any], Optional[str]]] = {
     "amount_to_max_90d": lambda v: f"{_times(v)} the user's biggest payment in 90 days" if v >= 1 else None,
     "amount_to_median_90d": lambda v: f"{_times(v)} the user's usual payment" if v >= 1.5 else None,
     "first_time_payee": lambda v: "first payment to this payee",
-    "entry_typed": lambda v: "UPI ID typed by hand",
+    "entry_typed": lambda v: "UPI ID entered in the box (not scanned or picked from a contact)",
     "payee_in_contacts": lambda v: "the payee is a saved contact",
     "attempts_72h": lambda v: f"{v} payment tries in 72 h" if v >= 2 else None,
     "payee_in_run": lambda v: "part of a run of payments to new payees",

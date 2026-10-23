@@ -158,26 +158,83 @@ function WhySummary({ x }: { x: Explanation }) {
   return (
     <Card title={`Why ${x.user_view.tier}`}>
       <p style={{ margin: "0 0 14px", fontSize: 16 }}><b>{sm.headline}</b></p>
-      <div className="why">
-        {sm.families.map((f) => (
-          <div key={f.family} className={`why-fam${f.lit ? " lit" : ""}`}>
-            <div className="why-head">
-              <span className="why-name">{FAMILY_SHORT[f.family] ?? f.family}</span>
-              <span className="why-meter"><span style={{ width: `${Math.round(Math.min(1, f.score) * 100)}%` }} /></span>
-              <span className="why-score">{f.score.toFixed(2)}</span>
-              <span className={`chip${f.lit ? " bad" : ""}`}>{f.lit ? "lit" : "not lit"}</span>
-            </div>
-            {f.facts.length
-              ? <ul className="reasons plain why-facts">{f.facts.map((t) => <li key={t}>• {t}</li>)}</ul>
-              : <p className="muted why-facts" style={{ margin: 0 }}>Nothing measured points to a scam here.</p>}
-          </div>
-        ))}
-      </div>
+      <EvidenceGraph x={x} />
       <ul className="reasons plain" style={{ marginTop: 14 }}>
         <li>• <b>Scam type:</b> {type ?? "none of the known playbooks matched. If payments like this keep coming, they show up under Emerging patterns."}</li>
         {sm.how.map((t) => <li key={t}>• {t}</li>)}
       </ul>
       <p className="muted" style={{ margin: "10px 0 0" }}>A kind of evidence is lit at 0.50 or more; at least {sm.lit_needed} must be lit to interrupt. Only measured signals are listed: unknown is never shown as safe.</p>
     </Card>
+  );
+}
+
+/**
+ * Evidence → kind of evidence → decision, left to right. Facts sit next to their own kind, so no
+ * line crosses another; lit kinds feed the decision with a thick red line, unlit ones with a thin
+ * dashed grey one.
+ */
+function EvidenceGraph({ x }: { x: Explanation }) {
+  const sm = x.summary;
+  const tier = x.user_view.tier;
+  const lit = sm.families.filter((f) => f.lit).length;
+  const type = sm.scam_type ? (PLAYBOOKS[sm.scam_type] ?? sm.scam_type) : "no known scam type";
+  const W = 1000, rowH = 26, groupGap = 18, top = 12;
+  const FACT_X = 470, BOX_X = 560, BOX_W = 180, BOX_H = 50, DEC_X = 810, DEC_W = 180;
+  const cut = (t: string) => (t.length > 62 ? t.slice(0, 60) + "…" : t);
+
+  let yCursor = top;
+  const groups = sm.families.map((f) => {
+    const rows = f.facts.length ? f.facts : ["nothing measured points to a scam"];
+    const ys = rows.map((_, i) => yCursor + rowH * (i + 0.5));
+    const mid = (ys[0] + ys[ys.length - 1]) / 2;
+    yCursor += rows.length * rowH + groupGap;
+    return { f, rows, ys, mid, empty: !f.facts.length };
+  });
+  const H = Math.max(yCursor - groupGap + top, 120 + 2 * top);
+  const decY = H / 2, decH = 120;
+  const curve = (x1: number, y1: number, x2: number, y2: number) =>
+    `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`;
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 760 }} role="img"
+           aria-label={`Evidence for this decision: ${sm.headline}`}>
+        {groups.map(({ f, rows, ys, mid, empty }) => {
+          const color = f.lit ? "var(--critical)" : "var(--ink-2)";
+          const scoreW = Math.round(Math.min(1, f.score) * (BOX_W - 24));
+          return (
+            <g key={f.family}>
+              {rows.map((t, i) => (
+                <g key={i} opacity={f.lit ? 1 : 0.55}>
+                  <text x={FACT_X - 10} y={ys[i] + 4} fontSize={13} textAnchor="end"
+                        fill={empty ? "var(--ink-2)" : "var(--ink)"} fontStyle={empty ? "italic" : "normal"}>
+                    <title>{t}</title>{cut(t)}
+                  </text>
+                  <circle cx={FACT_X} cy={ys[i]} r={3} fill={color} />
+                  {!empty && <path d={curve(FACT_X, ys[i], BOX_X, mid)} fill="none" stroke={color}
+                                   strokeOpacity={f.lit ? 0.45 : 0.3} strokeWidth={1.2} />}
+                </g>
+              ))}
+              <path d={curve(BOX_X + BOX_W, mid, DEC_X, decY)} fill="none" stroke={f.lit ? "var(--critical)" : "var(--line)"}
+                    strokeWidth={f.lit ? 3 : 1.2} strokeDasharray={f.lit ? undefined : "4 4"} />
+              <rect x={BOX_X} y={mid - BOX_H / 2} width={BOX_W} height={BOX_H} rx={10}
+                    fill="var(--surface)" stroke={f.lit ? "var(--critical)" : "var(--line)"} strokeWidth={f.lit ? 2 : 1} />
+              <text x={BOX_X + 12} y={mid - 6} fontSize={13} fontWeight={600} fill="var(--ink)">
+                {FAMILY_SHORT[f.family] ?? f.family}
+                <tspan fontWeight={400} fill={color}>{`  ${f.score.toFixed(2)} · ${f.lit ? "lit" : "not lit"}`}</tspan>
+              </text>
+              <rect x={BOX_X + 12} y={mid + 8} width={BOX_W - 24} height={6} rx={3} fill="var(--line)" />
+              <rect x={BOX_X + 12} y={mid + 8} width={scoreW} height={6} rx={3} fill={color} />
+            </g>
+          );
+        })}
+        <rect x={DEC_X} y={decY - decH / 2} width={DEC_W} height={decH} rx={12}
+              fill="var(--surface-2)" stroke={tier === "T0" ? "var(--line)" : "var(--critical)"} strokeWidth={2} />
+        <text x={DEC_X + 14} y={decY - 30} fontSize={22} fontWeight={700} fill="var(--ink)">{tier}</text>
+        <text x={DEC_X + 14} y={decY - 8} fontSize={13} fontWeight={600} fill="var(--ink)">{TIERS[tier]?.name}</text>
+        <text x={DEC_X + 14} y={decY + 14} fontSize={12} fill="var(--ink)">{lit} of 4 lit · {sm.lit_needed} needed</text>
+        <text x={DEC_X + 14} y={decY + 34} fontSize={12} fill="var(--ink-2)"><title>{type}</title>{type.length > 24 ? type.slice(0, 23) + "…" : type}</text>
+      </svg>
+    </div>
   );
 }

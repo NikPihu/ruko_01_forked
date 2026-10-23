@@ -216,15 +216,3 @@ table.list td.when { white-space: nowrap; }
 .flow .lbl.loop { fill: var(--critical-ink); font-weight: 600; }
 .flow .node { cursor: pointer; }
 .flow .node:hover rect { stroke-width: 2.5; }
-
-/* Payment explanation: "Why T3" summary */
-.why { display: grid; gap: 10px; }
-.why-fam { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; opacity: 0.75; }
-.why-fam.lit { border-color: var(--critical); opacity: 1; }
-.why-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.why-name { font-weight: 600; min-width: 84px; }
-.why-meter { flex: 1; min-width: 80px; max-width: 220px; height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
-.why-meter span { display: block; height: 100%; background: var(--ink-2); }
-.why-fam.lit .why-meter span { background: var(--critical); }
-.why-score { font-variant-numeric: tabular-nums; min-width: 36px; }
-.why-facts { margin: 8px 0 0; }
