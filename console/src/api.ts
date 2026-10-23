@@ -56,6 +56,8 @@ export interface Suspect {
   is_hub: boolean;
   first_seen: string | null;
   registry_listed: boolean;
+  automated?: boolean;            // bot-scale: same amount to/from many people at a steady rhythm
+  automation_why?: string | null;
   review: Review;
 }
 
@@ -158,7 +160,22 @@ export interface EvalVisibility {
   rings: number;
 }
 
+export interface AiLures {
+  model_version: string | null;
+  messages: number;
+  scam_messages: number;
+  honest_messages: number;
+  caught: number | null;
+  right_scam_type: number | null;
+  false_alarms: number | null;
+  baseline_caught_unseen_templates: number;
+  by_scam_type: Record<string, number>;
+  by_language: Record<string, { messages: number; flagged: number }>;
+  missed: { tag: string; lang: string; got: string; conf: number; text: string }[];
+}
+
 export interface EvalResults {
+  ai_lures?: AiLures | null;
   episode: {
     world: { users: number; task_journeys: number; task_inr: number };
     conditions: Record<"known_mules" | "fresh_mules", Record<"A" | "B" | "C", EvalCondition>>;
@@ -167,6 +184,122 @@ export interface EvalResults {
     world: { users: number; mules: number; episode_events: number };
     visibility: Record<"none" | "partner" | "dpip", EvalVisibility>;
   } | null;
+}
+
+// ---------- transaction database (every payment check) and explanations ----------
+
+export interface Transaction {
+  payment_id: string;
+  user_hash: string;
+  payee_upi: string;
+  amount_inr: number;
+  entry_method: string | null;
+  ts: string;
+  tier: Tier;
+  reasons: string[];
+  message_key: string | null;
+  playbook: string | null;
+  stage: string | null;
+  scorer_version: string | null;
+  policy_version: string | null;
+  evidence_id: string | null;
+  fail_open: boolean;
+  latency_ms: number | null;
+  status: "checked" | "completed" | "cancelled";
+  outcome_ts: string | null;
+}
+
+export interface ExplainReason {
+  code: string;
+  text: string;
+  family: string | null;
+  strength: number | null;
+  band: "small" | "medium" | "large" | null;
+  signals: number;
+  shown_to_user: boolean;
+  inputs: Record<string, unknown>;
+}
+
+export interface DecisionSummary {
+  headline: string;
+  lit_needed: number;
+  families: { family: string; name: string; score: number; lit: boolean; facts: string[] }[];
+  how: string[];
+  scam_type: string | null;
+}
+
+export interface Explanation {
+  payment_id: string;
+  summary: DecisionSummary;
+  user_view: { tier: Tier; reasons: string[]; message_key: string | null; playbook: string | null; pause_minutes: number | null };
+  scores: { p_scam: number | null; families: Record<string, number>; lit_families: string[]; family_names: Record<string, string> };
+  reasons: ExplainReason[];
+  playbooks: { playbook: string; rule: string; matched: boolean; chosen: boolean }[];
+  policy_steps: string[];
+  sources: Record<string, string>;
+  stage_path: [string, string][];
+  scorer_version: string | null;
+  policy_version: string | null;
+  evidence_id: string | null;
+  fail_open: boolean;
+}
+
+export interface AlertHealth {
+  checks: number;
+  tiers: Record<string, { shown: number; completed_share: number | null; cancelled_share: number | null; median_dwell_ms: number | null; actions: Record<string, number> }>;
+  interruptions_per_1000_checks: number | null;
+  actions: Record<string, number>;
+  i_know_them: { accepted?: number; refused?: number };
+}
+
+export interface RingAccount {
+  upi_id: string;
+  role: "seed" | "suspect";
+  why: string | null;
+  band: "low" | "med" | "high" | null;
+  is_hub: boolean;
+  hub_score: number;
+  hub_parts: Record<string, number>;
+  payers: number;
+  inr_in: number;
+  inr_out: number;
+  fastest_hold_min: number | null;
+  automated: boolean;
+  automation_why: string | null;
+  registry_listed: boolean;
+  approved: boolean;
+}
+
+export interface Ring {
+  ring_id: string;
+  size: number;
+  accounts: RingAccount[];
+  hubs: string[];
+  victims: number;
+  baited_users: number;
+  money_from_victims_inr: number;
+  fastest_hold_min: number | null;
+  automated: boolean;
+  links: { from: string; to: string; inr: number; n: number; hold_min: number | null; sources: string[] }[];
+  victims_per_account: Record<string, number>;
+  summary: string;
+}
+
+export interface EmergingPattern {
+  pattern_id: string;
+  description: string;
+  summary: string;
+  signature: Record<string, unknown>;
+  payments: number;
+  people: number;
+  payees: number;
+  money_inr: number;
+  tiers: Record<string, number>;
+  first_seen: string;
+  last_seen: string;
+  growing: boolean;
+  examples: string[];
+  review: { status: string; name: string | null; analyst: string; draft: string | null } | null;
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -191,6 +324,29 @@ export const api = {
     return r.json() as Promise<Payment>;
   },
   evaluation: () => get<EvalResults>("/v1/eval"),
+  transactions: (params: { min_tier?: Tier | "T0"; status?: string; payee?: string; user_hash?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+    return get<{ count: number; transactions: Transaction[] }>(`/v1/transactions?${q}`);
+  },
+  explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
+  alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
+  demoRun: async () => {
+    const r = await fetch("/v1/demo/run", { method: "POST" });
+    if (!r.ok) throw new Error(`demo: ${r.status}`);
+    return r.json() as Promise<{ started: boolean; reason?: string }>;
+  },
+  demoResults: () => get<{ running: boolean; error: string | null; started: string | null;
+    results: { scenario: string; expect: string; tiers: string[]; playbooks: string[]; ok: boolean }[] | null }>("/v1/demo/results"),
+  rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
+  emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
+  reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {
+    const r = await fetch(`/v1/patterns/${encodeURIComponent(id)}/review`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ analyst, action, name }),
+    });
+    if (!r.ok) throw new Error(`pattern review: ${r.status}`);
+    return r.json() as Promise<{ pattern_id: string; status: string; name: string | null; draft_playbook: string | null }>;
+  },
   review: async (upi: string, reviewer: string, decision: "approve" | "reject") => {
     const r = await fetch(`/v1/graph/suspects/${encodeURIComponent(upi)}/review`, {
       method: "POST",

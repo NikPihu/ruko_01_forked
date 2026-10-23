@@ -19,12 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ruko.demo.BuildConfig
 import com.ruko.demo.R
+import com.ruko.demo.ui.alerts.TipBanner
 
 private const val MAX_PIN = 6
 
 /** Fake UPI PIN pad. The PIN stays in this screen's memory only; it is never stored or sent. */
 @Composable
-fun PinScreen(vm: PaymentViewModel, onConfirm: () -> Unit) {
+fun PinScreen(vm: PaymentViewModel, language: String?, onConfirm: () -> Unit) {
     var pin by remember { mutableStateOf("") }
     val canConfirm = pin.length == 4 || pin.length == MAX_PIN
 
@@ -44,6 +45,8 @@ fun PinScreen(vm: PaymentViewModel, onConfirm: () -> Unit) {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
+            // T1: the tip is here, on the way to the PIN, not on a screen of its own.
+            TipBanner(vm, language)
             Text(
                 text = stringResource(R.string.pin_title),
                 style = MaterialTheme.typography.headlineSmall,
@@ -55,8 +58,9 @@ fun PinScreen(vm: PaymentViewModel, onConfirm: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = CacheColors.TextSecondary,
             )
-            // T0 shows nothing to the user, so debug builds print it here to check C1.
-            if (BuildConfig.DEBUG) {
+            // T0 shows nothing to the user, so debug builds print it here to check C1 (debug panel
+            // switch, so a demo never shows a tier).
+            if (BuildConfig.DEBUG && vm.alertDebug) {
                 (vm.decision as? Decision.Result)?.let {
                     Text(
                         text = "debug: tier ${it.response.tier}, ${it.millis} ms",

@@ -1,0 +1,43 @@
+{
+  "model_version": "lure-0.1",
+  "test_set": "ai_lures.jsonl",
+  "messages": 40,
+  "scam_messages": 26,
+  "honest_messages": 14,
+  "caught": 0.962,
+  "right_scam_type": 0.885,
+  "false_alarms": 0.0,
+  "baseline_caught_unseen_templates": 0.84,
+  "send_threshold": 0.6,
+  "by_scam_type": {
+    "arrest_threat": 1.0,
+    "kyc": 1.0,
+    "task_job": 1.0,
+    "trading_tip": 1.0,
+    "refund": 0.75
+  },
+  "by_language": {
+    "en": {
+      "messages": 21,
+      "flagged": 12
+    },
+    "hi": {
+      "messages": 9,
+      "flagged": 6
+    },
+    "hinglish": {
+      "messages": 10,
+      "flagged": 7
+    }
+  },
+  "missed": [
+    {
+      "tag": "refund",
+      "lang": "en",
+      "got": "normal",
+      "conf": 0.874,
+      "text": "We apologise for the delayed delivery. As compensation you are eligible for a cashback of "
+    }
+  ],
+  "false_alarm_examples": []
+}

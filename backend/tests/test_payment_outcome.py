@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app as create_engine
+from schema.events import CONTRACT_VERSION
 from graph.store import KEEP, GraphStore
 from intel_mock.app import create_app as create_mock
 from sim.accounts import DEMO_KIRANA_UPI, DEMO_MEENA

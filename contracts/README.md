@@ -9,6 +9,8 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `examples/decide_request_minimal.json` | Kirana purchase, `context: null` (expect T0) |
 | `c2_episode.schema.json` | JSON Schema of `POST /v1/episode` (c2-0.4), from `python -m schema.export` |
 | `c2_payment_outcome.schema.json` | JSON Schema of `POST /v1/payment/outcome` (c2-0.6), from `python -m schema.export` |
+| `c2_app_events.schema.json` | JSON Schema of `POST /v1/feedback`, `POST /v1/watch` and `GET /v1/me/payments` (c2-0.9) |
+| `examples/feedback_*.json`, `watch_event_*.json`, `me_payments.json` | Alert feedback ("waited", "I know this person" + its refusal), watch events (scam message seen, long unknown call) and the app's own payment list (c2-0.9) |
 | `episode_rules.json` | Every episode threshold; the phone copies it into `android/app/src/main/assets/` |
 | `examples/episode_vectors.json` | Timelines the phone and the server must agree on (run by both test suites) |
 | `examples/episode_event_*.json` | Episode events (watching, active) and a `high` reply |
@@ -22,7 +24,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.8`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.7 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.10`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.9 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -42,7 +44,7 @@ give up after its own short timeout and let the payment go through (fail open, T
 | `context` | object or `null` | `null` = the user opted out of phone signals |
 
 `context` holds only flags derived on the phone. SMS text, audio, contacts and screen content are never sent.
-- `call`: `active`, `kind` (`sim`\|`voip`), `direction` (`incoming`\|`outgoing`), `caller_number`, `caller_in_contacts`, `started_min_ago`, `ended_min_ago`, `speaker_on` (c2-0.5: call audio is on the loudspeaker at the moment of Pay; `null` when no call)
+- `call`: `active`, `kind` (`sim`\|`voip`), `direction` (`incoming`\|`outgoing`), `caller_number`, `caller_in_contacts`, `started_min_ago`, `ended_min_ago`, `speaker_on` (c2-0.5: call audio is on the loudspeaker at the moment of Pay; `null` when no call), `video` (c2-0.10: a VoIP call while another app uses the camera, i.e. a video call; `null` when not measurable)
 - `device`: `remote_access_active`, `remote_app_installed_min_ago`, `untrusted_accessibility`, `sideloaded_last_24h`
 - `episode` (c2-0.3): the task-scam episode the phone's background watcher keeps for up to 30 days across all payees and UPI apps (bank SMS + this app's payments). `state` (`none` \| `watching` \| `active` \| `dismissed`), `age_days`, `bait_credits`, `bait_inr`, `outs`, `outs_inr`, `new_payees`, `escalation_steps`, `last_out_inr`, `out_to_in_ratio`, `payee_seen_in_episode`, `rules_version`. Rules: `episode_rules.json`; shared test cases: `examples/episode_vectors.json`. Bait fields are `null` when SMS can't be read; `episode` is `null` when the watcher is off. The engine counts it as **one lure-family signal**.
 - `money` (c2-0.2, **removed in c2-0.4**, now 422): the payer's own money flow over the last 72 h, counted on the phone from the app's payments and bank SMS alerts. Only counts and sums leave the phone. `bait_credits` (small credits of Rs 500 or less from UPI IDs the user never paid), `credits_inr`, `debits` (not counting this one), `debits_inr`, `new_payees`, `escalation_steps` (run of payments each at least 1.5x the one before, up to the latest), `last_debit_inr`. Credit fields are `null` when SMS checks are off.
@@ -171,23 +173,68 @@ Reply: `request_id`, the `status` the server holds (the first final status wins)
 (`false` for a repeat, a conflicting status, or another user's payment id). A completed payment adds
 to the user -> payee edge's `completed` count; a cancelled one does not. Unknown fields get 422.
 
+## POST /v1/feedback (c2-0.9)
+
+What the user did on an alert screen, sent in the background (never on the payment path; safe to
+retry with the same `feedback_id`).
+
+| Field | Notes |
+|---|---|
+| `feedback_id` | UUID; a repeat gets the same answer and is stored once |
+| `request_id` | the payment id (its `/v1/decide` `request_id`); must be this user's payment |
+| `user_id` | as in `/v1/decide` |
+| `action` | `tip_seen` \| `slid_to_pay` \| `cancelled_from_alert` \| `waited` \| `pay_after_pause` \| `called_trusted` \| `messaged_trusted` \| `called_1930` \| `i_know_them` |
+| `why` | only with `i_know_them`: `family` \| `friend` \| `shop` \| `landlord` \| `employer` \| `other` |
+| `dwell_ms` | time from the alert appearing to this action (optional) |
+| `ts` | when it happened, ISO 8601 with timezone |
+
+Reply: `recorded` (`false` for an unknown payment, someone else's, or over 30 a day), and for
+`i_know_them`: `trusted_accepted`. It is `false` when RUKO still recommends waiting: the payee or
+caller is on a list, someone may control the phone (stage S3 or a remote app), or the payee
+account itself looks like a mule (the payee family was lit). A user can vouch for a person, not for
+a mule account; coached victims tap "I know them" too. Then `message_key` is
+`know_them_not_accepted` and the app stays on the pause screen. When accepted, the payee joins the
+user's trusted list.
+
+## POST /v1/watch (c2-0.9)
+
+An early warning from the phone **before** any payment, so RUKO knows "contacted / under control"
+by the time the user pays. Sent only when a threshold is crossed (never on a timer), only with the
+"Early warnings" switch on (off by default). Tags and counts only, never text (rule 2).
+
+| `kind` | Extra fields | Moves the stage to |
+|---|---|---|
+| `lure_seen` | `lure_tag`, `lure_conf`, `source` (`sms` \| `notification`), `ai_written` (c2-0.10, optional) | S1 contacted (only with `lure_conf` ≥ 0.6) |
+| `long_unknown_call` | `call_kind` (`sim` \| `voip`), `call_minutes` | S2 hooked |
+| `remote_access_on` | none | S3 under control |
+| `sideload` | none | S3 under control |
+
+Reply: `recorded` (`false` for a repeated `event_id`) and the user's `stage` after the event.
+
+**When the phone sends them** (`contracts/watch_rules.json`, copied to the app's assets; the
+server's tracker reads the same file, rule 6):
+- `lure_seen`: a new SMS ("SMS scam check" on) or chat notification ("Check chat messages" on:
+  the apps in `chat_apps`) with a scam tag at `lure_min_conf` or more; the same tag is not repeated
+  within `lure_repeat_quiet_min`.
+- `long_unknown_call`: when a call of `long_call_min` minutes or more ends and the caller is not a
+  contact (or a VoIP caller nobody knows), as the tracker counts "unknown". Needs "Call checks".
+- `remote_access_on`: a remote access app installed within `device_recent_hours`; `sideload`: an
+  app from outside the store in the last 24 h. Checked when the app opens ("App checks"), at most
+  once per `device_repeat_quiet_hours`.
+- Events wait encrypted on the phone until there is a network and expire after `max_age_days`.
+
+## GET /v1/me/payments?user_id= (c2-0.9)
+
+The user's own payments as RUKO recorded them, newest first: payment id, payee, amount, time, tier,
+reasons, `message_key`, `playbook`, status (`checked` \| `completed` \| `cancelled`) and outcome time.
+Plain words only, never a score (rule 4). The phone shows them next to its own history.
+
 ## Demo identities (from `data/sim/accounts.py`)
 | Who | ID |
 |---|---|
 | Victim (Pune, 60+, Hindi) | user `u_demo_meena`, UPI `7423938499@ibl` |
 | Mule ("Rohan Nair", Axis, 4 days old) | `secure.settlement.desk@okaxis` |
 | Kirana (verified merchant) | `shreeganesh.kirana@okaxis` |
-
-## For the Android app: current gaps vs `net/Models.kt`
-These are what the app needs to change to stop getting 422s:
-- `payee_vpa_hash` → `payee_upi_id` (plain). `PAYEE_SALT` is then not needed on the phone.
-- Add `request_id` and `entry_method`. Remove `payee_typed_manually`, which is covered by
-  `entry_method: "typed"`.
-- Flat `context{on_call, call_minutes, …}` → nested `context.call` / `context.device` / `context.lures`.
-  Field defaults should be `null`, not `false` / `true`.
-- `lure_tags` → `context.lures`, each with `min_ago`.
-- Response: drop `case_id`; add `playbook`, `stage`, `fail_open`, `contract_version`;
-  `pause_minutes` is always present.
 
 ## Changing the contract
 1. Edit `backend/schema/events.py` and bump `CONTRACT_VERSION`.
@@ -196,6 +243,8 @@ These are what the app needs to change to stop getting 422s:
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.10**: `call.video` (a VoIP call with the camera in use by another app while paying: a video call, e.g. a deepfake "officer" watching; only that the camera is busy, never images) and `WatchEvent.ai_written` (the scam message looked AI-written; the phone's model, text never leaves). Engine: a video call from an unknown caller strengthens R1 and counts for the digital-arrest playbook; `payee_automated` (bot-scale ring) is payee-family evidence (R11). Additive: c2-0.9 requests still validate.
+- **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.
 - **c2-0.8**: `context.device_verdict` (`DeviceVerdict`: the phone's model verdict, fraud class and family scores; raw readings stay on the phone) and response `threat` (`Threat`: score 0–100, level, fraud type, lit families). Engine `rules-0.7`: a WhatsApp / VoIP call whose caller cannot be seen counts as an unknown caller. The API runs the trained server model by default (`--scorer ml`, falls back to rules). Additive: c2-0.7 requests still validate.
 - **c2-0.7**: `context.payee_in_contacts`. Engine `rules-0.6`: a first-time payee who is a saved contact is a weaker R6; a payee this user completed a payment to (c2-0.6) counts as known. Additive: c2-0.6 requests still validate.
 - **c2-0.6**: `POST /v1/payment/outcome` (`PaymentOutcome`, `PaymentOutcomeResponse`, `c2_payment_outcome.schema.json`). The `/v1/decide` `request_id` is now the payment id. Additive: c2-0.5 requests still validate.

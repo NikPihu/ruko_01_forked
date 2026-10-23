@@ -52,6 +52,11 @@ data class Consents(
     @SerialName("share_accounts") val shareAccounts: Boolean = false,
     // How the Pay screen is used (typing rhythm, paste, app switches), counts only (c2-0.5). On by default.
     @SerialName("session_signals") val sessionSignals: Boolean = true,
+    // Early warnings to the server before any payment (POST /v1/watch, c2-0.9): scam-message tags,
+    // long unknown calls, a new remote access app, a sideloaded app. Tags and counts only. Off by default.
+    @SerialName("early_warnings") val earlyWarnings: Boolean = false,
+    // Check chat app notifications (WhatsApp, Telegram...) for scam scripts, on the phone. Off by default.
+    @SerialName("chat_lure") val chatLure: Boolean = false,
     @SerialName("storage_agreed") val storageAgreed: Boolean = false,
     @SerialName("agreed_at") val agreedAt: String? = null,
 )

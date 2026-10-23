@@ -1,5 +1,8 @@
 package com.ruko.demo.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -227,4 +230,9 @@ fun reasonText(code: String): String? = when (code) {
     "R11_ring_link" -> stringResource(R.string.reason_R11_ring_link)
     "R12_coached_session" -> stringResource(R.string.reason_R12_coached_session)
     else -> null // includes ruko_unavailable, which is not shown as a reason
+}
+
+/** Opens the dialer with [number] filled in; the user presses call (no CALL_PHONE permission). */
+fun dial(context: Context, number: String) {
+    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
 }

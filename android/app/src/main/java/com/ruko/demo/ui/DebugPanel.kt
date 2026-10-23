@@ -56,7 +56,7 @@ private val LURE_TAGS = listOf("arrest_threat", "kyc", "task_job", "trading_tip"
  * paste box. Every real signal keeps a toggle here as its backup during the demo.
  */
 @Composable
-fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
+fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit, onPreviewAlert: (tier: String) -> Unit) {
     var reading by remember { mutableStateOf<SignalReading?>(null) }
     LaunchedEffect(consents) {
         while (true) {
@@ -91,10 +91,21 @@ fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
         BoolOverride("screen_recorded", o.screenRecorded) { set(o.copy(screenRecorded = it)) }
         ChoiceOverride("lure_tags", o.lureTag, LURE_TAGS) { set(o.copy(lureTag = it)) }
         BoolOverride("call.speaker_on", o.speakerOn) { set(o.copy(speakerOn = it)) }
+        // Yes = a video call (deepfake "officer" watching the payment); needs on_call too.
+        BoolOverride("call.video", o.videoCall) { set(o.copy(videoCall = it)) }
         // Yes = a coached Pay screen (slow dictated amount, UPI ID pasted after switching apps).
         BoolOverride("session.coached", o.coachedSession) { set(o.copy(coachedSession = it)) }
         BoolOverride("payee_in_contacts", o.payeeInContacts) { set(o.copy(payeeInContacts = it)) }
         SecondaryButton(stringResource(R.string.debug_clear), onClick = { set(SignalOverrides()) })
+
+        SectionTitle(R.string.debug_alert_preview)
+        Text(stringResource(R.string.debug_alert_preview_note), style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("T1", "T2", "T3", "T4").forEach { tier ->
+                Chip(tier, selected = false, Modifier.weight(1f)) { onPreviewAlert(tier) }
+            }
+        }
+        BoolOverride(stringResource(R.string.debug_alert_info), vm.alertDebug) { vm.alertDebug = it == true }
 
         SectionTitle(R.string.debug_watcher)
         WatcherDebug(consents)

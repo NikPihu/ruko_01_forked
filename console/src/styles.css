@@ -186,6 +186,7 @@ table.list td.when { white-space: nowrap; }
 
 .reasons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .reasons li { display: grid; grid-template-columns: 76px 1fr; gap: 10px; align-items: baseline; }
+.reasons.plain li { display: block; }
 .fam { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
 
 .story { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--ink); }

@@ -1,0 +1,439 @@
+{
+  "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments",
+  "contract_version": "c2-0.10",
+  "feedback": {
+    "request": {
+      "additionalProperties": false,
+      "description": "POST /v1/feedback. One action on one alert. Safe to retry (same feedback_id).",
+      "properties": {
+        "feedback_id": {
+          "title": "Feedback Id",
+          "type": "string"
+        },
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "tip_seen",
+            "slid_to_pay",
+            "cancelled_from_alert",
+            "waited",
+            "pay_after_pause",
+            "called_trusted",
+            "messaged_trusted",
+            "called_1930",
+            "i_know_them"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "enum": [
+                "family",
+                "friend",
+                "shop",
+                "landlord",
+                "employer",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        },
+        "dwell_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dwell Ms"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feedback_id",
+        "request_id",
+        "user_id",
+        "action",
+        "ts"
+      ],
+      "title": "Feedback",
+      "type": "object"
+    },
+    "response": {
+      "additionalProperties": false,
+      "properties": {
+        "feedback_id": {
+          "title": "Feedback Id",
+          "type": "string"
+        },
+        "recorded": {
+          "title": "Recorded",
+          "type": "boolean"
+        },
+        "trusted_accepted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trusted Accepted"
+        },
+        "message_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Key"
+        },
+        "contract_version": {
+          "default": "c2-0.10",
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feedback_id",
+        "recorded"
+      ],
+      "title": "FeedbackResponse",
+      "type": "object"
+    }
+  },
+  "watch": {
+    "request": {
+      "additionalProperties": false,
+      "description": "POST /v1/watch. Sent only when a threshold is crossed (never on a timer), only with\n\"Early warnings\" on. Moves the user's scam stage forward before a payment.",
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "lure_seen",
+            "remote_access_on",
+            "long_unknown_call",
+            "sideload"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "lure_tag": {
+          "anyOf": [
+            {
+              "enum": [
+                "arrest_threat",
+                "kyc",
+                "task_job",
+                "trading_tip",
+                "refund",
+                "normal"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lure Tag"
+        },
+        "lure_conf": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lure Conf"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "enum": [
+                "sms",
+                "notification"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "ai_written": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ai Written"
+        },
+        "call_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "sim",
+                "voip"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Call Kind"
+        },
+        "call_minutes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Call Minutes"
+        }
+      },
+      "required": [
+        "event_id",
+        "user_id",
+        "kind",
+        "ts"
+      ],
+      "title": "WatchEvent",
+      "type": "object"
+    },
+    "response": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded": {
+          "title": "Recorded",
+          "type": "boolean"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage"
+        },
+        "contract_version": {
+          "default": "c2-0.10",
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "recorded"
+      ],
+      "title": "WatchEventResponse",
+      "type": "object"
+    }
+  },
+  "me_payments": {
+    "response": {
+      "$defs": {
+        "MyPayment": {
+          "additionalProperties": false,
+          "description": "GET /v1/me/payments?user_id=. Plain words only: never a score (rule 4).",
+          "properties": {
+            "payment_id": {
+              "title": "Payment Id",
+              "type": "string"
+            },
+            "payee_upi_id": {
+              "title": "Payee Upi Id",
+              "type": "string"
+            },
+            "amount_inr": {
+              "title": "Amount Inr",
+              "type": "number"
+            },
+            "ts": {
+              "format": "date-time",
+              "title": "Ts",
+              "type": "string"
+            },
+            "tier": {
+              "enum": [
+                "T0",
+                "T1",
+                "T2",
+                "T3",
+                "T4"
+              ],
+              "title": "Tier",
+              "type": "string"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "R1_live_unknown_call",
+                  "R2_remote_control",
+                  "R3_mule_like_payee",
+                  "R4_unusual_amount",
+                  "R5_lure_message",
+                  "R6_new_payee_typed",
+                  "R7_tranche_pattern",
+                  "R8_intel_hit",
+                  "R9_story_mismatch",
+                  "R10_bait_then_pay",
+                  "R11_ring_link",
+                  "R12_coached_session",
+                  "ruko_unavailable"
+                ],
+                "type": "string"
+              },
+              "title": "Reasons",
+              "type": "array"
+            },
+            "message_key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Message Key"
+            },
+            "playbook": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Playbook"
+            },
+            "status": {
+              "enum": [
+                "checked",
+                "completed",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "outcome_ts": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Outcome Ts"
+            }
+          },
+          "required": [
+            "payment_id",
+            "payee_upi_id",
+            "amount_inr",
+            "ts",
+            "tier",
+            "reasons",
+            "status"
+          ],
+          "title": "MyPayment",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "payments": {
+          "items": {
+            "$ref": "#/$defs/MyPayment"
+          },
+          "title": "Payments",
+          "type": "array"
+        },
+        "contract_version": {
+          "default": "c2-0.10",
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "payments"
+      ],
+      "title": "MyPayments",
+      "type": "object"
+    }
+  }
+}

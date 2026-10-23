@@ -24,6 +24,7 @@ import com.ruko.demo.net.PaymentOutcome
 import com.ruko.demo.net.PaymentStatus
 import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.shield.WatchSender
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
 import com.ruko.demo.signals.SessionTracker
@@ -69,6 +70,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var history by mutableStateOf<List<PaymentRecord>>(emptyList())
         private set
     private var reporting = false
+    private var syncing = false
     // History saves run one at a time, in order, so a slow save never overwrites a newer list.
     private val historyIo = Dispatchers.IO.limitedParallelism(1)
 
@@ -239,6 +241,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 store.saveProfile(newProfile)
                 store.saveConsents(agreed)
                 if (agreed.moneyWatch) ShieldController.enable(getApplication())
+                ShieldController.syncReceiver(getApplication(), agreed)
             }
             profile = newProfile
             consents = agreed
@@ -311,6 +314,9 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             // The background watcher follows its switch; off also deletes the money history.
             if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
             if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
+            ShieldController.syncReceiver(getApplication(), new)
+            // Switching early warnings off deletes anything still waiting to be sent.
+            if (!new.earlyWarnings && old.earlyWarnings) WatchSender.clear(getApplication())
             // Switching sharing off deletes anything still waiting to be sent.
             if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
         }
@@ -393,6 +399,28 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (done.isNotEmpty()) updateHistory(PaymentHistory.markReported(history, done))
             reporting = false
+        }
+    }
+
+    /**
+     * Read the server's record of this user's payments (GET /v1/me/payments, c2-0.9) and merge it
+     * into the history by payment id. Off the payment path; if the server is unreachable the
+     * phone's own history is shown unchanged.
+     */
+    fun syncHistoryFromServer() {
+        if (syncing) return
+        syncing = true
+        viewModelScope.launch {
+            try {
+                val server = withContext(Dispatchers.IO) { ApiClient.events.myPayments(DemoConfig.USER_ID) }
+                updateHistory(PaymentHistory.mergeServer(history, server.payments, System.currentTimeMillis()))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "server history not read; showing the phone's own", e)
+            } finally {
+                syncing = false
+            }
         }
     }
 

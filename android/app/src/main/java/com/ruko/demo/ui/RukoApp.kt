@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,8 +14,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ruko.demo.MainActivity
 import com.ruko.demo.data.PaymentState
 import com.ruko.demo.signals.Signals
+import com.ruko.demo.ui.alerts.AlertScreen
+import com.ruko.demo.ui.alerts.AlertUser
+import com.ruko.demo.ui.alerts.ExplainCard
+import com.ruko.demo.ui.alerts.PauseScreen
+import com.ruko.demo.ui.alerts.ReviewScreen
+import com.ruko.demo.ui.alerts.UnavailableScreen
+import com.ruko.demo.ui.alerts.screenFor
 import com.ruko.demo.ui.auth.AuthState
 import com.ruko.demo.ui.auth.AuthViewModel
 import com.ruko.demo.ui.auth.LoginScreen
@@ -25,13 +34,17 @@ import com.ruko.demo.signals.PastPayment
 private object Routes {
     const val HOME = "home"
     const val PAY = "pay"
-    const val DECISION = "decision"
+    const val UNAVAILABLE = "unavailable"
+    const val ALERT_T2 = "alert_t2"
+    const val ALERT_T3 = "alert_t3"
+    const val ALERT_T4 = "alert_t4"
     const val PIN = "pin"
     const val SUCCESS = "success"
     const val PROFILE = "profile"
     const val DEBUG = "debug"
     const val HISTORY = "history"
     const val CONTACTS = "contacts"
+    const val MESSAGES = "messages"
 }
 
 /** Sign up or login first; the payment app only exists once the account is unlocked. */
@@ -62,16 +75,38 @@ fun RukoApp() {
     }
 }
 
-/** Home, Pay, decision, PIN, Success (guide step 5), plus the profile. */
+private fun routeFor(screen: AlertScreen): String = when (screen) {
+    AlertScreen.PIN -> Routes.PIN
+    AlertScreen.EXPLAIN -> Routes.ALERT_T2
+    AlertScreen.PAUSE -> Routes.ALERT_T3
+    AlertScreen.REVIEW -> Routes.ALERT_T4
+    AlertScreen.UNAVAILABLE -> Routes.UNAVAILABLE
+}
+
+/** Home, Pay, the alert for the tier (M1), PIN, Success (guide step 5), plus the profile. */
 @Composable
 private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
     val nav = rememberNavController()
+    val user = auth.profile.let { AlertUser(it?.firstName.orEmpty(), it?.trustedName, it?.trustedMobile, it?.language) }
+    val home = { nav.popBackStack(Routes.HOME, inclusive = false) }
+    val cancel = {
+        vm.checkedPayment?.let { auth.settlePayment(it.id, PaymentState.CANCELLED) }
+        home()
+    }
     // Signals are read with the user's current consents at the moment of Pay.
     SideEffect {
         vm.consents = auth.consents
         vm.typingGaps = auth.typingGaps
         vm.pastPayments = auth.history.filter { it.state == PaymentState.COMPLETED }
             .map { PastPayment(it.ts / 1000.0, it.payee.trim().lowercase(), it.amountInr) }
+    }
+
+    // A tapped "may be a scam" notification opens Message check.
+    LaunchedEffect(Signals.openScreen) {
+        if (Signals.openScreen == MainActivity.OPEN_MESSAGES) {
+            Signals.openScreen = null
+            nav.navigate(Routes.MESSAGES) { launchSingleTop = true }
+        }
     }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
@@ -91,6 +126,7 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 onDebug = { nav.navigate(Routes.DEBUG) },
                 onHistory = { nav.navigate(Routes.HISTORY) },
                 onPayContact = { nav.navigate(Routes.CONTACTS) },
+                onMessageCheck = { nav.navigate(Routes.MESSAGES) },
             )
         }
         composable(Routes.PAY) {
@@ -101,27 +137,46 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 onDecided = { decision ->
                     // Every check enters the history, with its payment id (the request_id).
                     vm.checkedPayment?.let(auth::recordCheck)
-                    // Silence is a feature: T0 goes straight to the PIN with nothing shown.
-                    val silent = decision is Decision.Result && decision.response.tier == "T0"
-                    nav.navigate(if (silent) Routes.PIN else Routes.DECISION)
+                    // Silence is a feature: T0 goes straight to the PIN with nothing shown, T1 adds
+                    // a tip there. T2 explains, T3 pauses, T4 is checked by the bank.
+                    nav.navigate(routeFor(screenFor((decision as? Decision.Result)?.response?.tier)))
                 },
             )
         }
-        composable(Routes.DECISION) {
-            DecisionScreen(
+        composable(Routes.UNAVAILABLE) {
+            UnavailableScreen(onContinue = { nav.navigate(Routes.PIN) }, onCancel = { cancel() })
+        }
+        composable(Routes.ALERT_T2) {
+            ExplainCard(vm, user.language, onSlid = { nav.navigate(Routes.PIN) }, onCancel = { cancel() })
+        }
+        composable(Routes.ALERT_T3) {
+            PauseScreen(
                 vm = vm,
-                onContinue = { nav.navigate(Routes.PIN) },
-                onCancel = {
-                    vm.checkedPayment?.let { auth.settlePayment(it.id, PaymentState.CANCELLED) }
-                    nav.popBackStack(Routes.HOME, inclusive = false)
-                },
+                user = user,
+                onPayAnyway = { nav.navigate(Routes.PIN) },
+                onKnowThem = { nav.navigate(Routes.ALERT_T2) { popUpTo(Routes.ALERT_T3) { inclusive = true } } },
+                onLeave = { home() },
+                onCancel = { cancel() },
+                onAddTrusted = { nav.navigate(Routes.PROFILE) },
+            )
+        }
+        composable(Routes.ALERT_T4) {
+            ReviewScreen(
+                vm = vm,
+                user = user,
+                onPayAnyway = { nav.navigate(Routes.PIN) },
+                onLeave = { home() },
+                onCancel = { cancel() },
+                onAddTrusted = { nav.navigate(Routes.PROFILE) },
             )
         }
         composable(Routes.PIN) {
-            PinScreen(vm, onConfirm = {
-                auth.rememberPayee(vm.upiId)
-                auth.rememberPayment(vm.upiId, vm.amountInr)
-                auth.rememberTypingGap(vm.lastTypingGap)
+            PinScreen(vm, user.language, onConfirm = {
+                if (!vm.previewing) {
+                    auth.rememberPayee(vm.upiId)
+                    auth.rememberPayment(vm.upiId, vm.amountInr)
+                    auth.rememberTypingGap(vm.lastTypingGap)
+                }
                 vm.checkedPayment?.let { auth.settlePayment(it.id, PaymentState.COMPLETED) }
                 nav.navigate(Routes.SUCCESS) { popUpTo(Routes.HOME) }
             })
@@ -138,11 +193,17 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 nav.navigate(Routes.PAY) { popUpTo(Routes.HOME) }
             })
         }
+        composable(Routes.MESSAGES) {
+            MessageCheckScreen(auth.consents, onProfile = { nav.navigate(Routes.PROFILE) }, onBack = { nav.popBackStack() })
+        }
         composable(Routes.HISTORY) {
-            HistoryScreen(auth.history, onOpen = auth::reportOutcomes, onBack = { nav.popBackStack() })
+            HistoryScreen(auth.history, onOpen = { auth.reportOutcomes(); auth.syncHistoryFromServer() }, onBack = { nav.popBackStack() })
         }
         composable(Routes.DEBUG) {
-            DebugPanel(vm, auth.consents, onBack = { nav.popBackStack() })
+            DebugPanel(vm, auth.consents, onBack = { nav.popBackStack() }, onPreviewAlert = { tier ->
+                vm.previewAlert(tier, pauseMinutes = 1)
+                nav.navigate(routeFor(screenFor(tier)))
+            })
         }
     }
 }

@@ -10,7 +10,7 @@ REASON = {
     # C: who is on the line, and who can see the screen
     "on_call": "R1_live_unknown_call", "caller_unknown": "R1_live_unknown_call", "voip_call": "R1_live_unknown_call",
     "foreign_caller": "R1_live_unknown_call", "outgoing_to_unknown": "R1_live_unknown_call",
-    "call_on_speaker": "R1_live_unknown_call",
+    "call_on_speaker": "R1_live_unknown_call", "video_call": "R1_live_unknown_call",
     "remote_control": "R2_remote_control", "untrusted_accessibility": "R2_remote_control",
     "sideloaded_last_24h": "R2_remote_control",
     # L: the hook (a scam-script SMS) and the task-scam episode
@@ -30,6 +30,7 @@ REASON = {
     "story_mismatch": "R9_story_mismatch",
     "payee_crowd": "R11_ring_link", "payee_money_loop": "R11_ring_link",
     "payee_forwards_to_cashout": "R11_ring_link", "payee_approved_suspect": "R11_ring_link",
+    "payee_automated": "R11_ring_link",
     # B: this payment against the payer's own habits, and the Pay screen
     "amount_inr": "R4_unusual_amount", "amount_to_max_90d": "R4_unusual_amount",
     "amount_to_median_90d": "R4_unusual_amount",

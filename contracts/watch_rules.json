@@ -1,0 +1,18 @@
+{
+  "version": "watch-0.1",
+  "lure_min_conf": 0.6,
+  "long_call_min": 15,
+  "lure_repeat_quiet_min": 30,
+  "device_repeat_quiet_hours": 24,
+  "device_recent_hours": 24,
+  "max_age_days": 7,
+  "chat_apps": [
+    "com.whatsapp",
+    "com.whatsapp.w4b",
+    "org.telegram.messenger",
+    "com.instagram.android",
+    "com.facebook.orca",
+    "com.facebook.katana",
+    "com.truecaller"
+  ]
+}

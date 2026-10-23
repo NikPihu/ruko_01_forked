@@ -1,14 +1,16 @@
-import { api } from "../api";
-import { inr, PLAYBOOKS, userLabel, when } from "../format";
+import { useEffect, useState } from "react";
+import { api, type AlertHealth } from "../api";
+import { inr, pct, PLAYBOOKS, userLabel, when } from "../format";
 import { reasonText } from "../reasons";
 import { BandChip, Card, Check, Empty, Loading, Stat, TierChip, exploreHref, go, useLoad } from "../components/ui";
 
 export function Overview() {
   const { data, error, loading } = useLoad(async () => {
-    const [alerts, cases, suspects, verify, health] = await Promise.all([
+    const [alerts, cases, suspects, verify, health, alertHealth] = await Promise.all([
       api.alerts("T1"), api.cases(), api.suspects("med"), api.verify(), api.health(),
+      api.alertHealth().catch(() => null),
     ]);
-    return { alerts, cases, suspects, verify, health };
+    return { alerts, cases, suspects, verify, health, alertHealth };
   });
   if (!data) return <Loading error={error} loading={loading} />;
 
@@ -36,6 +38,9 @@ export function Overview() {
         <Stat label="Mule suspects to review" value={pending.length}
           sub={rings ? `in ${rings} ring${rings > 1 ? "s" : ""}` : "none grouped yet"} />
       </div>
+
+      {data.alertHealth && <AlertHealthCard h={data.alertHealth} />}
+      <DemoCard />
 
       <div className="grid grid-main">
         <Card title="Latest interrupted payments" pad={false}
@@ -99,5 +104,82 @@ export function Overview() {
         </div>
       </div>
     </div>
+  );
+}
+
+const ACTION_TEXT: Record<string, string> = {
+  tip_seen: "saw a tip", slid_to_pay: "slid to pay", cancelled_from_alert: "cancelled", waited: "waited out the pause",
+  pay_after_pause: "paid after the pause", called_trusted: "called a trusted person", messaged_trusted: "messaged a trusted person",
+  called_1930: "called 1930", i_know_them: "said \"I know this person\"",
+};
+
+/** How people respond to alerts (aggregates only): the alert-fatigue check. */
+function AlertHealthCard({ h }: { h: AlertHealth }) {
+  const tiers = ["T1", "T2", "T3", "T4"].filter((t) => h.tiers[t]?.shown);
+  const actions = Object.entries(h.actions).sort((a, b) => b[1] - a[1]);
+  return (
+    <Card title="Alert health" action={<a href="#/transactions">All transactions →</a>}>
+      <div className="grid grid-4">
+        <Stat label="Payment checks" value={h.checks} sub="recorded this run" />
+        <Stat label="Interruptions per 1,000 checks" value={h.interruptions_per_1000_checks ?? "—"} sub="T2 or higher" />
+        {tiers.slice(0, 2).map((t) => (
+          <Stat key={t} label={`${t} alerts shown`} value={h.tiers[t].shown}
+            sub={`${pct(h.tiers[t].cancelled_share)} cancelled · ${pct(h.tiers[t].completed_share)} paid`} />
+        ))}
+      </div>
+      <p className="ink2" style={{ margin: "12px 0 0" }}>
+        {actions.length ? <>On alerts, people {actions.map(([a, n]) => `${ACTION_TEXT[a] ?? a} (${n})`).join(", ")}.</> : "No alert feedback from phones yet."}
+        {(h.i_know_them.accepted || h.i_know_them.refused) ? <> "I know this person": {h.i_know_them.accepted ?? 0} accepted, {h.i_know_them.refused ?? 0} refused (someone may control the phone, the payee looks like a mule, or it is on a list).</> : null}
+      </p>
+    </Card>
+  );
+}
+
+type DemoState = Awaited<ReturnType<typeof api.demoResults>>;
+
+/** Runs the scripted demo agents (every scam type, honest users, a hidden new scam type) live. */
+function DemoCard() {
+  const [st, setSt] = useState<DemoState | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { api.demoResults().then(setSt).catch(() => setSt(null)); }, []);
+  useEffect(() => {
+    if (!st?.running) return;
+    const t = setInterval(() => api.demoResults().then(setSt).catch(() => undefined), 1500);
+    return () => clearInterval(t);
+  }, [st?.running]);
+  const start = async () => {
+    setErr(null);
+    try {
+      const r = await api.demoRun();
+      if (!r.started) setErr(r.reason ?? "not started");
+      setSt(await api.demoResults());
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
+  };
+  const rows = st?.results ?? [];
+  return (
+    <Card title="Demo scenarios" action={<button className="btn" onClick={start} disabled={!!st?.running}>{st?.running ? "Running…" : "Run demo scenarios"}</button>}>
+      <p className="ink2" style={{ marginTop: 0 }}>Scripted people pay through the real API: every known scam type, honest users, and a
+        hidden new scam type ("relative emergency") that should appear under Emerging patterns. Afterwards, refresh this page.</p>
+      {err && <p className="error">{err}</p>}
+      {st?.error && <p className="error">{st.error}</p>}
+      {rows.length > 0 && (
+        <div className="table-wrap">
+          <table className="list">
+            <thead><tr><th>Scenario</th><th>RUKO decided</th><th>Scam type</th><th>Expected</th><th></th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.scenario}>
+                  <td>{r.scenario.replace(/_/g, " ")}</td>
+                  <td>{r.tiers.join(", ")}</td>
+                  <td>{r.playbooks.map((b) => PLAYBOOKS[b] ?? b).join(", ") || "none known"}</td>
+                  <td className="muted">{r.expect}</td>
+                  <td>{r.ok ? <span className="chip good">✓ as expected</span> : <span className="chip t4">✕ check</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }

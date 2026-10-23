@@ -1,0 +1,44 @@
+# Scam playbooks the RUKO engine names at payment time (the scam type the user and analyst see).
+# Owned by the data folder; the format and loader are backend/api/playbooks.py (read its docstring).
+# Checked in order: the first playbook whose `match` holds names the payment. A new name needs
+# app words for "<tier>_<name>" (AlertText.kt); until then the app shows the tier's generic text.
+# The simulator's journey scripts are a different thing: data/sim_v2/config/playbooks/.
+version: playbooks-0.1
+playbooks:
+  # An active task-scam episode beats any older message on the phone.
+  - name: task_job
+    why: "the phone's task-scam watcher is ACTIVE (rewards in, bigger payments out)"
+    match: {episode_state: 2}
+
+  - name: fake_kyc_apk
+    why: "an app installed from outside the store + a KYC message"
+    match: {sideloaded_last_24h: true, lure_tag: kyc}
+
+  - name: fake_customer_care
+    why: "the user called an unknown number + screen control or dictated typing"
+    match:
+      outgoing_to_unknown: true
+      any: [{remote_control: true}, {session_dictated: true}]
+
+  - name: digital_arrest
+    why: "an arrest-threat message"
+    match: {lure_tag: arrest_threat}
+
+  - name: digital_arrest
+    why: "an unknown caller on the line + screen control, a video call, a story mismatch or dictated typing"
+    match:
+      on_call: true
+      unknown_caller: true
+      any: [{remote_control: true}, {video_call: true}, {story_mismatch: true}, {session_dictated: true}]
+
+  - name: trading_group
+    why: "a trading-tip message"
+    match: {lure_tag: trading_tip}
+
+  - name: task_job
+    why: "a task or job message"
+    match: {lure_tag: task_job}
+
+  - name: refund_qr
+    why: "an unknown caller on the line + a payee that was not typed (QR or picked)"
+    match: {on_call: true, unknown_caller: true, entry_typed: false}

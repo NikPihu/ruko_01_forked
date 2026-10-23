@@ -103,11 +103,13 @@ def discover(g: GraphStore, reviews: dict[str, Review], now: datetime, min_band:
         why, path = _why(g, w, n, seed, hubs)
         e_first = [e.first_ts for (a, b), e in g.edges.items() if (a == n or b == n) and e.first_ts]
         rv = reviews.get(n)
+        auto = g.automation(n, now)
         out.append({
             "upi_id": n, "band": band, "score": round(rel, 3),
             "why": why, "evidence_path": path, "ring_id": rings.get(n),
             "is_hub": n in hubs, "first_seen": min(e_first).isoformat() if e_first else None,
             "registry_listed": bool(g.marks.get(n, {}).get("listed")),
+            "automated": bool(auto["automated"]), "automation_why": auto.get("why"),
             "review": {"approved_by": sorted(rv.approved_by), "rejected_by": sorted(rv.rejected_by),
                        "approved": rv.approved} if rv else {"approved_by": [], "rejected_by": [], "approved": False},
         })
@@ -194,3 +196,84 @@ def review(reviews: dict[str, Review], upi_id: str, reviewer: str, decision: str
 def last_run_summary(suspects: list[dict], now: datetime, error: Optional[str] = None) -> dict:
     return {"ran_at": now.isoformat(), "suspects": len(suspects),
             "rings": len({s["ring_id"] for s in suspects if s["ring_id"]}), "error": error}
+
+
+# ---------- ring view for the analyst console ----------
+
+def hub_score(g: GraphStore, acc: str, members: set[str], now: datetime) -> dict:
+    """How much an account behaves like a ring hub, 0..1, from four plain parts:
+    fan-in (distinct accounts and users paying it), pass-through (money out / money in),
+    speed (money leaves within 30 minutes) and links to other ring members."""
+    payers = {a for a in g.inn.get(acc, ())}
+    inr_in = sum(g.edges[(a, acc)].inr for a in payers if (a, acc) in g.edges)
+    outs = {b for b in g.out.get(acc, ())}
+    inr_out = sum(g.edges[(acc, b)].inr for b in outs if (acc, b) in g.edges)
+    holds = [g.edges[(acc, b)].hold_min for b in outs if (acc, b) in g.edges and g.edges[(acc, b)].hold_min is not None]
+    links = len((payers | outs) & members)
+    parts = {
+        "fan_in": min(1.0, len(payers) / 20),
+        "pass_through": min(1.0, inr_out / inr_in) if inr_in else 0.0,
+        "speed": 1.0 if holds and min(holds) <= 30 else 0.0,
+        "ring_links": min(1.0, links / 3),
+    }
+    return {"score": round(sum(parts.values()) / len(parts), 3), "parts": parts,
+            "payers": len(payers), "inr_in": round(inr_in, 2), "inr_out": round(inr_out, 2),
+            "fastest_hold_min": min(holds) if holds else None}
+
+
+def ring_view(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[dict]:
+    """Every ring with its members, hubs, victims, money and speed (analyst console)."""
+    suspects = {s["upi_id"]: s for s in discover(g, reviews, now, min_band="low")}
+    seed = seeds(g, reviews)
+    members_all = set(suspects) | set(seed)
+    ring_of = _rings(g, members_all)
+    hubs = _hubs(g, members_all)
+    rings: dict[str, list[str]] = defaultdict(list)
+    for acc, rid in ring_of.items():
+        rings[rid].append(acc)
+    out = []
+    for rid, accs in rings.items():
+        members = set(accs)
+        accounts = []
+        for a in sorted(accs):
+            h = hub_score(g, a, members, now)
+            auto = g.automation(a, now)
+            s = suspects.get(a)
+            accounts.append({
+                "upi_id": a,
+                "role": "seed" if a in seed else "suspect",
+                "why": seed.get(a) or (s["why"] if s else None),
+                "band": s["band"] if s else None,
+                "is_hub": a in hubs or h["score"] >= 0.6,
+                "hub_score": h["score"], "hub_parts": h["parts"],
+                "payers": h["payers"], "inr_in": h["inr_in"], "inr_out": h["inr_out"],
+                "fastest_hold_min": h["fastest_hold_min"],
+                "automated": bool(auto["automated"]), "automation_why": auto.get("why"),
+                "registry_listed": bool(g.marks.get(a, {}).get("listed")),
+                "approved": bool(reviews.get(a) and reviews[a].approved),
+            })
+        victims = {u for (u, b) in g.edges if u.startswith("u:") and b in members}
+        baited = {u for (a, u) in g.edges if a in members and u.startswith("u:")}
+        links = [{"from": a, "to": b, "inr": round(e.inr, 2), "n": e.n,
+                  "hold_min": e.hold_min, "sources": sorted(e.sources)}
+                 for (a, b), e in g.edges.items() if a in members and b in members]
+        victim_links = defaultdict(int)
+        for (u, b) in g.edges:
+            if u.startswith("u:") and b in members:
+                victim_links[b] += 1
+        money_in = sum(e.inr for (u, b), e in g.edges.items() if u.startswith("u:") and b in members)
+        holds = [x["fastest_hold_min"] for x in accounts if x["fastest_hold_min"] is not None]
+        out.append({
+            "ring_id": rid, "size": len(accs), "accounts": sorted(accounts, key=lambda x: -x["hub_score"]),
+            "hubs": [x["upi_id"] for x in accounts if x["is_hub"]],
+            "victims": len(victims), "baited_users": len(baited),
+            "money_from_victims_inr": round(money_in, 2),
+            "fastest_hold_min": min(holds) if holds else None,
+            "automated": any(x["automated"] for x in accounts),
+            "links": links, "victims_per_account": dict(victim_links),
+            "summary": (f"{len(accs)} accounts, {len(victims)} RUKO users paid into it"
+                        + (f", {len(baited)} got 'rewards' from it" if baited else "")
+                        + (f"; money leaves within {min(holds):.0f} min" if holds else "")
+                        + ("; runs at bot scale" if any(x["automated"] for x in accounts) else "")),
+        })
+    return sorted(out, key=lambda r: (-r["victims"], -r["size"]))

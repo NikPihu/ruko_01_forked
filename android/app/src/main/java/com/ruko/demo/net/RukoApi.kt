@@ -10,9 +10,10 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
-/** Endpoints owned by Jagdeep. Feedback (POST /v1/feedback) is added in step 8. */
+/** Endpoints owned by Jagdeep. */
 interface RukoApi {
     @GET("health")
     suspend fun health(): ResponseBody
@@ -27,6 +28,21 @@ interface RukoApi {
     /** What happened after the check (c2-0.6), sent in the background by the payment history. */
     @POST("v1/payment/outcome")
     suspend fun paymentOutcome(@Body outcome: PaymentOutcome): PaymentOutcomeResponse
+
+    /** What the user did on an alert screen (c2-0.8), sent in the background. */
+    @POST("v1/feedback")
+    suspend fun feedback(@Body feedback: Feedback): FeedbackResponse
+
+    /** An early warning before any payment (c2-0.8), only with "Early warnings" on. */
+    @POST("v1/watch")
+    suspend fun watch(@Body event: WatchEvent): WatchEventResponse
+
+    /** The user's own payments as RUKO recorded them (c2-0.8): plain words, never a score. */
+    @GET("v1/me/payments")
+    suspend fun myPayments(@Query("user_id") userId: String): MyPayments
+    /** "I know this person" (demo endpoint, unauthenticated): this user trusts this payee. */
+    @POST("v1/trusted/{user_id}/{payee_upi_id}")
+    suspend fun trust(@Path("user_id") userId: String, @Path("payee_upi_id") payee: String): ResponseBody
 }
 
 /** The mock NPCI, playing the part a real PSP app talks to. Not part of the RUKO contract. */

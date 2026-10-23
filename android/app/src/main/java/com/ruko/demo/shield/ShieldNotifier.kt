@@ -20,6 +20,8 @@ import java.util.Locale
 object ShieldNotifier {
     const val CHANNEL = "scam_shield_alerts"
     private const val CONFIRMED_ID = 200
+    private const val OTP_ON_CALL_ID = 300
+    private const val SCAM_SMS_ID = 400 // + 0..49 per sender
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -42,16 +44,35 @@ object ShieldNotifier {
         post(context, CONFIRMED_ID, c.getString(R.string.shield_confirmed_title), c.getString(R.string.shield_confirmed_text))
     }
 
-    private fun post(context: Context, id: Int, title: String, body: String) {
+    /** An OTP arrived while a call is going on: whoever asks for it on the call is a scammer (A5). */
+    fun showOtpOnCall(context: Context, language: String?) {
+        val c = localized(context, language)
+        post(context, OTP_ON_CALL_ID, c.getString(R.string.msg_otp_call_title), c.getString(R.string.msg_otp_call_text))
+    }
+
+    /**
+     * A new SMS matches a scam script (A5). Says which kind and, when known, that it looks
+     * AI-written; never quotes the message. Tapping opens Message check.
+     */
+    fun showScamSms(context: Context, language: String?, kindText: (Context) -> String, aiWritten: Boolean, id: Int) {
+        val c = localized(context, language)
+        val body = c.getString(R.string.msg_scam_notify_text, kindText(c)) +
+            if (aiWritten) " " + c.getString(R.string.msg_scam_notify_ai) else ""
+        post(context, SCAM_SMS_ID + id, c.getString(R.string.msg_scam_notify_title), body, MainActivity.OPEN_MESSAGES)
+    }
+
+    fun post(context: Context, id: Int, title: String, body: String, open: String? = null) {
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             return // notifications off: the Home card still shows the episode
         }
         ensureChannel(context)
-        val open = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        open?.let { intent.putExtra(MainActivity.EXTRA_OPEN, it) }
+        val tap = PendingIntent.getActivity(
+            context, id,
+            intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = NotificationCompat.Builder(context, CHANNEL)
@@ -59,7 +80,7 @@ object ShieldNotifier {
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setContentIntent(open)
+            .setContentIntent(tap)
             .setAutoCancel(true)
             .build()
         try {

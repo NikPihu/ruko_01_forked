@@ -1,0 +1,12 @@
+{
+  "event_id": "8e4d2a10-6b5c-4f1e-9d3a-2c7b8e0f1a23",
+  "user_id": "u_demo_meena",
+  "kind": "lure_seen",
+  "ts": "2026-11-07T09:48:00+05:30",
+  "lure_tag": "arrest_threat",
+  "lure_conf": 0.91,
+  "source": "notification",
+  "call_kind": null,
+  "call_minutes": null,
+  "ai_written": true
+}

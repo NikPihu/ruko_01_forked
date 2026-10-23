@@ -14,6 +14,9 @@ import com.ruko.demo.net.ApiClient
 import com.ruko.demo.net.DecideRequest
 import com.ruko.demo.net.DecideResponse
 import com.ruko.demo.net.EntryMethod
+import com.ruko.demo.net.Feedback
+import com.ruko.demo.net.FeedbackResponse
+import com.ruko.demo.net.KnowWhy
 import com.ruko.demo.net.PayerSays
 import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.net.RukoApi
@@ -22,6 +25,9 @@ import com.ruko.demo.signals.PastPayment
 import com.ruko.demo.signals.SessionTracker
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.signals.toE164
+import com.ruko.demo.ui.alerts.AlertAction
+import com.ruko.demo.ui.alerts.AlertRules
+import java.util.UUID
 import retrofit2.HttpException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -89,6 +95,21 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     var checkedPayment by mutableStateOf<PaymentRecord?>(null)
         private set
     var serverStatus by mutableStateOf<String?>(null)
+        private set
+
+    // The alert being shown: its tier (T3 becomes T2 after "I know this person"), when the answer
+    // came (wall clock, for the pause; elapsed, for dwell time) and when the pause ends.
+    var alertTier by mutableStateOf<String?>(null)
+        private set
+    private var decidedElapsedMs = 0L
+    var pauseEndsAtMs by mutableStateOf(0L)
+        private set
+
+    // Debug builds only: print latency and message key on the alert screens (debug panel switch).
+    var alertDebug by mutableStateOf(false)
+
+    // A debug-panel preview, not a payment: nothing it does is saved or sent.
+    var previewing = false
         private set
 
     // The exact JSON sent on the last Pay; the debug panel shows it.
@@ -189,6 +210,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     fun pay(onDecided: (Decision) -> Unit) {
         val amount = amountInr ?: return
         checking = true
+        previewing = false
         session.markPaid()
         val sessionSignal = session.toSignal(SystemClock.elapsedRealtime(), typingGaps)
         lastTypingGap = session.medianGapSeconds()
@@ -231,6 +253,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
             }
             decision = result
             val answer = (result as? Decision.Result)?.response
+            startAlert(answer)
             checkedPayment = PaymentRecord(
                 id = request.requestId,
                 ts = System.currentTimeMillis(),
@@ -247,6 +270,111 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         }
     }
 
+    private fun startAlert(answer: DecideResponse?) {
+        alertTier = answer?.tier
+        knowThemRefused = false
+        decidedElapsedMs = SystemClock.elapsedRealtime()
+        pauseEndsAtMs = AlertRules.pauseEndsAt(System.currentTimeMillis(), answer?.pauseMinutes ?: 0)
+    }
+
+    /** How long the alert has been on screen, for feedback. */
+    fun alertDwellMs(): Long = SystemClock.elapsedRealtime() - decidedElapsedMs
+
+    /** "I know this person" was refused by the server: the pause stays and the screen says why. */
+    var knowThemRefused by mutableStateOf(false)
+        private set
+
+    /**
+     * Every action on an alert screen comes through here and is sent as feedback (POST
+     * /v1/feedback, c2-0.9: payment id, action, why, dwell time), in the background. A failed send
+     * is only logged; it never changes what the user can do.
+     */
+    fun onAlertAction(action: AlertAction, why: KnowWhy? = null, dwellMs: Long = alertDwellMs()) {
+        if (previewing) return
+        val id = checkedPayment?.id ?: return
+        viewModelScope.launch {
+            try {
+                sendFeedback(id, action, why, dwellMs)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "could not send feedback ${action.feedback}", e)
+            }
+        }
+    }
+
+    private suspend fun sendFeedback(id: String, action: AlertAction, why: KnowWhy?, dwellMs: Long): FeedbackResponse =
+        withContext(Dispatchers.IO) {
+            api.feedback(
+                Feedback(
+                    feedbackId = UUID.randomUUID().toString(),
+                    requestId = id,
+                    userId = DemoConfig.USER_ID,
+                    action = action.feedback,
+                    why = why,
+                    dwellMs = dwellMs.coerceAtLeast(0),
+                    ts = RequestBuilder.istIso(System.currentTimeMillis()),
+                ),
+            )
+        }
+
+    /**
+     * "I know this person": the server decides (`trusted_accepted`). Accepted: the pause becomes
+     * the T2 card ([onAccepted]). Refused (a list hit, someone controls the phone, or the payee
+     * looks risky) or no answer: the pause stays, because a scammer can tell the user to tap this.
+     */
+    fun knowThisPerson(why: KnowWhy, onAccepted: () -> Unit) {
+        if (previewing) {
+            alertTier = "T2"
+            onAccepted()
+            return
+        }
+        val id = checkedPayment?.id ?: return
+        val dwell = alertDwellMs()
+        viewModelScope.launch {
+            val accepted = try {
+                sendFeedback(id, AlertAction.I_KNOW_THEM, why, dwell).trustedAccepted == true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "could not send \"I know this person\"", e)
+                false
+            }
+            knowThemRefused = !accepted
+            if (accepted) {
+                alertTier = "T2"
+                onAccepted()
+            }
+        }
+    }
+
+    /** Debug panel: show an alert screen without the server, with a sample answer. */
+    fun previewAlert(tier: String, pauseMinutes: Int) {
+        if (upiId.isBlank()) upiId = "secure.settlement.desk@okaxis"
+        if (amountInr == null) amountText = "95000"
+        val reasons = when (tier) {
+            "T1" -> listOf("R6_new_payee_typed", "R4_unusual_amount")
+            else -> listOf("R1_live_unknown_call", "R2_remote_control", "R3_mule_like_payee", "R4_unusual_amount")
+        }
+        val key = when (tier) {
+            "T1" -> "t1_tip"
+            "T4" -> "t4_digital_arrest"
+            else -> "${tier.lowercase()}_digital_arrest"
+        }
+        val response = DecideResponse(
+            requestId = UUID.randomUUID().toString(),
+            tier = tier,
+            reasons = reasons,
+            messageKey = key,
+            pauseMinutes = if (tier == "T3" || tier == "T4") pauseMinutes else 0,
+            playbook = "digital_arrest",
+        )
+        decision = Decision.Result(response, 0)
+        checkedPayment = null // a preview is not a payment: it never enters the history
+        previewing = true
+        startAlert(response)
+    }
+
     /** Opening the Pay screen starts a new session; one left unpaid counts as abandoned. */
     fun reset() {
         session.start(SystemClock.elapsedRealtime())
@@ -256,6 +384,8 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         entryMethod = EntryMethod.TYPED
         payerSays = null
         decision = null
+        alertTier = null
+        previewing = false
         checkedPayment = null
         clearMobilePayee()
         resolveError = null

@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.8"
+CONTRACT_VERSION = "c2-0.10"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -38,6 +38,9 @@ class CallSignal(_M):
     started_min_ago: Optional[float] = Field(None, ge=0)
     ended_min_ago: Optional[float] = Field(None, ge=0)  # for a call that just finished
     speaker_on: Optional[bool] = None            # c2-0.5: call audio on the loudspeaker at Pay
+    # c2-0.10: a VoIP call with the camera in use by another app at Pay (a video call, e.g. a fake
+    # "officer" watching the payment). The phone sees only that the camera is busy, never images.
+    video: Optional[bool] = None
 
 
 class DeviceSignal(_M):
@@ -214,4 +217,91 @@ class PaymentOutcomeResponse(_M):
     request_id: str
     status: PaymentStatus                         # the status the server holds (the first final one wins)
     recorded: bool                                # False: a repeat, a conflicting status, or not accepted
+    contract_version: str = CONTRACT_VERSION
+
+
+# ---------- Alert feedback: what the user did on an alert screen (c2-0.9) ----------
+
+FeedbackAction = Literal[
+    "tip_seen",              # T1 tip shown on the way to the PIN
+    "slid_to_pay",           # T2: read the card, then slid to pay
+    "cancelled_from_alert",  # left the payment from any alert screen
+    "waited",                # T3: chose to wait out the pause
+    "pay_after_pause",       # T3: paid once the pause ended
+    "called_trusted", "messaged_trusted", "called_1930",
+    "i_know_them",           # "I know this person" (needs `why`)
+]
+KnowWhy = Literal["family", "friend", "shop", "landlord", "employer", "other"]
+
+
+class Feedback(_M):
+    """POST /v1/feedback. One action on one alert. Safe to retry (same feedback_id)."""
+    feedback_id: str                              # UUID
+    request_id: str                               # the payment id: the /v1/decide request_id
+    user_id: str
+    action: FeedbackAction
+    why: Optional[KnowWhy] = None                 # only with i_know_them
+    dwell_ms: Optional[int] = Field(None, ge=0)   # alert shown -> this action
+    ts: AwareDatetime
+
+
+class FeedbackResponse(_M):
+    feedback_id: str
+    recorded: bool                                # False: unknown payment, someone else's, or over the daily limit
+    # i_know_them only: False when RUKO still recommends waiting (a list hit, or someone controls the phone).
+    trusted_accepted: Optional[bool] = None
+    message_key: Optional[str] = None             # e.g. "know_them_not_accepted"
+    contract_version: str = CONTRACT_VERSION
+
+
+# ---------- Watch events: early warnings before any payment (c2-0.9) ----------
+
+WatchKind = Literal[
+    "lure_seen",             # a scam-script message (SMS or notification); tag only, never text
+    "remote_access_on",      # screen sharing / remote control started
+    "long_unknown_call",     # a call with an unknown or non-contact caller passed N minutes
+    "sideload",              # an app was installed from outside the store
+]
+
+
+class WatchEvent(_M):
+    """POST /v1/watch. Sent only when a threshold is crossed (never on a timer), only with
+    "Early warnings" on. Moves the user's scam stage forward before a payment."""
+    event_id: str                                 # UUID; repeats are ignored
+    user_id: str
+    kind: WatchKind
+    ts: AwareDatetime                             # when it happened on the phone
+    lure_tag: Optional[LureTag] = None            # lure_seen only
+    lure_conf: Optional[float] = Field(None, ge=0, le=1)
+    source: Optional[Literal["sms", "notification"]] = None   # lure_seen only
+    ai_written: Optional[bool] = None             # lure_seen only (c2-0.10): the message looked AI-written
+    call_kind: Optional[Literal["sim", "voip"]] = None        # long_unknown_call only
+    call_minutes: Optional[float] = Field(None, ge=0)         # long_unknown_call only
+
+
+class WatchEventResponse(_M):
+    event_id: str
+    recorded: bool
+    stage: Optional[str] = None                   # the user's stage after this event (S0 to S3)
+    contract_version: str = CONTRACT_VERSION
+
+
+# ---------- The app's own payments, as the server recorded them (c2-0.9) ----------
+
+class MyPayment(_M):
+    """GET /v1/me/payments?user_id=. Plain words only: never a score (rule 4)."""
+    payment_id: str
+    payee_upi_id: str
+    amount_inr: float
+    ts: AwareDatetime
+    tier: Tier
+    reasons: list[ReasonCode]
+    message_key: Optional[str] = None
+    playbook: Optional[str] = None
+    status: Literal["checked", "completed", "cancelled"]
+    outcome_ts: Optional[AwareDatetime] = None
+
+
+class MyPayments(_M):
+    payments: list[MyPayment]
     contract_version: str = CONTRACT_VERSION

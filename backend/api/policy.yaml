@@ -51,3 +51,29 @@ session:
   paste_after_return_s: 20       # pasted the UPI ID within 20 s of coming back to the app
   many_switches: 2                # left the app this many times during one payment
   hesitation_s: 180               # more than 3 minutes on the Pay screen
+
+# Alert feedback (c2-0.8): what users do on alert screens.
+feedback:
+  per_user_per_day: 30           # more than this from one user in a day is not recorded
+
+# Bot-scale fingerprints (graph/store.py `automation`): AI chatbots and scripts run task scams and
+# mule networks at machine scale. An account is "automated" when, in the window, one side of it
+# (rewards sent, or payments received) has at least min_users distinct RUKO users, per-user amounts
+# within max_amount_spread (std / median) and steady arrivals (gap std / median <= max_gap_spread).
+# Payee family only (reason R11); never enough to interrupt on its own.
+automation:
+  window_days: 7
+  min_users: 8
+  max_amount_spread: 0.10
+  max_gap_spread: 0.35
+  burst_min: 1.0                  # new people less than a minute apart on average: a burst, also machine-like
+
+# Emerging patterns (patterns/emerging.py): scam workflows with no known playbook. Analyst view only,
+# never in the payment decision. A group of payments with the same signature in the window is shown
+# when it has at least min_payments from at least min_users different people. Near misses: T0
+# payments with at least near_miss_families lit families also count.
+emerging:
+  window_days: 7
+  min_payments: 5
+  min_users: 3
+  near_miss_families: 1

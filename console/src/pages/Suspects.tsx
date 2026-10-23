@@ -93,9 +93,12 @@ export function Suspects() {
                             <div className="row" style={{ marginTop: 6 }}>
                               <BandChip band={s.band} />
                               {s.is_hub && <span className="chip">Cash-out hub</span>}
+                              {s.automated && <span className="chip t3" title={s.automation_why ?? ""}>Automated (bot-scale)</span>}
                             </div>
                           </td>
-                          <td>{s.why.charAt(0).toUpperCase() + s.why.slice(1)}<div className="muted">first seen {when(s.first_seen)}</div></td>
+                          <td>{s.why.charAt(0).toUpperCase() + s.why.slice(1)}
+                            {s.automation_why && <div><b>Bot-scale:</b> {s.automation_why}</div>}
+                            <div className="muted">first seen {when(s.first_seen)}</div></td>
                           <td className="when">{s.registry_listed ? <span className="ink2">Reported</span>
                             : <b>Not yet</b>}</td>
                           <td>

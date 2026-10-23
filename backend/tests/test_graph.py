@@ -258,3 +258,39 @@ def test_story_says_when_the_loop_cannot_be_seen():
 def test_story_for_an_unseen_account():
     st = GraphStore().story("nobody@ybl", NOW)
     assert st["center_role"] == "unknown" and not st["known"] and st["links"] == []
+
+
+# ---------- ring view ----------
+
+def _ring_graph():
+    g = GraphStore()
+    for i in range(3):
+        g.add_episode(EpisodeEvent.model_validate(event(f"u_v{i}", [bait("b@ybl"), payee("listed.mule@ybl"),
+                                                                    payee("fresh.mule@ybl", step=2)], f"r{i}")), NOW)
+    g.add_bank_flows("fresh.mule@ybl", {"as_of": NOW.isoformat(), "outbound": [
+        {"upi_id": "hub@ybl", "n": 4, "inr": 40_000, "median_hold_min": 12}]})
+    g.mark("listed.mule@ybl", listed=True)
+    return g
+
+
+def test_ring_view_has_members_victims_money_and_hubs():
+    from graph import discover as d
+    rings = d.ring_view(_ring_graph(), {}, NOW)
+    assert rings, "the listed mule and the fresh one form a ring"
+    r = rings[0]
+    names = {a["upi_id"] for a in r["accounts"]}
+    assert {"listed.mule@ybl", "fresh.mule@ybl"} <= names
+    assert r["victims"] == 3 and r["money_from_victims_inr"] > 0
+    seed = next(a for a in r["accounts"] if a["upi_id"] == "listed.mule@ybl")
+    assert seed["role"] == "seed" and seed["registry_listed"]
+    fresh = next(a for a in r["accounts"] if a["upi_id"] == "fresh.mule@ybl")
+    assert 0 <= fresh["hub_score"] <= 1 and fresh["fastest_hold_min"] == 12
+    assert "money leaves within 12 min" in r["summary"]
+    assert all(not a["upi_id"].startswith("u:") for a in r["accounts"])  # victims are never members
+
+
+def test_ring_endpoints(stack, world):
+    engine = stack[0] if isinstance(stack, tuple) else stack
+    body = engine.get("/v1/graph/rings").json()
+    assert "rings" in body
+    assert engine.get("/v1/graph/rings/ring_999").status_code == 404

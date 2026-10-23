@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
@@ -33,6 +34,11 @@ class ContextSensor(private val app: Context) {
 
     private val telephony = app.getSystemService(TelephonyManager::class.java)
     private val audio = app.getSystemService(AudioManager::class.java)
+    private val cameras = app.getSystemService(CameraManager::class.java)
+    // Cameras another app is using right now. Android tells any app this, with no permission
+    // and no images: only "camera N is busy". A busy camera during a VoIP call means a video call.
+    private val busyCameras = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+    private var cameraListening = false
     private val packages = app.packageManager
     private val mainExecutor = ContextCompat.getMainExecutor(app)
 
@@ -45,6 +51,12 @@ class ContextSensor(private val app: Context) {
     @Volatile private var lastCallNumber: String? = null
     @Volatile private var lastCallDirection: CallDirection? = null
     @Volatile private var lastCallWasVoip = false
+
+    /**
+     * Called when a call ends, with its kind, minutes and whether the caller is a contact (null:
+     * not known). Signals uses it for the "long unknown call" early warning. Main thread.
+     */
+    @Volatile var onCallEnded: ((CallKind, Double, Boolean?) -> Unit)? = null
 
     /** Set by MainActivity from the Android 15 screen recording callback. */
     @Volatile var screenRecorded: Boolean? = null
@@ -67,6 +79,10 @@ class ContextSensor(private val app: Context) {
                 )
                 receiverRegistered = true
             }
+        }
+        if (!cameraListening && cameras != null) {
+            cameras.registerAvailabilityCallback(mainExecutor, cameraCallback)
+            cameraListening = true
         }
         if (!audioListening && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             audio.addOnModeChangedListener(mainExecutor) { mode -> onAudioMode(mode) }
@@ -118,7 +134,19 @@ class ContextSensor(private val app: Context) {
             endedMinAgo = if (endedRecently) minutes(now - lastCallEndedAt) else null,
             callerNumber = number,
             speakerOn = if (active) speakerOn() else null,
+            // Only a VoIP call can be a video call here; without the camera service it is unknown.
+            video = if (voipActive && cameraListening) busyCameras.isNotEmpty() else null,
         )
+    }
+
+    private val cameraCallback = object : CameraManager.AvailabilityCallback() {
+        override fun onCameraUnavailable(cameraId: String) {
+            busyCameras.add(cameraId)
+        }
+
+        override fun onCameraAvailable(cameraId: String) {
+            busyCameras.remove(cameraId)
+        }
     }
 
     /** Call audio on the loudspeaker: the user is being talked through the payment while typing. */
@@ -170,6 +198,12 @@ class ContextSensor(private val app: Context) {
     }
 
     private fun endCall(now: Long, voip: Boolean) {
+        val since = if (voip) voipCallSince else simCallSince
+        val number = callNumber
+        onCallEnded?.let { hook ->
+            // A SIM call that only rang has no start time: no call to report.
+            if (since > 0) hook(if (voip) CallKind.VOIP else CallKind.SIM, (now - since) / 60_000.0, if (voip) null else number?.let(::inContacts))
+        }
         lastCallEndedAt = now
         lastCallWasVoip = voip
         if (voip) {

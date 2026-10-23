@@ -13,6 +13,7 @@ const TEXT: Record<string, { title: string; family: string }> = {
   R9_story_mismatch: { title: "Paying a private person while saying it's a government or company payment", family: "Payee" },
   R10_bait_then_pay: { title: "Small “rewards” came in, then bigger and bigger payments went out", family: "Lure" },
   R11_ring_link: { title: "Payee is linked to the account that sent the “rewards”", family: "Payee" },
+  R12_coached_session: { title: "The Pay screen was used as if someone was guiding them (dictated amount, pasted ID)", family: "Behaviour" },
   ruko_unavailable: { title: "RUKO could not decide in time; the payment went ahead", family: "System" },
 };
 

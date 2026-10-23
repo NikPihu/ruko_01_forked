@@ -55,4 +55,43 @@ class PaymentHistoryTest {
         assertEquals(PaymentHistory.MAX, kept.size)
         assertEquals("p600", kept.last().id)
     }
+
+    // ---------- the server's record (GET /v1/me/payments, c2-0.9) ----------
+
+    private fun server(id: String, tier: String, status: String, ts: String = "2026-10-26T10:40:00+05:30") =
+        com.ruko.demo.net.MyPayment(
+            paymentId = id, payeeUpiId = "secure.settlement.desk@okaxis", amountInr = 95000.0, ts = ts, tier = tier,
+            reasons = listOf("R1_live_unknown_call", "R3_mule_like_payee"), messageKey = "t3_digital_arrest",
+            playbook = "digital_arrest", status = status, outcomeTs = null,
+        )
+
+    @Test
+    fun serverDecisionIsMergedByPaymentId() {
+        val local = listOf(rec("p1", tier = null).copy(payeeName = "Rohan", state = PaymentState.CANCELLED))
+        val h = PaymentHistory.mergeServer(local, listOf(server("p1", "T3", "cancelled")), t0)
+        val p = h.single()
+        assertEquals("T3", p.tier)
+        assertEquals("digital_arrest", p.playbook)
+        assertEquals("Rohan", p.payeeName) // the phone keeps what only it knows
+        assertTrue(p.serverSeen)
+    }
+
+    @Test
+    fun pendingLocalTakesTheServersOutcome() {
+        val h = PaymentHistory.mergeServer(listOf(rec("p1")), listOf(server("p1", "T0", "completed")), t0)
+        assertEquals(PaymentState.COMPLETED, h.single().state)
+    }
+
+    @Test
+    fun paymentOnlyTheServerKnowsIsAdded() {
+        val h = PaymentHistory.mergeServer(emptyList(), listOf(server("p9", "T3", "cancelled")), 1_793_400_000_000L)
+        assertEquals("p9", h.single().id)
+        assertEquals(PaymentState.CANCELLED, h.single().state)
+    }
+
+    @Test
+    fun unknownServerPaymentsLeaveTheListAlone() {
+        val local = listOf(rec("p1"))
+        assertEquals(local.map { it.id }, PaymentHistory.mergeServer(local, emptyList(), t0).map { it.id })
+    }
 }

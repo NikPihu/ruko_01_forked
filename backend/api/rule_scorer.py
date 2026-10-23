@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 
+from api import playbooks
 from features.session import T as SESSION
 
 MODEL_VERSION = "rules-0.7"
@@ -22,9 +23,7 @@ BIAS = -5.0  # two strong families (~0.9 each) land near p=0.55; one alone stays
 REASON_MIN_STRENGTH = 0.3
 
 
-def _unknown_caller(f: dict) -> bool:
-    """A caller not in contacts, or a VoIP call whose number the phone cannot see (null is not safe)."""
-    return bool(f["caller_unknown"]) or (bool(f["voip_call"]) and f["caller_unknown"] is None)
+_unknown_caller = playbooks.unknown_caller
 
 
 def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
@@ -36,6 +35,10 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         strength = 0.9 if f["foreign_caller"] else 0.8 if f["voip_call"] else 0.7
         # On speaker while paying: someone is talking the user through it (same call, same family).
         if f["call_on_speaker"]:
+            strength = min(0.95, strength + 0.1)
+        # A video call from an unknown caller while paying: someone is watching the payment
+        # (deepfake "officer"). Still the same call, so it only strengthens R1 (rule 5).
+        if f.get("video_call"):
             strength = min(0.95, strength + 0.1)
         add("C", strength, "R1_live_unknown_call")
     elif f["on_call"] and f["outgoing_to_unknown"]:
@@ -92,6 +95,9 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("P", 0.6, "R11_ring_link")
     if f["payee_approved_suspect"]:  # found by graph discovery, approved by two analysts
         add("P", 0.7, "R11_ring_link")
+    # Bot-scale ring (AI chatbots / scripts): same amount to or from many people at a steady rhythm.
+    if f.get("payee_automated"):
+        add("P", 0.7, "R11_ring_link")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]
@@ -134,25 +140,14 @@ def _noisy_or(xs: list[float]) -> float:
     return 1 - math.prod(1 - x for x in xs)
 
 
+# Which scam playbook a payment looks like: data/playbooks/playbooks.yaml, read once at start, with
+# the same rules built in as a fallback (api/playbooks.py). Checked in order; the first rule that
+# matches names the playbook. Each has a plain description for the analyst console (api/explain.py).
+PLAYBOOK_RULES, PLAYBOOK_SOURCE = playbooks.load()
+
+
 def _playbook(f: dict) -> str | None:
-    tag = f["lure_tag"]
-    # An active task-scam episode beats any older message on the phone.
-    if f["episode_state"] == 2:
-        return "task_job"
-    if f["sideloaded_last_24h"] and tag == "kyc":
-        return "fake_kyc_apk"
-    if f["outgoing_to_unknown"] and (f["remote_control"] or f["session_dictated"]):
-        return "fake_customer_care"
-    if tag == "arrest_threat" or (f["on_call"] and _unknown_caller(f)
-                                  and (f["remote_control"] or f["story_mismatch"] or f["session_dictated"])):
-        return "digital_arrest"
-    if tag == "trading_tip":
-        return "trading_group"
-    if tag == "task_job":
-        return "task_job"
-    if f["on_call"] and _unknown_caller(f) and not f["entry_typed"]:
-        return "refund_qr"
-    return None
+    return next((name for name, _, rule in PLAYBOOK_RULES if rule(f)), None)
 
 
 def score(f: dict) -> dict:
@@ -170,3 +165,10 @@ def score(f: dict) -> dict:
     reasons = [c for c, _ in sorted(best.items(), key=lambda kv: -kv[1])][:4]
     return {"p_scam": round(1 / (1 + math.exp(-z)), 4), "family_scores": fam,
             "reasons": reasons, "playbook": _playbook(f), "model_version": MODEL_VERSION}
+
+
+def signals(f: dict) -> list[dict]:
+    """Every rule signal that fires for these features, for the analyst's explanation (api/explain.py).
+    Kept out of score() so the model and the rules keep the same output shape."""
+    return [{"family": k, "reason": code, "strength": strength}
+            for k, v in _signals(f).items() for strength, code in v]

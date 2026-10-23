@@ -22,6 +22,7 @@ data class CallReading(
     val endedMinAgo: Double?, // a call that finished within the last 30 minutes
     val callerNumber: String? = null, // in memory only; see toCallSignal for when it is sent
     val speakerOn: Boolean? = null, // only read while a call is active
+    val video: Boolean? = null, // a VoIP call while another app uses the camera
 ) {
     /**
      * The caller's number is sent only for an incoming SIM call from a number that is not in
@@ -39,6 +40,7 @@ data class CallReading(
         startedMinAgo = startedMinAgo,
         endedMinAgo = endedMinAgo,
         speakerOn = speakerOn,
+        video = video,
     )
 }
 
@@ -123,6 +125,7 @@ data class SignalOverrides(
     val screenRecorded: Boolean? = null,
     val lureTag: String? = null,
     val speakerOn: Boolean? = null,
+    val videoCall: Boolean? = null,
     val coachedSession: Boolean? = null, // true: a coached Pay screen, false: a calm one
     val payeeInContacts: Boolean? = null,
 ) {
@@ -137,6 +140,7 @@ data class SignalOverrides(
             if (screenRecorded != null) add("screen_recorded")
             if (lureTag != null) add("lures")
             if (speakerOn != null) add("call.speaker_on")
+            if (videoCall != null) add("call.video")
             if (coachedSession != null) add("session")
             if (payeeInContacts != null) add("payee_in_contacts")
         }
@@ -152,6 +156,7 @@ data class SignalOverrides(
                 startedMinAgo = callMinutes?.toDouble() ?: c.startedMinAgo ?: if (onCall == true) 0.0 else null,
                 endedMinAgo = if (onCall == true) null else c.endedMinAgo,
                 speakerOn = speakerOn ?: c.speakerOn,
+                video = videoCall ?: c.video,
             )
         }
         val device = real.device?.let { d ->

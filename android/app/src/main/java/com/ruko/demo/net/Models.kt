@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.7: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.10: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.8"
+const val CONTRACT_VERSION = "c2-0.10"
 
 @Serializable
 enum class CallKind {
@@ -52,6 +52,7 @@ data class CallSignal(
     @SerialName("started_min_ago") val startedMinAgo: Double? = null,
     @SerialName("ended_min_ago") val endedMinAgo: Double? = null, // a call that just finished
     @SerialName("speaker_on") val speakerOn: Boolean? = null, // c2-0.5: call on the loudspeaker at Pay
+    val video: Boolean? = null, // c2-0.10: VoIP call while another app uses the camera (a video call)
 )
 
 @Serializable
@@ -229,6 +230,107 @@ data class PaymentOutcomeResponse(
     @SerialName("request_id") val requestId: String,
     val status: PaymentStatus,
     val recorded: Boolean,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
+// ---------- c2-0.9: alert feedback, watch events, the app's own payments ----------
+
+/** What the user did on an alert screen. Wire names match the contract's FeedbackAction. */
+@Serializable
+enum class FeedbackAction {
+    @SerialName("tip_seen") TIP_SEEN,
+    @SerialName("slid_to_pay") SLID_TO_PAY,
+    @SerialName("cancelled_from_alert") CANCELLED_FROM_ALERT,
+    @SerialName("waited") WAITED,
+    @SerialName("pay_after_pause") PAY_AFTER_PAUSE,
+    @SerialName("called_trusted") CALLED_TRUSTED,
+    @SerialName("messaged_trusted") MESSAGED_TRUSTED,
+    @SerialName("called_1930") CALLED_1930,
+    @SerialName("i_know_them") I_KNOW_THEM,
+}
+
+/** Why the user says they know the payee ("I know this person"). */
+@Serializable
+enum class KnowWhy {
+    @SerialName("family") FAMILY,
+    @SerialName("friend") FRIEND,
+    @SerialName("shop") SHOP,
+    @SerialName("landlord") LANDLORD,
+    @SerialName("employer") EMPLOYER,
+    @SerialName("other") OTHER,
+}
+
+/** POST /v1/feedback. One action on one alert; safe to retry with the same feedback_id. */
+@Serializable
+data class Feedback(
+    @SerialName("feedback_id") val feedbackId: String,
+    @SerialName("request_id") val requestId: String, // the payment id (/v1/decide request_id)
+    @SerialName("user_id") val userId: String,
+    val action: FeedbackAction,
+    val why: KnowWhy? = null, // only with I_KNOW_THEM
+    @SerialName("dwell_ms") val dwellMs: Long? = null, // alert shown -> this action
+    val ts: String,
+)
+
+@Serializable
+data class FeedbackResponse(
+    @SerialName("feedback_id") val feedbackId: String,
+    val recorded: Boolean,
+    // I_KNOW_THEM only: false when RUKO still recommends waiting (list hit or someone controls the phone).
+    @SerialName("trusted_accepted") val trustedAccepted: Boolean? = null,
+    @SerialName("message_key") val messageKey: String? = null,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
+@Serializable
+enum class WatchKind {
+    @SerialName("lure_seen") LURE_SEEN, // tag only, never the message text
+    @SerialName("remote_access_on") REMOTE_ACCESS_ON,
+    @SerialName("long_unknown_call") LONG_UNKNOWN_CALL,
+    @SerialName("sideload") SIDELOAD,
+}
+
+/** POST /v1/watch. Sent only when a threshold is crossed, only with "Early warnings" on. */
+@Serializable
+data class WatchEvent(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("user_id") val userId: String,
+    val kind: WatchKind,
+    val ts: String,
+    @SerialName("lure_tag") val lureTag: String? = null,
+    @SerialName("lure_conf") val lureConf: Double? = null,
+    val source: String? = null, // sms | notification
+    @SerialName("ai_written") val aiWritten: Boolean? = null, // c2-0.10, lure_seen only
+    @SerialName("call_kind") val callKind: CallKind? = null,
+    @SerialName("call_minutes") val callMinutes: Double? = null,
+)
+
+@Serializable
+data class WatchEventResponse(
+    @SerialName("event_id") val eventId: String,
+    val recorded: Boolean,
+    val stage: String? = null,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
+/** One of the user's own payments as RUKO recorded it. Plain words only, never a score. */
+@Serializable
+data class MyPayment(
+    @SerialName("payment_id") val paymentId: String,
+    @SerialName("payee_upi_id") val payeeUpiId: String,
+    @SerialName("amount_inr") val amountInr: Double,
+    val ts: String,
+    val tier: String,
+    val reasons: List<String>,
+    @SerialName("message_key") val messageKey: String? = null,
+    val playbook: String? = null,
+    val status: String, // checked | completed | cancelled
+    @SerialName("outcome_ts") val outcomeTs: String? = null,
+)
+
+@Serializable
+data class MyPayments(
+    val payments: List<MyPayment>,
     @SerialName("contract_version") val contractVersion: String? = null,
 )
 

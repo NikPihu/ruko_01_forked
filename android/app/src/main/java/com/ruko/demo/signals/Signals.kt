@@ -24,6 +24,8 @@ import com.ruko.demo.net.EntryMethod
 import com.ruko.demo.net.EpisodeSignal
 import com.ruko.demo.net.SessionSignal
 import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.shield.Sighting
+import com.ruko.demo.shield.WatchSender
 import kotlinx.serialization.json.Json
 import java.io.FileNotFoundException
 import com.ruko.demo.net.Context as RequestContext
@@ -31,7 +33,12 @@ import com.ruko.demo.net.Context as RequestContext
 /** Runtime permissions each Scam Shield consent needs. App checks need none (manifest <queries>). */
 object ShieldPermissions {
     val CALLS = listOf(READ_PHONE_STATE, READ_CONTACTS, READ_CALL_LOG)
-    val SMS = listOf(READ_SMS)
+    // RECEIVE_SMS and notifications: the warning when an OTP arrives during a call (A5).
+    val SMS = buildList {
+        add(READ_SMS)
+        add(RECEIVE_SMS)
+        if (Build.VERSION.SDK_INT >= 33) add(POST_NOTIFICATIONS)
+    }
     val WATCH = buildList {
         add(RECEIVE_SMS)
         add(READ_SMS)
@@ -68,11 +75,18 @@ object Signals {
     var classifier: LureClassifier = KeywordLureClassifier
         private set
 
+    /** "Looks AI-written" (assets/ai_text.json, A5); null until Diwansu's model is in the app. */
+    var aiText: AiTextScorer? = null
+        private set
+
     /** The on-device model (assets/device_model.json); null when missing, and then no verdict is sent. */
     var deviceModel: DeviceModel? = null
         private set
 
     var overrides by mutableStateOf(SignalOverrides())
+
+    /** A screen a notification asked to open ("messages"); the app opens it once unlocked. */
+    var openScreen by mutableStateOf<String?>(null)
 
     /** A message the user pasted into the check box; counts for the next payment only. */
     var pasted by mutableStateOf<LureHit?>(null)
@@ -80,12 +94,28 @@ object Signals {
     /** The automatic permission prompt is shown once per app start; after that the Home card asks. */
     var askedForPermissions = false
 
+    private val background = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    /**
+     * Early warnings on app start: a remote access app installed in the last day, or an app
+     * installed from outside the store. WatchSender checks the consents and keeps quiet after.
+     */
+    fun reportDevice() = background.execute {
+        val d = sensor.readDevice()
+        WatchSender.report(app, Sighting.RemoteApp(if (d.remoteAppInstalled == true) d.remoteAppInstalledMinAgo else null))
+        WatchSender.report(app, Sighting.Sideload(d.sideloadedLast24h))
+    }
+
+    @Synchronized
     fun init(context: Context) {
         if (::app.isInitialized) return
         app = context.applicationContext
         sensor = ContextSensor(app)
         contacts = ContactBook(app)
         classifier = loadLureModel(app)
+        aiText = MessageScan.loadAiText(app)
+        // Early warnings (Step 7): a long call with someone unknown is reported once it ends.
+        sensor.onCallEnded = { kind, minutes, known -> background.execute { WatchSender.report(app, Sighting.LongCall(kind, minutes, known)) } }
         deviceModel = try {
             DeviceModel.parse(app.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
         } catch (e: Exception) {
@@ -196,7 +226,7 @@ object Signals {
         val text = context.assets.open(LURE_ASSET).bufferedReader().use { it.readText() }
         LinearLureClassifier(Json { ignoreUnknownKeys = true }.decodeFromString(LureModel.serializer(), text))
     } catch (e: FileNotFoundException) {
-        KeywordLureClassifier // lure.json from Diwansu is due at H28
+        KeywordLureClassifier // no lure.json in assets: keyword fallback
     } catch (e: Exception) {
         Log.w("Signals", "bad $LURE_ASSET, using keywords", e)
         KeywordLureClassifier

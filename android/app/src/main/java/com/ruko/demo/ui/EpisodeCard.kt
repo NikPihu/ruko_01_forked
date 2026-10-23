@@ -1,7 +1,5 @@
 package com.ruko.demo.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -137,8 +135,4 @@ fun EpisodeCard(data: ShieldData?, trustedName: String?, trustedMobile: String?,
             dismissButton = { TextButton(onClick = { confirmDismiss = false }) { Text(stringResource(R.string.episode_keep)) } },
         )
     }
-}
-
-private fun dial(context: android.content.Context, number: String) {
-    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
 }

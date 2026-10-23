@@ -21,7 +21,7 @@ FRI_LEVEL = {"NONE": 0, "MEDIUM": 1, "HIGH": 2, "VERY_HIGH": 3}
 FAMILY = {
     "on_call": "C", "caller_unknown": "C", "voip_call": "C", "foreign_caller": "C",
     "outgoing_to_unknown": "C", "remote_control": "C", "untrusted_accessibility": "C",
-    "sideloaded_last_24h": "C", "call_on_speaker": "C",
+    "sideloaded_last_24h": "C", "call_on_speaker": "C", "video_call": "C",
     # The phone's own model (c2-0.8): one score per family, each only in its own family (rule 5).
     "device_c": "C", "device_l": "L", "device_b": "B",
     "lure_max_conf_72h": "L", "lure_tag": "L",
@@ -35,6 +35,7 @@ FAMILY = {
     "caller_fri_level": "P", "story_mismatch": "P", "vpa_invalid": "P",
     # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
     "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
+    "payee_automated": "P",  # bot-scale ring: same amount, many people, steady rhythm
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "payee_in_contacts": "B",
@@ -65,6 +66,8 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
         call.direction == "outgoing" and call.caller_in_contacts is False)
     # Speaker on only matters during a call; it strengthens the call signal, it is not a new family.
     f["call_on_speaker"] = call.speaker_on if call is not None and st.on_call else None
+    # A video call while paying (c2-0.10): the deepfake "digital arrest" set-up. Same call, same family.
+    f["video_call"] = call.video if call is not None and st.on_call else None
     # The phone's verdict on what only it can see (c2-0.8); null when its model did not run.
     dv = ctx.device_verdict if ctx else None
     f["device_c"] = dv.c if dv else None
@@ -122,6 +125,7 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["payee_money_loop"] = ring["money_loop"] if ring else None
     f["payee_forwards_to_cashout"] = ring["forwards_to_known_cashout"] if ring else None
     f["payee_approved_suspect"] = ring.get("approved_suspect") if ring else None
+    f["payee_automated"] = ring.get("automated") if ring else None
 
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr

@@ -60,6 +60,7 @@ fun HomeScreen(
     onDebug: () -> Unit,
     onHistory: () -> Unit,
     onPayContact: () -> Unit,
+    onMessageCheck: () -> Unit,
 ) {
     val context = LocalContext.current
     val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
@@ -94,6 +95,7 @@ fun HomeScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                InfoChip(CacheIcons.Message, R.string.home_message_check, CacheColors.Info, onMessageCheck)
                 InfoChip(CacheIcons.Person, R.string.home_trusted, CacheColors.Gold, onProfile)
                 InfoChip(CacheIcons.Shield, R.string.home_how_shield, CacheColors.PrimaryLight, demoOnly)
             }

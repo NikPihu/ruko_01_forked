@@ -20,7 +20,19 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
+import statistics
+from pathlib import Path
+
+import yaml
+
 from evidence.store import pseudonym
+
+# Bot-scale fingerprints (policy.yaml `automation:`): AI chatbots and scripts run task scams and
+# mule networks at machine scale -- same amount, to or from many people, at a steady rhythm.
+_AUTO_DEFAULTS = {"window_days": 7, "min_users": 8, "max_amount_spread": 0.10, "max_gap_spread": 0.35,
+                  "burst_min": 1.0}
+_POLICY = Path(__file__).resolve().parents[1] / "api" / "policy.yaml"
+AUTOMATION = {**_AUTO_DEFAULTS, **((yaml.safe_load(_POLICY.read_text()) or {}).get("automation") or {})}
 
 KEEP = timedelta(days=30)
 CROWD_BAIT_USERS = 5        # distinct users with a bait credit from one account in 7 days
@@ -232,9 +244,53 @@ class GraphStore:
         hubs = self.known_cashouts(exclude=acc)
         forwards = any(b in hubs for b in self.out.get(acc, ()) if "bank_flows" in self.edges[(acc, b)].sources)
         crowd = (fanout >= CROWD_BAIT_USERS or in_eps >= CROWD_EPISODE_USERS or fanin_6h >= CROWD_FANIN_6H or shared)
+        auto = self.automation(acc, now)
         return {"bait_sender_fanout_7d": fanout, "payee_in_episodes_7d": in_eps, "payee_fanin_ruko_6h": fanin_6h,
                 "shared_bait_sender": shared, "money_loop": loop, "loop_path": path,
-                "forwards_to_known_cashout": forwards, "crowd": crowd}
+                "forwards_to_known_cashout": forwards, "crowd": crowd,
+                "automated": auto["automated"], "automation": auto}
+
+    def automation(self, account: str, now: datetime) -> dict:
+        """Does this account move money like a bot? Checked on both sides: the "rewards" it sent to RUKO
+        users, and the payments RUKO users made to it. `automated` is True only when one side has
+        many distinct users, near-identical amounts per user and a steady rhythm of new users;
+        None when there are too few users to tell (unknown, not safe); False otherwise."""
+        t = AUTOMATION
+        acc = account.strip().lower()
+        window = timedelta(days=t["window_days"])
+        best: dict = {"automated": None, "side": None, "users": 0}
+        for side, pairs in (("sends", [((acc, b), b) for b in self.out.get(acc, ()) if b.startswith("u:")]),
+                            ("receives", [((a, acc), a) for a in self.inn.get(acc, ()) if a.startswith("u:")])):
+            rows = [(e.first_ts, e.inr / e.n) for k, _ in pairs
+                    if (e := self.edges.get(k)) and e.n and e.first_ts and now - (e.last_ts or e.first_ts) <= window]
+            if len(rows) < t["min_users"]:
+                if best["automated"] is None:
+                    best = {**best, "users": max(best["users"], len(rows))}
+                continue
+            amounts = [a for _, a in rows]
+            firsts = sorted(ts for ts, _ in rows)
+            gaps = [(b - a).total_seconds() / 60 for a, b in zip(firsts, firsts[1:])]
+            med_amt, med_gap = statistics.median(amounts), statistics.median(gaps)
+            amount_spread = statistics.pstdev(amounts) / med_amt if med_amt else None
+            gap_spread = statistics.pstdev(gaps) / med_gap if med_gap else None
+            same_amount = amount_spread is not None and amount_spread <= t["max_amount_spread"]
+            # A steady rhythm, or a burst (new people every few seconds): both are machine-like.
+            steady = (gap_spread is not None and gap_spread <= t["max_gap_spread"]) or med_gap < t["burst_min"]
+            result = {"automated": same_amount and steady, "side": side, "users": len(rows),
+                      "amount_inr": round(med_amt, 2), "every_min": round(med_gap, 1),
+                      "amount_spread": round(amount_spread, 3) if amount_spread is not None else None,
+                      "gap_spread": round(gap_spread, 3) if gap_spread is not None else None}
+            if result["automated"] or best["automated"] is None:
+                best = result
+            if result["automated"]:
+                break
+        if best["automated"]:
+            verb = "paid" if best["side"] == "sends" else "received from"
+            pace = ("in a burst, seconds apart" if best["every_min"] < t["burst_min"]
+                    else f"one new person every {best['every_min']:.0f} min")
+            best["why"] = (f"{verb} {best['users']} people about ₹{best['amount_inr']:,.0f} each, "
+                           f"{pace}: a script, not a person")
+        return best
 
     def money_loop(self, payee: str, senders: list[str]) -> tuple[Optional[bool], Optional[str]]:
         """True when the payee and a bait sender forward to the same account (2 hops), or money flows
