@@ -52,6 +52,12 @@ class ContextSensor(private val app: Context) {
     @Volatile private var lastCallDirection: CallDirection? = null
     @Volatile private var lastCallWasVoip = false
 
+    /**
+     * Called when a call ends, with its kind, minutes and whether the caller is a contact (null:
+     * not known). Signals uses it for the "long unknown call" early warning. Main thread.
+     */
+    @Volatile var onCallEnded: ((CallKind, Double, Boolean?) -> Unit)? = null
+
     /** Set by MainActivity from the Android 15 screen recording callback. */
     @Volatile var screenRecorded: Boolean? = null
 
@@ -192,6 +198,12 @@ class ContextSensor(private val app: Context) {
     }
 
     private fun endCall(now: Long, voip: Boolean) {
+        val since = if (voip) voipCallSince else simCallSince
+        val number = callNumber
+        onCallEnded?.let { hook ->
+            // A SIM call that only rang has no start time: no call to report.
+            if (since > 0) hook(if (voip) CallKind.VOIP else CallKind.SIM, (now - since) / 60_000.0, if (voip) null else number?.let(::inContacts))
+        }
         lastCallEndedAt = now
         lastCallWasVoip = voip
         if (voip) {

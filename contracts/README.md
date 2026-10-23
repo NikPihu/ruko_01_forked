@@ -211,6 +211,18 @@ by the time the user pays. Sent only when a threshold is crossed (never on a tim
 
 Reply: `recorded` (`false` for a repeated `event_id`) and the user's `stage` after the event.
 
+**When the phone sends them** (`contracts/watch_rules.json`, copied to the app's assets; the
+server's tracker reads the same file, rule 6):
+- `lure_seen`: a new SMS ("SMS scam check" on) or chat notification ("Check chat messages" on:
+  the apps in `chat_apps`) with a scam tag at `lure_min_conf` or more; the same tag is not repeated
+  within `lure_repeat_quiet_min`.
+- `long_unknown_call`: when a call of `long_call_min` minutes or more ends and the caller is not a
+  contact (or a VoIP caller nobody knows), as the tracker counts "unknown". Needs "Call checks".
+- `remote_access_on`: a remote access app installed within `device_recent_hours`; `sideload`: an
+  app from outside the store in the last 24 h. Checked when the app opens ("App checks"), at most
+  once per `device_repeat_quiet_hours`.
+- Events wait encrypted on the phone until there is a network and expire after `max_age_days`.
+
 ## GET /v1/me/payments?user_id= (c2-0.9)
 
 The user's own payments as RUKO recorded them, newest first: payment id, payee, amount, time, tier,

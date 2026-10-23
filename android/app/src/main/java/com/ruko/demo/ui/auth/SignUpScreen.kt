@@ -353,6 +353,9 @@ private fun ColumnScope.PrivacyStep(vm: AuthViewModel) {
     if (c.moneyWatch) {
         ConsentRow(R.string.consent_share, R.string.consent_share_desc, c.shareAccounts) { vm.draftConsents = c.copy(shareAccounts = it) }
     }
+    // Notification access is granted later, from the profile (it needs Android's Settings screen).
+    ConsentRow(R.string.consent_chat, R.string.consent_chat_desc, c.chatLure) { vm.draftConsents = c.copy(chatLure = it) }
+    ConsentRow(R.string.consent_early, R.string.consent_early_desc, c.earlyWarnings) { vm.draftConsents = c.copy(earlyWarnings = it) }
     Text(
         text = stringResource(R.string.privacy_points),
         style = MaterialTheme.typography.bodyMedium,

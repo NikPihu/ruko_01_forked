@@ -54,6 +54,7 @@ object MessageCheck {
         lure: LureClassifier,
         ai: AiTextScorer?,
         calls: List<CallWindow>,
+        fromPerson: Boolean? = null, // known from where the message came from (a chat app); else from the sender
     ): MessageLabel {
         val otp = isOtp(body)
         val hit = lure.classify(body)
@@ -61,7 +62,7 @@ object MessageCheck {
         val words = body.trim().split(Regex("\\s+")).count { it.isNotEmpty() }
         val aiWritten = when {
             ai == null -> null // no model yet: unknown, the label stays hidden
-            otp || senderKind(sender) != SenderKind.PERSON -> null // business headers are machine-written anyway
+            otp || (fromPerson ?: (senderKind(sender) == SenderKind.PERSON)) != true -> null // business headers are machine-written anyway
             words < AI_MIN_WORDS -> null
             else -> ai.probability(body) >= ai.threshold
         }
@@ -70,6 +71,7 @@ object MessageCheck {
             sender = sender?.trim().orEmpty(),
             preview = body.trim().replace(Regex("\\s+"), " ").take(PREVIEW_CHARS),
             scamTag = scamTag,
+            scamConf = hit.conf.takeIf { scamTag != null },
             aiWritten = aiWritten,
             otp = otp,
             otpDuringCall = otp && duringUnknownCall(ts, calls),
@@ -90,6 +92,7 @@ data class MessageLabel(
     val sender: String,
     val preview: String,
     val scamTag: String?,
+    val scamConf: Double?,
     val aiWritten: Boolean?,
     val otp: Boolean,
     val otpDuringCall: Boolean,

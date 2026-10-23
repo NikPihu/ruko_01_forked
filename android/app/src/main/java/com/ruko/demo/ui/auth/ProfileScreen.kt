@@ -1,6 +1,8 @@
 package com.ruko.demo.ui.auth
 
+import com.ruko.demo.shield.ChatListener
 import com.ruko.demo.shield.ShieldController
+import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import android.provider.Settings
@@ -86,6 +88,16 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         ConsentRow(R.string.consent_watch, R.string.consent_watch_desc, c.moneyWatch) {
             vm.updateConsents(c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it))
         }
+        ConsentRow(R.string.consent_chat, R.string.consent_chat_desc, c.chatLure) {
+            vm.updateConsents(c.copy(chatLure = it))
+            if (it && !ChatListener.granted(appContext)) openNotificationAccess(appContext)
+        }
+        if (c.chatLure && !ChatListener.granted(appContext)) {
+            TextButton(onClick = { openNotificationAccess(appContext) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.consent_chat_allow), color = CacheColors.PrimaryLight)
+            }
+        }
+        ConsentRow(R.string.consent_early, R.string.consent_early_desc, c.earlyWarnings) { vm.updateConsents(c.copy(earlyWarnings = it)) }
         if (c.moneyWatch) {
             ConsentRow(R.string.consent_share, R.string.consent_share_desc, c.shareAccounts) { vm.updateConsents(c.copy(shareAccounts = it)) }
             KeepRunningRow()
@@ -164,4 +176,9 @@ private fun KeepRunningRow() {
             Text(stringResource(R.string.profile_keep_running_desc), style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary)
         }
     }
+}
+
+/** Android's own screen for notification access; only the user can switch it on there. */
+private fun openNotificationAccess(context: Context) {
+    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

@@ -24,6 +24,7 @@ import com.ruko.demo.net.PaymentOutcome
 import com.ruko.demo.net.PaymentStatus
 import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.shield.WatchSender
 import com.ruko.demo.signals.Flow
 import com.ruko.demo.signals.MoneyTxn
 import com.ruko.demo.signals.SessionTracker
@@ -314,6 +315,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
             if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
             ShieldController.syncReceiver(getApplication(), new)
+            // Switching early warnings off deletes anything still waiting to be sent.
+            if (!new.earlyWarnings && old.earlyWarnings) WatchSender.clear(getApplication())
             // Switching sharing off deletes anything still waiting to be sent.
             if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
         }

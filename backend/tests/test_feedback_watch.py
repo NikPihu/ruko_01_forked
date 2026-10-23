@@ -192,3 +192,17 @@ def test_ai_written_lures_are_counted(engine, world):
         engine.post("/v1/watch", json={"event_id": f"l{i}", "user_id": user, "kind": "lure_seen", "ts": NOW.isoformat(),
                                        "lure_tag": "kyc", "lure_conf": 0.9, "source": "sms", "ai_written": ai})
     assert engine.get("/v1/metrics/alerts").json()["lures"] == {"lures_seen": 3, "ai_written": 2}
+
+
+def test_watch_thresholds_come_from_the_shared_rules_file():
+    """Phone and server read the same early-warning numbers (rule 6): contracts/watch_rules.json."""
+    import json
+    from pathlib import Path
+
+    from features import tracker
+
+    rules = json.loads((Path(__file__).resolve().parents[2] / "contracts" / "watch_rules.json").read_text(encoding="utf-8"))
+    assert tracker.LONG_CALL_MIN == rules["long_call_min"]
+    assert tracker.LURE_MIN_CONF == rules["lure_min_conf"]
+    app_copy = Path(__file__).resolve().parents[2] / "android" / "app" / "src" / "main" / "assets" / "watch_rules.json"
+    assert json.loads(app_copy.read_text(encoding="utf-8")) == rules

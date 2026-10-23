@@ -17,6 +17,11 @@
     <string name="shield_chip_off">पैसों के अलर्ट बंद</string>
     <string name="consent_watch">मेरे पैसों के अलर्ट पर नज़र रखें</string>
     <string name="consent_watch_desc">ऐप बंद होने पर भी बैंक SMS अलर्ट पर नज़र रखता है, ताकि टास्क और नौकरी वाले स्कैम जल्दी पकड़े जाएँ। SMS का टेक्स्ट फ़ोन से बाहर नहीं जाता।</string>
+    <string name="consent_early">स्कैम शील्ड को पहले से चेतावनी</string>
+    <string name="consent_early_desc">पेमेंट से पहले स्कैम शील्ड को बताता है जब कुछ जोखिम भरा हो: स्कैम मैसेज का प्रकार, किसी अनजान से लंबी कॉल, नया स्क्रीन-शेयरिंग ऐप या प्ले स्टोर के बाहर से ऐप। सिर्फ़ चेतावनी का प्रकार भेजा जाता है, आपके मैसेज, कॉल या कॉन्टैक्ट कभी नहीं।</string>
+    <string name="consent_chat">चैट मैसेज में स्कैम जाँचें</string>
+    <string name="consent_chat_desc">WhatsApp, Telegram जैसी चैट की नई सूचनाओं में स्कैम स्क्रिप्ट इसी फ़ोन पर जाँचता है और आपको चेतावनी देता है। टेक्स्ट कभी सेव या भेजा नहीं जाता।</string>
+    <string name="consent_chat_allow">सूचना पढ़ने की अनुमति दें</string>
     <string name="consent_share">आपको और दूसरों को बचाने के लिए संदिग्ध खाते भेजें</string>
     <string name="consent_share_desc">जब पैसों के अलर्ट स्कैम जैसे लगें, तो सिर्फ़ उसमें शामिल खाते (ज़्यादा से ज़्यादा 10) जाँच के लिए भेजे जाते हैं। आपके SMS या पूरा इतिहास कभी नहीं।</string>
     <string name="profile_keep_running">स्कैम शील्ड चालू रखें</string>
@@ -204,7 +209,7 @@
     <string name="msg_otp_call_title">कॉल के दौरान एक कोड आया है</string>
     <string name="msg_otp_call_text">कॉल पर जो भी यह कोड माँगे, वह ठग है। बैंक, पुलिस और कंपनियाँ कभी OTP नहीं माँगतीं। कोड न बताएं; कॉल काट दें।</string>
     <string name="msg_scam_notify_title">यह मैसेज स्कैम हो सकता है</string>
-    <string name="msg_scam_notify_text">एक नया SMS %1$s जैसा लगता है। उसके लिंक न खोलें, वापस कॉल न करें, कोड न बताएं, पैसे न भेजें। मैसेज जाँच में देखने के लिए टैप करें।</string>
+    <string name="msg_scam_notify_text">एक नया मैसेज %1$s जैसा लगता है। उसके लिंक न खोलें, वापस कॉल न करें, कोड न बताएं, पैसे न भेजें। मैसेज जाँच में देखने के लिए टैप करें।</string>
     <string name="msg_scam_notify_ai">यह AI से लिखा भी लगता है।</string>
     <string name="msg_tag_arrest_threat">नकली पुलिस या गिरफ़्तारी की धमकी</string>
     <string name="msg_tag_kyc">नकली KYC या खाता बंद</string>

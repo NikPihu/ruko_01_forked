@@ -24,6 +24,8 @@ import com.ruko.demo.net.EntryMethod
 import com.ruko.demo.net.EpisodeSignal
 import com.ruko.demo.net.SessionSignal
 import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.shield.Sighting
+import com.ruko.demo.shield.WatchSender
 import kotlinx.serialization.json.Json
 import java.io.FileNotFoundException
 import com.ruko.demo.net.Context as RequestContext
@@ -92,6 +94,18 @@ object Signals {
     /** The automatic permission prompt is shown once per app start; after that the Home card asks. */
     var askedForPermissions = false
 
+    private val background = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    /**
+     * Early warnings on app start: a remote access app installed in the last day, or an app
+     * installed from outside the store. WatchSender checks the consents and keeps quiet after.
+     */
+    fun reportDevice() = background.execute {
+        val d = sensor.readDevice()
+        WatchSender.report(app, Sighting.RemoteApp(if (d.remoteAppInstalled == true) d.remoteAppInstalledMinAgo else null))
+        WatchSender.report(app, Sighting.Sideload(d.sideloadedLast24h))
+    }
+
     @Synchronized
     fun init(context: Context) {
         if (::app.isInitialized) return
@@ -100,6 +114,8 @@ object Signals {
         contacts = ContactBook(app)
         classifier = loadLureModel(app)
         aiText = MessageScan.loadAiText(app)
+        // Early warnings (Step 7): a long call with someone unknown is reported once it ends.
+        sensor.onCallEnded = { kind, minutes, known -> background.execute { WatchSender.report(app, Sighting.LongCall(kind, minutes, known)) } }
         deviceModel = try {
             DeviceModel.parse(app.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
         } catch (e: Exception) {

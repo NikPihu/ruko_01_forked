@@ -42,7 +42,9 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    phone episode (`context.episode`) is one L signal, and graph / crowd signals are P only.
 6. **Thresholds live in config, not code.** Policy numbers in `backend/api/policy.yaml`; episode
    numbers in `contracts/episode_rules.json` (the phone copies it to
-   `android/app/src/main/assets/`, and `EpisodeTrackerTest` checks the copy).
+   `android/app/src/main/assets/`, and `EpisodeTrackerTest` checks the copy); early-warning numbers
+   in `contracts/watch_rules.json` (same copy, checked by `WatchPolicyTest`; the server's tracker
+   reads it too).
 7. **Privacy by default.** Phone data is AES-256-GCM encrypted with an Android Keystore key in
    `noBackupFilesDir`, excluded from backup; "Delete my data" removes the files and the key. RUKO
    users are pseudonymised on the server (`evidence/store.py` `pseudonym()`); payees, bait senders
@@ -182,7 +184,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 95 tests
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 101 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -251,7 +253,12 @@ mind. Offline episode features for training:
   until that model exists, "OTP: never share this"); an OTP during a call gets a full warning, and
   `SmsReceiver` posts it as a notification live ("SMS scam check" + "Call checks" on). A new SMS
   that matches a scam script gets a "may be a scam" notification (scam type, plus "looks
-  AI-written" when known; never the text) that opens Message check. Nothing is sent. Hindi strings in `res/values-hi/`.
+  AI-written" when known; never the text) that opens Message check. Nothing is sent.
+  `shield/WatchSender.kt` (Step 7, "Early warnings" switch, off by default): `lure_seen` from SMS and
+  from `shield/ChatListener.kt` (chat app notifications, "Check chat messages" switch, off by
+  default, needs notification access), `long_unknown_call` when a call ends (`ContextSensor
+  .onCallEnded`), `remote_access_on` / `sideload` on app start; rules in `WatchPolicy`, events in an
+  encrypted queue sent by WorkManager to `POST /v1/watch`. Hindi strings in `res/values-hi/`.
 
 **ML** (`ml/`, on the path as `model.*`)
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
@@ -286,7 +293,7 @@ mind. Offline episode features for training:
 ## Not built yet
 Pause enforcement and `pause_until` (the app
 counts `pause_minutes` from the answer), T4 review polling (no review endpoint), the app's
-the "looks AI-written" model (`ai_text.json`, Diwansu), the app side of watch events (`/v1/watch` exists on the server), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+the "looks AI-written" model (`ai_text.json`, Diwansu), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).

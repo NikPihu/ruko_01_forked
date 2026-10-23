@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
         // Listeners stay on while the app is in the background, so a call that starts in
         // another app is still timed. start() only adds the ones newly permitted.
         Signals.sensor.start()
+        Signals.reportDevice()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             recordingCallback.accept(windowManager.addScreenRecordingCallback(mainExecutor, recordingCallback))
         }

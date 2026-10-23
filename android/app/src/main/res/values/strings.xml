@@ -246,6 +246,11 @@
     <string name="shield_chip_off">Money alerts off</string>
     <string name="consent_watch">Watch my money alerts</string>
     <string name="consent_watch_desc">Keeps watching bank SMS alerts in the background, even when the app is closed, to spot task and job scams early. SMS text never leaves the phone.</string>
+    <string name="consent_early">Early warnings to Scam Shield</string>
+    <string name="consent_early_desc">Before you pay, tells Scam Shield when something risky happens: a scam message type, a long call from someone unknown, a new screen-sharing app or an app from outside the Play Store. Only the kind of warning is sent, never your messages, calls or contacts.</string>
+    <string name="consent_chat">Check chat messages for scams</string>
+    <string name="consent_chat_desc">Checks new WhatsApp, Telegram and similar chat notifications for scam scripts, on this phone, and warns you. The text is never stored or sent.</string>
+    <string name="consent_chat_allow">Allow notification access</string>
     <string name="consent_share">Share suspicious accounts to protect you and others</string>
     <string name="consent_share_desc">When your money alerts look like a scam, sends only the accounts involved (at most 10) so Scam Shield can check them. Never your SMS or full history.</string>
     <string name="profile_keep_running">Keep Scam Shield running</string>
@@ -423,7 +428,7 @@
     <string name="msg_otp_call_title">A code arrived while you are on a call</string>
     <string name="msg_otp_call_text">Someone on a call asking for this code is a scammer. Banks, police and companies never ask for an OTP. Do not read it out; hang up.</string>
     <string name="msg_scam_notify_title">This message may be a scam</string>
-    <string name="msg_scam_notify_text">A new SMS looks like a %1$s. Do not click its links, call back, share codes or pay. Tap to see it in Message check.</string>
+    <string name="msg_scam_notify_text">A new message looks like a %1$s. Do not click its links, call back, share codes or pay. Tap to see it in Message check.</string>
     <string name="msg_scam_notify_ai">It also looks AI-written.</string>
     <string name="msg_tag_arrest_threat">fake police or arrest threat</string>
     <string name="msg_tag_kyc">fake KYC or account block</string>

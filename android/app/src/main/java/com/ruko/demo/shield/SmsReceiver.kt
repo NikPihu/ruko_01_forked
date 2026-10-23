@@ -61,6 +61,7 @@ class SmsReceiver : BroadcastReceiver() {
                     val m = MessageCheck.check(sender, body, System.currentTimeMillis(), Signals.classifier, Signals.aiText, emptyList())
                     val tag = m.scamTag ?: continue
                     if (m.otp) continue
+                    WatchSender.report(context, Sighting.Lure(tag, m.scamConf ?: 0.0, "sms", m.aiWritten))
                     ShieldNotifier.showScamSms(
                         context, language, { c -> c.getString(scamTagRes(tag)) }, m.aiWritten == true,
                         Math.floorMod(sender.orEmpty().hashCode(), 50),
