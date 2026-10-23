@@ -1,0 +1,33 @@
+# Thresholds and run size for the playbook interface script. Every number can be overridden on the
+# command line (e.g. --normal-max-score 60 --breakthrough-share 0.8).
+
+judge:
+  # A reply with a threat score at or below this is the server calling the payment normal.
+  # The server sends threat.score as 0..100 (backend/api/main.py threat_of).
+  normal_max_score: 70
+  # If this share of a playbook's scam payments came back "normal", the playbook got through:
+  # one miss is noise, most of them missed is a finding for the blue team.
+  breakthrough_share: 0.75
+
+world:
+  # Background world the scam runs inside: the server needs normal history to compare against.
+  users: 300
+  days: 14
+  seed: 7
+  # Days at the start used only to build history; their payments are not judged.
+  warmup_days: 7
+
+scenario:
+  # How many users the playbook is run against.
+  victims: 20
+  # comply: victims pay at every step, so every step of the playbook is put to the server.
+  # model:  victims decide with sim_v2's own comply/refuse formula (fewer payments, more realistic).
+  victims_mode: comply
+  # Honest payments are sent too, to measure false alarms. 1.0 = send all of them.
+  normal_sample: 0.25
+
+server:
+  # local = start the engine in this process (no server needed). Or a URL: http://127.0.0.1:8000
+  target: local
+  # Only used when target is a URL.
+  timeout_s: 20
