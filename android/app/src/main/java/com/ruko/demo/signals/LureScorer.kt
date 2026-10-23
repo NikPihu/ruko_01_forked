@@ -140,14 +140,17 @@ private fun round2(value: Double) = kotlin.math.round(value * 100) / 100
 
 private fun round1(value: Double) = kotlin.math.round(value * 10) / 10
 
+// Python's str.split() whitespace, as scikit-learn uses (a no-break space splits words too).
+// Spelled out because Android's regex engine (ICU) rejects the "(?U)" flag the JVM accepts.
+private val WHITESPACE = Regex("[\\s\\p{Z}\\u001C-\\u001F\\u0085]+")
+
 /**
  * scikit-learn's char_wb analyzer: each whitespace separated word is padded with one space
  * on each side, then cut into n-grams; a word shorter than n is counted once, whole.
  */
 fun charWbNgrams(text: String, minN: Int, maxN: Int): List<String> {
     val out = ArrayList<String>()
-    // (?U): Unicode whitespace, like Python and scikit-learn (a no-break space splits words too).
-    for (word in text.split(Regex("(?U)\\s+")).filter { it.isNotEmpty() }) {
+    for (word in text.split(WHITESPACE).filter { it.isNotEmpty() }) {
         val w = " $word "
         for (n in minN..maxN) {
             var offset = 0

@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -221,18 +222,68 @@ private fun Hero(
                     Icon(CacheIcons.ArrowForward, contentDescription = null, tint = CacheColors.Primary, modifier = Modifier.size(16.dp))
                 }
             }
-            vm.serverStatus?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                )
-            }
+            vm.serverStatus?.let { ServerStatusCard(it) }
             if (BuildConfig.DEBUG) {
                 Text(
                     text = stringResource(R.string.home_api_address, BuildConfig.API_BASE_URL),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.55f),
+                )
+            }
+        }
+    }
+}
+
+/** The answer to "Check Scam Shield": connected or not, in words, never the server's raw reply. */
+@Composable
+private fun ServerStatusCard(status: ServerStatus) {
+    val tint = when (status) {
+        ServerStatus.Checking -> Color.White
+        is ServerStatus.Connected -> CacheColors.Success
+        ServerStatus.Unhealthy, ServerStatus.Unreachable -> CacheColors.Warning
+    }
+    val title = stringResource(
+        when (status) {
+            ServerStatus.Checking -> R.string.home_server_checking
+            is ServerStatus.Connected -> R.string.home_server_ok_title
+            ServerStatus.Unhealthy, ServerStatus.Unreachable -> R.string.home_server_down_title
+        },
+    )
+    val body = when (status) {
+        ServerStatus.Checking -> null
+        is ServerStatus.Connected -> stringResource(R.string.home_server_ok_body)
+        ServerStatus.Unhealthy, ServerStatus.Unreachable -> stringResource(R.string.home_server_down_body)
+    }
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.22f))
+            .border(1.dp, tint.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(32.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (status == ServerStatus.Checking) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = tint, strokeWidth = 2.dp)
+            } else {
+                val icon = if (status is ServerStatus.Connected) CacheIcons.Check else CacheIcons.Warning
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+            body?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
+            }
+            if (BuildConfig.DEBUG && status is ServerStatus.Connected && status.model != null) {
+                Text(
+                    text = stringResource(R.string.home_server_model, status.model),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.55f),
                 )
