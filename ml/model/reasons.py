@@ -41,7 +41,9 @@ REASON = {
     "session_app_switches": "R12_coached_session", "session_hesitation": "R12_coached_session",
     "session_abandoned_30m": "R12_coached_session",
 }
-NOT_A_REASON = {"trusted_payee"}
+# trusted_payee is a policy rule; device_* are the phone's own family scores (c2-0.8), whose reasons
+# the phone already chose: they add weight to their family but never name a reason here.
+NOT_A_REASON = {"trusted_payee", "device_c", "device_l", "device_b"}
 
 # The on-device model's features (dataset/device_features.py), for the phone's own reasons.
 DEVICE_REASON = {
