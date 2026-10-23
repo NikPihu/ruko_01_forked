@@ -94,7 +94,15 @@ fake_customer_care, task_job, trading_group) and two of its rules failed the gat
 `caller_unknown is true`, which is null on VoIP calls). Changes since: rules may name tokens
 (`{"token": "CALLER_UNKNOWN"}`), the analyst gets the lure-ignored similarity to each known
 playbook and is told a missing lure is not a new scam, and a rule failing the gates is replaced by
-the code search while the model's text is kept. Re-run and `evaluate` to see the effect.
+the code search while the model's text is kept.
+
+**Second LLM run, after those changes (gpt-oss-120b):** 7 of 10 verdicts right (offline 6, first LLM
+run 3) and 5 of the 6 emerging scams found as new (collect_request, electricity_disconnection,
+lottery_prize, marketplace_buyer, relative_emergency; loan_fee had only 5 complaints). It overrode
+a 0.81 similarity to task_job after reading the cases and correctly called the voice-clone cluster
+new. Still wrong: trading_group (no complaint in this world was named trading_group, so its
+similarity read 0; it now says "unknown"), task_job (the investigator never submitted) and
+fake_customer_care. These prompts were improved on this world, so check them on `breach_s33`.
 
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 

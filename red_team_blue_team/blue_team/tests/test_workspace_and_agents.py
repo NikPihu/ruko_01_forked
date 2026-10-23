@@ -175,4 +175,6 @@ def test_a_drafted_rule_failing_the_gates_is_replaced_by_the_code_search(ws, new
 def test_analyst_sees_lure_ignored_similarity(ws, new_cluster):
     draft = investigator.investigate_offline(ws, new_cluster, set())
     got = analyst._tools(ws, new_cluster, draft)[0].fn({})
-    assert set(got["signal_similarity_lures_ignored"]) >= {"trading_group", "digital_arrest"}
+    sims = got["signal_similarity_lures_ignored"]
+    assert isinstance(sims["trading_group"], float)                  # 6 named trading cases in the fixture
+    assert str(sims["digital_arrest"]).startswith("unknown")         # none named: nothing to compare with

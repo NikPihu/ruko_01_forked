@@ -43,7 +43,9 @@ payer says "investment" is trading_group, remote control + a company story on an
 call is fake_customer_care, repeated deposits to new payees after small credits is task_job.
 get_candidate gives signal_similarity_lures_ignored to every known playbook (0-1, from the cases
 that playbook names, lure and episode tokens left out, rare tokens weighted up); 0.8 or more
-strongly suggests variant_of_known. A new_scam needs a mechanism no known playbook describes.
+strongly suggests variant_of_known. "unknown" means there was nothing to compare with, not that the
+cluster is different: then judge by the mechanism alone. A new_scam needs a mechanism no known
+playbook describes.
 Check the investigator's claims against the cases yourself; run test_matcher if a number looks off;
 compare with the nearest known playbooks. Do not invent evidence. Your verdict is advice to two
 human analysts, who decide. Finish by calling submit_review."""
@@ -96,8 +98,19 @@ def review(ws: Workspace, cluster_id: str, draft: dict, rt, model_id: str) -> di
     return out
 
 
-def similarities(ws: Workspace, cluster_id: str) -> dict[str, float]:
-    return {pb.name: round(profile_similarity(ws, cluster_id, pb.name), 2) for pb in ws.playbooks if pb.status == "known"}
+MIN_REFERENCE_CASES = 3
+
+
+def similarities(ws: Workspace, cluster_id: str) -> dict[str, float | str]:
+    """Lure-ignored similarity per known playbook; 'unknown' when too few complaints were named by it to compare."""
+    out: dict[str, float | str] = {}
+    for pb in ws.playbooks:
+        if pb.status != "known":
+            continue
+        n = int((ws.cases["named_main"] == pb.name).sum())
+        out[pb.name] = (round(profile_similarity(ws, cluster_id, pb.name), 2) if n >= MIN_REFERENCE_CASES
+                        else f"unknown (only {n} named complaints to compare with)")
+    return out
 
 
 def profile_similarity(ws: Workspace, cluster_id: str, playbook: str) -> float:
