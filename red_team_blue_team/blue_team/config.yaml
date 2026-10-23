@@ -1,0 +1,51 @@
+# Every blue-team number lives here (CLAUDE.md rule 6). Code reads it through blue_team.config.
+
+breach:
+  # A case is a report (1930 / NCRP complaint) joined to the complainant's own payments to the
+  # reported accounts, made before the report was filed.
+  sources: [1930, ncrp]
+  interrupt_tiers: [T2, T3, T4]      # the shield "held" only if a case payment reached one of these
+  # missed  = no case payment was interrupted (the shield broke)
+  # unnamed = interrupted, but no playbook named the scam (the user got a generic warning)
+  include: [missed, unnamed]
+
+cluster:
+  # Chosen on the seed-21 breach world (ARI 0.58 vs the true scam types, 78% purity), checked on a
+  # second seed; see README.md "Results".
+  ngram_range: [1, 2]                # token n-grams over a case's sequence
+  max_df: 0.8                        # drop tokens in more than 80% of breaches (PAY, NEW_PAYEE, ...)
+  svd_components: 16                 # TF-IDF -> dense space for HDBSCAN (capped at n_cases - 1)
+  min_cluster_size: 4
+  min_samples: 3
+  selection: leaf                    # leaf: many small, pure groups; eom merged unrelated scams
+  # A cluster is a known scam if its centroid is this close (cosine) to the centroid of the cases a
+  # known or approved playbook named; below it, the cluster is a candidate new scam.
+  known_similarity: 0.80
+  # ... or if this share of its cases were already named by a playbook (a known scam that slipped).
+  known_named_share: 0.5
+
+gates:                               # code checks every drafted matcher before humans see it
+  min_cluster_recall: 0.6            # share of the cluster's payments the matcher names
+  max_legit_per_1000: 0.5            # weighted legit payments it would name, per 1,000 (2.0 let 'any VoIP call' through)
+  max_known_overlap: 0.3             # share of known-playbook payments it would steal
+
+agents:
+  provider: auto                     # bedrock | offline (deterministic drafts, no network) | auto (Bedrock if it answers)
+  region: ap-southeast-2             # AWS_REGION overrides
+  # Tried in order until one answers; the first that works is used for the whole run.
+  # Amazon Nova needs no Marketplace sign-up, so it works on free-trial credits.
+  models:
+    - apac.amazon.nova-pro-v1:0
+    - apac.amazon.nova-lite-v1:0
+    - au.anthropic.claude-sonnet-4-5-20250929-v1:0
+  max_tokens: 4096
+  temperature: 0.2
+  investigator_max_turns: 12
+  analyst_max_turns: 8
+
+analyst_offline:                     # the no-LLM analyst's fixed rules (a baseline; the LLM analyst reasons)
+  variant_similarity: 0.8            # IDF-weighted token profile vs a known playbook's cases, lures ignored
+  lookalike_legit_per_1000: 2.5      # a matcher this broad describes everyday payments
+
+review:
+  approvals_needed: 2                # two different analysts (same rule as graph/discover.py)

@@ -1,0 +1,73 @@
+"""The playbook database: known/ (the six the engine names today), review/ (drafts waiting for two
+analysts) and approved/ (new playbooks humans accepted). One YAML file per playbook.
+
+`name_scam(features)` is what the engine would call after its own matcher found nothing: the first
+matching rule by priority. Approved playbooks always have priority >= APPROVED_MIN_PRIORITY, so a
+new playbook can never take a payment away from a known one.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
+
+from blue_team import config, matcher
+
+APPROVED_MIN_PRIORITY = 100
+STATES = ("known", "review", "approved", "rejected")
+
+
+@dataclass
+class Playbook:
+    name: str
+    status: str
+    card: dict
+    rules: list[tuple[int, dict]] = field(default_factory=list)   # (priority, matcher)
+    path: Path | None = None
+
+    @property
+    def title(self) -> str:
+        return self.card.get("title", self.name)
+
+
+def _load_dir(state: str, root: Path) -> list[Playbook]:
+    out = []
+    for p in sorted((root / state).glob("*.yaml")):
+        card = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        rules = [(int(m["priority"]), m["rule"]) for m in card.get("match", [])]
+        out.append(Playbook(card["name"], state, card, rules, p))
+    return out
+
+
+def load(states: tuple[str, ...] = ("known", "approved"), root: Path | None = None) -> list[Playbook]:
+    root = root or config.PLAYBOOKS
+    return [pb for s in states for pb in _load_dir(s, root)]
+
+
+def ordered_rules(pbs: list[Playbook]) -> list[tuple[int, str, dict]]:
+    return sorted(((prio, pb.name, rule) for pb in pbs for prio, rule in pb.rules), key=lambda r: (r[0], r[1]))
+
+
+def name_scam(f: dict, pbs: list[Playbook] | None = None) -> str | None:
+    """The first playbook (by priority) whose rule matches this payment, or None."""
+    for _, name, rule in ordered_rules(pbs if pbs is not None else load()):
+        if matcher.matches(rule, f):
+            return name
+    return None
+
+
+def write(card: dict, state: str, root: Path | None = None) -> Path:
+    assert state in STATES, state
+    d = (root or config.PLAYBOOKS) / state
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{card['name']}.yaml"
+    path.write_text(yaml.safe_dump(card, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8")
+    return path
+
+
+def summaries(pbs: list[Playbook]) -> list[dict]:
+    """What the agents see of the database: names, titles, summaries, steps and matchers in words."""
+    return [{"name": pb.name, "status": pb.status, "title": pb.title, "summary": pb.card.get("summary", "").strip(),
+             "steps": pb.card.get("steps", []),
+             "matchers": [matcher.describe(r) for _, r in pb.rules]} for pb in pbs]

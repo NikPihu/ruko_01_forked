@@ -1,0 +1,4 @@
+# The ML stack plus boto3 for Amazon Bedrock (botocore >= 1.39 reads AWS_BEARER_TOKEN_BEDROCK).
+# From the repo root: .venv\Scripts\python -m pip install -r red_team_blue_team/blue_team/requirements.txt
+-r ../../ml/requirements.txt
+boto3>=1.39

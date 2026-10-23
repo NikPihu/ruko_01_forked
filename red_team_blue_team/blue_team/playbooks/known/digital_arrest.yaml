@@ -1,0 +1,30 @@
+name: digital_arrest
+title: "Fake police / CBI / customs officer keeps the victim on a call and makes them 'deposit' money"
+status: known
+source: backend/api/rule_scorer.py _playbook
+summary: >
+  A caller posing as police, CBI, customs or a court says the victim's ID was used in a crime, keeps
+  them on a long call (often video, often WhatsApp), asks them to install a screen-sharing app, and
+  makes them pay "verification" or "bail" deposits to an account the caller controls.
+steps:
+  - Unknown or VoIP caller claims to be an officer; threatens arrest
+  - Victim kept on the line for a long time, told not to tell family
+  - Remote-access or screen-sharing app installed; payer says "government"
+  - One or more large typed payments to a new person account
+reason_codes: [R1_live_unknown_call, R2_remote_control, R5_lure_message, R9_story_mismatch, R3_mule_like_payee]
+advice_en: "No police or government agency asks for money on a call. Hang up and call 1930."
+advice_hi: "कोई भी पुलिस या सरकारी एजेंसी फ़ोन पर पैसे नहीं माँगती। फ़ोन काटें और 1930 पर कॉल करें।"
+match:
+  - priority: 40
+    rule:
+      any:
+        - {feature: lure_tag, op: eq, value: arrest_threat}
+        - all:
+            - {feature: on_call, op: is, value: true}
+            - any:
+                - {feature: caller_unknown, op: is, value: true}
+                - all: [{feature: voip_call, op: is, value: true}, {feature: caller_unknown, op: is_null}]
+            - any:
+                - {feature: remote_control, op: is, value: true}
+                - {feature: story_mismatch, op: is, value: true}
+                - {feature: session_dictated, op: is, value: true}
