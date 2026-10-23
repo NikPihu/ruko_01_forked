@@ -46,6 +46,7 @@ from graph import discover as discovery
 from graph.store import GraphStore
 from store.db import TxnStore
 from api.explain import explain
+from patterns import emerging
 from api.feedback import FeedbackService, alert_health
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
                            Feedback, FeedbackResponse, MyPayment, MyPayments, PaymentOutcome,
@@ -57,6 +58,13 @@ DEADLINE_S = 0.200
 MAX_ALERTS = 500
 # The built analyst console (cd console && npm run build), served at /console/.
 CONSOLE_DIST = Path(__file__).resolve().parents[2] / "console" / "dist"
+
+
+class PatternReviewBody(BaseModel):
+    """An analyst names an emerging pattern (a new scam type) or dismisses it."""
+    analyst: str
+    action: str  # name | dismiss
+    name: str | None = None
 
 
 class ReviewBody(BaseModel):
@@ -461,6 +469,39 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     def user_timeline(user_hash: str, limit: int = 200) -> dict:
         """One pseudonymous user's payments, outcomes, feedback and phone events in time order."""
         return {"user_hash": user_hash, "events": store.timeline(user_hash, limit=max(1, min(limit, 1000)))}
+
+    def patterns_now() -> datetime:
+        """The sim clock, or the newest recorded payment when replayed data runs ahead of it."""
+        now = sim_now()
+        newest = store.transactions(limit=1)
+        if newest:
+            ts = datetime.fromisoformat(newest[0]["ts"])
+            now = max(now, ts)
+        return now
+
+    @app.get("/v1/patterns/emerging")
+    def emerging_patterns() -> dict:
+        """New scam workflows with no known playbook (A4): analyst view only, never in a decision."""
+        now = patterns_now()
+        found_patterns = emerging.find(store, now, store.pattern_reviews())
+        return {"as_of": now.isoformat(), "thresholds": emerging.T, "patterns": found_patterns}
+
+    @app.post("/v1/patterns/{pattern_id}/review")
+    def review_pattern(pattern_id: str, body: PatternReviewBody) -> dict:
+        """Name it (a draft playbook for the data folder is returned) or dismiss it."""
+        if body.action not in ("name", "dismiss") or not body.analyst.strip():
+            raise HTTPException(422, "action must be name or dismiss, with an analyst")
+        if body.action == "name" and not (body.name or "").strip():
+            raise HTTPException(422, "a name is needed")
+        now = patterns_now()
+        pattern = next((p for p in emerging.find(store, now, store.pattern_reviews()) if p["pattern_id"] == pattern_id), None)
+        if pattern is None:
+            raise HTTPException(404, "no such emerging pattern now")
+        name = (body.name or "").strip().lower().replace(" ", "_") or None
+        draft = emerging.draft_playbook(pattern, name) if body.action == "name" else None
+        store.record_pattern_review(pattern_id, "named" if body.action == "name" else "dismissed", name,
+                                    body.analyst.strip(), draft, now)
+        return {"pattern_id": pattern_id, "status": "named" if draft else "dismissed", "name": name, "draft_playbook": draft}
 
     @app.get("/v1/store/stats")
     def store_stats() -> dict:

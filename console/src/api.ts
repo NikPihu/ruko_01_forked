@@ -228,6 +228,23 @@ export interface AlertHealth {
   i_know_them: { accepted?: number; refused?: number };
 }
 
+export interface EmergingPattern {
+  pattern_id: string;
+  description: string;
+  summary: string;
+  signature: Record<string, unknown>;
+  payments: number;
+  people: number;
+  payees: number;
+  money_inr: number;
+  tiers: Record<string, number>;
+  first_seen: string;
+  last_seen: string;
+  growing: boolean;
+  examples: string[];
+  review: { status: string; name: string | null; analyst: string; draft: string | null } | null;
+}
+
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(path, { headers: { Accept: "application/json" } });
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
@@ -256,6 +273,15 @@ export const api = {
   },
   explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
   alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
+  emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
+  reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {
+    const r = await fetch(`/v1/patterns/${encodeURIComponent(id)}/review`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ analyst, action, name }),
+    });
+    if (!r.ok) throw new Error(`pattern review: ${r.status}`);
+    return r.json() as Promise<{ pattern_id: string; status: string; name: string | null; draft_playbook: string | null }>;
+  },
   review: async (upi: string, reviewer: string, decision: "approve" | "reject") => {
     const r = await fetch(`/v1/graph/suspects/${encodeURIComponent(upi)}/review`, {
       method: "POST",

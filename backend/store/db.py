@@ -104,6 +104,15 @@ CREATE TABLE IF NOT EXISTS trusted_payees (
     PRIMARY KEY (user_hash, payee_upi)
 );
 
+CREATE TABLE IF NOT EXISTS pattern_reviews (
+    pattern_id TEXT PRIMARY KEY,       -- an emerging pattern (patterns/emerging.py)
+    status     TEXT NOT NULL,          -- named | dismissed
+    name       TEXT,                   -- the analyst's name for the new scam type
+    analyst    TEXT NOT NULL,
+    draft      TEXT,                   -- draft playbook YAML for the data folder
+    ts         TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS reviews (
     payee_upi  TEXT NOT NULL,
     reviewer   TEXT NOT NULL,
@@ -207,6 +216,17 @@ class TxnStore:
             self.db.execute("INSERT OR REPLACE INTO reviews VALUES (?,?,?,?)",
                             [payee.strip().lower(), reviewer, decision, _iso(ts)])
 
+    def record_pattern_review(self, pattern_id: str, status: str, name: str | None, analyst: str,
+                              draft: str | None, ts: datetime | str) -> None:
+        with self.lock, self.db:
+            self.db.execute("INSERT OR REPLACE INTO pattern_reviews VALUES (?,?,?,?,?,?)",
+                            [pattern_id, status, name, analyst, draft, _iso(ts)])
+
+    def pattern_reviews(self) -> dict[str, dict]:
+        with self.lock:
+            rows = self.db.execute("SELECT * FROM pattern_reviews").fetchall()
+        return {r["pattern_id"]: dict(r) for r in rows}
+
     def set_explanation(self, payment_id: str, explanation: dict) -> None:
         with self.lock, self.db:
             self.db.execute("UPDATE decision_details SET explanation = ? WHERE payment_id = ?",
@@ -215,7 +235,7 @@ class TxnStore:
     def reset(self) -> None:
         with self.lock, self.db:
             for t in ("payments", "decision_details", "feedback", "watch_events", "episode_events", "cases",
-                      "trusted_payees", "reviews"):
+                      "trusted_payees", "reviews", "pattern_reviews"):
                 self.db.execute(f"DELETE FROM {t}")
 
     # ---------- reads ----------
