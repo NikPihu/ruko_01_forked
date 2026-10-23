@@ -29,7 +29,8 @@ from evidence.store import pseudonym
 
 # Bot-scale fingerprints (policy.yaml `automation:`): AI chatbots and scripts run task scams and
 # mule networks at machine scale -- same amount, to or from many people, at a steady rhythm.
-_AUTO_DEFAULTS = {"window_days": 7, "min_users": 8, "max_amount_spread": 0.10, "max_gap_spread": 0.35}
+_AUTO_DEFAULTS = {"window_days": 7, "min_users": 8, "max_amount_spread": 0.10, "max_gap_spread": 0.35,
+                  "burst_min": 1.0}
 _POLICY = Path(__file__).resolve().parents[1] / "api" / "policy.yaml"
 AUTOMATION = {**_AUTO_DEFAULTS, **((yaml.safe_load(_POLICY.read_text()) or {}).get("automation") or {})}
 
@@ -273,7 +274,8 @@ class GraphStore:
             amount_spread = statistics.pstdev(amounts) / med_amt if med_amt else None
             gap_spread = statistics.pstdev(gaps) / med_gap if med_gap else None
             same_amount = amount_spread is not None and amount_spread <= t["max_amount_spread"]
-            steady = gap_spread is not None and gap_spread <= t["max_gap_spread"]
+            # A steady rhythm, or a burst (new people every few seconds): both are machine-like.
+            steady = (gap_spread is not None and gap_spread <= t["max_gap_spread"]) or med_gap < t["burst_min"]
             result = {"automated": same_amount and steady, "side": side, "users": len(rows),
                       "amount_inr": round(med_amt, 2), "every_min": round(med_gap, 1),
                       "amount_spread": round(amount_spread, 3) if amount_spread is not None else None,
@@ -284,8 +286,10 @@ class GraphStore:
                 break
         if best["automated"]:
             verb = "paid" if best["side"] == "sends" else "received from"
+            pace = ("in a burst, seconds apart" if best["every_min"] < t["burst_min"]
+                    else f"one new person every {best['every_min']:.0f} min")
             best["why"] = (f"{verb} {best['users']} people about ₹{best['amount_inr']:,.0f} each, "
-                           f"one new person every {best['every_min']:.0f} min: a script, not a person")
+                           f"{pace}: a script, not a person")
         return best
 
     def money_loop(self, payee: str, senders: list[str]) -> tuple[Optional[bool], Optional[str]]:

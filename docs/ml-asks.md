@@ -109,3 +109,17 @@ Suggested tier thresholds, or family weights from tuning: send them as a change 
   see what the model is doing on live payments.
 - `GET /v1/transactions` and `store.export`: every decision, for error analysis.
 - Evaluation sets and scripts in `backend/evalsuite/` (AI-written lures) and `data/eval/`.
+
+## Findings from the demo agents (2026-10-23, `lgbm-0.2`, live data)
+
+`python -m demo.agents --all` (or "Run demo scenarios" on the console's Overview) runs one scripted
+victim per scam type through the real API. With the rules every scenario lands as expected. With
+`lgbm-0.2`:
+
+| Scenario | Rules | lgbm-0.2 | Why (from `/v1/payments/{id}/explain`) |
+|---|---|---|---|
+| Refund QR (unknown call, QR, pumped demo mule) | T3 | **T0** | the model's payee family is 0.30 for the demo mule (rules: mule-like, large), so only C lights |
+| Digital arrest (call, remote app, arrest SMS, "government") | T3 | **T2** | all four families lit, but `p_scam` 0.736 < the T3 cut 0.75 |
+
+Ask: check the payee family on a freshly pumped mule (many strangers, fast pass-through, 4 days
+old), and the calibration near the T3 cut, before the demo.

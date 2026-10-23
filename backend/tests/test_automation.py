@@ -63,3 +63,11 @@ def test_automated_payee_adds_payee_evidence_only():
                                       "first_time_payee": False, "entry_typed": False}
     sig = _signals(f)
     assert (0.7, "R11_ring_link") in sig["P"] and not sig["C"] and not sig["L"]
+
+
+def test_burst_of_identical_payments_is_automated():
+    g = GraphStore()
+    for i in range(9):  # 9 people, same amount, seconds apart
+        pay(g, f"b{i}", "burst.mule@ybl", 25_000, NOW - timedelta(seconds=5 * (9 - i)))
+    a = g.automation("burst.mule@ybl", NOW)
+    assert a["automated"] is True and "burst" in a["why"]

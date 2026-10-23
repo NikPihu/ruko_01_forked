@@ -66,6 +66,7 @@ automation:
   min_users: 8
   max_amount_spread: 0.10
   max_gap_spread: 0.35
+  burst_min: 1.0                  # new people less than a minute apart on average: a burst, also machine-like
 
 # Emerging patterns (patterns/emerging.py): scam workflows with no known playbook. Analyst view only,
 # never in the payment decision. A group of payments with the same signature in the window is shown

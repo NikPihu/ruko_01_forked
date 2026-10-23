@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -517,6 +517,40 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         store.record_pattern_review(pattern_id, "named" if body.action == "name" else "dismissed", name,
                                     body.analyst.strip(), draft, now)
         return {"pattern_id": pattern_id, "status": "named" if draft else "dismissed", "name": name, "draft_playbook": draft}
+
+    demo_state: dict = {"running": False, "results": None, "error": None, "started": None}
+
+    @app.post("/v1/demo/run")
+    def demo_run(request: Request, scenario: str | None = None) -> dict:
+        """Run the scripted demo agents against this engine, in the background (demo only).
+        They are test actors using the public API; they never take part in a decision (rule 13)."""
+        import threading
+
+        from demo import agents
+        if demo_state["running"]:
+            return {"started": False, "reason": "already running"}
+        base = str(request.base_url).rstrip("/")
+
+        def go_run() -> None:
+            demo_state.update(running=True, error=None, started=datetime.now().astimezone().isoformat())
+            try:
+                w = agents.load_world(Path(data_dir))
+                with httpx.Client(base_url=base, timeout=30) as c, httpx.Client(base_url=intel_url, timeout=30) as mock:
+                    now = datetime.fromisoformat(mock.get("/sim/state").json()["now"])
+                    agents.pump_mule(mock, w)
+                    demo_state["results"] = agents.run(c, w, now, [scenario] if scenario else None)
+            except Exception as e:  # a demo failure must never touch payments
+                log.exception("demo agents failed")
+                demo_state["error"] = str(e)
+            finally:
+                demo_state["running"] = False
+
+        threading.Thread(target=go_run, daemon=True).start()
+        return {"started": True}
+
+    @app.get("/v1/demo/results")
+    def demo_results() -> dict:
+        return demo_state
 
     @app.get("/v1/store/stats")
     def store_stats() -> dict:

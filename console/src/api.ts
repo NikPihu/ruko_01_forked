@@ -321,6 +321,13 @@ export const api = {
   },
   explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
   alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
+  demoRun: async () => {
+    const r = await fetch("/v1/demo/run", { method: "POST" });
+    if (!r.ok) throw new Error(`demo: ${r.status}`);
+    return r.json() as Promise<{ started: boolean; reason?: string }>;
+  },
+  demoResults: () => get<{ running: boolean; error: string | null; started: string | null;
+    results: { scenario: string; expect: string; tiers: string[]; playbooks: string[]; ok: boolean }[] | null }>("/v1/demo/results"),
   rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
   emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
   reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {

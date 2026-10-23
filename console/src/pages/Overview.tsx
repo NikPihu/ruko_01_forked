@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { api, type AlertHealth } from "../api";
 import { inr, pct, PLAYBOOKS, userLabel, when } from "../format";
 import { reasonText } from "../reasons";
@@ -39,6 +40,7 @@ export function Overview() {
       </div>
 
       {data.alertHealth && <AlertHealthCard h={data.alertHealth} />}
+      <DemoCard />
 
       <div className="grid grid-main">
         <Card title="Latest interrupted payments" pad={false}
@@ -129,6 +131,55 @@ function AlertHealthCard({ h }: { h: AlertHealth }) {
         {actions.length ? <>On alerts, people {actions.map(([a, n]) => `${ACTION_TEXT[a] ?? a} (${n})`).join(", ")}.</> : "No alert feedback from phones yet."}
         {(h.i_know_them.accepted || h.i_know_them.refused) ? <> "I know this person": {h.i_know_them.accepted ?? 0} accepted, {h.i_know_them.refused ?? 0} refused (someone may control the phone, the payee looks like a mule, or it is on a list).</> : null}
       </p>
+    </Card>
+  );
+}
+
+type DemoState = Awaited<ReturnType<typeof api.demoResults>>;
+
+/** Runs the scripted demo agents (every scam type, honest users, a hidden new scam type) live. */
+function DemoCard() {
+  const [st, setSt] = useState<DemoState | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { api.demoResults().then(setSt).catch(() => setSt(null)); }, []);
+  useEffect(() => {
+    if (!st?.running) return;
+    const t = setInterval(() => api.demoResults().then(setSt).catch(() => undefined), 1500);
+    return () => clearInterval(t);
+  }, [st?.running]);
+  const start = async () => {
+    setErr(null);
+    try {
+      const r = await api.demoRun();
+      if (!r.started) setErr(r.reason ?? "not started");
+      setSt(await api.demoResults());
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
+  };
+  const rows = st?.results ?? [];
+  return (
+    <Card title="Demo scenarios" action={<button className="btn" onClick={start} disabled={!!st?.running}>{st?.running ? "Running…" : "Run demo scenarios"}</button>}>
+      <p className="ink2" style={{ marginTop: 0 }}>Scripted people pay through the real API: every known scam type, honest users, and a
+        hidden new scam type ("relative emergency") that should appear under Emerging patterns. Afterwards, refresh this page.</p>
+      {err && <p className="error">{err}</p>}
+      {st?.error && <p className="error">{st.error}</p>}
+      {rows.length > 0 && (
+        <div className="table-wrap">
+          <table className="list">
+            <thead><tr><th>Scenario</th><th>RUKO decided</th><th>Scam type</th><th>Expected</th><th></th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.scenario}>
+                  <td>{r.scenario.replace(/_/g, " ")}</td>
+                  <td>{r.tiers.join(", ")}</td>
+                  <td>{r.playbooks.map((b) => PLAYBOOKS[b] ?? b).join(", ") || "none known"}</td>
+                  <td className="muted">{r.expect}</td>
+                  <td>{r.ok ? <span className="chip good">✓ as expected</span> : <span className="chip t4">✕ check</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Card>
   );
 }
