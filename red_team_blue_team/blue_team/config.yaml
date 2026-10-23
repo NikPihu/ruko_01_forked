@@ -32,14 +32,35 @@ gates:                               # code checks every drafted matcher before 
 agents:
   provider: auto                     # bedrock | offline (deterministic drafts, no network) | auto (Bedrock if it answers)
   region: ap-southeast-2             # AWS_REGION overrides
-  # Tried in order until one answers; the first that works is used for the whole run.
-  # Claude first: on the first real run Amazon Nova Pro's own content filter blocked most replies
-  # about scams and it kept misspelling the matcher format, so every card fell back to offline.
-  # Nova needs no Marketplace sign-up, so it stays as the fallback for free-trial accounts.
+  # Tried in order until one answers *with a tool call*; the first that does is used for the run.
+  # No Anthropic models: on Bedrock they need a use-case form that asks for an organisation.
+  # Open-weight models first (stronger tool use, no content filter of their own), then Amazon Nova,
+  # which worked on the first runs but whose own filter blocked many replies about scams.
+  # Which exist depends on the region: `python -m blue_team probe --all --region <r>` shows them.
   models:
-    - au.anthropic.claude-sonnet-4-5-20250929-v1:0
+    - openai.gpt-oss-120b-1:0
+    - qwen.qwen3-235b-a22b-2507-v1:0
+    - deepseek.v3-v1:0
     - apac.amazon.nova-pro-v1:0
     - apac.amazon.nova-lite-v1:0
+  # Everything `probe --all` tries (ids differ by region; a missing one just reports an error).
+  candidates:
+    - openai.gpt-oss-120b-1:0
+    - openai.gpt-oss-20b-1:0
+    - qwen.qwen3-235b-a22b-2507-v1:0
+    - qwen.qwen3-32b-v1:0
+    - deepseek.v3-v1:0
+    - mistral.mistral-large-2407-v1:0
+    - mistral.mistral-large-2402-v1:0
+    - us.meta.llama4-maverick-17b-instruct-v1:0
+    - us.meta.llama3-3-70b-instruct-v1:0
+    - meta.llama3-1-70b-instruct-v1:0
+    - global.amazon.nova-2-lite-v1:0
+    - us.amazon.nova-premier-v1:0
+    - us.amazon.nova-pro-v1:0
+    - apac.amazon.nova-pro-v1:0
+    - apac.amazon.nova-lite-v1:0
+    - apac.amazon.nova-micro-v1:0
   max_tokens: 4096
   temperature: 0.2
   investigator_max_turns: 16

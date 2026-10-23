@@ -56,9 +56,13 @@ export AWS_BEARER_TOKEN_BEDROCK=...        # PowerShell: $env:AWS_BEARER_TOKEN_B
 
 A run writes `runs/<run_id>/report.md` (what broke, the clusters, each candidate with its
 backtest and both verdicts), `summary.json` and one JSON per candidate with the agents' full
-transcripts. Models are tried in the order in `config.yaml` (`agents.models`, Amazon Nova first:
-no Marketplace sign-up, so free-trial credits cover it); region `ap-southeast-2` unless `AWS_REGION`
-is set.
+transcripts. Models are tried in the order in `config.yaml` (`agents.models`) until one answers
+with a tool call; `--model` picks one. No Anthropic models: on Bedrock they need a use-case form
+that asks for an organisation. `probe --all --region us-east-1` (or `us-west-2`, `ap-south-1`, ...)
+lists which of the open-weight models (gpt-oss, Qwen, DeepSeek, Mistral, Llama) and Amazon Nova
+your account can call there; run with the same `--region`. On the first real runs Amazon Nova Pro
+answered, but its own content filter blocked many replies about scams, so only 3 of 10 cards came
+from the LLM.
 
 ## Results (offline agents, so a floor; seed-21 breach world, 3,000 users x 30 days)
 

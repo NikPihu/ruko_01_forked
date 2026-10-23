@@ -1,8 +1,10 @@
 """A small tool-using agent loop on Amazon Bedrock's Converse API.
 
 Credentials: the Bedrock API key in AWS_BEARER_TOKEN_BEDROCK (boto3 reads it), or normal AWS
-credentials. Region: AWS_REGION, else config.yaml. Models are tried in config order until one
-answers; Amazon Nova works on free-trial credits without a Marketplace subscription.
+credentials. Region: --region, else AWS_REGION, else config.yaml. Models are tried in config order
+until one answers with a tool call. No Anthropic models: on Bedrock they need a use-case form that
+asks for an organisation; Amazon Nova and the open-weight models (gpt-oss, Qwen, DeepSeek,
+Mistral, Llama) run on free-trial credits without it.
 
 The model only ever *drafts*: it calls read-only tools, and its final answer goes through a submit
 tool that code validates (CLAUDE.md rule 13). Nothing it writes is executed.
@@ -57,19 +59,47 @@ def client(region: str | None = None):
                         config=Config(retries={"max_attempts": 4, "mode": "standard"}, read_timeout=120))
 
 
-def connect(models: list[str] | None = None, rt=None, log=None) -> tuple[Any, str]:
-    """(bedrock-runtime client, the first model id that answers). Raises LLMUnavailable."""
+PING_TOOL = {"toolSpec": {"name": "say_ok", "description": "Say ok.",
+                            "inputSchema": {"json": {"type": "object", "properties": {"word": {"type": "string"}},
+                                                     "required": ["word"]}}}}
+FORCED_CHOICE: dict[str, bool] = {}           # model id -> accepts toolChoice "any" (learned by ping / first call)
+
+
+def _tool_choice_refused(e) -> bool:
+    msg = str(e).lower()
+    return "toolchoice" in msg.replace("_", "") or "tool choice" in msg
+
+
+def ping(rt, model: str) -> str:
+    """'tools' if the model answers with a tool call when forced, 'tools (no forced choice)' if it can use
+    tools but refuses toolChoice; raises the Bedrock error otherwise (no access, no tool use, ...)."""
+    from botocore.exceptions import ClientError
+    kw = dict(modelId=model, messages=[{"role": "user", "content": [{"text": "Call say_ok with the word ok."}]}],
+              inferenceConfig={"maxTokens": 50, "temperature": 0})
+    try:
+        rt.converse(**kw, toolConfig={"tools": [PING_TOOL], "toolChoice": {"any": {}}})
+        FORCED_CHOICE[model] = True
+        return "tools"
+    except ClientError as e:
+        if not _tool_choice_refused(e):
+            raise
+    rt.converse(**kw, toolConfig={"tools": [PING_TOOL]})
+    FORCED_CHOICE[model] = False
+    return "tools (no forced choice)"
+
+
+def connect(models: list[str] | None = None, rt=None, log=None, region: str | None = None) -> tuple[Any, str]:
+    """(bedrock-runtime client, the first model id that answers with tool use). Raises LLMUnavailable."""
     from botocore.exceptions import BotoCoreError, ClientError
     models = models or config.load()["agents"]["models"]
     try:
-        rt = rt or client()
+        rt = rt or client(region)
     except Exception as e:  # noqa: BLE001 (no boto3, no region, ...)
         raise LLMUnavailable(f"cannot create a Bedrock client: {e}") from e
     errors = []
     for m in models:
         try:
-            rt.converse(modelId=m, messages=[{"role": "user", "content": [{"text": "Reply: ok"}]}],
-                        inferenceConfig={"maxTokens": 5, "temperature": 0})
+            ping(rt, m)
             return rt, m
         except (ClientError, BotoCoreError) as e:
             errors.append(f"{m}: {str(e)[:160]}")
@@ -78,16 +108,14 @@ def connect(models: list[str] | None = None, rt=None, log=None) -> tuple[Any, st
     raise LLMUnavailable("no Bedrock model answered:\n  " + "\n  ".join(errors))
 
 
-def probe(models: list[str], rt=None) -> list[tuple[str, str]]:
-    """(model id, 'ok' or the error) for each model, for `python -m blue_team probe`."""
+def probe(models: list[str], rt=None, region: str | None = None) -> list[tuple[str, str]]:
+    """(model id, 'tools' / 'tools (no forced choice)' / the error) per model, for `python -m blue_team probe`."""
     from botocore.exceptions import BotoCoreError, ClientError
-    rt = rt or client()
+    rt = rt or client(region)
     out = []
     for m in models:
         try:
-            r = rt.converse(modelId=m, messages=[{"role": "user", "content": [{"text": "Reply: ok"}]}],
-                            inferenceConfig={"maxTokens": 5, "temperature": 0})
-            out.append((m, "ok (" + r["output"]["message"]["content"][0].get("text", "").strip()[:20] + ")"))
+            out.append((m, "ok, " + ping(rt, m)))
         except (ClientError, BotoCoreError) as e:
             out.append((m, str(e)[:200]))
     return out
@@ -96,6 +124,22 @@ def probe(models: list[str], rt=None) -> list[tuple[str, str]]:
 def _short(x: Any, n: int = 1500) -> Any:
     s = json.dumps(x, default=str, ensure_ascii=False)
     return x if len(s) <= n else s[:n] + "...(cut)"
+
+
+def _converse(rt, model_id: str, system: str, messages: list, specs: list, cfg: dict) -> dict:
+    """One turn. A tool call is forced (toolChoice "any") when the model accepts it: replies are then
+    short JSON, which content filters block less, and the agent cannot drift into prose."""
+    from botocore.exceptions import ClientError
+    kw = dict(modelId=model_id, system=[{"text": system}], messages=messages,
+              inferenceConfig={"maxTokens": cfg["max_tokens"], "temperature": cfg["temperature"]})
+    if FORCED_CHOICE.get(model_id, True):
+        try:
+            return rt.converse(**kw, toolConfig={"tools": specs, "toolChoice": {"any": {}}})
+        except ClientError as e:
+            if not _tool_choice_refused(e):
+                raise
+            FORCED_CHOICE[model_id] = False
+    return rt.converse(**kw, toolConfig={"tools": specs})
 
 
 def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], final: str, max_turns: int) -> AgentResult:
@@ -110,9 +154,7 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
             messages[-1]["content"].append({"text": f"(Only {LAST_CALL_TURNS} turns left: call {final} now with your "
                                                     "best answer so far.)"})
         t0 = time.perf_counter()
-        r = rt.converse(modelId=model_id, system=[{"text": system}], messages=messages,
-                        toolConfig={"tools": [t.spec() for t in tools]},
-                        inferenceConfig={"maxTokens": cfg["max_tokens"], "temperature": cfg["temperature"]})
+        r = _converse(rt, model_id, system, messages, [t.spec() for t in tools], cfg)
         usage = r.get("usage", {})
         res.tokens_in += usage.get("inputTokens", 0)
         res.tokens_out += usage.get("outputTokens", 0)

@@ -23,7 +23,9 @@ import yaml
 def main() -> None:
     p = argparse.ArgumentParser(prog="python -m blue_team", description="RUKO blue team: find and name the scams the shield missed")
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("probe", help="which Bedrock models this key can call")
+    pr = sub.add_parser("probe", help="which Bedrock models this key can call, with tool use")
+    pr.add_argument("--region", default=None, help="e.g. us-east-1, us-west-2, ap-south-1 (default: config / AWS_REGION)")
+    pr.add_argument("--all", action="store_true", help="try every candidate in config.yaml, not just agents.models")
     r = sub.add_parser("run", help="breaches -> clusters -> agents -> review queue")
     r.add_argument("--table", type=Path, required=True, help="a replayed table (ml/dataset/replay.py)")
     r.add_argument("--data", type=Path, required=True, help="the world folder with reports.parquet")
@@ -31,6 +33,7 @@ def main() -> None:
     r.add_argument("--llm", choices=["bedrock", "offline", "auto"], default=None, help="default: config.yaml agents.provider")
     r.add_argument("--as-of", default=None, help="only complaints filed by this time (ISO), to replay discovery over time")
     r.add_argument("--model", default=None, help="one Bedrock model id instead of the config.yaml list")
+    r.add_argument("--region", default=None, help="Bedrock region (default: config / AWS_REGION)")
     sub.add_parser("queue", help="candidates waiting for analysts")
     s = sub.add_parser("show")
     s.add_argument("name")
@@ -51,13 +54,15 @@ def main() -> None:
 
     if a.cmd == "probe":
         from blue_team import config, llm
-        for model, status in llm.probe(config.load()["agents"]["models"]):
+        a_cfg = config.load()["agents"]
+        models = a_cfg["candidates"] if a.all else a_cfg["models"]
+        for model, status in llm.probe(models, region=a.region):
             print(f"{model:50s} {status}")
     elif a.cmd == "run":
         from blue_team import pipeline
         as_of = pd.Timestamp(a.as_of, tz="UTC") if a.as_of and pd.Timestamp(a.as_of).tzinfo is None else (
             pd.Timestamp(a.as_of) if a.as_of else None)
-        pipeline.run(a.table, a.data, a.scorer, a.llm, as_of, model=a.model)
+        pipeline.run(a.table, a.data, a.scorer, a.llm, as_of, model=a.model, region=a.region)
     elif a.cmd == "queue":
         from blue_team import review
         q = review.queue()

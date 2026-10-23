@@ -134,3 +134,31 @@ def test_agent_is_told_to_submit_before_its_turns_run_out(ws, new_cluster):
     tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
     llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 5)
     assert "Only 2 turns left: call submit_review" in json.dumps(rt.calls[3]["messages"])
+
+
+class NoForcedChoice(FakeBedrock):
+    """A model that can use tools but refuses toolChoice, like some open-weight models on Bedrock."""
+
+    def converse(self, **kw):
+        if "toolChoice" in kw.get("toolConfig", {}):
+            from botocore.exceptions import ClientError
+            raise ClientError({"Error": {"Code": "ValidationException",
+                                         "Message": "This model doesn't support the toolChoice field."}}, "Converse")
+        return super().converse(**kw)
+
+
+def test_tool_choice_is_forced_when_allowed_and_dropped_when_refused(ws, new_cluster):
+    submit = [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low"}, 1)]
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    rt = FakeBedrock([submit])
+    llm.run_agent(rt, "forced-ok", "sys", "task", tools, "submit_review", 3)
+    assert rt.calls[0]["toolConfig"]["toolChoice"] == {"any": {}}
+    rt = NoForcedChoice([submit])
+    res = llm.run_agent(rt, "no-forced", "sys", "task", tools, "submit_review", 3)
+    assert res.final["verdict"] == "new_scam" and llm.FORCED_CHOICE["no-forced"] is False
+    assert "toolChoice" not in rt.calls[0]["toolConfig"]
+
+
+def test_ping_checks_tool_use():
+    assert llm.ping(FakeBedrock([[use("say_ok", {"word": "ok"}, 1)]]), "m1") == "tools"
+    assert llm.ping(NoForcedChoice([[use("say_ok", {"word": "ok"}, 1)]]), "m2") == "tools (no forced choice)"
