@@ -24,6 +24,14 @@ cluster:
   # ... or if this share of its cases were already named by a playbook (a known scam that slipped).
   known_named_share: 0.5
 
+misnamed:                            # held cases (interrupted + named, still paid and complained)
+  enabled: true
+  min_cases: 8                       # a playbook needs this many held complaints to be split
+  # Flag a subgroup whose lure-ignored fit to the playbook's other held complaints is below this.
+  # On both breach worlds the fit did NOT separate real from misnamed subgroups (0.67-0.76 for both),
+  # so code only proposes; the agents judge each subgroup, including "correctly named".
+  fit_below: 0.85
+
 gates:                               # code checks every drafted matcher before humans see it
   min_cluster_recall: 0.6            # share of the cluster's payments the matcher names
   max_legit_per_1000: 0.5            # weighted legit payments it would name, per 1,000 (2.0 let 'any VoIP call' through)

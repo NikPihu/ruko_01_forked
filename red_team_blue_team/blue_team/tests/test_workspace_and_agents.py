@@ -2,7 +2,9 @@ import json
 
 from blue_team import analyst, investigator, llm
 
-GOOD = {"all": [{"feature": "on_call", "op": "is", "value": True}, {"feature": "payer_says", "op": "eq", "value": "family"}]}
+# The missed 'relative' calls, not their dictated twins that RUKO already names digital_arrest (test_misnamed.py).
+GOOD = {"all": [{"feature": "on_call", "op": "is", "value": True}, {"feature": "payer_says", "op": "eq", "value": "family"},
+                {"not": {"feature": "session_dictated", "op": "is", "value": True}}]}
 
 
 def card(**kw):
@@ -177,4 +179,4 @@ def test_analyst_sees_lure_ignored_similarity(ws, new_cluster):
     got = analyst._tools(ws, new_cluster, draft)[0].fn({})
     sims = got["signal_similarity_lures_ignored"]
     assert isinstance(sims["trading_group"], float)                  # 6 named trading cases in the fixture
-    assert str(sims["digital_arrest"]).startswith("unknown")         # none named: nothing to compare with
+    assert str(sims["fake_kyc_apk"]).startswith("unknown")           # none named: nothing to compare with

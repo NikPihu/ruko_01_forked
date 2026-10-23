@@ -110,8 +110,18 @@ right (some clusters were mixed, purity 0.33 to 0.5), but only 2 of the 6 emergi
 relative_emergency (voice-clone) complaints were *held*, interrupted but named digital_arrest, so
 the user got the wrong advice; 9 collect_request complaints were also named digital_arrest and 6
 marketplace_buyer ones refund_qr; electricity, loan and lottery had 1 to 3 complaints each.
-**Open gap:** complaints after a *misnamed* interruption are not breaches today. Next step: cluster
-held complaints too and flag clusters that do not fit the playbook that named them ("misnamed").
+**Misnamed check (built after this):** complaints RUKO interrupted *and* named, whose victims still
+paid, are now checked too (`cluster.misnamed`). Each playbook's held complaints are clustered on
+their own; subgroups that do not fit the rest (`misnamed.fit_below`) go to the agents with
+"RUKO named these X; is that right?". An approved fix runs just *before* X (`misnamed_as`,
+`playbook_db.priority_before`), so its rule must pick out only that subgroup; `test_matcher` counts
+the other X payments it would take. Suspected-misnamed cases no longer define what X looks like
+when deciding whether a breach cluster is known (they made missed voice-clone calls look like
+digital arrests). The fit number did not separate real from misnamed subgroups on either world
+(0.65 to 0.76 for both), so code only proposes and the agents judge. Offline, the groups are right
+(collect_request and voice-clone calls named digital_arrest; refund_qr named digital_arrest; one
+real digital-arrest group) but the offline analyst judged only 2 of 5 and 2 of 3 of them correctly.
+Also fixed: `named_main` broke ties by set order, so clusters changed between runs (PYTHONHASHSEED).
 
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 

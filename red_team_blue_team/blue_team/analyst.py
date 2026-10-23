@@ -8,9 +8,7 @@ offline, fixed rules on the backtest and the token profiles.
 """
 from __future__ import annotations
 
-import numpy as np
-
-from blue_team import config, llm, playbook_db
+from blue_team import cluster, config, llm, playbook_db
 from blue_team.evidence import Workspace
 
 VERDICTS = ["new_scam", "variant_of_known", "lookalike_not_scam", "insufficient_evidence"]
@@ -26,7 +24,6 @@ REVIEW_SCHEMA = {
     },
     "required": ["verdict", "rationale", "confidence"],
 }
-SIGNATURE_IGNORE = ("LURE_", "EPISODE_", "BAIT_", "GAP_")   # what a missed lure / episode would remove
 
 SYSTEM = """You are the analyst on RUKO's blue team: a skeptical second reviewer. An investigator
 drafted a playbook card for a cluster of victim complaints that RUKO's shield did not stop. Decide:
@@ -46,6 +43,12 @@ that playbook names, lure and episode tokens left out, rare tokens weighted up);
 strongly suggests variant_of_known. "unknown" means there was nothing to compare with, not that the
 cluster is different: then judge by the mechanism alone. A new_scam needs a mechanism no known
 playbook describes.
+If get_cluster_overview says ruko_named_it = X, the cluster is a *misnamed?* group: RUKO interrupted
+these payments and named them X, yet the victims still paid and complained. Then decide whether X
+is right: variant_of_known with nearest_playbook X means correctly named (no new playbook needed);
+variant_of_known with another playbook means misnamed as X but really that one; new_scam means
+misnamed and a scam no playbook describes. Similarities for a misnamed group are against X's
+*other* complaints.
 Check the investigator's claims against the cases yourself; run test_matcher if a number looks off;
 compare with the nearest known playbooks. Do not invent evidence. Your verdict is advice to two
 human analysts, who decide. Finish by calling submit_review."""
@@ -107,7 +110,8 @@ def similarities(ws: Workspace, cluster_id: str) -> dict[str, float | str]:
     for pb in ws.playbooks:
         if pb.status != "known":
             continue
-        n = int((ws.cases["named_main"] == pb.name).sum())
+        own = set(ws.cluster_by_id[cluster_id].case_ids)
+        n = sum(1 for i in ws.cases.loc[ws.cases["named_main"] == pb.name, "case_id"] if i not in own)
         out[pb.name] = (round(profile_similarity(ws, cluster_id, pb.name), 2) if n >= MIN_REFERENCE_CASES
                         else f"unknown (only {n} named complaints to compare with)")
     return out
@@ -116,17 +120,10 @@ def similarities(ws: Workspace, cluster_id: str) -> dict[str, float | str]:
 def profile_similarity(ws: Workspace, cluster_id: str, playbook: str) -> float:
     """Cosine of IDF-weighted token-share profiles, ignoring lure / episode / gap tokens, so a known
     scam whose lure the phone missed still looks like itself, and tokens every scam shares count little."""
-    ref = ws.cases.loc[ws.cases["named_main"] == playbook, "case_id"].tolist()
-    if not ref:
-        return 0.0
-    a = ws._token_share(ws.cluster_by_id[cluster_id].case_ids)
-    b = ws._token_share(ref)
-    idf = ws.token_idf()
-    keys = sorted(k for k in set(a) | set(b) if not k.startswith(SIGNATURE_IGNORE))
-    va = np.array([a.get(k, 0) * idf.get(k, 0) for k in keys])
-    vb = np.array([b.get(k, 0) * idf.get(k, 0) for k in keys])
-    n = np.linalg.norm(va) * np.linalg.norm(vb)
-    return float(va @ vb / n) if n else 0.0
+    mine = ws.cluster_by_id[cluster_id].case_ids
+    own = set(mine)
+    ref = [i for i in ws.cases.loc[ws.cases["named_main"] == playbook, "case_id"] if i not in own]
+    return cluster.profile_cosine(mine, ref, ws.case_tokens, ws.token_idf())
 
 
 def review_offline(ws: Workspace, cluster_id: str, draft: dict) -> dict:

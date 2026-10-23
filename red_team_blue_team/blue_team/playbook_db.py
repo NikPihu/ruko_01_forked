@@ -2,8 +2,10 @@
 analysts) and approved/ (new playbooks humans accepted). One YAML file per playbook.
 
 `name_scam(features)` is what the engine would call after its own matcher found nothing: the first
-matching rule by priority. Approved playbooks always have priority >= APPROVED_MIN_PRIORITY, so a
-new playbook can never take a payment away from a known one.
+matching rule by priority. Approved playbooks have priority >= APPROVED_MIN_PRIORITY, so a new
+playbook never takes a payment away from a known one; the exception is a fix for a *misnamed*
+group (`misnamed_as`), which two analysts approved to run just before the playbook it corrects
+(`priority_before`).
 """
 from __future__ import annotations
 
@@ -55,6 +57,17 @@ def name_scam(f: dict, pbs: list[Playbook] | None = None) -> str | None:
         if matcher.matches(rule, f):
             return name
     return None
+
+
+def priority_before(name: str, root: Path | None = None) -> int:
+    """A free priority just below the first rule of playbook `name`."""
+    pbs = load(("known", "approved"), root)
+    taken = {p for pb in pbs for p, _ in pb.rules}
+    first = min((p for pb in pbs if pb.name == name for p, _ in pb.rules), default=APPROVED_MIN_PRIORITY)
+    p = first - 1
+    while p in taken and p > 1:
+        p -= 1
+    return p
 
 
 def write(card: dict, state: str, root: Path | None = None) -> Path:

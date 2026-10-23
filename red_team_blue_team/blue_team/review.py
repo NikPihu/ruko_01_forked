@@ -87,7 +87,10 @@ def decide(name: str, analyst: str, decision: str, note: str = "", root: Path | 
 
 def promote(card: dict, root: Path | None = None, exports: Path | None = None) -> dict:
     approved = playbook_db.load(("approved",), root)
-    prio = playbook_db.APPROVED_MIN_PRIORITY + 10 * len(approved)
+    if card.get("misnamed_as"):     # a fix for a misnamed group runs just before the playbook it corrects
+        prio = playbook_db.priority_before(card["misnamed_as"], root)
+    else:
+        prio = playbook_db.APPROVED_MIN_PRIORITY + 10 * len(approved)
     card["status"] = "approved"
     card["match"] = [{"priority": prio, "rule": m["rule"]} for m in card["match"]]
     card["approved_by"] = sorted({r["analyst"] for r in card["reviews"] if r["decision"] == "approve"})

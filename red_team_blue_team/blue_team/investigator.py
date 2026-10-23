@@ -114,6 +114,19 @@ def _tools(ws: Workspace, cluster_id: str, state: dict) -> list[llm.Tool]:
     ]
 
 
+def task_for(ws: Workspace, cluster_id: str) -> str:
+    c = ws.cluster_by_id[cluster_id]
+    if c.kind == "misnamed":
+        p = c.nearest_playbook
+        return (f"Investigate cluster {cluster_id} ({len(c.case_ids)} complaints). RUKO interrupted these payments "
+                f"and named them '{p}', yet the victims still paid and complained. Find out whether '{p}' is the "
+                "right story. Draft the card for what these cases really are (if they really are "
+                f"'{p}', say so in the summary and draft it for this subgroup anyway; the analyst decides). If approved, "
+                f"its matcher runs just before '{p}', so it must pick out only this subgroup: test_matcher's "
+                f"known_playbook_payments_also_matched counts the other '{p}' payments it would take.")
+    return f"Investigate cluster {cluster_id}. It has {len(c.case_ids)} complaints. Draft its playbook card."
+
+
 def check_card(card: dict, existing: set[str]) -> list[str]:
     errs = []
     if not NAME_RE.match(str(card.get("name", ""))):
@@ -153,8 +166,7 @@ def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[st
     state = {"taken": taken, "last": None, "gate_retries": 0}
     system = SYSTEM.replace("{min_recall}", str(g["min_cluster_recall"])).replace(
         "{max_legit}", str(g["max_legit_per_1000"])).replace("{max_overlap}", str(g["max_known_overlap"]))
-    task = (f"Investigate cluster {cluster_id}. It has {len(ws.cluster_by_id[cluster_id].case_ids)} complaints. "
-            "Draft its playbook card.")
+    task = task_for(ws, cluster_id)
     res = llm.run_agent(rt, model_id, system, task, _tools(ws, cluster_id, state), "submit_playbook",
                         a["investigator_max_turns"])
     card, bt = (res.final, state["last"][1]) if res.final else (state["last"] or (None, None))

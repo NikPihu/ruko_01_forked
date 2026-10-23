@@ -67,8 +67,8 @@ class Workspace:
     def overview(self, cluster_id: str) -> dict:
         c = self._cluster(cluster_id)
         g = self.case_by_id.loc[c.case_ids]
-        breach_ids = self.clusters.breaches["case_id"].tolist()
-        share, base = self._token_share(c.case_ids), self._token_share(breach_ids)
+        base_ids = c.baseline_ids or self.clusters.breaches["case_id"].tolist()
+        share, base = self._token_share(c.case_ids), self._token_share(base_ids)
         distinctive = sorted(((t, s, s / max(base.get(t, 0), 1e-9)) for t, s in share.items() if s >= 0.3),
                              key=lambda x: (-x[2], -x[1]))[:15]
         rows = self.scored.rows.loc[self._rows_of(c.case_ids)]
@@ -78,20 +78,24 @@ class Workspace:
         medoid = max(docs, key=lambda a: sum(len(docs[a] & docs[b]) / len(docs[a] | docs[b]) for b in docs))
         return {
             "cluster_id": c.cluster_id, "kind": c.kind, "cases": len(c.case_ids), "users": int(g["user_id"].nunique()),
+            "ruko_named_it": c.nearest_playbook if c.kind == "misnamed" else None,
             "status": g["status"].value_counts().to_dict(),
             "first_payment": str(g["first_ts"].min()), "last_complaint": str(g["filed_at"].max()),
             "complaints_per_week": weeks.to_dict(), "complaint_sources": g["source"].value_counts().to_dict(),
             "payments_per_case": {"median": _r(g["n_payments"].median(), 1), "max": int(g["n_payments"].max())},
             "amount_inr": {"median": _r(rows["amount"].median(), 0), "p90": _r(rows["amount"].quantile(0.9), 0),
                            "total": _r(rows["amount"].sum(), 0)},
-            "distinctive_tokens": [{"token": t, "share_of_cases": round(s, 2), "lift_vs_all_breaches": round(l, 2)}
+            "distinctive_tokens": [{"token": t, "share_of_cases": round(s, 2), "lift": round(l, 2)}
                                    for t, s, l in distinctive],
+            "lift_is_against": (f"the other complaints RUKO named {c.nearest_playbook}" if c.kind == "misnamed"
+                                else "all missed / unnamed complaints"),
             "typical_case": {"case_id": medoid, "sequence": self.case_by_id.at[medoid, "document"]},
             "ruko_said": {"max_tier": g["max_tier"].value_counts().to_dict(),
                           "named_by_a_playbook": round(c.named_share, 2)},
             "payees": {"distinct": len(payees), "paid_by_2plus_cases": sum(1 for v in payees.values() if v >= 2),
                        "top": [{"upi_id": p, "cases": n} for p, n in payees.most_common(5)]},
-            "nearest_known_playbook": {"name": c.nearest_playbook, "similarity": c.similarity},
+            "nearest_known_playbook": ({"name": c.nearest_playbook, "fit_to_its_other_cases": c.similarity}
+                                       if c.kind == "misnamed" else {"name": c.nearest_playbook, "similarity": c.similarity}),
             "example_case_ids": c.case_ids[:5],
         }
 
@@ -127,7 +131,8 @@ class Workspace:
         pb = next((p for p in self.playbooks if p.name == playbook), None)
         if pb is None:
             raise KeyError(f"no playbook {playbook!r}")
-        ref = self.cases.loc[self.cases["named_main"] == playbook, "case_id"].tolist()
+        own = set(c.case_ids)
+        ref = [i for i in self.cases.loc[self.cases["named_main"] == playbook, "case_id"] if i not in own]
         a, b = self._token_share(c.case_ids), self._token_share(ref) if ref else {}
         diff = sorted(((t, a.get(t, 0) - b.get(t, 0)) for t in set(a) | set(b)), key=lambda x: x[1])
         rows = self._rows_of(c.case_ids)
@@ -148,7 +153,9 @@ class Workspace:
         rows = self._rows_of(c.case_ids)
         case_hit = [bool(hit[self.case_by_id.at[cid, "rows"]].any()) for cid in c.case_ids]
         legit = float(1000 * self.weight[self.legit & hit].sum() / max(self.weight[self.legit].sum(), 1e-9))
-        overlap = float(hit[self.known_named].mean()) if self.known_named.any() else 0.0
+        known_elsewhere = self.known_named.copy()
+        known_elsewhere[rows] = False       # a misnamed group's own payments are what a fix should take
+        overlap = float(hit[known_elsewhere].mean()) if known_elsewhere.any() else 0.0
         others = {o.cluster_id: round(float(np.mean([hit[self.case_by_id.at[cid, "rows"]].any() for cid in o.case_ids])), 2)
                   for o in self.clusters.clusters if o.cluster_id != cluster_id}
         res = {"valid": True, "rule_in_words": matcher.describe(rule),

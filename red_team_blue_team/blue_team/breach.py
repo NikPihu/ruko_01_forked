@@ -112,7 +112,8 @@ def cases(scored: Scored, comp: pd.DataFrame) -> pd.DataFrame:
             "status": status, "n_payments": len(g), "total_inr": float(g["amount"].sum()),
             "first_ts": g["ts"].iloc[0], "last_ts": g["ts"].iloc[-1],
             "max_tier": max(g["tier"], key=lambda t: int(t[1])), "named": sorted(set(named)),
-            "named_main": max(set(named), key=named.count) if named else None,
+            # most often named; ties by name, so the result never depends on set order (PYTHONHASHSEED)
+            "named_main": min(set(named), key=lambda n: (-named.count(n), n)) if named else None,
             "payees": sorted(set(g["payee_upi"])), "rows": idx.tolist(), "document": doc,
         })
     return pd.DataFrame(out)

@@ -17,7 +17,7 @@ def markdown(summary: dict, ws: Workspace, out: Path) -> str:
         f"{summary['cases']} complaint cases: **{st.get('missed', 0)} missed** (no payment interrupted), "
         f"**{st.get('unnamed', 0)} unnamed** (interrupted, scam not named), {st.get('held', 0)} held.",
         "",
-        "## Clusters (HDBSCAN over missed + unnamed cases)",
+        "## Clusters (HDBSCAN over missed + unnamed cases; `misnamed` = subgroups of held cases)",
         "| cluster | kind | cases | nearest known playbook | similarity | named share | top tokens |",
         "|---|---|---|---|---|---|---|",
     ]
@@ -34,8 +34,10 @@ def markdown(summary: dict, ws: Workspace, out: Path) -> str:
         bt = card["draft"]["backtest"] or {}
         a = card["analyst"]
         c = card["draft"]["card"]
+        mis = card["cluster"]["nearest_playbook"] if cand.get("kind") == "misnamed" else None
         lines += [
-            f"### {cand['name']} ({cand['cluster_id']}, {cand['cases']} cases)",
+            f"### {cand['name']} ({cand['cluster_id']}, {cand['cases']} cases)"
+            + (f" — misnamed? RUKO interrupted these as **{mis}**, victims still paid" if mis else ""),
             f"**{c['title']}**",
             "",
             c["summary"],

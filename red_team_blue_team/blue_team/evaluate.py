@@ -34,8 +34,16 @@ def evaluate(run_dir: Path, world: Path) -> dict:
         cid = cand["cluster"]["cluster_id"]
         types = Counter(t.get(c, "?") for c in cand["cluster"]["case_ids"])
         main, n = types.most_common(1)[0]
-        right = (cand["analyst"]["verdict"] == "new_scam") == (main not in KNOWN_TYPES)
-        clusters[cid] = {"name": cand["draft"]["card"]["name"], "cases": sum(types.values()), "true_types": dict(types),
+        kind, ruko = cand["cluster"]["kind"], cand["cluster"]["nearest_playbook"]
+        verdict, said = cand["analyst"]["verdict"], cand["analyst"].get("nearest_playbook")
+        if kind == "misnamed" and main == ruko:        # RUKO's name was right
+            right = verdict == "variant_of_known" and said == ruko
+        elif kind == "misnamed" and main in KNOWN_TYPES:   # really another known scam
+            right = verdict == "variant_of_known" and said != ruko
+        else:
+            right = (verdict == "new_scam") == (main not in KNOWN_TYPES)
+        clusters[cid] = {"kind": kind, "ruko_named": ruko if kind == "misnamed" else None,
+                         "name": cand["draft"]["card"]["name"], "cases": sum(types.values()), "true_types": dict(types),
                          "main_type": main, "purity": round(n / sum(types.values()), 2),
                          "analyst_verdict": cand["analyst"]["verdict"], "verdict_right": right,
                          "gates_pass": not cand["draft"]["gate_failures"]}

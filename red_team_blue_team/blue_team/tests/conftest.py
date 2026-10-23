@@ -40,6 +40,21 @@ def relative_call(r: random.Random) -> dict:
                     session_hesitation=r.random() < 0.6)   # not dictated: else digital_arrest names it
 
 
+def real_digital_arrest(r: random.Random) -> dict:
+    return features(on_call=True, voip_call=True, caller_unknown=None, remote_control=True, session_dictated=True,
+                    entry_typed=True, entry_method="typed", payer_says="government", amount_inr=r.uniform(60000, 95000),
+                    first_time_payee=True, payee_holder_type="person", payee_verified_merchant=False,
+                    story_mismatch=r.random() < 0.7)
+
+
+def voice_clone_named_arrest(r: random.Random) -> dict:
+    """A 'son in trouble' call: RUKO names it digital_arrest (unknown VoIP caller + dictated amount)."""
+    return features(on_call=True, voip_call=True, caller_unknown=None, session_dictated=True, entry_typed=True,
+                    entry_method="typed", payer_says="family", amount_inr=r.uniform(15000, 40000), first_time_payee=True,
+                    payee_holder_type="person", payee_verified_merchant=False, session_hesitation=r.random() < 0.7,
+                    payee_in_contacts=False)
+
+
 def marketplace_qr(r: random.Random) -> dict:
     return features(entry_method="qr", amount_inr=r.uniform(100, 900), first_time_payee=True, payee_holder_type="person",
                     payee_verified_merchant=False, payee_pass_through_24h=1.0 if r.random() < 0.8 else 0.0,
@@ -67,7 +82,8 @@ def ws() -> Workspace:
 
     for i in range(600):                                   # everyday life: kirana QR payments
         add(features(amount_inr=r.uniform(50, 900)), f"u{i % 200}", f"shop{i % 30}@okaxis", T0 + timedelta(minutes=i))
-    for k, (make, n) in enumerate(((relative_call, 10), (known_trading, 6), (marketplace_qr, 10))):
+    for k, (make, n) in enumerate(((relative_call, 10), (known_trading, 6), (marketplace_qr, 10),
+                                   (real_digital_arrest, 8), (voice_clone_named_arrest, 8))):
         for j in range(n):
             user, payee = f"v{k}_{j}", f"mule{k}_{j % 3}@ybl"
             ts = T0 + timedelta(days=1 + j)
