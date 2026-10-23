@@ -123,7 +123,9 @@ def task_for(ws: Workspace, cluster_id: str) -> str:
                 "right story. Draft the card for what these cases really are (if they really are "
                 f"'{p}', say so in the summary and draft it for this subgroup anyway; the analyst decides). If approved, "
                 f"its matcher runs just before '{p}', so it must pick out only this subgroup: test_matcher's "
-                f"known_playbook_payments_also_matched counts the other '{p}' payments it would take.")
+                f"known_playbook_payments_also_matched counts the other '{p}' payments it would take. '{p}''s rule "
+                "matching these payments is not evidence (that is how they were selected): compare the story "
+                f"(payer_says, caller, remote control, entry, amounts) with '{p}''s summary via compare_with_playbook.")
     return f"Investigate cluster {cluster_id}. It has {len(c.case_ids)} complaints. Draft its playbook card."
 
 

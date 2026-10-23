@@ -136,9 +136,15 @@ class Workspace:
         a, b = self._token_share(c.case_ids), self._token_share(ref) if ref else {}
         diff = sorted(((t, a.get(t, 0) - b.get(t, 0)) for t in set(a) | set(b)), key=lambda x: x[1])
         rows = self._rows_of(c.case_ids)
+        circular = c.kind == "misnamed" and playbook == c.nearest_playbook
         return {"cluster_id": cluster_id, "playbook": playbook, "playbook_title": pb.title,
-                "reference_cases": len(ref), "centroid_similarity": c.similarity if c.nearest_playbook == playbook else None,
-                "playbook_rules_name_this_cluster": round(float(np.mean([playbook_db.name_scam(self.scored.feats[i], [pb]) is not None for i in rows])), 2),
+                "playbook_summary": pb.card.get("summary", "").strip(), "playbook_steps": pb.card.get("steps", []),
+                "reference_cases": len(ref),
+                "centroid_similarity": c.similarity if c.nearest_playbook == playbook and not circular else None,
+                "playbook_rules_name_this_cluster": (
+                    "not shown: these complaints were selected *because* this playbook's rule named them, so it "
+                    "says nothing about whether the name is right. Judge by the story." if circular else
+                    round(float(np.mean([playbook_db.name_scam(self.scored.feats[i], [pb]) is not None for i in rows])), 2)),
                 "more_common_in_cluster": [{"token": t, "diff": round(d, 2)} for t, d in diff[::-1][:8] if d > 0],
                 "more_common_in_playbook": [{"token": t, "diff": round(d, 2)} for t, d in diff[:8] if d < 0]}
 

@@ -60,3 +60,11 @@ def test_named_main_tie_break_does_not_depend_on_set_order():
                          "source": ["1930"], "accounts": [["m@ybl"]]})
     c = breach.cases(breach.Scored(rows, [features(), features()], "t"), comp)
     assert c["named_main"].iloc[0] == "digital_arrest"          # one each: alphabetical, every run
+
+
+def test_compare_hides_the_circular_rule_match_for_a_misnamed_group(ws):
+    c = next(c for c in misnamed(ws) if all(i.startswith("rep4") for i in c.case_ids))
+    cmp = ws.compare(c.cluster_id, "digital_arrest")
+    assert str(cmp["playbook_rules_name_this_cluster"]).startswith("not shown")
+    assert "officer" in cmp["playbook_summary"].lower() or cmp["playbook_steps"]
+    assert cmp["reference_cases"] == 8                  # the 8 real digital arrests, not the group itself

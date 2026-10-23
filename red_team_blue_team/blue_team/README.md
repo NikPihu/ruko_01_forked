@@ -123,6 +123,15 @@ digital arrests). The fit number did not separate real from misnamed subgroups o
 real digital-arrest group) but the offline analyst judged only 2 of 5 and 2 of 3 of them correctly.
 Also fixed: `named_main` broke ties by set order, so clusters changed between runs (PYTHONHASHSEED).
 
+**First LLM run with the misnamed check (gpt-oss-120b):** breach clusters 5/6 right on seed 33 and
+6/10 on seed 21; misnamed groups 1/3 and 3/5. It said "correctly named" for both real
+digital-arrest groups and found a refund_qr group RUKO called digital_arrest, but it kept calling
+the voice-clone / collect-request groups "variant of digital_arrest", citing that digital_arrest's
+rule matched 86% of them: circular, since that is how they were selected. Now `compare_with_playbook`
+hides that number for the group's own playbook and returns the playbook's story instead, both
+agents are told to judge misnamed groups by the story (payer_says, caller, remote control, entry,
+amounts), and temperature is 0 so runs can be compared.
+
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
 ## What other folders need (not done here)

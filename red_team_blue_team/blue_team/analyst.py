@@ -49,6 +49,13 @@ is right: variant_of_known with nearest_playbook X means correctly named (no new
 variant_of_known with another playbook means misnamed as X but really that one; new_scam means
 misnamed and a scam no playbook describes. Similarities for a misnamed group are against X's
 *other* complaints.
+For a misnamed group, the fact that X's rule names these payments is not evidence: that is how
+they were selected. Decide by the story. Compare what the payer said (payer_says), who called and
+how (VoIP, unknown, listed, outgoing), remote control or screen sharing, how the payee was entered
+(typed, QR, collect), amounts and timing with X's summary and steps (compare_with_playbook returns
+them, and X's *other* complaints). Example: X = digital_arrest is an "officer" threatening arrest,
+usually with remote control and a "government" payment; a group where the payer says "family",
+with no remote control, is a different story even if RUKO's digital_arrest rule fired.
 Check the investigator's claims against the cases yourself; run test_matcher if a number looks off;
 compare with the nearest known playbooks. Do not invent evidence. Your verdict is advice to two
 human analysts, who decide. Finish by calling submit_review."""
