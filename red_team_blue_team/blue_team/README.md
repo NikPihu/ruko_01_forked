@@ -17,7 +17,7 @@ One page with a sidebar, every decision with its reason and its references:
 |---|---|
 | Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
 | Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
-| HDBSCAN | the method and parameters, every group with the reason for its kind (numbers and thresholds), the misnamed? groups and the one-offs |
+| HDBSCAN | a **map** of the complaints (t-SNE of the same vectors HDBSCAN grouped; colour = new / known / misnamed?, an outline per group, its id at the centre, shape = missed / unnamed; hover for the complaint, click to open it), a second map per playbook for the misnamed check, then every group with the reason for its kind (numbers and thresholds) and the one-offs |
 | Generator agent | per group: the task, every turn (its words, each tool call and what the tool returned: the proof), the card, the evidence it cites (each source checked against its real tool calls), the backtest and gates |
 | Analyst agent | the same for the second opinion: turns, verdict, rationale and the facts it rests on |
 | Playbooks | the minimal card (title, steps, rule, warnings in English and Hindi, verdict, references), exactly what is stored (the YAML), whether the engine can take it yet, and approve / reject / edit |

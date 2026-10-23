@@ -49,6 +49,7 @@ class Result:
     clusters: list[Cluster]
     noise: list[str]              # breach cases in no cluster
     breaches: pd.DataFrame        # the clustered breach cases, with a `cluster` column
+    maps: dict = field(default_factory=dict)   # 2-D positions for the console (see map_2d)
 
 
 def _embed(docs: pd.Series, cfg: dict):
@@ -58,9 +59,30 @@ def _embed(docs: pd.Series, cfg: dict):
     x = normalize(vec.transform(docs))
     k = max(2, min(cfg["svd_components"], x.shape[0] - 1, x.shape[1] - 1))
     z = normalize(TruncatedSVD(n_components=k, random_state=0).fit_transform(x))
-    labels = HDBSCAN(min_cluster_size=cfg["min_cluster_size"], min_samples=cfg["min_samples"],
-                     cluster_selection_method=cfg["selection"], copy=True).fit_predict(z)
-    return vec, x, labels
+    hd = HDBSCAN(min_cluster_size=cfg["min_cluster_size"], min_samples=cfg["min_samples"],
+                 cluster_selection_method=cfg["selection"], copy=True).fit(z)
+    return vec, x, hd.labels_, z, hd.probabilities_
+
+
+def map_2d(z: np.ndarray) -> np.ndarray:
+    """Positions for a picture of the space HDBSCAN clustered in: t-SNE of the same vectors, scaled to
+    0..1. Only for looking at: the groups come from HDBSCAN in the full space, and t-SNE keeps
+    neighbours close but does not keep distances between far-apart groups."""
+    from sklearn.manifold import TSNE
+    n = len(z)
+    if n < 5:
+        xy = np.c_[z[:, 0], z[:, 1] if z.shape[1] > 1 else np.zeros(n)]
+    else:
+        xy = TSNE(n_components=2, perplexity=float(min(30, max(2, (n - 1) // 3))), init="pca",
+                  learning_rate="auto", random_state=0).fit_transform(z)
+    lo, hi = xy.min(axis=0), xy.max(axis=0)
+    return (xy - lo) / np.where(hi - lo > 0, hi - lo, 1)
+
+
+def _points(ids, xy, labels, probs, name) -> list[dict]:
+    return [{"case_id": i, "x": round(float(p[0]), 4), "y": round(float(p[1]), 4),
+             "group": name(int(l)) if l >= 0 else None, "strength": round(float(s), 2)}
+            for i, p, l, s in zip(ids, xy, labels, probs)]
 
 
 def _top_tokens(x, mask, vocab) -> list[tuple[str, float]]:
@@ -75,15 +97,17 @@ def run(case_df: pd.DataFrame) -> Result:
     cfg = config.load()["cluster"]
     include = set(config.load()["breach"]["include"])
     br = case_df[case_df["status"].isin(include)].reset_index(drop=True)
-    suspects = misnamed(case_df) if config.load()["misnamed"]["enabled"] else []
+    maps: dict = {"breach": [], "misnamed": []}
+    suspects = misnamed(case_df, maps["misnamed"]) if config.load()["misnamed"]["enabled"] else []
     # Cases a playbook named are what "known" looks like, except groups suspected to be misnamed:
     # otherwise missed voice-clone calls look like the digital arrests their misnamed twins were called.
     doubtful = {i for c in suspects for i in c.case_ids}
     ref = case_df[case_df["named_main"].notna() & ~case_df["case_id"].isin(doubtful)]
     clusters: list[Cluster] = []
     if len(br) >= cfg["min_cluster_size"]:
-        vec, x_br, labels = _embed(br["document"], cfg)
+        vec, x_br, labels, z, probs = _embed(br["document"], cfg)
         br = br.assign(cluster=labels)
+        maps["breach"] = _points(br["case_id"], map_2d(z), labels, probs, lambda l: f"c{l:02d}")
         known = {pb: np.asarray(normalize(vec.transform(g["document"])).mean(axis=0)).ravel()
                  for pb, g in ref.groupby("named_main")}
         vocab = np.array(vec.get_feature_names_out())
@@ -113,11 +137,12 @@ def run(case_df: pd.DataFrame) -> Result:
     else:
         br = br.assign(cluster=-1)
     clusters += suspects
-    return Result(clusters, br.loc[br["cluster"] == -1, "case_id"].tolist(), br)
+    return Result(clusters, br.loc[br["cluster"] == -1, "case_id"].tolist(), br, maps)
 
 
-def misnamed(case_df: pd.DataFrame) -> list[Cluster]:
-    """Subgroups of a playbook's held cases that do not fit the rest of them."""
+def misnamed(case_df: pd.DataFrame, maps: list | None = None) -> list[Cluster]:
+    """Subgroups of a playbook's held cases that do not fit the rest of them. With `maps`, also
+    appends a 2-D picture of each split playbook's held cases."""
     cfg, mcfg = config.load()["cluster"], config.load()["misnamed"]
     sets = token_sets(case_df)
     w = idf(sets)
@@ -127,10 +152,11 @@ def misnamed(case_df: pd.DataFrame) -> list[Cluster]:
         if len(g) < mcfg["min_cases"]:
             continue
         g = g.reset_index(drop=True)
-        vec, x, labels = _embed(g["document"], cfg)
+        vec, x, labels, z, probs = _embed(g["document"], cfg)
         groups = sorted(set(labels) - {-1})
         if len(groups) < 2:                     # one coherent group: nothing looks out of place
             continue
+        flagged: set[int] = set()
         vocab = np.array(vec.get_feature_names_out())
         ids = g["case_id"].tolist()
         for lab in groups:
@@ -138,11 +164,16 @@ def misnamed(case_df: pd.DataFrame) -> list[Cluster]:
             rest = [i for i in ids if i not in set(mine)]
             fit = profile_cosine(mine, rest, sets, w)
             if fit < mcfg["fit_below"]:
+                flagged.add(int(lab))
                 out.append(Cluster(f"m_{pb}_{lab}", mine, "misnamed", pb, round(fit, 3), 1.0,
                                    _top_tokens(x, labels == lab, vocab), baseline_ids=rest,
                                    reason=(f"misnamed?: RUKO interrupted and named these {len(mine)} complaints {pb}, but their "
                                            f"signals fit {pb}'s other {len(rest)} held complaints only {fit:.2f} "
                                            f"(< misnamed.fit_below {mcfg['fit_below']})")))
+        if maps is not None:
+            pts = _points(ids, map_2d(z), labels, probs,
+                          lambda l, pb=pb: f"m_{pb}_{l}" if l in flagged else f"{pb}: fits")
+            maps.append({"playbook": pb, "points": pts})
     return out
 
 

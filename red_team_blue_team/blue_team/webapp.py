@@ -171,7 +171,8 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     @app.get("/api/runs/{run_id}/clusters")
     def clusters(run_id: str) -> dict:
         d = run_dir(run_id)
-        return {"clusters": read_json(d / "clusters.json", []), "config": config.load()["cluster"],
+        return {"clusters": read_json(d / "clusters.json", []), "map": read_json(d / "cluster_map.json", {}),
+                "config": config.load()["cluster"],
                 "misnamed_config": config.load()["misnamed"], "summary": read_json(d / "summary.json", {})}
 
     @app.get("/api/runs/{run_id}/candidates")

@@ -68,3 +68,15 @@ def test_compare_hides_the_circular_rule_match_for_a_misnamed_group(ws):
     assert str(cmp["playbook_rules_name_this_cluster"]).startswith("not shown")
     assert "officer" in cmp["playbook_summary"].lower() or cmp["playbook_steps"]
     assert cmp["reference_cases"] == 8                  # the 8 real digital arrests, not the group itself
+
+
+def test_maps_place_every_clustered_complaint(ws):
+    m = ws.clusters.maps
+    breach_ids = set(ws.clusters.breaches["case_id"])
+    assert {p["case_id"] for p in m["breach"]} == breach_ids
+    assert all(0 <= p["x"] <= 1 and 0 <= p["y"] <= 1 for p in m["breach"])
+    groups = {c.cluster_id for c in ws.clusters.clusters if c.kind != "misnamed"}
+    assert {p["group"] for p in m["breach"]} - {None} == groups
+    da = next(x for x in m["misnamed"] if x["playbook"] == "digital_arrest")
+    flagged = {c.cluster_id for c in misnamed(ws)}
+    assert flagged <= {p["group"] for p in da["points"]}

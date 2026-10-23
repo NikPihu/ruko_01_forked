@@ -162,6 +162,7 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
         ev("misnamed", f"{c.cluster_id} ({len(c.case_ids)} cases): {c.reason}", kind="decision",
            refs={"cluster": c.cluster_id, "cases": c.case_ids, "top_tokens": [t for t, _ in c.top_tokens[:6]]})
     (out / "clusters.json").write_text(json.dumps(clusters_json(ws), default=str), encoding="utf-8")
+    (out / "cluster_map.json").write_text(json.dumps(ws.clusters.maps, default=str), encoding="utf-8")
 
     todo = [c for c in ws.clusters.clusters if c.kind in ("new", "misnamed")]
     rt, model = connect(provider, lambda m: ev("agents", m), model, region)

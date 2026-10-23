@@ -9,12 +9,14 @@
     --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e1e4e9; --side: #eef0f3;
     --accent: #2457c5; --accent-ink: #fff; --good: #1e7a46; --good-bg: #e5f4eb; --bad: #b42318; --bad-bg: #fdecea;
     --warn: #8a5a00; --warn-bg: #fff3d6; --chip: #eef1f5; --code: #f1f3f6; --dec: #eaf0ff;
+    --k-new: #2a78d6; --k-known: #eb6834; --k-mis: #1baf7a; --k-none: #8b929c;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #111419; --panel: #191d24; --ink: #e6e9ed; --muted: #98a1ac; --line: #2a3039; --side: #151920;
       --accent: #6b9bff; --accent-ink: #0c0f15; --good: #6fd39b; --good-bg: #17321f; --bad: #ff8a80; --bad-bg: #3a1c1a;
       --warn: #f2c46b; --warn-bg: #3a2e14; --chip: #242a33; --code: #1f242c; --dec: #1c2740;
+      --k-new: #3987e5; --k-known: #d95926; --k-mis: #199e70; --k-none: #7d8590;
     }
   }
   * { box-sizing: border-box; }
@@ -75,6 +77,13 @@
   .empty { color: var(--muted); padding: 24px; text-align: center; }
   .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; margin-top: 6px; }
   .flow span.s { background: var(--chip); padding: 3px 9px; border-radius: 6px; } .flow span.a { color: var(--muted); }
+  .viz { position: relative; } .viz svg { width: 100%; height: auto; display: block; background: var(--panel); border-radius: 8px; }
+  .viz .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+              padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.15); max-width: 300px; display: none; z-index: 2; }
+  .viz .tip b { display: block; } .viz .tip .m { color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin: 4px 0 8px; align-items: center; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .legend .sq { border-radius: 2px; } .legend .hollow { background: none !important; border: 1.5px solid var(--k-none); }
   label.f { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 3px; }
 </style>
 </head>
@@ -310,8 +319,11 @@ PAGE.complaints = async (p) => {
 // ---------------------------------------------------------------- 2 hdbscan
 PAGE.hdbscan = async (p) => {
   if (!run) return noRun();
-  const d = await data("clusters"), cands = await data("candidates");
+  const d = await data("clusters"), cands = await data("candidates"), cs = await data("cases");
   const cand = Object.fromEntries(cands.map(c => [c.cluster_id, c]));
+  const caseById = Object.fromEntries(cs.map(c => [c.case_id, c]));
+  const kindById = Object.fromEntries(d.clusters.map(g => [g.cluster_id, g.kind]));
+  const mp = d.map || {};
   const cfg = d.config, m = d.misnamed_config;
   const groupCard = g => el("div", { class: "card", id: "g-" + g.cluster_id, style: p.c === g.cluster_id ? "box-shadow: 0 0 0 2px var(--accent)" : "" },
     el("div", { class: "row" }, el("h2", { style: "margin:0" }, g.cluster_id), kindChip(g.kind, g.nearest_playbook), chip(`${g.cases.length} complaints`)),
@@ -327,12 +339,112 @@ PAGE.hdbscan = async (p) => {
       [`A group is `, chip("known"), ` if ≥ ${pct(cfg.known_named_share)} of it was already named by a playbook, or its centroid is ≥ ${cfg.known_similarity} similar to a playbook's cases; otherwise `, chip("new pattern", "good"),
        `. Separately, each playbook's held complaints (≥ ${m.min_cases}) are clustered on their own; a subgroup that fits the rest below ${m.fit_below} is `, chip("misnamed?", "warn"), "."],
       [el("span", { class: "mono" }, "cluster.py"), ` · ngram ${cfg.ngram_range}, max_df ${cfg.max_df}, SVD ${cfg.svd_components}, min_cluster_size ${cfg.min_cluster_size}, min_samples ${cfg.min_samples}, ${cfg.selection}`]),
+    (mp.breach || []).length ? el("div", { class: "card" }, el("h2", {}, "Map of the missed and unnamed complaints"),
+      el("p", { style: "color:var(--muted);font-size:13px;margin:0 0 4px" }, "Each dot is one complaint, placed by t-SNE from the same signal vectors HDBSCAN grouped, so complaints with similar signals sit together. The groups come from HDBSCAN in the full space; the picture only keeps neighbours close (distances between far groups and the axes mean nothing)."),
+      mapLegend(true, false), scatter(mp.breach, g => kindById[g] || "known", caseById, "Map of breach complaints by HDBSCAN group")) : null,
     el("h2", {}, `Breach groups (${br.length})`), br.length ? br.map(groupCard) : el("div", { class: "empty" }, "No groups."),
-    el("h2", { style: "margin-top:18px" }, `Misnamed? groups (${mis.length})`), mis.length ? mis.map(groupCard) : el("div", { class: "empty" }, "None."),
+    el("h2", { style: "margin-top:18px" }, `Misnamed? groups (${mis.length})`),
+    (mp.misnamed || []).map(m => el("div", { class: "card" }, el("h2", {}, `Map of the held complaints RUKO named ${m.playbook}`),
+      el("p", { style: "color:var(--muted);font-size:13px;margin:0 0 4px" }, `RUKO interrupted all of these and called them ${m.playbook}. HDBSCAN, run on them alone, splits them; green subgroups do not fit the rest and go to the agents with "is that name right?".`),
+      mapLegend(false, true), scatter(m.points, g => kindById[g] === "misnamed" ? "misnamed" : null, caseById, `Map of held ${m.playbook} complaints`))),
+    mis.length ? mis.map(groupCard) : el("div", { class: "empty" }, "None."),
     el("div", { class: "card" }, el("b", {}, `One-offs left as noise (${(d.summary.noise || 0)}): `), "kept for the next run, when more complaints may join them.")];
   if (p.c) setTimeout(() => { const n = document.getElementById("g-" + p.c); if (n) n.scrollIntoView({ block: "center" }); }, 50);
   return out;
 };
+
+// ---------------------------------------------------------------- map (scatter)
+const SVGNS = "http://www.w3.org/2000/svg";
+function svg(tag, attrs) { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v); return n; }
+// points: [{case_id, x, y, group, strength}] in 0..1; kindOf(group) -> "new" | "known" | "misnamed" | null
+function scatter(points, kindOf, caseById, title) {
+  const W = 640, H = 400, P = 26;
+  const X = x => P + x * (W - 2 * P), Y = y => P + (1 - y) * (H - 2 * P);
+  const color = k => k === "new" ? "var(--k-new)" : k === "known" ? "var(--k-known)" : k === "misnamed" ? "var(--k-mis)" : "var(--k-none)";
+  const box = el("div", { class: "viz" });
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": title });
+  const tip = el("div", { class: "tip" });
+  const marks = [];
+  let hl = null;   // set once the outlines exist
+  const highlight = g => { marks.forEach(m => { m.node.style.opacity = !g || m.p.group === g ? m.base : 0.12; }); if (hl) hl(g); };
+  for (const p of points) {
+    const c = caseById[p.case_id] || {};
+    const k = p.group ? kindOf(p.group) : null;
+    const filled = !!p.group;
+    const cx = X(p.x), cy = Y(p.y), r = 4.5;
+    const square = c.status === "unnamed";
+    const node = square ? svg("rect", { x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, rx: 1.5 }) : svg("circle", { cx, cy, r });
+    node.setAttribute("fill", filled ? color(k) : "none");
+    node.setAttribute("stroke", filled ? "var(--panel)" : "var(--k-none)");
+    node.setAttribute("stroke-width", filled ? 1.5 : 1.5);
+    const base = filled ? 0.5 + 0.5 * (p.strength || 0) : 0.9;
+    node.style.opacity = base; node.style.cursor = "pointer"; node.style.transition = "opacity .12s";
+    // a bigger, invisible hit target than the mark
+    const hit = svg("circle", { cx, cy, r: 9, fill: "transparent" }); hit.style.cursor = "pointer";
+    const enter = ev => {
+      highlight(p.group);
+      put(tip, el("b", {}, p.case_id), el("div", {}, p.group ? `group ${p.group}` : "one-off (noise)", c.status ? ` · ${c.status}` : ""),
+        c.max_tier ? el("div", { class: "m" }, `RUKO: ${c.max_tier}${c.named && c.named.length ? " · " + c.named.join(", ") : ""} · lost ${inr(c.total_inr)}`) : null,
+        p.group ? el("div", { class: "m" }, `membership strength ${Math.round((p.strength || 0) * 100)}%`) : null,
+        c.payments ? el("div", { class: "m" }, (c.payments[0].signals || []).slice(0, 7).join(" ")) : null);
+      tip.style.display = "block";
+      const r2 = box.getBoundingClientRect(), sx = r2.width / W;
+      let left = cx * sx + 12, top = cy * sx + 12;
+      if (left + 300 > r2.width) left = cx * sx - 312;
+      tip.style.left = Math.max(0, left) + "px"; tip.style.top = top + "px";
+    };
+    const leave = () => { highlight(null); tip.style.display = "none"; };
+    for (const n of [node, hit]) { n.addEventListener("mouseenter", enter); n.addEventListener("mouseleave", leave); n.addEventListener("click", () => go("complaints", { case: p.case_id })); }
+    s.append(node, hit);
+    marks.push({ node, p, base });
+  }
+  // direct labels: each group's id at its centroid (identity never by colour alone)
+  const groups = {};
+  for (const p of points) if (p.group) (groups[p.group] = groups[p.group] || []).push(p);
+  // a faint outline around each group's dots (convex hull), drawn under the dots: membership by shape
+  const hullOf = pts => {
+    const q = pts.map(p => [X(p.x), Y(p.y)]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const half = arr => { const h = []; for (const p of arr) { while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop(); h.push(p); } h.pop(); return h; };
+    return q.length < 3 ? q : half(q).concat(half(q.slice().reverse()));
+  };
+  const hulls = [];
+  for (const [g, ps] of Object.entries(groups)) {
+    const k = kindOf(g);
+    if (!k || ps.length < 2) continue;
+    const h = hullOf(ps);
+    const shape = h.length >= 3 ? svg("polygon", { points: h.map(p => p.join(",")).join(" ") })
+                                : svg("line", { x1: h[0][0], y1: h[0][1], x2: h[h.length - 1][0], y2: h[h.length - 1][1] });
+    shape.setAttribute("fill", color(k)); shape.setAttribute("fill-opacity", 0.07);
+    shape.setAttribute("stroke", color(k)); shape.setAttribute("stroke-opacity", 0.35);
+    shape.setAttribute("stroke-width", 10); shape.setAttribute("stroke-linejoin", "round"); shape.setAttribute("stroke-linecap", "round");
+    shape.style.pointerEvents = "none";
+    hulls.push({ shape, g });
+  }
+  for (const { shape } of hulls) s.insertBefore(shape, s.firstChild);
+  hl = g => hulls.forEach(h => { h.shape.style.opacity = !g || h.g === g ? 1 : 0.15; });
+  for (const [g, ps] of Object.entries(groups)) {
+    const mx = ps.reduce((a, p) => a + p.x, 0) / ps.length, my = ps.reduce((a, p) => a + p.y, 0) / ps.length;
+    const label = svg("text", { x: X(mx), y: Y(my) - 10, "text-anchor": "middle", "font-size": 12, "font-weight": 600,
+      fill: "var(--ink)", stroke: "var(--panel)", "stroke-width": 3, "paint-order": "stroke" });
+    label.textContent = g.replace(/^m_[a-z_]+?_(\d+)$/, "m$1").replace(/: fits$/, "");
+    label.style.cursor = "pointer";
+    label.addEventListener("mouseenter", () => highlight(g)); label.addEventListener("mouseleave", () => highlight(null));
+    label.addEventListener("click", () => { const n = document.getElementById("g-" + g); if (n) n.scrollIntoView({ block: "center" }); });
+    s.append(label);
+  }
+  box.append(s, tip);
+  return box;
+}
+function mapLegend(withStatus, misnamed) {
+  const sw = (cls, style, text) => el("span", {}, el("span", { class: "sw " + cls, style }), text);
+  return el("div", { class: "legend" },
+    misnamed ? [sw("", "background:var(--k-mis)", "misnamed? subgroup"), sw("", "background:var(--k-none)", "fits the playbook")]
+             : [sw("", "background:var(--k-new)", "new pattern → agents"), sw("", "background:var(--k-known)", "known scam (tuning issue)")],
+    sw("hollow", "", "one-off (noise)"),
+    withStatus ? [sw("", "background:var(--muted)", "missed"), sw("sq", "background:var(--muted)", "unnamed")] : null,
+    el("span", {}, "· faint = weak membership · hover a dot, click to open the complaint"));
+}
 
 // ---------------------------------------------------------------- 3/4 agents
 function picker(cands, current, page) {
