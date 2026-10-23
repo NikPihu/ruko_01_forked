@@ -24,10 +24,10 @@
   **"Why T3"** (`summary` in the response). It has:
   - one sentence on why ("a pause with a trusted-person call, because 3 of 4 kinds of evidence
     were lit (2 needed)");
-  - a graph read left to right: the facts in words → the four kinds of evidence (score bar, red
-    when lit) → the decision; lines never cross, lit kinds feed the decision with a thick red line;
-  - each kind of evidence, lit ones first, with its score bar and the real values in words
-    (e.g. "13 different people paid it in 7 days", "18× the user's biggest payment in 90 days");
+  - a graph read left to right: each fact in words with its real value (e.g. "13 different people
+    paid it in 7 days", "18× the user's biggest payment in 90 days") → the four kinds of evidence,
+    lit ones first (score bar, red when lit) → the decision. Facts sit next to their own kind, so
+    lines never cross; lit kinds feed the decision with a thick red line;
   - then the scam type and what the tier needed.
 
   Below that are the full number tables. `INPUT_WORDS` in `explain.py` has the words for each
