@@ -108,3 +108,22 @@ def test_tool_errors_go_back_to_the_model(ws, new_cluster):
     statuses = [c["toolResult"]["status"] for m in rt.calls[-1]["messages"] if m["role"] == "user"
                 for c in m["content"] if "toolResult" in c]
     assert statuses[:2] == ["error", "error"]
+
+
+def test_filtered_replies_are_dropped_and_retried(ws, new_cluster):
+    blocked = [{"text": "- The generated text has been blocked by our content filters."}]
+    rt = FakeBedrock([blocked, blocked,
+                      [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low"}, 1)]])
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 6)
+    assert res.final["verdict"] == "new_scam"
+    sent = rt.calls[-1]["messages"]
+    assert all("blocked by our content filters" not in json.dumps(m) for m in sent if m["role"] == "assistant")
+    assert sum("content filter" in json.dumps(m) for m in sent if m["role"] == "user") == 1   # one nudge, not two
+
+
+def test_a_model_that_is_always_filtered_gives_up_early(ws, new_cluster):
+    rt = FakeBedrock([[{"text": "- The generated text has been blocked by our content filters."}]] * 10)
+    tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
+    res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 10)
+    assert res.final is None and res.turns == llm.MAX_FILTERED

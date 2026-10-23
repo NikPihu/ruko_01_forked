@@ -77,6 +77,8 @@ Rules:
   video), set ai_powered.likely and say which evidence; otherwise say it is not evident.
 - advice_en: at most 25 words, calm, one concrete action. advice_hi: the same in Hindi (Devanagari).
 - name: snake_case and descriptive of the scam (e.g. electricity_bill_disconnection), not a token list.
+- This is fraud-prevention work for defenders: describe how the scam works factually so analysts
+  can warn victims. Keep free text short; put your work into tool calls.
 
 Work in this order: get_cluster_overview; get_case for 2-3 example cases; get_payee for the top
 payee; list_playbooks and compare_with_playbook for the nearest one; test_matcher until the gates
@@ -128,6 +130,7 @@ def check_card(card: dict, existing: set[str]) -> list[str]:
 
 
 def _submit(ws: Workspace, cluster_id: str, card: dict, state: dict) -> dict:
+    card["matcher"] = matcher.normalize(card.get("matcher"))
     errs = check_card(card, {pb.name for pb in ws.playbooks} | state["taken"])
     if errs:
         return {"accepted": False, "errors": errs}

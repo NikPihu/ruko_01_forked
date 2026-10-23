@@ -33,11 +33,13 @@ agents:
   provider: auto                     # bedrock | offline (deterministic drafts, no network) | auto (Bedrock if it answers)
   region: ap-southeast-2             # AWS_REGION overrides
   # Tried in order until one answers; the first that works is used for the whole run.
-  # Amazon Nova needs no Marketplace sign-up, so it works on free-trial credits.
+  # Claude first: on the first real run Amazon Nova Pro's own content filter blocked most replies
+  # about scams and it kept misspelling the matcher format, so every card fell back to offline.
+  # Nova needs no Marketplace sign-up, so it stays as the fallback for free-trial accounts.
   models:
+    - au.anthropic.claude-sonnet-4-5-20250929-v1:0
     - apac.amazon.nova-pro-v1:0
     - apac.amazon.nova-lite-v1:0
-    - au.anthropic.claude-sonnet-4-5-20250929-v1:0
   max_tokens: 4096
   temperature: 0.2
   investigator_max_turns: 12

@@ -73,7 +73,7 @@ class Workspace:
                              key=lambda x: (-x[2], -x[1]))[:15]
         rows = self.scored.rows.loc[self._rows_of(c.case_ids)]
         payees = Counter(p for ps in g["payees"] for p in ps)
-        weeks = g["filed_at"].dt.to_period("W").astype(str).value_counts().sort_index()
+        weeks = g["filed_at"].dt.tz_localize(None).dt.to_period("W").astype(str).value_counts().sort_index()
         docs = {cid: self.case_tokens[cid] for cid in c.case_ids}
         medoid = max(docs, key=lambda a: sum(len(docs[a] & docs[b]) / len(docs[a] | docs[b]) for b in docs))
         return {
@@ -138,6 +138,7 @@ class Workspace:
                 "more_common_in_playbook": [{"token": t, "diff": round(d, 2)} for t, d in diff[:8] if d < 0]}
 
     def test_matcher(self, rule: dict, cluster_id: str) -> dict:
+        rule = matcher.normalize(rule)
         errors = matcher.validate(rule)
         if errors:
             return {"valid": False, "errors": errors}

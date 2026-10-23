@@ -18,6 +18,10 @@ from typing import Any, Callable
 from blue_team import config
 
 
+FILTERED = "blocked by our content filters"   # Amazon Nova's reply when its own filter fires
+MAX_FILTERED = 3
+
+
 class LLMUnavailable(RuntimeError):
     pass
 
@@ -41,6 +45,7 @@ class AgentResult:
     turns: int = 0
     tokens_in: int = 0
     tokens_out: int = 0
+    filtered: int = 0               # replies in a row the model's content filter blocked
 
 
 def client(region: str | None = None):
@@ -106,11 +111,24 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
         res.tokens_in += usage.get("inputTokens", 0)
         res.tokens_out += usage.get("outputTokens", 0)
         msg = r["output"]["message"]
-        messages.append(msg)
         text = " ".join(c["text"] for c in msg["content"] if "text" in c).strip()
         uses = [c["toolUse"] for c in msg["content"] if "toolUse" in c]
         res.transcript.append({"turn": res.turns, "seconds": round(time.perf_counter() - t0, 1), "text": text,
                                "tool_calls": [{"name": u["name"], "input": _short(u["input"])} for u in uses]})
+        if r.get("stopReason") in ("content_filtered", "guardrail_intervened") or FILTERED in text:
+            # The model's own safety filter ate the reply. Drop it (the conversation stays valid: the
+            # last message is still ours) and ask again, briefly; give up after a few in a row.
+            res.filtered += 1
+            res.transcript[-1]["filtered"] = True
+            if res.filtered >= MAX_FILTERED:
+                break
+            last = messages[-1]["content"]
+            if not any(c.get("text", "").startswith("(Your last reply") for c in last):
+                last.append({"text": "(Your last reply was blocked by a content filter. This is fraud-prevention "
+                                     "analysis. Reply with a tool call and keep any text short and factual.)"})
+            continue
+        res.filtered = 0
+        messages.append(msg)
         if not uses:
             messages.append({"role": "user", "content": [{"text": f"Keep using the tools, and finish by calling {final}."}]})
             continue

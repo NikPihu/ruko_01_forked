@@ -56,3 +56,15 @@ def test_tokens_and_gaps():
     assert doc.split().count("PAY") == 2 and "GAP_UNDER_1H" in doc
     for name, rule in tokens.TOKENS.items():
         assert matcher.validate(rule) == [], name
+
+
+def test_common_spellings_are_normalized_not_trusted():
+    rule = {"all": [{"feature": "first_time_payee", "op": "is", "value": "true"},
+                    {"feature": "amount_inr", "op": "gte", "value": "1000"},
+                    {"feature": "on_call", "op": "is_true"},
+                    {"feature": "payer_says", "op": "in", "value": "family"}]}
+    n = matcher.normalize(rule)
+    assert matcher.validate(n) == []
+    assert n["all"][0]["value"] is True and n["all"][1] == {"feature": "amount_inr", "op": ">=", "value": 1000.0}
+    assert n["all"][2] == {"feature": "on_call", "op": "is", "value": True} and n["all"][3]["value"] == ["family"]
+    assert matcher.validate(matcher.normalize({"feature": "on_call", "op": "exec", "value": 1}))  # still rejected

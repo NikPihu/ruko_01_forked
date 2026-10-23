@@ -26,6 +26,43 @@ MAX_DEPTH = 4
 MAX_LEAVES = 12
 
 
+OP_ALIASES = {"lt": "<", "lte": "<=", "le": "<=", "gt": ">", "gte": ">=", "ge": ">=", "==": "eq", "=": "eq",
+              "equals": "eq", "!=": "ne", "neq": "ne", "not_eq": "ne", "isnull": "is_null", "notnull": "not_null",
+              "is_not_null": "not_null", "nin": "not_in"}
+
+
+def normalize(node: Any) -> Any:
+    """Fix the spellings models often use ("gte", "is_true", "true" as a string) into the one format.
+    It only renames operators and converts literal values; it adds no new power."""
+    if not isinstance(node, dict):
+        return node
+    if "all" in node or "any" in node:
+        key = "all" if "all" in node else "any"
+        kids = node[key]
+        return {key: [normalize(c) for c in kids]} if isinstance(kids, list) else node
+    if "not" in node and len(node) == 1:
+        return {"not": normalize(node["not"])}
+    out = dict(node)
+    op = str(out.get("op", "")).strip().lower()
+    if op in ("is_true", "is_false"):
+        out["op"], out["value"] = "is", op == "is_true"
+    else:
+        out["op"] = OP_ALIASES.get(op, op)
+    v = out.get("value")
+    if out["op"] == "is" and isinstance(v, str) and v.strip().lower() in ("true", "false"):
+        out["value"] = v.strip().lower() == "true"
+    elif out["op"] in {">=", "<=", ">", "<"} and isinstance(v, str):
+        try:
+            out["value"] = float(v)
+        except ValueError:
+            pass
+    elif out["op"] in {"in", "not_in"} and isinstance(v, (str, int, float)) and not isinstance(v, bool):
+        out["value"] = [v]
+    if out["op"] in {"is_null", "not_null"}:
+        out.pop("value", None)
+    return out
+
+
 def validate(node: Any) -> list[str]:
     """Problems with a matcher, in words; empty when it is valid."""
     errors: list[str] = []
@@ -65,7 +102,7 @@ def _check(node: Any, depth: int, errors: list[str]) -> int:
     if op not in OPS:
         errors.append(f"unknown op {op!r} (use one of {sorted(OPS)})")
     elif op == "is" and not isinstance(value, bool):
-        errors.append(f"{feature}: 'is' needs true or false")
+        errors.append(f"{feature}: 'is' needs the JSON boolean true or false (not a string)")
     elif op in {"in", "not_in"} and not isinstance(value, list):
         errors.append(f"{feature}: '{op}' needs a list")
     elif op in {">=", "<=", ">", "<"} and (isinstance(value, bool) or not isinstance(value, (int, float))):
