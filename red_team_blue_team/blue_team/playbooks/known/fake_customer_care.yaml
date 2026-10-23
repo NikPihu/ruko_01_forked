@@ -1,7 +1,7 @@
 name: fake_customer_care
 title: "Victim calls a fake helpline found online; the 'agent' takes over the phone"
 status: known
-source: backend/api/rule_scorer.py _playbook
+source: "rules: data/playbooks/playbooks.yaml (the engine's list); this card: the story for the agents"
 summary: >
   The victim searches for a company's customer-care number, reaches a fake helpline, and the "agent"
   asks them to install a remote-access app or dictates a payment to "refund" or "verify" something.
@@ -12,11 +12,3 @@ steps:
 reason_codes: [R1_live_unknown_call, R2_remote_control, R12_coached_session]
 advice_en: "Use only the helpline inside the official app or website. No agent needs remote access to refund you."
 advice_hi: "सिर्फ़ आधिकारिक ऐप या वेबसाइट का हेल्पलाइन नंबर इस्तेमाल करें। रिफ़ंड के लिए किसी को रिमोट एक्सेस नहीं चाहिए।"
-match:
-  - priority: 30
-    rule:
-      all:
-        - {feature: outgoing_to_unknown, op: is, value: true}
-        - any:
-            - {feature: remote_control, op: is, value: true}
-            - {feature: session_dictated, op: is, value: true}

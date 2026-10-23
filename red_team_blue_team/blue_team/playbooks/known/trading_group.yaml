@@ -1,7 +1,7 @@
 name: trading_group
 title: "Stock-tip WhatsApp / Telegram group with a fake trading app showing big profits"
 status: known
-source: backend/api/rule_scorer.py _playbook
+source: "rules: data/playbooks/playbooks.yaml (the engine's list); this card: the story for the agents"
 summary: >
   The victim is added to an "investment" group with daily tips, shown screenshots of profits, and
   moved to a fake trading platform. Deposits grow; withdrawals need "tax" or "fees".
@@ -13,6 +13,3 @@ steps:
 reason_codes: [R5_lure_message, R7_tranche_pattern, R3_mule_like_payee]
 advice_en: "Guaranteed profits from a chat group are a scam. SEBI-registered brokers never take money into personal accounts."
 advice_hi: "चैट ग्रुप से पक्का मुनाफ़ा धोखा है। SEBI-पंजीकृत ब्रोकर कभी निजी खाते में पैसे नहीं लेते।"
-match:
-  - priority: 50
-    rule: {feature: lure_tag, op: eq, value: trading_tip}

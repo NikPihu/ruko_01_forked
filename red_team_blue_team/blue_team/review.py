@@ -7,8 +7,9 @@
 
 A rejection by anyone moves the card to playbooks/rejected/. With `approvals_needed` approvals from
 different analysts, no rejection and no failing gate, the card moves to playbooks/approved/ and its
-exports are written: mule accounts for the graph suspect review (graph/discover.py, again two
-analysts) and the labelled payments for the next model retrain. Approval never changes a tier
+exports are written: the entry for the engine's data/playbooks/playbooks.yaml (where it goes, and
+anything its format cannot express yet), mule accounts for the graph suspect review
+(graph/discover.py, again two analysts) and the labelled payments for the next model retrain. Approval never changes a tier
 directly: an approved playbook names the scam and its warning (CLAUDE.md rules 11 and 13).
 """
 from __future__ import annotations
@@ -99,6 +100,9 @@ def promote(card: dict, root: Path | None = None, exports: Path | None = None) -
     _path(card["name"], "review", root).unlink()
     d = (exports or EXPORTS) / card["name"]
     d.mkdir(parents=True, exist_ok=True)
+    from blue_team import engine_file
+    entry, problems = engine_file.export_entry(card)
+    (d / "playbooks_entry.yaml").write_text(entry, encoding="utf-8")
     with open(d / "mule_accounts.csv", "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["upi_id", "complaints", "playbook"])
@@ -109,4 +113,5 @@ def promote(card: dict, root: Path | None = None, exports: Path | None = None) -
         w.writerow(["tx_id", "playbook", "label_is_scam", "source"])
         for tx in card.get("label_tx_ids", []):
             w.writerow([tx, card["name"], True, "complaint+2_analysts"])
-    return {"name": card["name"], "status": "approved", "priority": prio, "path": str(path), "exports": str(d)}
+    return {"name": card["name"], "status": "approved", "priority": prio, "path": str(path), "exports": str(d),
+            "engine_entry": "ready to paste" if not problems else f"needs the file format extended: {problems}"}

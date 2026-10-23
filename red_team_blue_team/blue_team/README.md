@@ -13,10 +13,12 @@ policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds)
 | 4 Analyst | `analyst.py` | A second, skeptical LLM agent with the same read-only tools gives a verdict: `new_scam` / `variant_of_known` / `lookalike_not_scam` / `insufficient_evidence`. |
 | 5 Humans | `review.py` | Two different analysts approve (`approvals_needed`), or one rejects with a reason. An approved card moves to `playbooks/approved/` and writes `exports/<name>/mule_accounts.csv` (for the graph suspect review) and `labels.csv` (for the next retrain). |
 
-**The playbook database** is `playbooks/`: `known/` holds the six the engine names today, in the
-same rule format (a test checks they name exactly like `rule_scorer._playbook`), plus `review/`,
-`approved/` and `rejected/`. `playbook_db.name_scam(features)` names a payment: first match by
-priority, and approved playbooks always come after the known ones.
+**The playbook database:** the *known* playbooks are the engine's own `data/playbooks/playbooks.yaml`,
+read into the matcher format by `engine_file.py` (a test checks they name exactly like
+`rule_scorer._playbook`); `playbooks/known/*.yaml` only add the story the agents read. `review/`,
+`approved/` and `rejected/` hold the blue team's cards. `playbook_db.name_scam(features)` names a
+payment: first match by priority; approved playbooks come after the known ones, except a misnamed
+fix, which goes just before the playbook it corrects.
 
 **Matchers** (`matcher.py`) are a fixed JSON rule format over engine features and two request
 fields: `all` / `any` / `not` and leaves `{feature, op, value}`. The LLM can only pick features,
@@ -149,24 +151,45 @@ The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
 ## What other folders need (not done here)
 
-**Jagdeep (backend), to use approved playbooks live:**
-1. `api/main.py`: after scoring, when `s["playbook"] is None`, call
-   `blue_team.playbook_db.name_scam({**features, "entry_method": req.entry_method, "payer_says": req.payer_says}, approved)`,
-   where `approved = playbook_db.load(("approved",))` is loaded at start-up (add `red_team_blue_team` to
-   `PYTHONPATH` in `scripts/dev.ps1` / `dev.sh`).
-2. Contract: `Threat.fraud_type` and `DeviceVerdict.fraud_class` are a fixed list of six names
-   (c2-0.8), so a newly approved name would fail validation. Make `fraud_type` a string (or an
-   open list) and add the approved card's `advice_en` / `advice_hi` to the response, so the app can
-   show a scam it has no built-in strings for (rule 8: version bump, examples, Models.kt, ContractTest).
-3. `exports/<name>/mule_accounts.csv` → seeds for `graph/discover.py`'s suspect review (still two
-   analysts, rule 11), e.g. a `POST /v1/graph/suspects/import`.
-4. Optional: a console page for `playbooks/review/` instead of the CLI.
+How an approved playbook goes live: `approve` (two analysts) writes
+`exports/<name>/playbooks_entry.yaml`, an entry for the engine's `data/playbooks/playbooks.yaml`
+(api/playbooks.py format) with where it goes: at the end, or for a *misnamed* fix just before the
+playbook it corrects. Someone pastes it into the file and the engine names that scam from then on.
+The blue team reads the engine's file for the known playbooks, so it never judges against a stale copy.
 
-**Manjeet (android):** show `threat.fraud_type` names it does not know, using the advice text from
-the response (after item 2).
+**Jagdeep (backend):**
+1. **Blocker: open the scam-name list in the contract.** `Threat.fraud_type` and
+   `DeviceVerdict.fraud_class` are `FraudType`, a fixed list of six names (c2-0.10), and `threat.fraud_type`
+   is the playbook. So *any* new name in `playbooks.yaml` (from the blue team, or from naming an A4
+   emerging pattern) fails validation when the `/v1/decide` response is built. Make it a string
+   (snake_case), or keep the list but map unknown names to `null` plus a new `scam_name` field.
+   Rule 8: version bump, examples, Models.kt, ContractTest.
+2. **Extend the playbooks-0.1 format** so blue-team rules fit. Of the 24 cards gpt-oss drafted in the
+   two test worlds, 3 export as they are; the rest need:
+   - the request fields `entry_method` (20 cards) and `payer_says` (6) as match keys (they are in
+     every `/v1/decide` request but are not `FAMILY` features);
+   - number comparisons, e.g. `amount_inr: {gte: 10000, lt: 50000}` (`>=` in 17 cards, `<` in 7);
+     the blue team's ops are `>=`, `<=`, `>`, `<`; unknown (null) must never satisfy them (rule 1).
+   `engine_file.export_entry` lists exactly what is missing for each card, and
+   `tests/test_matcher_and_db.py` checks an exported entry names payments exactly like the matcher.
+3. **Message text for new names.** The app shows `<tier>_<name>` strings from AlertText.kt and falls
+   back to the tier's generic text. An approved card carries `advice_en` / `advice_hi`; either ship
+   them in the response (with item 1) or add them to AlertText.kt per playbook.
+4. **Mule accounts:** `exports/<name>/mule_accounts.csv` as seeds for `graph/discover.py`'s suspect
+   review (still two analysts, rule 11), e.g. `POST /v1/graph/suspects/import`.
+5. **Emerging patterns (your A4) and the blue team** look at different moments: A4 groups flagged
+   and near-miss payments *before* a loss; the blue team groups 1930 / NCRP complaints *after* one,
+   including interruptions that named the wrong scam. Both draft entries in the same file format,
+   so they can share the review step. Optional: send an A4 pattern to the blue team's investigator
+   for a story and a backtested rule.
+6. Optional: a console page for `playbooks/review/` instead of the CLI.
+
+**Manjeet (android):** after item 1, show a scam name the app has no strings for, using the advice
+text from the response.
 
 **Diwansu (ml):** read `exports/*/labels.csv` in `model/train.py` as extra labels for the next retrain.
 
 **Nikunj or the red team:** AI-powered scam variants as `emerging` sim_v2 playbooks (`../red_team/README.md`).
 
-**CLAUDE.md:** add `red_team_blue_team/` to "Who owns what", and `red_team_blue_team` to `PYTHONPATH`.
+**CLAUDE.md:** add `red_team_blue_team/` to "Who owns what" (owner: Diwansu), and say the blue team
+needs `PYTHONPATH=backend;ml;data;red_team_blue_team` and `requirements.txt` (boto3).

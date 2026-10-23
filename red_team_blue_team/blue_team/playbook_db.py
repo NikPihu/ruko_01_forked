@@ -1,5 +1,7 @@
-"""The playbook database: known/ (the six the engine names today), review/ (drafts waiting for two
-analysts) and approved/ (new playbooks humans accepted). One YAML file per playbook.
+"""The playbook database. *Known* playbooks are the engine's own list, data/playbooks/playbooks.yaml
+(read through blue_team/engine_file.py, so there is no second copy to drift); known/*.yaml only add
+the story the agents read (summary, steps, advice). review/ holds drafts waiting for two analysts,
+approved/ the ones they accepted, rejected/ the rest. One YAML file per playbook.
 
 `name_scam(features)` is what the engine would call after its own matcher found nothing: the first
 matching rule by priority. Approved playbooks have priority >= APPROVED_MIN_PRIORITY, so a new
@@ -42,9 +44,22 @@ def _load_dir(state: str, root: Path) -> list[Playbook]:
     return out
 
 
+def _load_known(root: Path) -> list[Playbook]:
+    """The engine's playbooks (rules from its file) with the blue team's description cards."""
+    from blue_team import engine_file
+    cards = {pb.name: pb.card for pb in _load_dir("known", root)}
+    by_name: dict[str, Playbook] = {}
+    for name, prio, rule, why in engine_file.known():
+        card = cards.get(name, {"name": name, "title": why})
+        pb = by_name.setdefault(name, Playbook(name, "known", {**card, "engine_why": []}, [], engine_file.engine_path()))
+        pb.card["engine_why"].append(why)
+        pb.rules.append((prio, rule))
+    return list(by_name.values())
+
+
 def load(states: tuple[str, ...] = ("known", "approved"), root: Path | None = None) -> list[Playbook]:
     root = root or config.PLAYBOOKS
-    return [pb for s in states for pb in _load_dir(s, root)]
+    return [pb for s in states for pb in (_load_known(root) if s == "known" else _load_dir(s, root))]
 
 
 def ordered_rules(pbs: list[Playbook]) -> list[tuple[int, str, dict]]:

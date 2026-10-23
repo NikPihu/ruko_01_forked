@@ -1,7 +1,7 @@
 name: fake_kyc_apk
 title: "'Your KYC has expired' SMS with a link to a fake bank app (APK) that steals control"
 status: known
-source: backend/api/rule_scorer.py _playbook
+source: "rules: data/playbooks/playbooks.yaml (the engine's list); this card: the story for the agents"
 summary: >
   An SMS says the bank account or SIM will be blocked unless KYC is updated, and links to an APK.
   The sideloaded app asks for accessibility or SMS permissions, then the victim is guided to pay.
@@ -13,9 +13,3 @@ steps:
 reason_codes: [R5_lure_message, R2_remote_control, R6_new_payee_typed]
 advice_en: "Banks never send app links for KYC. Uninstall the app you just installed and call your bank."
 advice_hi: "बैंक KYC के लिए ऐप का लिंक नहीं भेजते। अभी डाला गया ऐप हटाएँ और अपने बैंक को कॉल करें।"
-match:
-  - priority: 20
-    rule:
-      all:
-        - {feature: sideloaded_last_24h, op: is, value: true}
-        - {feature: lure_tag, op: eq, value: kyc}

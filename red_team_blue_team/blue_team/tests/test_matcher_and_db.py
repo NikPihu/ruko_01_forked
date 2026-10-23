@@ -1,5 +1,7 @@
 import random
 
+import yaml
+
 from api import rule_scorer
 from blue_team import matcher, playbook_db, tokens
 from conftest import features
@@ -29,12 +31,14 @@ def test_unknown_never_satisfies_a_comparison():
 
 
 def test_known_playbooks_in_the_database_name_exactly_like_the_engine():
-    """playbooks/known/*.yaml must agree with backend/api/rule_scorer._playbook on every payment."""
+    """The engine's data/playbooks/playbooks.yaml, read into matchers, must name every payment exactly
+    like backend/api/rule_scorer._playbook does."""
     pbs = playbook_db.load(("known",))
     r = random.Random(1)
     opts = {"lure_tag": [None, "kyc", "arrest_threat", "trading_tip", "task_job", "refund"], "episode_state": [0, 1, 2, None],
             **{k: [None, True, False] for k in ("sideloaded_last_24h", "outgoing_to_unknown", "remote_control", "session_dictated",
-                                                "on_call", "caller_unknown", "voip_call", "story_mismatch", "entry_typed")}}
+                                                "on_call", "caller_unknown", "voip_call", "story_mismatch", "entry_typed",
+                                                "video_call")}}
     for _ in range(5000):
         f = features(**{k: r.choice(v) for k, v in opts.items()})
         assert playbook_db.name_scam(f, pbs) == rule_scorer._playbook(f), f
@@ -76,3 +80,25 @@ def test_token_leaves_expand_to_the_tokens_exact_rule():
     assert matcher.validate(rule) == [] and matcher.matches(rule, voip)
     assert not matcher.matches({"feature": "caller_unknown", "op": "is", "value": True}, voip)   # the trap it avoids
     assert any("unknown token" in e for e in matcher.validate(matcher.normalize({"token": "NOPE"})))
+
+
+def test_approved_cards_export_to_the_engine_file_format_or_say_why_not():
+    from api.playbooks import parse
+    from blue_team import engine_file
+    ok = {"name": "voice_clone_family", "title": "Voice-clone relative", "approved_by": ["asha", "ravi"],
+          "misnamed_as": "digital_arrest",
+          "match": [{"priority": 39, "rule": matcher.normalize({"all": [{"token": "CALL_ON"}, {"token": "CALLER_UNKNOWN"},
+                                                                        {"not": {"token": "REMOTE_CONTROL"}}]})}]}
+    text, problems = engine_file.export_entry(ok)
+    assert problems == [] and "BEFORE the first 'digital_arrest'" in text
+    entry = yaml.safe_load(text)[0]
+    assert entry["match"] == {"on_call": True, "unknown_caller": True, "remote_control": False}
+    rules = parse({"playbooks": [entry]})                        # the engine accepts it
+    r = random.Random(4)
+    for _ in range(2000):                                        # and it names exactly like our matcher
+        f = features(**{k: r.choice([None, True, False]) for k in ("on_call", "caller_unknown", "voip_call", "remote_control")})
+        assert rules[0][2](f) == matcher.matches(ok["match"][0]["rule"], f)
+    bad = {**ok, "match": [{"priority": 100, "rule": {"all": [{"token": "SAYS_FAMILY"}, {"token": "AMT_10K_50K"}]}}]}
+    text, problems = engine_file.export_entry(bad)
+    assert any("request field" in p for p in problems) and any("no '>='" in p or "no '<'" in p for p in problems)
+    assert "NOT EXPRESSIBLE" in text

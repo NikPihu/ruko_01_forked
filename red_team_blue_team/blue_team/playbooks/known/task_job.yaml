@@ -1,7 +1,7 @@
 name: task_job
 title: "Part-time 'like and review' job: small bait payouts, then ever larger 'task' deposits"
 status: known
-source: backend/api/rule_scorer.py _playbook
+source: "rules: data/playbooks/playbooks.yaml (the engine's list); this card: the story for the agents"
 summary: >
   The victim is offered easy online tasks (likes, reviews, ratings). Small payouts arrive first to
   build trust, then the victim is told to deposit money for "prepaid tasks" that grow each round,
@@ -14,8 +14,3 @@ steps:
 reason_codes: [R10_bait_then_pay, R5_lure_message, R7_tranche_pattern, R3_mule_like_payee]
 advice_en: "Real jobs never ask you to pay to earn. Stop paying; the 'earnings' cannot be withdrawn."
 advice_hi: "असली नौकरी में कमाने के लिए पैसे नहीं देने पड़ते। पैसे भेजना बंद करें; यह 'कमाई' निकाली नहीं जा सकती।"
-match:
-  - priority: 10        # an active task-scam episode beats any older message on the phone
-    rule: {feature: episode_state, op: eq, value: 2}
-  - priority: 60
-    rule: {feature: lure_tag, op: eq, value: task_job}
