@@ -47,8 +47,41 @@ class ContractTest {
                 file.name.startsWith("episode_event") -> strict.decodeFromString(EpisodeEvent.serializer(), file.readText())
                 file.name.startsWith("payment_outcome_response") -> strict.decodeFromString(PaymentOutcomeResponse.serializer(), file.readText())
                 file.name.startsWith("payment_outcome") -> strict.decodeFromString(PaymentOutcome.serializer(), file.readText())
+                file.name.startsWith("feedback_response") -> strict.decodeFromString(FeedbackResponse.serializer(), file.readText())
+                file.name.startsWith("feedback") -> strict.decodeFromString(Feedback.serializer(), file.readText())
+                file.name.startsWith("watch_event_response") -> strict.decodeFromString(WatchEventResponse.serializer(), file.readText())
+                file.name.startsWith("watch_event") -> strict.decodeFromString(WatchEvent.serializer(), file.readText())
+                file.name.startsWith("me_payments") -> strict.decodeFromString(MyPayments.serializer(), file.readText())
             }
         }
+    }
+
+    @Test
+    fun appEventsMatchTheirSchema() {
+        val app = Json.parseToJsonElement(File(contracts, "c2_app_events.schema.json").readText()).jsonObject
+        assertEquals(app.getValue("contract_version").jsonPrimitive.content, CONTRACT_VERSION)
+        val fbReq = app.getValue("feedback").jsonObject.getValue("request").jsonObject
+        val fb = Feedback("f", "6f1c2a0e-3b7d-4e7a-9a51-2d8c0f4b9e13", "u_demo_meena", FeedbackAction.I_KNOW_THEM,
+            KnowWhy.FAMILY, 1200L, RequestBuilder.nowIst())
+        assertFieldsAllowed(RukoJson.encodeToJsonElement(Feedback.serializer(), fb).jsonObject, fbReq)
+        val props = fbReq.getValue("properties").jsonObject
+        assertSubset(FeedbackAction.entries.map(::wire), enumValues(props.getValue("action")))
+        assertSubset(KnowWhy.entries.map(::wire), enumValues(props.getValue("why")))
+        val watchReq = app.getValue("watch").jsonObject.getValue("request").jsonObject
+        val w = WatchEvent("w", "u_demo_meena", WatchKind.LONG_UNKNOWN_CALL, RequestBuilder.nowIst(),
+            callKind = CallKind.VOIP, callMinutes = 15.0)
+        assertFieldsAllowed(RukoJson.encodeToJsonElement(WatchEvent.serializer(), w).jsonObject, watchReq)
+        val example = Json.parseToJsonElement(example("watch_event_long_call.json"))
+        val decoded = RukoJson.decodeFromString(WatchEvent.serializer(), example.toString())
+        assertEquals(normalise(example), normalise(RukoJson.encodeToJsonElement(WatchEvent.serializer(), decoded)))
+    }
+
+    @Test
+    fun myPaymentsNeverCarryAScore() {
+        val body = example("me_payments.json")
+        val mine = strict.decodeFromString(MyPayments.serializer(), body)
+        assertEquals("t3_digital_arrest", mine.payments.single().messageKey)
+        assertEquals(false, body.contains("p_scam"))
     }
 
     @Test

@@ -82,3 +82,43 @@ def test_missing_context_means_unknown_not_safe():
     req = DecideRequest.model_validate(load("decide_request_meena.json"))
     assert req.context.device.untrusted_accessibility is None
     assert req.context.device.sideloaded_last_24h is None
+
+
+# ---------- c2-0.8: alert feedback, watch events, the app's own payments ----------
+
+def test_app_events_schema_is_current():
+    from schema.export import OUT_APP, render_app
+    assert OUT_APP.read_text(encoding="utf-8") == render_app()
+
+
+@pytest.mark.parametrize("name", sorted(p.name for p in EXAMPLES.glob("feedback_*.json") if "response" not in p.name))
+def test_feedback_examples_validate(name):
+    from schema.events import Feedback
+    f = Feedback.model_validate(load(name))
+    assert any(load(r.name)["request_id"] == f.request_id for r in EXAMPLES.glob("decide_request_*.json"))
+    assert (f.why is not None) == (f.action == "i_know_them")
+
+
+def test_feedback_response_example_validates():
+    from schema.events import FeedbackResponse
+    assert FeedbackResponse.model_validate(load("feedback_response_not_accepted.json")).contract_version == CONTRACT_VERSION
+
+
+@pytest.mark.parametrize("name", sorted(p.name for p in EXAMPLES.glob("watch_event_*.json") if "response" not in p.name))
+def test_watch_examples_validate(name):
+    from schema.events import WatchEvent
+    WatchEvent.model_validate(load(name))
+
+
+def test_watch_response_and_my_payments_validate():
+    from schema.events import MyPayments, WatchEventResponse
+    assert WatchEventResponse.model_validate(load("watch_event_response.json")).contract_version == CONTRACT_VERSION
+    mp = MyPayments.model_validate(load("me_payments.json"))
+    assert "p_scam" not in json.dumps(load("me_payments.json"))   # rule 4: never a score for the user
+    assert mp.payments[0].status == "cancelled"
+
+
+def test_watch_event_never_carries_text():
+    from schema.events import WatchEvent
+    with pytest.raises(ValidationError):
+        WatchEvent.model_validate({**load("watch_event_lure.json"), "text": "Your account is under arrest"})

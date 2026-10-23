@@ -9,6 +9,8 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `examples/decide_request_minimal.json` | Kirana purchase, `context: null` (expect T0) |
 | `c2_episode.schema.json` | JSON Schema of `POST /v1/episode` (c2-0.4), from `python -m schema.export` |
 | `c2_payment_outcome.schema.json` | JSON Schema of `POST /v1/payment/outcome` (c2-0.6), from `python -m schema.export` |
+| `c2_app_events.schema.json` | JSON Schema of `POST /v1/feedback`, `POST /v1/watch` and `GET /v1/me/payments` (c2-0.8) |
+| `examples/feedback_*.json`, `watch_event_*.json`, `me_payments.json` | Alert feedback ("waited", "I know this person" + its refusal), watch events (scam message seen, long unknown call) and the app's own payment list (c2-0.8) |
 | `episode_rules.json` | Every episode threshold; the phone copies it into `android/app/src/main/assets/` |
 | `examples/episode_vectors.json` | Timelines the phone and the server must agree on (run by both test suites) |
 | `examples/episode_event_*.json` | Episode events (watching, active) and a `high` reply |
@@ -21,7 +23,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.7`** (see the changelog at the end). c2-0.1, c2-0.3, c2-0.4, c2-0.5 and c2-0.6 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.8`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.7 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -145,23 +147,54 @@ Reply: `request_id`, the `status` the server holds (the first final status wins)
 (`false` for a repeat, a conflicting status, or another user's payment id). A completed payment adds
 to the user -> payee edge's `completed` count; a cancelled one does not. Unknown fields get 422.
 
+## POST /v1/feedback (c2-0.8)
+
+What the user did on an alert screen, sent in the background (never on the payment path; safe to
+retry with the same `feedback_id`).
+
+| Field | Notes |
+|---|---|
+| `feedback_id` | UUID; a repeat gets the same answer and is stored once |
+| `request_id` | the payment id (its `/v1/decide` `request_id`); must be this user's payment |
+| `user_id` | as in `/v1/decide` |
+| `action` | `tip_seen` \| `slid_to_pay` \| `cancelled_from_alert` \| `waited` \| `pay_after_pause` \| `called_trusted` \| `messaged_trusted` \| `called_1930` \| `i_know_them` |
+| `why` | only with `i_know_them`: `family` \| `friend` \| `shop` \| `landlord` \| `employer` \| `other` |
+| `dwell_ms` | time from the alert appearing to this action (optional) |
+| `ts` | when it happened, ISO 8601 with timezone |
+
+Reply: `recorded` (`false` for an unknown payment, someone else's, or over 30 a day), and for
+`i_know_them`: `trusted_accepted`. It is `false` when RUKO still recommends waiting: the payee or
+caller is on a list, or someone may control the phone (stage S3 or a remote app). Then
+`message_key` is `know_them_not_accepted` and the app stays on the pause screen. When accepted, the
+payee joins the user's trusted list (same rule as `policy.yaml` `trusted_payee`).
+
+## POST /v1/watch (c2-0.8)
+
+An early warning from the phone **before** any payment, so RUKO knows "contacted / under control"
+by the time the user pays. Sent only when a threshold is crossed (never on a timer), only with the
+"Early warnings" switch on (off by default). Tags and counts only, never text (rule 2).
+
+| `kind` | Extra fields | Moves the stage to |
+|---|---|---|
+| `lure_seen` | `lure_tag`, `lure_conf`, `source` (`sms` \| `notification`) | S1 contacted (only with `lure_conf` ≥ 0.6) |
+| `long_unknown_call` | `call_kind` (`sim` \| `voip`), `call_minutes` | S2 hooked |
+| `remote_access_on` | none | S3 under control |
+| `sideload` | none | S3 under control |
+
+Reply: `recorded` (`false` for a repeated `event_id`) and the user's `stage` after the event.
+
+## GET /v1/me/payments?user_id= (c2-0.8)
+
+The user's own payments as RUKO recorded them, newest first: payment id, payee, amount, time, tier,
+reasons, `message_key`, `playbook`, status (`checked` \| `completed` \| `cancelled`) and outcome time.
+Plain words only, never a score (rule 4). The phone shows them next to its own history.
+
 ## Demo identities (from `data/sim/accounts.py`)
 | Who | ID |
 |---|---|
 | Victim (Pune, 60+, Hindi) | user `u_demo_meena`, UPI `7423938499@ibl` |
 | Mule ("Rohan Nair", Axis, 4 days old) | `secure.settlement.desk@okaxis` |
 | Kirana (verified merchant) | `shreeganesh.kirana@okaxis` |
-
-## For the Android app: current gaps vs `net/Models.kt`
-These are what the app needs to change to stop getting 422s:
-- `payee_vpa_hash` → `payee_upi_id` (plain). `PAYEE_SALT` is then not needed on the phone.
-- Add `request_id` and `entry_method`. Remove `payee_typed_manually`, which is covered by
-  `entry_method: "typed"`.
-- Flat `context{on_call, call_minutes, …}` → nested `context.call` / `context.device` / `context.lures`.
-  Field defaults should be `null`, not `false` / `true`.
-- `lure_tags` → `context.lures`, each with `min_ago`.
-- Response: drop `case_id`; add `playbook`, `stage`, `fail_open`, `contract_version`;
-  `pause_minutes` is always present.
 
 ## Changing the contract
 1. Edit `backend/schema/events.py` and bump `CONTRACT_VERSION`.
@@ -170,6 +203,7 @@ These are what the app needs to change to stop getting 422s:
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.8**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. The tracker now counts a VoIP call, or a call whose contact status is unknown, as possible contact. Additive: c2-0.7 requests still validate.
 - **c2-0.7**: `context.payee_in_contacts`. Engine `rules-0.6`: a first-time payee who is a saved contact is a weaker R6; a payee this user completed a payment to (c2-0.6) counts as known. Additive: c2-0.6 requests still validate.
 - **c2-0.6**: `POST /v1/payment/outcome` (`PaymentOutcome`, `PaymentOutcomeResponse`, `c2_payment_outcome.schema.json`). The `/v1/decide` `request_id` is now the payment id. Additive: c2-0.5 requests still validate.
 - **c2-0.5**: `context.session` (`SessionSignal`), `call.speaker_on`, reason `R12_coached_session`. Additive: c2-0.4 requests still validate.

@@ -31,6 +31,7 @@ class Session:
     control_ts: datetime | None = None
     lure_ts: datetime | None = None
     episode_hooked: bool = False   # the phone's task-scam episode is ACTIVE
+    long_call: bool = False        # the phone reported a long call with an unknown caller (watch event)
     attempts: list[Attempt] = field(default_factory=list)
     stage_path: list[tuple[str, datetime]] = field(default_factory=list)
 
@@ -66,7 +67,10 @@ class StageTracker:
         if call is not None:
             recent_end = call.ended_min_ago is not None and call.ended_min_ago <= CALL_MEMORY.total_seconds() / 60
             on_call = bool(call.active) or recent_end
-            unknown_caller = call.caller_in_contacts is False
+            # The phone never knows who is on a WhatsApp/VoIP call, and gets no number for outgoing
+            # SIM calls: unknown is not safe (rule 1), so such a call counts as possible contact.
+            unknown_caller = call.caller_in_contacts is False or (
+                call.caller_in_contacts is None and call.kind == "voip")
             if (call.active or recent_end) and unknown_caller:
                 started = now - timedelta(minutes=call.started_min_ago or 0)
                 if not any(abs((c - started).total_seconds()) < 60 for c in s.contacts):
@@ -104,13 +108,34 @@ class StageTracker:
             minutes_since_first_contact=(now - first).total_seconds() / 60 if first else None,
         )
 
+    def observe(self, user_id: str, kind: str, ts: datetime, *, lure_conf: float | None = None,
+                call_minutes: float | None = None) -> str:
+        """A watch event from the phone before any payment (c2-0.8). Returns the stage it leads to."""
+        s = self.sessions.setdefault(user_id, Session())
+        self._expire(s, ts)
+        if kind == "lure_seen" and (lure_conf is None or lure_conf >= 0.6):
+            s.lure_ts = max(s.lure_ts or ts, ts)
+        elif kind in ("remote_access_on", "sideload"):
+            s.control_ts = s.control_ts or ts
+        elif kind == "long_unknown_call":
+            started = ts - timedelta(minutes=call_minutes or 0)
+            if not any(abs((c - started).total_seconds()) < 60 for c in s.contacts):
+                s.contacts.append(started)
+            s.long_call = True
+        stage = self._stage(s, None, False, [])
+        if not s.stage_path or s.stage_path[-1][0] != stage:
+            s.stage_path.append((stage, ts))
+        return stage
+
     @staticmethod
     def _stage(s: Session, call, new_payee: bool, earlier_new: list[Attempt]) -> str:
         contacted = bool(s.contacts) or s.lure_ts is not None
         if not contacted and s.control_ts is None:
             return "S0"
         stage = "S1"
-        long_call = call is not None and (call.started_min_ago or 0) >= 15 and call.caller_in_contacts is False
+        unknown = call is not None and (call.caller_in_contacts is False or (
+            call.caller_in_contacts is None and call.kind == "voip"))
+        long_call = s.long_call or (unknown and (call.started_min_ago or 0) >= 15)
         if len(s.contacts) >= 2 or (s.contacts and s.lure_ts) or long_call or s.episode_hooked:
             stage = "S2"
         first = min([*s.contacts, *([s.lure_ts] if s.lure_ts else [])], default=None)
@@ -124,6 +149,7 @@ class StageTracker:
     def _expire(s: Session, now: datetime) -> None:
         cutoff = now - WINDOW
         s.contacts = [c for c in s.contacts if c > cutoff]
+        s.long_call = s.long_call and bool(s.contacts)
         s.attempts = [a for a in s.attempts if a.ts > cutoff]
         if s.lure_ts and s.lure_ts <= cutoff:
             s.lure_ts = None

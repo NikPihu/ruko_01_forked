@@ -45,8 +45,10 @@ from api.episode_events import EpisodeService
 from graph import discover as discovery
 from graph.store import GraphStore
 from store.db import TxnStore
+from api.feedback import FeedbackService, alert_health
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
-                           PaymentOutcome, PaymentOutcomeResponse)
+                           Feedback, FeedbackResponse, MyPayment, MyPayments, PaymentOutcome,
+                           PaymentOutcomeResponse, WatchEvent, WatchEventResponse)
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
@@ -160,6 +162,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             await asyncio.get_running_loop().run_in_executor(None, run_discovery)
     episodes = EpisodeService(intel, evidence, graph=graph)
     app.state.episodes = episodes
+    feedback = FeedbackService(store, trusted, evidence,
+                               per_user_per_day=policy.cfg.get("feedback", {}).get("per_user_per_day", 30),
+                               persist=persist)
+    watch_seen: set[str] = set()
     if log_path:
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -310,6 +316,38 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             log.exception("episode event failed")
             return EpisodeEventResponse(event_id=ev.event_id, episode_risk="unknown", reasons=[])
 
+    def server_ts(ts: datetime) -> datetime:
+        return datetime.now(ts.tzinfo) + clock["offset"] if clock["offset"] is not None else ts
+
+    @app.post("/v1/feedback", response_model=FeedbackResponse)
+    def post_feedback(fb: Feedback) -> FeedbackResponse:
+        """What the user did on an alert (c2-0.8). Only for the user's own payment; never on the payment path."""
+        return feedback.handle(fb, server_ts(fb.ts))
+
+    @app.post("/v1/watch", response_model=WatchEventResponse)
+    def post_watch(ev: WatchEvent) -> WatchEventResponse:
+        """An early warning from the phone (c2-0.8): moves the user's scam stage before any payment."""
+        if ev.event_id in watch_seen:
+            return WatchEventResponse(event_id=ev.event_id, recorded=False)
+        watch_seen.add(ev.event_id)
+        ts = server_ts(ev.ts)
+        stage = tracker.observe(ev.user_id, ev.kind, ts, lure_conf=ev.lure_conf, call_minutes=ev.call_minutes)
+        detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "call_kind",
+                                                           "call_minutes"}).items() if v is not None}
+        persist(store.record_watch, ev.event_id, ev.user_id, ev.kind, detail, ts)
+        return WatchEventResponse(event_id=ev.event_id, recorded=True, stage=stage)
+
+    @app.get("/v1/me/payments", response_model=MyPayments)
+    def my_payments(user_id: str, limit: int = 100) -> MyPayments:
+        """The user's own payments as RUKO recorded them (c2-0.8): plain words, never a score."""
+        rows = store.payments_of(user_id, limit=max(1, min(limit, 500)))
+        return MyPayments(payments=[MyPayment(payee_upi_id=r.pop("payee_upi"), **r) for r in rows])
+
+    @app.get("/v1/metrics/alerts")
+    def metrics_alerts() -> dict:
+        """Alert health for the console: what people do on alerts, per tier (aggregates only)."""
+        return alert_health(store)
+
     @app.get("/v1/cases")
     def cases() -> list[dict]:
         """Analyst cases opened by high-risk episodes (console, C5)."""
@@ -442,6 +480,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         reviews.clear()
         alerts.clear()
         store.reset()
+        feedback.reset()
+        watch_seen.clear()
         found.update(suspects=[], last_run=None)
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()

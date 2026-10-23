@@ -11,11 +11,13 @@ import json
 from pathlib import Path
 
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
-                           PaymentOutcome, PaymentOutcomeResponse)
+                           Feedback, FeedbackResponse, MyPayments, PaymentOutcome, PaymentOutcomeResponse,
+                           WatchEvent, WatchEventResponse)
 
 OUT = Path(__file__).resolve().parents[2] / "contracts" / "c2_decide.schema.json"
 OUT_EPISODE = OUT.with_name("c2_episode.schema.json")
 OUT_OUTCOME = OUT.with_name("c2_payment_outcome.schema.json")
+OUT_APP = OUT.with_name("c2_app_events.schema.json")
 
 
 def build_schema() -> dict:
@@ -45,6 +47,21 @@ def build_outcome_schema() -> dict:
     }
 
 
+def build_app_schema() -> dict:
+    """c2-0.8: alert feedback, watch events and the app's own payment list."""
+    return {
+        "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments",
+        "contract_version": CONTRACT_VERSION,
+        "feedback": {"request": Feedback.model_json_schema(), "response": FeedbackResponse.model_json_schema()},
+        "watch": {"request": WatchEvent.model_json_schema(), "response": WatchEventResponse.model_json_schema()},
+        "me_payments": {"response": MyPayments.model_json_schema()},
+    }
+
+
+def render_app() -> str:
+    return json.dumps(build_app_schema(), indent=2, ensure_ascii=False) + "\n"
+
+
 def render() -> str:
     return json.dumps(build_schema(), indent=2, ensure_ascii=False) + "\n"
 
@@ -62,7 +79,8 @@ def main() -> None:
     OUT.write_text(render(), encoding="utf-8", newline="\n")
     OUT_EPISODE.write_text(render_episode(), encoding="utf-8", newline="\n")
     OUT_OUTCOME.write_text(render_outcome(), encoding="utf-8", newline="\n")
-    print(f"wrote {OUT}, {OUT_EPISODE.name} and {OUT_OUTCOME.name}")
+    OUT_APP.write_text(render_app(), encoding="utf-8", newline="\n")
+    print(f"wrote {OUT}, {OUT_EPISODE.name}, {OUT_OUTCOME.name} and {OUT_APP.name}")
 
 
 if __name__ == "__main__":

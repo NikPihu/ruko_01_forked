@@ -1,0 +1,17 @@
+{
+  "payments": [
+    {
+      "payment_id": "6f1c2a0e-3b7d-4e7a-9a51-2d8c0f4b9e13",
+      "payee_upi_id": "secure.settlement.desk@okaxis",
+      "amount_inr": 95000,
+      "ts": "2026-11-07T10:40:00+05:30",
+      "tier": "T3",
+      "reasons": ["R2_remote_control", "R1_live_unknown_call", "R3_mule_like_payee"],
+      "message_key": "t3_digital_arrest",
+      "playbook": "digital_arrest",
+      "status": "cancelled",
+      "outcome_ts": "2026-11-07T10:42:00+05:30"
+    }
+  ],
+  "contract_version": "c2-0.8"
+}

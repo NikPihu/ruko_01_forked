@@ -51,3 +51,7 @@ session:
   paste_after_return_s: 20       # pasted the UPI ID within 20 s of coming back to the app
   many_switches: 2                # left the app this many times during one payment
   hesitation_s: 180               # more than 3 minutes on the Pay screen
+
+# Alert feedback (c2-0.8): what users do on alert screens.
+feedback:
+  per_user_per_day: 30           # more than this from one user in a day is not recorded

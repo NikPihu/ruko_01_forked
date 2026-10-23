@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app as create_engine
+from schema.events import CONTRACT_VERSION
 from graph.store import KEEP, GraphStore
 from intel_mock.app import create_app as create_mock
 from sim.accounts import DEMO_KIRANA_UPI, DEMO_MEENA
@@ -115,7 +116,7 @@ def test_a_payment_is_traced_from_check_to_outcome(engine):
     d = decide(engine, "pay-1")
     r = outcome(engine, "pay-1", "completed")
     assert r.status_code == 200 and r.json() == {"request_id": "pay-1", "status": "completed", "recorded": True,
-                                                 "contract_version": "c2-0.7"}
+                                                 "contract_version": CONTRACT_VERSION}
     p = engine.get("/v1/payments/pay-1").json()
     assert p["payment_id"] == "pay-1" and p["tier"] == d["tier"] and p["status"] == "completed" and p["checked"]
     listed = engine.get(f"/v1/graph/payments/{DEMO_KIRANA_UPI}").json()

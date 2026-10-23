@@ -286,7 +286,8 @@ class TxnStore:
             we = self.db.execute("SELECT * FROM watch_events WHERE user_hash = ?", [user_hash]).fetchall()
             ee = self.db.execute("SELECT * FROM episode_events WHERE user_hash = ?", [user_hash]).fetchall()
         items += [{"kind": "feedback", **dict(r)} for r in fb]
-        items += [{"kind": "watch", **{**dict(r), "detail": json.loads(r["detail"] or "null")}} for r in we]
+        items += [{**dict(r), "watch_kind": r["kind"], "kind": "watch", "detail": json.loads(r["detail"] or "null")}
+                  for r in we]
         items += [{"kind": "episode", **{**dict(r), "accounts": json.loads(r["accounts"] or "[]")}} for r in ee]
         return sorted(items, key=lambda i: i["ts"])[-limit:]
 

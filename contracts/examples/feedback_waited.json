@@ -1,0 +1,9 @@
+{
+  "feedback_id": "5c1e9a77-3f20-4b8d-a6c4-0e9d2f8b7a12",
+  "request_id": "6f1c2a0e-3b7d-4e7a-9a51-2d8c0f4b9e13",
+  "user_id": "u_demo_meena",
+  "action": "waited",
+  "why": null,
+  "dwell_ms": 38000,
+  "ts": "2026-11-07T10:41:10+05:30"
+}

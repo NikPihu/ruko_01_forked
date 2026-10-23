@@ -1,0 +1,11 @@
+{
+  "event_id": "a7f3c9e2-0d1b-4e6a-8c5f-3b9d7e2a4c34",
+  "user_id": "u_demo_meena",
+  "kind": "long_unknown_call",
+  "ts": "2026-11-07T10:17:00+05:30",
+  "lure_tag": null,
+  "lure_conf": null,
+  "source": null,
+  "call_kind": "voip",
+  "call_minutes": 15
+}
