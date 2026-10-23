@@ -60,3 +60,28 @@ def test_playbook_rules_keep_the_old_order():
     assert _playbook({**base, "lure_tag": "arrest_threat"}) == "digital_arrest"
     assert _playbook({**base, "on_call": True, "caller_unknown": True, "entry_typed": False}) == "refund_qr"
     assert _playbook({**base, "entry_typed": True}) is None
+
+
+def test_summary_says_why_in_words_with_real_values(engine, mock, world):
+    """The console's "Why this decision": lit families first, each with its inputs in words and values."""
+    pump(mock[1], world)
+    r = engine.post("/v1/decide", json=req(context=MEENA_CONTEXT, says="government", rid="p_s")).json()
+    sm = engine.get("/v1/payments/p_s/explain").json()["summary"]
+    lit = [fam for fam in sm["families"] if fam["lit"]]
+    assert sm["headline"].endswith(f"{len(lit)} of 4 kinds of evidence were lit (2 needed).")
+    assert [fam["lit"] for fam in sm["families"]] == sorted((fam["lit"] for fam in sm["families"]), reverse=True)
+    context = next(fam for fam in sm["families"] if fam["family"] == "C")
+    assert "a screen-sharing or remote-control app is active" in context["facts"]
+    behaviour = next(fam for fam in sm["families"] if fam["family"] == "B")
+    assert any(fact.startswith("amount ₹") for fact in behaviour["facts"])
+    assert sm["how"] and sm["how"][0].startswith(f"{r['tier']} needs a scam score of at least")
+    assert sm["scam_type"] == "digital_arrest"
+
+
+def test_quiet_summary_says_nothing_happened(engine, world):
+    user = users_in(world)[0]
+    engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=180, entry="qr", rid="p_q"))
+    sm = engine.get("/v1/payments/p_q/explain").json()["summary"]
+    assert sm["headline"].startswith("No interruption: only")
+    # Unknown or false inputs are never listed as facts (rule 1: unknown is not shown as safe or risky).
+    assert all("= None" not in fact and "= False" not in fact for fam in sm["families"] for fact in fam["facts"])

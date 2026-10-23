@@ -478,7 +478,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         p = store.payment(payment_id)
         if p is None:
             raise HTTPException(404, "no recorded payment with that id")
-        return explain(p, store.details(payment_id))
+        return explain(p, store.details(payment_id), policy.cfg)
 
     @app.get("/v1/users/{user_hash}/timeline")
     def user_timeline(user_hash: str, limit: int = 200) -> dict:

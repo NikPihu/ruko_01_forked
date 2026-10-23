@@ -220,8 +220,17 @@ export interface ExplainReason {
   inputs: Record<string, unknown>;
 }
 
+export interface DecisionSummary {
+  headline: string;
+  lit_needed: number;
+  families: { family: string; name: string; score: number; lit: boolean; facts: string[] }[];
+  how: string[];
+  scam_type: string | null;
+}
+
 export interface Explanation {
   payment_id: string;
+  summary: DecisionSummary;
   user_view: { tier: Tier; reasons: string[]; message_key: string | null; playbook: string | null; pause_minutes: number | null };
   scores: { p_scam: number | null; families: Record<string, number>; lit_families: string[]; family_names: Record<string, string> };
   reasons: ExplainReason[];

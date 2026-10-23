@@ -9,13 +9,6 @@ const SOURCE_NAME: Record<string, string> = {
   npci: "NPCI (who the payee is)", bank: "Payee's bank / MuleHunter", payee_registry: "I4C registry (payee)",
   caller_registry: "I4C registry (caller)", payee_fri: "DoT FRI (payee number)", caller_fri: "DoT FRI (caller)",
 };
-function policyStep(s: string): string {
-  if (s === "corroboration_gate") return "Fewer than two independent families agreed, so RUKO did not interrupt";
-  if (s.startsWith("amount_cap_")) return `Amount under ₹${s.slice("amount_cap_".length)}: capped at a tip`;
-  if (s === "trusted_payee") return "The user had said they know this payee";
-  if (s === "alert_budget") return "Too many recent alerts on a calm day: softened to a tip";
-  return s;
-}
 
 /** Every payment check RUKO recorded, newest first (the transaction database). */
 export function Transactions() {
@@ -87,6 +80,8 @@ export function PaymentExplain({ id }: { id: string }) {
         </div>
       </div>
 
+      <WhySummary x={x} />
+
       <div className="grid grid-main">
         <Card title="What the user saw">
           {u.tier === "T0" ? <p className="ink2" style={{ margin: 0 }}>Nothing: the payment went straight to the PIN.</p> : (
@@ -110,9 +105,6 @@ export function PaymentExplain({ id }: { id: string }) {
         </Card>
       </div>
 
-      <Card title="How the decision links together">
-        <LinkGraph x={x} />
-      </Card>
 
       <Card title="Every reason and the inputs behind it" pad={false}>
         <div className="table-wrap">
@@ -145,10 +137,6 @@ export function PaymentExplain({ id }: { id: string }) {
           </ul>
         </Card>
         <div className="stack">
-          <Card title="Policy steps">
-            {x.policy_steps.length ? <ul className="reasons plain">{x.policy_steps.map((s) => <li key={s}>• {policyStep(s)}</li>)}</ul>
-              : <p className="muted" style={{ margin: 0 }}>The tier came straight from the scores.</p>}
-          </Card>
           <Card title="Outside sources">
             <ul className="reasons plain">
               {Object.entries(x.sources).map(([k, v]) => <li key={k}>{SOURCE_NAME[k] ?? k}: <b>{v}</b></li>)}
@@ -163,50 +151,33 @@ export function PaymentExplain({ id }: { id: string }) {
   );
 }
 
-/** payment → families (with scores) → reasons → inputs, and the chosen playbook. */
-function LinkGraph({ x }: { x: Explanation }) {
-  const fams = Object.keys(x.scores.families);
-  const reasons = x.reasons.filter((r) => r.family);
-  const inputs = Array.from(new Set(reasons.flatMap((r) => Object.keys(r.inputs))));
-  const playbook = x.playbooks.find((p) => p.chosen)?.playbook ?? null;
-  const cols = [1, fams.length, reasons.length, inputs.length, 1].map((n) => Math.max(n, 1));
-  const rows = Math.max(...cols);
-  const W = 1000, rowH = 34, H = Math.max(rows * rowH + 20, 120);
-  const X = [20, 200, 400, 640, 860];
-  const y = (i: number, n: number) => 10 + (H - 20) * (i + 0.5) / n;
-  const pos: Record<string, [number, number]> = { pay: [X[0], H / 2] };
-  fams.forEach((f, i) => { pos["f:" + f] = [X[1], y(i, fams.length)]; });
-  reasons.forEach((r, i) => { pos["r:" + r.code] = [X[2], y(i, reasons.length)]; });
-  inputs.forEach((k, i) => { pos["i:" + k] = [X[3], y(i, inputs.length)]; });
-  pos.play = [X[4], H / 2];
-  const edges: [string, string, boolean][] = [];
-  fams.forEach((f) => edges.push(["pay", "f:" + f, x.scores.lit_families.includes(f)]));
-  reasons.forEach((r) => {
-    edges.push(["f:" + r.family, "r:" + r.code, true]);
-    Object.keys(r.inputs).forEach((k) => edges.push(["r:" + r.code, "i:" + k, true]));
-    if (playbook) edges.push(["r:" + r.code, "play", r.shown_to_user]);
-  });
-  const label = (text: string, [cx, cy]: [number, number], strong = false) => (
-    <text x={cx + 8} y={cy + 4} fontSize={12} fill={strong ? "var(--ink)" : "var(--ink-2)"} fontWeight={strong ? 600 : 400}>{text}</text>
-  );
+/** The decision in words: lit evidence first, each with its real values, then how the tier was set. */
+function WhySummary({ x }: { x: Explanation }) {
+  const sm = x.summary;
+  const type = sm.scam_type ? (PLAYBOOKS[sm.scam_type] ?? sm.scam_type) : null;
   return (
-    <>
-      <div style={{ overflowX: "auto" }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 720 }} role="img" aria-label="Decision graph">
-        {edges.map(([a, b, on], i) => {
-          const [x1, y1] = pos[a], [x2, y2] = pos[b];
-          return <path key={i} d={`M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`}
-                       fill="none" stroke={on ? "var(--accent)" : "var(--line)"} strokeWidth={on ? 1.6 : 1} />;
-        })}
-        {Object.entries(pos).map(([k, p]) => <circle key={k} cx={p[0]} cy={p[1]} r={5} fill="var(--surface)" stroke="var(--accent)" />)}
-        {label(`Payment · ${x.user_view.tier}`, pos.pay, true)}
-        {fams.map((f) => label(`${FAMILY_SHORT[f]} ${x.scores.families[f].toFixed(2)}`, pos["f:" + f], x.scores.lit_families.includes(f)))}
-        {reasons.map((r) => label(`${r.code.split("_")[0]} ${r.band ?? ""}`, pos["r:" + r.code], r.shown_to_user))}
-        {inputs.map((k) => label(k, pos["i:" + k]))}
-        {label(playbook ? (PLAYBOOKS[playbook] ?? playbook) : "No playbook", pos.play, !!playbook)}
-      </svg>
+    <Card title={`Why ${x.user_view.tier}`}>
+      <p style={{ margin: "0 0 14px", fontSize: 16 }}><b>{sm.headline}</b></p>
+      <div className="why">
+        {sm.families.map((f) => (
+          <div key={f.family} className={`why-fam${f.lit ? " lit" : ""}`}>
+            <div className="why-head">
+              <span className="why-name">{FAMILY_SHORT[f.family] ?? f.family}</span>
+              <span className="why-meter"><span style={{ width: `${Math.round(Math.min(1, f.score) * 100)}%` }} /></span>
+              <span className="why-score">{f.score.toFixed(2)}</span>
+              <span className={`chip${f.lit ? " bad" : ""}`}>{f.lit ? "lit" : "not lit"}</span>
+            </div>
+            {f.facts.length
+              ? <ul className="reasons plain why-facts">{f.facts.map((t) => <li key={t}>• {t}</li>)}</ul>
+              : <p className="muted why-facts" style={{ margin: 0 }}>Nothing measured points to a scam here.</p>}
+          </div>
+        ))}
       </div>
-      <p className="muted" style={{ margin: "6px 0 0" }}>Columns: payment → signal families (score) → reasons (push) → inputs → scam playbook. Highlighted lines carry the decision.</p>
-    </>
+      <ul className="reasons plain" style={{ marginTop: 14 }}>
+        <li>• <b>Scam type:</b> {type ?? "none of the known playbooks matched. If payments like this keep coming, they show up under Emerging patterns."}</li>
+        {sm.how.map((t) => <li key={t}>• {t}</li>)}
+      </ul>
+      <p className="muted" style={{ margin: "10px 0 0" }}>A kind of evidence is lit at 0.50 or more; at least {sm.lit_needed} must be lit to interrupt. Only measured signals are listed: unknown is never shown as safe.</p>
+    </Card>
   );
 }

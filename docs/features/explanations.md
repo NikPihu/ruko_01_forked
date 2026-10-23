@@ -20,8 +20,16 @@
   - `stage_path`: the scam stages this user went through;
   - `signal_source`: which signals were real and which came from the debug panel;
   - the scorer and policy versions.
-- **Console:** the **Payment explanation** page (open a row on Transactions) draws a linking
-  graph (user, payee, caller, mule accounts) next to the number table.
+- **Console:** the **Payment explanation** page (open a row on Transactions) starts with
+  **"Why T3"** (`summary` in the response). It has:
+  - one sentence on why ("a pause with a trusted-person call, because 3 of 4 kinds of evidence
+    were lit (2 needed)");
+  - then each kind of evidence, lit ones first, with its score bar and the real values in words
+    (e.g. "13 different people paid it in 7 days", "18× the user's biggest payment in 90 days");
+  - then the scam type and what the tier needed.
+
+  Below that are the full number tables. `INPUT_WORDS` in `explain.py` has the words for each
+  input; unknown or false inputs are never listed (rule 1).
 - **App:** `ui/alerts/` shows `user_view` only. `AlertText.kt` turns the message key into words;
   an unknown key falls back to the tier's general text.
 
