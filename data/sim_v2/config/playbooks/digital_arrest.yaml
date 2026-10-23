@@ -1,0 +1,33 @@
+name: digital_arrest
+title: "Fake police / CBI on a video or VoIP call: 'you are under digital arrest, pay to clear your name'"
+confidence: guess
+sources: ["data/sim/scams.py digital_arrest", "I4C / MHA advisories on digital arrest (2024)"]
+weight: 0.20
+targets: {senior: 3.0, homemaker: 1.5, salaried: 1.2, shopkeeper: 1.2, student: 0.6, gig_worker: 0.6}
+start_hours: [9, 19]
+steps:
+  - id: warning_sms
+    stage: S1
+    p: 0.3
+    events: [{type: sms_lure, tag: arrest_threat, conf: [0.7, 0.95]}]
+  - id: call
+    stage: S1
+    gap_min: {log: [30, 1440]}
+    events: [{type: call, kind: {voip: 0.5, sim: 0.5}, direction: incoming, minutes: {log: [45, 180]}}]
+    decide: {pressure: 1.2}            # stays on the call / believes it
+  - id: remote_control
+    stage: S3
+    p: 0.6
+    gap_min: [10, 40]
+    events: [{type: remote_app}]
+  - id: pay_fine
+    gap_min: [5, 60]
+    ask: {during_call: true, amount: {log: [50000, 400000]}, split: {int: [1, 5]}, entry: {typed: 0.95, contact: 0.05},
+          round: 0.6, pressure: 1.0, mule: same}
+  - id: come_back
+    stage: S5
+    p: 0.35
+    gap_min: {log: [600, 1800]}
+    events: [{type: call, kind: same, direction: incoming, minutes: {log: [20, 90]}}]
+    ask: {during_call: true, amount: {log: [20000, 150000]}, split: {int: [1, 2]}, entry: {typed: 1.0}, round: 0.6,
+          pressure: 0.8, mule: second}

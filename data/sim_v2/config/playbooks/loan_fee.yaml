@@ -1,0 +1,24 @@
+name: loan_fee
+title: "'Pre-approved instant loan' - pay processing, insurance and GST fees before disbursal"
+confidence: guess
+sources: ["RBI advisories on unauthorised digital lending apps"]
+weight: 0.06
+targets: {gig_worker: 2.0, student: 1.5, shopkeeper: 1.5, homemaker: 1.0, salaried: 0.8, senior: 0.5}
+start_hours: [9, 21]
+steps:
+  - id: loan_offer
+    stage: S1
+    events: [{type: sms_lure, tag: kyc, conf: [0.4, 0.8], has_link: true}]   # closest contract tag: 'kyc'
+    decide: {pressure: 0.5}
+  - id: install_app
+    stage: S3
+    p: 0.5
+    gap_min: [5, 60]
+    events: [{type: sideload_apk}]
+  - id: processing_fee
+    gap_min: {log: [30, 600]}
+    ask: {amount: {log: [800, 4000]}, entry: {typed: 0.6, qr: 0.4}, round: 0.6, pressure: 0.6, mule: same}
+  - id: more_fees
+    gap_min: {log: [60, 1440]}
+    ask: {amount: {of: prev, x: [1.2, 2.5]}, repeat: {int: [1, 3]}, entry: {typed: 0.6, qr: 0.4}, round: 0.6,
+          pressure: 0.5, mule: rotate}
