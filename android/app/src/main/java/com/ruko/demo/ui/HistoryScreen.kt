@@ -51,7 +51,8 @@ private fun whenText(ms: Long): String = WHEN.format(Instant.ofEpochMilli(ms))
 
 /**
  * Every payment started in this app, newest first, each with its payment ID (the request_id the
- * server knows it by), Scam Shield's decision and what the user did. Read from the phone only.
+ * server knows it by), Scam Shield's decision and what the user did. The phone's own record,
+ * merged with the server's (GET /v1/me/payments) when the server can be reached.
  */
 @Composable
 fun HistoryScreen(history: List<PaymentRecord>, onOpen: () -> Unit, onBack: () -> Unit) {
@@ -131,6 +132,7 @@ private fun PaymentDetail(p: PaymentRecord, onClose: () -> Unit) {
                 Field(stringResource(R.string.history_when)) { Text(whenText(p.ts)) }
                 Field(stringResource(R.string.history_entered)) { Text(entryText(p.entryMethod)) }
                 Field(stringResource(R.string.history_shield)) { Text(shieldText(p.tier), color = shieldColor(p.tier)) }
+                scamTypeText(p.playbook)?.let { Field(stringResource(R.string.history_scam_type)) { Text(it) } }
                 val reasons = p.reasons.take(3).mapNotNull { reasonText(it) }
                 if (reasons.isNotEmpty()) {
                     Field(stringResource(R.string.history_reasons)) {
@@ -148,10 +150,24 @@ private fun PaymentDetail(p: PaymentRecord, onClose: () -> Unit) {
                         Text(stringResource(if (p.reported) R.string.history_sync_done else R.string.history_sync_waiting))
                     }
                 }
+                if (p.serverSeen) {
+                    Text(stringResource(R.string.history_server_seen), style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary)
+                }
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.history_close)) } },
     )
+}
+
+@Composable
+private fun scamTypeText(playbook: String?): String? = when (playbook) {
+    "digital_arrest" -> stringResource(R.string.fraud_digital_arrest)
+    "task_job" -> stringResource(R.string.fraud_task_job)
+    "trading_group" -> stringResource(R.string.fraud_trading_group)
+    "fake_kyc_apk" -> stringResource(R.string.fraud_fake_kyc_apk)
+    "refund_qr" -> stringResource(R.string.fraud_refund_qr)
+    "fake_customer_care" -> stringResource(R.string.fraud_fake_customer_care)
+    else -> null
 }
 
 @Composable

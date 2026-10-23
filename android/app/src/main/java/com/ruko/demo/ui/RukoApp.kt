@@ -139,7 +139,7 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
             })
         }
         composable(Routes.HISTORY) {
-            HistoryScreen(auth.history, onOpen = auth::reportOutcomes, onBack = { nav.popBackStack() })
+            HistoryScreen(auth.history, onOpen = { auth.reportOutcomes(); auth.syncHistoryFromServer() }, onBack = { nav.popBackStack() })
         }
         composable(Routes.DEBUG) {
             DebugPanel(vm, auth.consents, onBack = { nav.popBackStack() })

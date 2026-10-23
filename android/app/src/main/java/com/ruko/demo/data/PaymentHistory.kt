@@ -1,5 +1,7 @@
 package com.ruko.demo.data
 
+import com.ruko.demo.net.MyPayment
+import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -29,6 +31,8 @@ data class PaymentRecord(
     val state: PaymentState = PaymentState.PENDING,
     @SerialName("outcome_ts") val outcomeTs: Long? = null,
     val reported: Boolean = false, // the server has the outcome (POST /v1/payment/outcome)
+    val playbook: String? = null, // the scam type Scam Shield matched, from the server (c2-0.9)
+    @SerialName("server_seen") val serverSeen: Boolean = false, // the server's record of it was read
 )
 
 /** The rules of the history list, without Android, so PaymentHistoryTest can run them. Oldest first. */
@@ -54,6 +58,45 @@ object PaymentHistory {
 
     fun markReported(list: List<PaymentRecord>, ids: Set<String>): List<PaymentRecord> =
         list.map { if (it.id in ids) it.copy(reported = true) else it }
+
+    /**
+     * The server's record of this user's payments (GET /v1/me/payments, c2-0.9), merged by payment id.
+     * The server is the authority on its own decision (tier, reasons, scam type); the phone keeps
+     * what only it knows (the contact's name, the typed entry). A payment the server has but the
+     * phone does not (e.g. after reinstalling) is added. A pending local payment takes the server's
+     * final outcome. Never a score: the server sends none to the app.
+     */
+    fun mergeServer(list: List<PaymentRecord>, server: List<MyPayment>, now: Long): List<PaymentRecord> {
+        val byId = server.associateBy { it.paymentId }
+        val merged = list.map { local ->
+            val s = byId[local.id] ?: return@map local
+            val state = serverState(s.status)
+            local.copy(
+                tier = s.tier, reasons = s.reasons, playbook = s.playbook, serverSeen = true,
+                state = if (local.state == PaymentState.PENDING && state != PaymentState.PENDING) state else local.state,
+                outcomeTs = local.outcomeTs ?: s.outcomeTs?.let(::millis),
+                reported = local.reported || state != PaymentState.PENDING,
+            )
+        }
+        val known = list.map { it.id }.toSet()
+        val added = server.filter { it.paymentId !in known }.map { s ->
+            PaymentRecord(
+                id = s.paymentId, ts = millis(s.ts), payee = s.payeeUpiId, amountInr = s.amountInr,
+                entryMethod = "typed", tier = s.tier, reasons = s.reasons, playbook = s.playbook,
+                state = serverState(s.status).let { if (it == PaymentState.PENDING) PaymentState.CANCELLED else it },
+                outcomeTs = s.outcomeTs?.let(::millis), reported = true, serverSeen = true,
+            )
+        }
+        return trim((merged + added).sortedBy { it.ts }, now)
+    }
+
+    private fun serverState(status: String) = when (status) {
+        "completed" -> PaymentState.COMPLETED
+        "cancelled" -> PaymentState.CANCELLED
+        else -> PaymentState.PENDING
+    }
+
+    private fun millis(iso: String): Long = OffsetDateTime.parse(iso).toInstant().toEpochMilli()
 
     fun trim(list: List<PaymentRecord>, now: Long): List<PaymentRecord> =
         list.filter { now - it.ts <= KEEP_MS }.takeLast(MAX)

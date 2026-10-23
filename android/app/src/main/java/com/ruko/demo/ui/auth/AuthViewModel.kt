@@ -69,6 +69,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var history by mutableStateOf<List<PaymentRecord>>(emptyList())
         private set
     private var reporting = false
+    private var syncing = false
     // History saves run one at a time, in order, so a slow save never overwrites a newer list.
     private val historyIo = Dispatchers.IO.limitedParallelism(1)
 
@@ -393,6 +394,28 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (done.isNotEmpty()) updateHistory(PaymentHistory.markReported(history, done))
             reporting = false
+        }
+    }
+
+    /**
+     * Read the server's record of this user's payments (GET /v1/me/payments, c2-0.9) and merge it
+     * into the history by payment id. Off the payment path; if the server is unreachable the
+     * phone's own history is shown unchanged.
+     */
+    fun syncHistoryFromServer() {
+        if (syncing) return
+        syncing = true
+        viewModelScope.launch {
+            try {
+                val server = withContext(Dispatchers.IO) { ApiClient.events.myPayments(DemoConfig.USER_ID) }
+                updateHistory(PaymentHistory.mergeServer(history, server.payments, System.currentTimeMillis()))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "server history not read; showing the phone's own", e)
+            } finally {
+                syncing = false
+            }
         }
     }
 

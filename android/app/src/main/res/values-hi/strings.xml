@@ -117,4 +117,6 @@
     <string name="threat_next_high">अभी भुगतान न करें। कॉल काटें, फिर अपने भरोसेमंद व्यक्ति को या 1930 पर कॉल करें।</string>
     <string name="threat_next_medium">आगे बढ़ने से पहले जांच लें कि आप किसे भुगतान कर रहे हैं।</string>
     <string name="threat_next_low">यह ठीक लगता है, फिर भी सावधान रहें।</string>
+    <string name="history_scam_type">किस तरह का लगा</string>
+    <string name="history_server_seen">स्कैम शील्ड के अपने रिकॉर्ड से मिलाया गया।</string>
 </resources>

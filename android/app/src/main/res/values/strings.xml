@@ -298,6 +298,8 @@
     <string name="history_reasons">Why</string>
     <string name="history_status">Status</string>
     <string name="history_sync">Shared with Scam Shield</string>
+    <string name="history_scam_type">Looked like</string>
+    <string name="history_server_seen">Matched with the Scam Shield record of this payment.</string>
     <string name="history_sync_done">Yes</string>
     <string name="history_sync_waiting">Waiting to send</string>
     <string name="history_close">Close</string>
