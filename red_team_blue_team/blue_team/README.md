@@ -104,6 +104,15 @@ new. Still wrong: trading_group (no complaint in this world was named trading_gr
 similarity read 0; it now says "unknown"), task_job (the investigator never submitted) and
 fake_customer_care. These prompts were improved on this world, so check them on `breach_s33`.
 
+**Held-out check (seed 33, gpt-oss-120b, prompts not tuned on it):** the analyst got 6 of 6 verdicts
+right (some clusters were mixed, purity 0.33 to 0.5), but only 2 of the 6 emerging scams were found
+(collect_request, marketplace_buyer). The rest never reached the blue team: 11 of the 16
+relative_emergency (voice-clone) complaints were *held*, interrupted but named digital_arrest, so
+the user got the wrong advice; 9 collect_request complaints were also named digital_arrest and 6
+marketplace_buyer ones refund_qr; electricity, loan and lottery had 1 to 3 complaints each.
+**Open gap:** complaints after a *misnamed* interruption are not breaches today. Next step: cluster
+held complaints too and flag clusters that do not fit the playbook that named them ("misnamed").
+
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
 ## What other folders need (not done here)
