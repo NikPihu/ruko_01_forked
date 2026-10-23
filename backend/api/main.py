@@ -11,6 +11,11 @@ connection, which alone blows the 150 ms intel budget.
 
 Decide path, all inside a 200 ms deadline (fail open on timeout or any error):
     tracker.update -> intel.lookup (150 ms budget) -> build_features -> score -> policy -> evidence
+
+Every check, its full decision and its outcome go into the transaction database (`store/db.py`,
+in memory unless --db is given), off the latency path.
+
+--scorer rules (default) or ml: ml uses ml/model/predict.py when it loads, otherwise the rules.
 """
 from __future__ import annotations
 
@@ -39,6 +44,7 @@ from api.policy import Policy
 from api.episode_events import EpisodeService
 from graph import discover as discovery
 from graph.store import GraphStore
+from store.db import TxnStore
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
                            PaymentOutcome, PaymentOutcomeResponse)
 from features.tracker import StageTracker
@@ -48,6 +54,19 @@ DEADLINE_S = 0.200
 MAX_ALERTS = 500
 # The built analyst console (cd console && npm run build), served at /console/.
 CONSOLE_DIST = Path(__file__).resolve().parents[2] / "console" / "dist"
+
+
+def pick_scorer(name: str) -> tuple:
+    """(score function, version, name actually used). The model is optional: anything wrong with it
+    (not installed, file missing, fails to load) falls back to the rules, so the engine always starts."""
+    if name == "ml":
+        try:
+            from model import predict
+            predict.load()
+            return predict.score, predict.MODEL_VERSION, "ml"
+        except Exception:
+            log.exception("ML scorer unavailable; using the rules")
+    return scorer.score, scorer.MODEL_VERSION, "rules"
 
 
 class ReviewBody(BaseModel):
@@ -60,7 +79,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                intel_url: str = "http://127.0.0.1:8001", evidence_path: str = ":memory:",
                intel_budget_s: float = 0.150, intel_cache_ttl_s: float = 10.0,
                log_path: str | Path | None = "logs/decide.jsonl", evidence_async: bool = True,
-               demo_clock: bool = False, discover_every_s: float | None = None) -> FastAPI:
+               demo_clock: bool = False, discover_every_s: float | None = None,
+               db_path: str | Path = ":memory:", scorer_name: str = "rules") -> FastAPI:
     client = intel_client or httpx.AsyncClient(base_url=intel_url)
     # sim time - wall time; None means "use the request's ts".
     clock: dict[str, timedelta | None] = {"offset": None}
@@ -95,7 +115,20 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     evidence = EvidenceStore(evidence_path)
     trusted: dict[str, set[str]] = {}
     # Swappable: anything with score(features) -> same dict shape (e.g. the trained model).
-    app.state.score = scorer.score
+    app.state.score, scorer_version, scorer_used = pick_scorer(scorer_name)
+    store = TxnStore(db_path)
+    app.state.store = store
+
+    def persist(fn, *args) -> None:
+        """Database writes never sit on the payment path (rule 3)."""
+        try:
+            loop = asyncio.get_running_loop() if evidence_async else None
+        except RuntimeError:  # a sync endpoint already runs in a worker thread
+            loop = None
+        if loop:
+            loop.run_in_executor(None, fn, *args)
+        else:
+            fn(*args)
     app.state.evidence, app.state.trusted = evidence, trusted
     graph = GraphStore()
     app.state.graph = graph
@@ -133,7 +166,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     def fail_open(req: DecideRequest) -> DecideResponse:
         return DecideResponse(request_id=req.request_id, tier="T0", reasons=["ruko_unavailable"], fail_open=True)
 
-    async def decide_inner(req: DecideRequest, ms: dict) -> DecideResponse:
+    async def decide_inner(req: DecideRequest, ms: dict, trace: dict) -> DecideResponse:
         t = time.perf_counter()
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
@@ -187,6 +220,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
         reasons = s["reasons"] if d.tier != "T0" else []
         graph.set_decision(req.request_id, d.tier, reasons, evidence_id)
+        trace.update(details={
+            "features": feats, "p_scam": s["p_scam"], "family_scores": s["family_scores"],
+            "lit_families": d.lit_families, "policy_steps": d.applied, "intel_status": res.status,
+            "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path]},
+            scorer_version=s.get("model_version", scorer_version))
         if d.tier != "T0":
             alerts.append({
                 "alert_id": evidence_id or f"a_{uuid.uuid4().hex[:12]}", "payment_id": req.request_id,
@@ -205,16 +243,17 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     @app.get("/health")
     def health() -> dict:
-        return {"status": "ok", "model_version": scorer.MODEL_VERSION, "policy_version": policy.version,
-                "contract_version": CONTRACT_VERSION, "demo_clock": clock["offset"] is not None}
+        return {"status": "ok", "model_version": scorer_version, "scorer": scorer_used,
+                "policy_version": policy.version, "contract_version": CONTRACT_VERSION,
+                "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)
     async def decide(req: DecideRequest) -> DecideResponse:
-        t0, ms = time.perf_counter(), {}
+        t0, ms, trace = time.perf_counter(), {}, {}
         if clock["offset"] is not None:
             req = req.model_copy(update={"ts": datetime.now(req.ts.tzinfo) + clock["offset"]})
         try:
-            resp = await asyncio.wait_for(decide_inner(req, ms), timeout=DEADLINE_S)
+            resp = await asyncio.wait_for(decide_inner(req, ms, trace), timeout=DEADLINE_S)
         except asyncio.TimeoutError:
             log.warning("decide timed out")
             resp = fail_open(req)
@@ -222,6 +261,17 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             log.exception("decide failed")
             resp = fail_open(req)
         ms["total"] = (time.perf_counter() - t0) * 1000
+        try:  # a fail-open answer is recorded too: it is what the user saw
+            persist(store.record_decision, {
+                "payment_id": req.request_id, "user_id": req.user_id, "payee_upi": req.payee_upi_id.strip().lower(),
+                "amount_inr": req.amount_inr, "entry_method": req.entry_method, "ts": req.ts, "tier": resp.tier,
+                "reasons": resp.reasons, "message_key": resp.message_key, "playbook": resp.playbook,
+                "stage": resp.stage, "pause_minutes": resp.pause_minutes,
+                "scorer_version": trace.get("scorer_version", scorer_version), "policy_version": policy.version,
+                "evidence_id": resp.evidence_id, "fail_open": resp.fail_open, "latency_ms": round(ms["total"], 2),
+            }, trace.get("details", {}))
+        except Exception:
+            log.exception("recording the payment failed")
         if log_path:
             with open(log_path, "a") as fh:
                 fh.write(json.dumps({"ts": req.ts.isoformat(), "request_id": req.request_id,
@@ -237,6 +287,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             ts = datetime.now(o.ts.tzinfo) + clock["offset"]
         status, recorded = graph.record_outcome(o.request_id, o.user_id, o.payee_upi_id, o.amount_inr,
                                                 o.status, ts)
+        if recorded:
+            persist(store.record_outcome, o.request_id, o.status, ts)
         return PaymentOutcomeResponse(request_id=o.request_id, status=status, recorded=recorded)
 
     @app.post("/v1/episode", response_model=EpisodeEventResponse)
@@ -246,7 +298,14 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         if clock["offset"] is not None:
             now = datetime.now(ev.ts.tzinfo) + clock["offset"]
         try:
-            return await episodes.handle(ev, now)
+            resp = await episodes.handle(ev, now)
+            persist(store.record_episode, ev.event_id, ev.user_id, ev.episode_id, ev.trigger, resp.episode_risk,
+                    [a.upi_id for a in ev.accounts], resp.case_id, now)
+            if resp.case_id:
+                case = next((c for c in episodes.cases if c["case_id"] == resp.case_id), None)
+                if case:
+                    persist(store.record_case, case)
+            return resp
         except Exception:
             log.exception("episode event failed")
             return EpisodeEventResponse(event_id=ev.event_id, episode_risk="unknown", reasons=[])
@@ -313,6 +372,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         if body.decision not in ("approve", "reject"):
             raise HTTPException(422, "decision must be approve or reject")
         r = discovery.review(reviews, upi_id, body.reviewer.strip(), body.decision)
+        store.record_review(upi_id, body.reviewer.strip(), body.decision, sim_now())
         return {"upi_id": upi_id.strip().lower(), "approved_by": sorted(r.approved_by),
                 "rejected_by": sorted(r.rejected_by), "approved": r.approved}
 
@@ -325,7 +385,40 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     def mark_trusted(user_id: str, payee_upi_id: str) -> dict:
         """The user tapped "I know this person"."""
         trusted.setdefault(user_id, set()).add(payee_upi_id.strip().lower())
+        store.record_trusted(user_id, payee_upi_id, "app", sim_now())
         return {"ok": True}
+
+    # ---------- transaction database reads (analyst console) ----------
+
+    @app.get("/v1/transactions")
+    def transactions(user_hash: str | None = None, payee: str | None = None, min_tier: str = "T0",
+                     status: str | None = None, since: str | None = None, until: str | None = None,
+                     limit: int = 200) -> dict:
+        """Every recorded payment check, newest first, with filters. The full detail is per payment."""
+        if min_tier not in ("T0", "T1", "T2", "T3", "T4"):
+            raise HTTPException(422, "min_tier must be T0 to T4")
+        if status not in (None, "checked", "completed", "cancelled"):
+            raise HTTPException(422, "status must be checked, completed or cancelled")
+        rows = store.transactions(user_hash, payee, min_tier, status, since, until, limit)
+        return {"count": len(rows), "transactions": rows}
+
+    @app.get("/v1/transactions/{payment_id}")
+    def transaction(payment_id: str) -> dict:
+        """One payment with everything behind it: every input, every score, policy steps, feedback.
+        Analysts only (rule 4: the score never reaches the user)."""
+        p = store.payment(payment_id)
+        if p is None:
+            raise HTTPException(404, "no recorded payment with that id")
+        return {"payment": p, "details": store.details(payment_id), "feedback": store.feedback_for(payment_id)}
+
+    @app.get("/v1/users/{user_hash}/timeline")
+    def user_timeline(user_hash: str, limit: int = 200) -> dict:
+        """One pseudonymous user's payments, outcomes, feedback and phone events in time order."""
+        return {"user_hash": user_hash, "events": store.timeline(user_hash, limit=max(1, min(limit, 1000)))}
+
+    @app.get("/v1/store/stats")
+    def store_stats() -> dict:
+        return {"db": "memory" if str(db_path) == ":memory:" else "file", "rows": store.counts()}
 
     @app.get("/v1/evidence/verify")
     def verify() -> dict:
@@ -348,6 +441,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         graph.reset()
         reviews.clear()
         alerts.clear()
+        store.reset()
         found.update(suspects=[], last_run=None)
         if demo_clock:  # the mock may have moved its clock since startup
             await sync_clock()
@@ -370,9 +464,13 @@ def main() -> None:
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--demo-clock", action="store_true",
                    help="ignore request timestamps and use the mock's sim clock (live phone demos)")
+    p.add_argument("--db", default=":memory:",
+                   help="transaction database: in memory (default) or a file to keep the run, e.g. logs/ruko.db")
+    p.add_argument("--scorer", choices=("rules", "ml"), default="rules",
+                   help="rules (default) or the trained model from ml/ (falls back to rules if it can't load)")
     a = p.parse_args()
     uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
-                           discover_every_s=3600),
+                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer),
                 host="0.0.0.0", port=a.port)
 
 
