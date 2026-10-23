@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Optional
 
 from api.rule_scorer import PLAYBOOK_RULES
+from api.rule_scorer import signals as rule_signals
 
 FAMILY_NAME = {"C": "Context (calls, screen control)", "L": "Lure (scam messages, task-scam episode)",
                "P": "Payee (bank, lists, payment graph)", "B": "Behaviour (this payment vs the user's habits)"}
@@ -71,7 +72,14 @@ def _shown(v) -> bool:
 def explain(payment: dict, details: Optional[dict]) -> dict:
     d = details or {}
     f = d.get("features") or {}
+    # A scorer may report its own signals; otherwise the rules' view of the same inputs is shown.
     signals = d.get("signals") or []
+    signal_source = "scorer" if signals else "rules"
+    if not signals and f:
+        try:
+            signals = rule_signals(f)
+        except (KeyError, TypeError):
+            signals = []
     fams = d.get("family_scores") or {}
     lit = d.get("lit_families") or []
 
@@ -116,6 +124,7 @@ def explain(payment: dict, details: Optional[dict]) -> dict:
         "policy_steps": d.get("policy_steps") or [],
         "sources": {k: intel.get(k) for k in SOURCES if k in intel},
         "stage_path": d.get("stage_path") or [],
+        "signal_source": signal_source,
         "scorer_version": payment.get("scorer_version"),
         "policy_version": payment.get("policy_version"),
         "evidence_id": payment.get("evidence_id"),

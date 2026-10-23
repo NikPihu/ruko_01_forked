@@ -9,21 +9,22 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `examples/decide_request_minimal.json` | Kirana purchase, `context: null` (expect T0) |
 | `c2_episode.schema.json` | JSON Schema of `POST /v1/episode` (c2-0.4), from `python -m schema.export` |
 | `c2_payment_outcome.schema.json` | JSON Schema of `POST /v1/payment/outcome` (c2-0.6), from `python -m schema.export` |
-| `c2_app_events.schema.json` | JSON Schema of `POST /v1/feedback`, `POST /v1/watch` and `GET /v1/me/payments` (c2-0.8) |
-| `examples/feedback_*.json`, `watch_event_*.json`, `me_payments.json` | Alert feedback ("waited", "I know this person" + its refusal), watch events (scam message seen, long unknown call) and the app's own payment list (c2-0.8) |
+| `c2_app_events.schema.json` | JSON Schema of `POST /v1/feedback`, `POST /v1/watch` and `GET /v1/me/payments` (c2-0.9) |
+| `examples/feedback_*.json`, `watch_event_*.json`, `me_payments.json` | Alert feedback ("waited", "I know this person" + its refusal), watch events (scam message seen, long unknown call) and the app's own payment list (c2-0.9) |
 | `episode_rules.json` | Every episode threshold; the phone copies it into `android/app/src/main/assets/` |
 | `examples/episode_vectors.json` | Timelines the phone and the server must agree on (run by both test suites) |
 | `examples/episode_event_*.json` | Episode events (watching, active) and a `high` reply |
 | `examples/decide_request_coached.json` | Meena being talked through the payment: slow dictated amount, UPI ID pasted right after switching apps, call on speaker (c2-0.5) |
 | `examples/decide_request_contact.json` | Meena pays Kiran Sinha, a saved contact she has never paid, by mobile number: `payee_in_contacts: true` (c2-0.7) |
+| `examples/decide_request_device_verdict.json` | Meena on a WhatsApp call with a remote-access app: the phone's own verdict, `context.device_verdict` (c2-0.8) |
 | `examples/decide_request_task_episode.json` | Task scam seen by the phone's background watcher: `context.episode` ACTIVE (c2-0.3) |
-| `examples/decide_response_*.json` | T3, T0 and fail-open responses |
+| `examples/decide_response_*.json` | T3, T0 and fail-open responses, with the `threat` analysis (c2-0.8) |
 | `examples/payment_outcome_*.json` | The Meena payment cancelled, the kirana payment completed, and a reply (c2-0.6) |
 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.8`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.7 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.9`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.8 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -81,6 +82,23 @@ give up after its own short timeout and let the payment go through (fail open, T
   payee is *known* is the server's call: the bank's history, or a payment this user completed
   (c2-0.6 outcomes).
 
+- `device_verdict` (c2-0.8): what the phone's own model (`ml/model/artifacts/v0/device_model.json`,
+  run by `signals/DeviceModel.kt`) concluded from everything it measured, including readings that
+  never leave the phone (its own payment history, every lure hit). Only the conclusion is sent:
+
+  | Field | Meaning |
+  |---|---|
+  | `model_version` | e.g. `device-0.1` |
+  | `fraud_class` | the known scam this looks like (same names as `playbook`), or `null` |
+  | `level` | `low` \| `medium` (a family is lit on the phone) \| `high` (the phone would warn) |
+  | `c`, `l`, `b` | the phone's context, lure and behaviour family scores, 0–1, 2 decimals; `null` when every input of that family was unmeasured (unknown is not 0) |
+  | `reasons` | up to 3 reason codes the phone chose |
+
+  `null` when the model is missing or every Scam Shield switch is off. The engine uses `c`, `l`, `b`
+  as features of the same families (`device_c` is C, `device_l` is L, `device_b` is B), so the
+  verdict never lights a family the raw signals did not already speak for, and never names a
+  reason on its own. `fraud_class` names the scam only when the server's rules found none.
+
 **Unknown ≠ safe:** a signal the phone did not or could not measure must be `null` (or left out).
 It must never be `false` or `0`. For example, if call-state permission was denied, send
 `"caller_in_contacts": null`, not `true`.
@@ -100,8 +118,16 @@ Unknown fields are rejected with **HTTP 422**. Treat a 422 like any other failur
 | `evidence_id` | string or null | id of the evidence record, if one was written |
 | `fail_open` | bool | true = RUKO could not decide in time; the payment proceeds |
 | `contract_version` | string | |
+| `threat` | object or null (c2-0.8) | the server's threat analysis; `null` on fail open |
 
-The score is never sent. Show reasons in words (Hindi + English), never a number.
+`threat` (c2-0.8): `score` 0–100 (`round(100 × p_scam)` from the active scorer: `lgbm-*` or
+`rules-*`), `level` (`none` T0 · `low` T1 · `medium` T2 · `high` T3 · `critical` T4), `fraud_type`
+(the playbook, `null` for T0) and `families` (the lit families, e.g. `["B","C","P"]`). The level
+always follows the tier, so the policy (two families before interrupting) still decides; the score
+only explains. Show the level and the scam type in words (Hindi + English). Showing the number lets
+a scammer who controls the phone probe the engine (try amounts until the score drops), so the app
+shows it only next to the level and never as a "safe below N" hint. CLAUDE.md rule 4 was changed
+for this.
 
 Reason codes: `R1_live_unknown_call`, `R2_remote_control`, `R3_mule_like_payee`,
 `R4_unusual_amount`, `R5_lure_message`, `R6_new_payee_typed`, `R7_tranche_pattern`,
@@ -147,7 +173,7 @@ Reply: `request_id`, the `status` the server holds (the first final status wins)
 (`false` for a repeat, a conflicting status, or another user's payment id). A completed payment adds
 to the user -> payee edge's `completed` count; a cancelled one does not. Unknown fields get 422.
 
-## POST /v1/feedback (c2-0.8)
+## POST /v1/feedback (c2-0.9)
 
 What the user did on an alert screen, sent in the background (never on the payment path; safe to
 retry with the same `feedback_id`).
@@ -170,7 +196,7 @@ a mule account; coached victims tap "I know them" too. Then `message_key` is
 `know_them_not_accepted` and the app stays on the pause screen. When accepted, the payee joins the
 user's trusted list.
 
-## POST /v1/watch (c2-0.8)
+## POST /v1/watch (c2-0.9)
 
 An early warning from the phone **before** any payment, so RUKO knows "contacted / under control"
 by the time the user pays. Sent only when a threshold is crossed (never on a timer), only with the
@@ -185,7 +211,7 @@ by the time the user pays. Sent only when a threshold is crossed (never on a tim
 
 Reply: `recorded` (`false` for a repeated `event_id`) and the user's `stage` after the event.
 
-## GET /v1/me/payments?user_id= (c2-0.8)
+## GET /v1/me/payments?user_id= (c2-0.9)
 
 The user's own payments as RUKO recorded them, newest first: payment id, payee, amount, time, tier,
 reasons, `message_key`, `playbook`, status (`checked` \| `completed` \| `cancelled`) and outcome time.
@@ -205,7 +231,8 @@ Plain words only, never a score (rule 4). The phone shows them next to its own h
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
-- **c2-0.8**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. The tracker now counts a VoIP call, or a call whose contact status is unknown, as possible contact. Additive: c2-0.7 requests still validate.
+- **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.
+- **c2-0.8**: `context.device_verdict` (`DeviceVerdict`: the phone's model verdict, fraud class and family scores; raw readings stay on the phone) and response `threat` (`Threat`: score 0–100, level, fraud type, lit families). Engine `rules-0.7`: a WhatsApp / VoIP call whose caller cannot be seen counts as an unknown caller. The API runs the trained server model by default (`--scorer ml`, falls back to rules). Additive: c2-0.7 requests still validate.
 - **c2-0.7**: `context.payee_in_contacts`. Engine `rules-0.6`: a first-time payee who is a saved contact is a weaker R6; a payee this user completed a payment to (c2-0.6) counts as known. Additive: c2-0.6 requests still validate.
 - **c2-0.6**: `POST /v1/payment/outcome` (`PaymentOutcome`, `PaymentOutcomeResponse`, `c2_payment_outcome.schema.json`). The `/v1/decide` `request_id` is now the payment id. Additive: c2-0.5 requests still validate.
 - **c2-0.5**: `context.session` (`SessionSignal`), `call.speaker_on`, reason `R12_coached_session`. Additive: c2-0.4 requests still validate.

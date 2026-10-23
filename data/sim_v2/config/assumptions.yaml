@@ -1,0 +1,106 @@
+# Every number the sandbox needs that is not code. Each leaf:
+#   v:     value used
+#   range: [lo, hi] used instead when world.yaml randomise: true (train worlds)
+#   src:   where it comes from
+#   conf:  official (NPCI / RBI / govt) | data (measured in a dataset) | public_case | guess
+# `python -m sim_v2 assumptions` lists them; every `guess` is a candidate to make more real.
+
+population:
+  personas:                      # share, median payments/day, P2M share, amount multiplier, monthly income ₹
+    v:
+      student:    {share: 0.20, rate: 0.9, p2m: 0.70, mult: 0.6, income: 8000,  ages: {"18-29": 1.0}}
+      salaried:   {share: 0.30, rate: 1.0, p2m: 0.62, mult: 1.2, income: 45000, ages: {"18-29": 0.35, "30-44": 0.45, "45-59": 0.2}}
+      homemaker:  {share: 0.15, rate: 0.6, p2m: 0.72, mult: 0.9, income: 20000, ages: {"30-44": 0.5, "45-59": 0.4, "60+": 0.1}}
+      senior:     {share: 0.10, rate: 0.3, p2m: 0.55, mult: 1.1, income: 25000, ages: {"60+": 1.0}}
+      gig_worker: {share: 0.15, rate: 1.2, p2m: 0.60, mult: 0.8, income: 18000, ages: {"18-29": 0.6, "30-44": 0.4}}
+      shopkeeper: {share: 0.10, rate: 1.4, p2m: 0.45, mult: 1.4, income: 35000, ages: {"30-44": 0.5, "45-59": 0.4, "60+": 0.1}}
+    src: "sim_v1 calibration (NPCI P2M share + tickets); persona mix guessed"
+    conf: guess
+  savings_months: {v: [1, 18], src: "money a person can reach (savings, FDs, borrowing) in months of income; log-uniform", conf: guess}
+  language_hi: {v: 0.45, range: [0.35, 0.55], src: data/sim names.py split, conf: guess}
+  activity_sigma: {v: 1.1, range: [0.9, 1.4], src: "Xente log daily-rate sigma 1.47 (one service); notebook 02", conf: data}
+  consent:                       # what the phone may see; the phone view (ml/dataset/phone_view.py) applies these
+    v: {sms: 0.30, call_signals: 0.65, app_checks: 0.70}
+    src: ml/dataset/assumptions.yaml (single source, keep in sync)
+    conf: guess
+
+amounts:                         # log-normal bulk + log-normal tail, fitted to NPCI by sim_v1/calibrate.py
+  p2m: {v: {bulk_median: 141.1, bulk_sigma: 0.98, tail_median: 1824, tail_sigma: 1.375, tail_weight: 0.081},
+        src: "NPCI Sep 2026: P2M avg ₹582, 86% under ₹500 (data/eval/realism/npci_anchors.json)", conf: official}
+  p2p: {v: {bulk_median: 140.8, bulk_sigma: 1.284, tail_median: 2566, tail_sigma: 1.353, tail_weight: 0.318},
+        src: "NPCI Sep 2026: P2P avg ₹2,320, 59% under ₹500", conf: official}
+  p2m_shift: {v: 0.01, src: sim_v1 calibration, conf: official}
+  round_share: {v: {p2p_contact: 0.45, p2p_typed: 0.35, p2m: 0.05},
+                src: "people round transfers to family and rent; ml/PLAN.md §12 giveaway audit", conf: guess}
+  p2p_cap: {v: 100000, src: NPCI UPI P2P per-transaction limit, conf: official}
+
+routine:
+  hour_profile:
+    v: [0.0153, 0.0071, 0.0030, 0.0017, 0.0018, 0.0030, 0.0074, 0.0244, 0.0435, 0.0557, 0.0599, 0.0590,
+        0.0569, 0.0627, 0.0651, 0.0549, 0.0545, 0.0542, 0.0657, 0.0763, 0.0762, 0.0662, 0.0537, 0.0316]
+    src: "Xente legit hour curve (real, Uganda); swap for NPCI hourly data when available"
+    conf: data
+  weekday_factor: {v: [1.0, 1.0, 1.0, 1.0, 1.05, 1.15, 1.1], src: "Mon..Sun; weekend shopping", conf: guess}
+  contacts: {v: [4, 14], src: "people a user pays (family, friends, landlord)", conf: guess}
+  new_person_p: {v: 0.05, range: [0.03, 0.08], src: payment to a person never paid before, conf: guess}
+  new_shop_p: {v: 0.08, range: [0.05, 0.12], src: payment to a shop never paid before, conf: guess}
+  entry_p2m: {v: {qr: 0.88, typed: 0.04, contact: 0.08}, src: QR dominates P2M, conf: guess}
+  entry_p2p: {v: {contact: 0.62, typed: 0.28, qr: 0.10}, src: "saved contacts mostly; typed for new people", conf: guess}
+  rent_share: {v: 0.3, src: "data/sim accounts.py (30% have a landlord)", conf: guess}
+  rent_inr: {v: {log: [5000, 30000]}, src: urban rents, conf: guess}
+  bill_share: {v: 0.7, src: users paying a monthly bill by UPI, conf: guess}
+  cashback_p: {v: 0.03, src: share of P2M payments with a cashback credit, conf: guess}
+  new_account_share: {v: 0.10, range: [0.05, 0.15], src: "honest accounts < 90 days old; fixes the age leak (FINDINGS §1)", conf: guess}
+
+telecom:
+  calls_per_day: {v: 0.8, range: [0.5, 1.2], src: logged calls per user per day, conf: guess}
+  call_mix: {v: {known: 0.70, unknown_sim: 0.22, voip_known: 0.07, foreign_spam: 0.01}, src: "delivery, banks, spam are unknown", conf: guess}
+  call_minutes: {v: {log: [0.3, 25]}, src: guess, conf: guess}
+
+sms:
+  spam_lures_per_day: {v: 0.05, range: [0.02, 0.1], src: "scam-looking SMS reaching anyone (most are never acted on)", conf: guess}
+  spam_conf: {v: [0.3, 0.9], src: lure classifier confidence on spam, conf: guess}
+  notification_lures_per_day: {v: 0.01, src: trading tips in WhatsApp groups, conf: guess}
+
+device:
+  app_installs_per_30d: {v: 1.5, src: ordinary app installs, conf: guess}
+  sideload_share: {v: 0.02, src: share of installs that are sideloaded APKs, conf: guess}
+  senior_accessibility: {v: 0.05, src: seniors using an accessibility helper app, conf: guess}
+
+crews:
+  mule_slots: {v: 4, src: "mules a crew uses at once; chosen so mules are about 2% of accounts (Nikunj, 2026-10-23)", conf: guess}
+  mule_lifetime_days: {v: {int: [2, 10]}, src: "ml/PLAN.md §12: mules used a few days then dropped", conf: guess}
+  mule_kinds:
+    v: {plain: 0.35, rented: 0.30, merchant_disguised: 0.15, warm_up: 0.10, slow_forward: 0.10}
+    src: "rented = old accounts bought from real holders; data/sim kinds kept for the contract"
+    conf: guess
+  mule_age_days: {v: {plain: [3, 60], rented: [365, 2500], merchant_disguised: [30, 900], warm_up: [14, 45], slow_forward: [10, 120], cash_out: [30, 700]},
+                  src: guess, conf: guess}
+  external_victims_per_day: {v: [0.3, 2.5], src: "SAML-D / AMLworld: about 3 distinct senders per mule", conf: data}
+  external_amount: {v: {log: [2000, 60000]}, src: guess, conf: guess}
+  pass_through: {v: [0.8, 0.95], src: "AMLworld median 0.58, SAML-D higher", conf: data}
+  hold_minutes: {v: {plain: {log: [10, 240]}, slow_forward: {log: [1440, 4320]}}, src: guess, conf: guess}
+  cover_payments_per_day: {v: [2, 8], src: merchant-disguised mules take small QR payments, conf: guess}
+  numbers: {v: {foreign_voip: 0.4}, src: "share of crew phone lines that are foreign VoIP", conf: guess}
+
+victim:                          # p(comply) = 1 / (1 + exp(-score)); every term is logged in decisions
+  base: {v: {student: 0.3, salaried: 0.0, homemaker: 0.2, senior: 0.5, gig_worker: 0.3, shopkeeper: -0.1},
+         src: "who complies more readily; age is never a model input, only an audit slice", conf: guess}
+  sunk_cost: {v: 0.8, src: "the more already paid, the more likely to pay again", conf: guess}
+  doubt_per_refusal: {v: 0.8, src: guess, conf: guess}
+  big_ask: {v: 1.5, src: "penalty per unit of ask / (income x savings_months) above 0.3", conf: guess}
+  delay_share: {v: 0.25, src: "of non-compliers, how many delay instead of refusing", conf: guess}
+  max_delays: {v: 1, src: guess, conf: guess}
+  report_if_paid: {v: 0.5, src: "data/sim report_rate (SPEC assumption ~0.49)", conf: guess}
+  report_if_not_paid: {v: 0.15, src: guess, conf: guess}
+
+reports:
+  report_lag_days: {v: [0.0, 3.0], src: data/sim config, conf: guess}
+  listing_lag_days: {v: [1.0, 4.0], src: data/sim config, conf: guess}
+  chakshu_rate: {v: 0.3, src: data/sim config, conf: guess}
+  external_report_rate: {v: 0.3, src: guess, conf: guess}
+  false_report_share: {v: 0.003, src: "data/sim used 1% of honest accounts; sim_v2 has ~10x more accounts per user (contacts, outside payers), so 0.3% keeps false rows a minority", conf: guess}
+
+session:                         # pay-screen behaviour (contract c2-0.5), ported from data/sim/session.py
+  typical_gap_s: {v: {"18-29": 0.35, "30-44": 0.45, "45-59": 0.6, "60+": 0.85}, src: data/sim session.py, conf: guess}
+  calm_share_of_scam: {v: 0.15, src: data/sim session.py, conf: guess}

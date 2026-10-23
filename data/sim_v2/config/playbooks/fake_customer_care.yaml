@@ -1,0 +1,21 @@
+name: fake_customer_care
+title: "Victim searches a helpline online, calls a fake number, is told to install a screen-share app"
+confidence: guess
+sources: ["data/sim/scams.py fake_customer_care", "I4C advisories on fake helpline numbers"]
+weight: 0.16
+targets: {senior: 1.5, salaried: 1.2, homemaker: 1.2, shopkeeper: 1.0, student: 0.8, gig_worker: 0.8}
+start_hours: [9, 21]
+steps:
+  - id: call_helpline
+    stage: S1
+    events: [{type: call, kind: {sim: 0.6, voip: 0.4}, direction: outgoing, minutes: {log: [15, 60]}}]
+  - id: screen_share
+    stage: S3
+    p: 0.8
+    gap_min: [5, 15]
+    events: [{type: remote_app}]
+    decide: {pressure: 0.8}
+  - id: pay
+    gap_min: [10, 40]
+    ask: {during_call: true, amount: {log: [5000, 80000]}, split: {int: [1, 2]}, entry: {typed: 1.0}, round: 0.4,
+          pressure: 1.0, mule: same}

@@ -11,7 +11,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
-| `ml/` | Diwansu Pilania | Training data replay, model experiments, lure classifier (`lure.json` trained); plan and status in `ml/PLAN.md` |
+| `ml/` | Diwansu Pilania | Training replay, the LightGBM server scorer (`model/predict.py`), the on-device model (`device_model.json`), the lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
 | `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
@@ -30,8 +30,12 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 3. **Fail open.** `/v1/decide` answers in 200 ms or less or returns `fail_open` (T0). The app gives
    up after its own 1 s timeout and treats a timeout, an error or a 422 as "safety check
    unavailable". A payment is never hard-blocked by RUKO failing.
-4. **Never show the score.** `p_scam` stays on the server. Users and analysts see tiers, bands and
-   reasons in words (English and Hindi).
+4. **The user never sees a score; the analyst sees everything.** Since c2-0.8 the response carries
+   `threat` (a 0–100 score, a level that always follows the tier, the scam type, the lit families).
+   The app shows only the level and scam type in words, plus the top 1–3 reasons (English and
+   Hindi); never the number (a scammer holding the phone could probe it). The analyst console
+   shows every number: `threat.score`, `p_scam`, family scores and each input's push
+   (`GET /v1/payments/{id}/explain`).
 5. **Two independent families before interrupting.** Families are C context, L lure, P payee,
    B behaviour. T2 or higher needs at least two lit families (`api/policy.yaml`
    `corroboration_min_families`). One source of evidence must never light two families: the whole
@@ -64,7 +68,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (and later LightGBM) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2`) decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -79,10 +83,20 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.7)
+## Contract (current: c2-0.9)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
-  payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts}`; response tier T0 to
-  T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`.
+  payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
+  T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
+  `threat` (c2-0.8).
+- `context.device_verdict` (c2-0.8): the phone's own model verdict (`model_version`, `fraud_class`,
+  `level`, family scores `c`/`l`/`b`, `reasons`). The phone runs `device_model.json` on everything
+  it measured (its own payment history and every lure hit too) and sends only this conclusion.
+  `c`/`l`/`b` are features of the same families (`device_c` C, `device_l` L, `device_b` B, never a
+  reason), so the verdict cannot light a family on its own; `fraud_class` names the scam only when
+  the server's playbook matcher found none.
+- Response `threat` (c2-0.8): `score` 0–100, `level` (`none`/`low`/`medium`/`high`/`critical` for
+  T0 to T4), `fraud_type` (the playbook; `null` for T0), `families` (lit families). `null` on fail
+  open. See rule 4.
 - `context.session` (c2-0.5): how the Pay screen of this payment was used (digit rhythm, paste
   after an app switch, app switches, time away, abandoned tries), counts and rounded seconds only;
   `null` when "Session checks" is off. All its signs are family B, so they can never interrupt on
@@ -96,12 +110,47 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   it is kept in the phone's history, the payment graph (`GET /v1/payments/{id}`) and the console.
 - `POST /v1/episode`: the phone's task-scam watcher reports a state change with at most 10
   accounts, only with "Share suspicious accounts" on; reply `episode_risk` in words.
+- `POST /v1/feedback` (c2-0.9): what the user did on an alert (slid to pay, waited, called a
+  trusted person or 1930, "I know this person" + why, cancelled), only for their own payment, 30 a
+  day. "I know this person" is refused (`know_them_not_accepted`) when the payee or caller is listed,
+  someone may control the phone, or the payee looks like a mule (payee family lit).
+- `POST /v1/watch` (c2-0.9): early warnings before any payment (scam message tag, long unknown call,
+  remote access, sideload) move the scam stage; opt-in, tags and counts only.
+- `GET /v1/me/payments` (c2-0.9): the user's own payments in words, never a score.
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.6
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.8
   requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
-  `contracts/c2_payment_outcome.schema.json`. Shared episode
+  `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
+
+## Transaction database and explanations
+- `backend/store/db.py`: every `/v1/decide` with its full decision (all inputs, `p_scam`, family
+  scores, lit families, policy steps, intel status, stage path), outcomes, feedback, watch and
+  episode events, cases, trusted payees, reviews. SQLite **in memory** by default (empty on every
+  start; each test gets its own); `--db logs/ruko.db` keeps a run; `python -m store.export` writes
+  a flat table for training. Users pseudonymised, writes off the payment path.
+- Reads (analyst console): `GET /v1/transactions`, `/v1/transactions/{id}`,
+  `/v1/users/{hash}/timeline`, `/v1/payments/{id}/explain` (scores, every reason with its inputs and
+  strength, every playbook rule checked, policy steps, sources, what the user saw),
+  `/v1/metrics/alerts` (alert health), `/v1/store/stats`. Console pages: Transactions, Payment
+  explanation (linking graph), Alert health card on Overview.
+- `docs/ml-asks.md`: what each ML model must take in, return and pass.
+
+## Which scorer runs
+`api/main.py` scores with the trained model by default (`--scorer ml`): `ml/model/predict.py`
+(`lgbm-0.2`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
+family's `build_features` inputs, including the phone's verdict scores `device_c/l/b`; isotonic
+calibration; a logistic combiner; reasons taken in turns from the lit families; the rules engine's
+playbook matcher). If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
+`api/rule_scorer.py` (`rules-0.7`); `--scorer rules` forces the rules. `GET /health` and evidence
+records report the active scorer's version. `scripts/dev.ps1` / `dev.sh` install LightGBM from
+`ml/requirements.txt`, so the demo runs the trained model. `python -m serve` (`ml/serve.py`) still
+works and does the same.
+
+Held-out world (`dev_test`) through the real policy: 93.7% of scam payments interrupted vs 85.1%
+for `rules-0.7`, 0 vs 6.1 legit interruptions per 1,000 (inflated: the simulated world is too easy,
+see `data/eval/realism/FINDINGS.md`). Details in `ml/PLAN.md` §0.
 
 ## Run it (Windows)
 
@@ -126,8 +175,8 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
-.venv/Scripts/python -m pytest ml/tests -q               # ML (needs: pip install -r ml/requirements.txt)
+.venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
@@ -136,9 +185,9 @@ compileSdk 37, targetSdk 34, minSdk 26. The system `java` (Java 8) does not work
 `android/local.properties` (not committed) needs `sdk.dir` and optionally `API_BASE_URL`
 (or set `ANDROID_HOME` to the SDK folder instead).
 
-`ml/tests` is broken on `main` as of 2026-10-22: `ml/dataset/phone_view.py` still imports
-`MoneySignal`, which was removed from the contract in c2-0.4 (owner: Diwansu). Fix it there,
-not by bringing `money` back.
+Kotlin tests that only need plain Kotlin (`ContractTest`, `SignalsTest`, `DeviceModelTest`,
+`DeviceFeaturesTest`, `LureModelTest`) read `contracts/` and `ml/model/artifacts/` from the repo, so
+a retrained model or a contract change breaks them instead of the demo.
 
 Functional backend tests that need the payee to be recognised should not depend on machine speed:
 use generous time limits like the `engine` fixture in `test_session.py` (intel budget and
@@ -161,8 +210,11 @@ mind. Offline episode features for training:
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
-- `api/rule_scorer.py` (`rules-0.6`, hand-set fallback until `ml/model/predict.py` exists),
-  `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
+- Scorer: `python -m api.main --scorer ml` (default) runs the trained model `ml/model/predict.py`
+  (`lgbm-*`, needs LightGBM from `ml/requirements.txt`; the dev scripts install it) and falls back
+  to `api/rule_scorer.py` (`rules-0.7`, hand-set) if it cannot load; `--scorer rules` forces the
+  rules. `GET /health` reports which one is running.
+- `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
   applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
   and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),
   `api/episode_events.py`.
@@ -178,10 +230,23 @@ mind. Offline episode features for training:
   hash-chained vault.
 
 **Android** (`android/app/src/main/java/com/ruko/demo/`)
-- `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer, bank
-  SMS parser, `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
+- `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer (`assets/lure.json`), bank
+  SMS parser, `DeviceModel.kt` + `DeviceFeatures.kt` + `DeviceVerdict.kt` (on-device model,
+  `assets/device_model.json`, c2-0.8; must match `ml/model/artifacts/`), `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
   encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
+
+**ML** (`ml/`, on the path as `model.*`)
+- `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
+  would have seen them (`phone_view.py` sends the c2-0.8 context, including the phone's
+  `device_verdict`, and replays the payment graph).
+- `model/train.py`, `predict.py` (`lgbm-0.2`), `reasons.py`, `evaluate.py`, `experiments.py`,
+  `metrics.py`, `tune.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier;
+  `model/device/` trains, scores and names the verdict of the on-device model.
+- Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/device_model.json`
+  (+ `device_vectors.json`, `device_feature_vectors.json`, copied to the app's assets),
+  `v0/policy_proposal_*.yaml`, `model/artifacts/lure.json` (+ `lure_metrics.json`,
+  `lure_vectors.json`); `v1/` is empty.
 
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
@@ -202,10 +267,9 @@ mind. Offline episode features for training:
 - Coached example (`contracts/examples/decide_request_coached.json`) → T3 or T4 with R12 and R1.
 
 ## Not built yet
-Real T1 to T4 alert screens (the decision screen is a placeholder), feedback endpoint and buttons,
-the trained server model (`ml/model/predict.py`; the engine still uses `rules-0.6`), copying
-`ml/model/artifacts/lure.json` into `android/app/src/main/assets/` (the app still uses its keyword
-fallback), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+Full T1 to T4 alert screens (the decision screen shows the tier, threat level, scam type, score,
+reasons and the next step, but not the T3 pause or trusted-contact flow), feedback endpoint and
+buttons, new-pattern discovery (only the six known playbooks are named), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).

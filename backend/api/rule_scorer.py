@@ -13,7 +13,7 @@ from typing import Callable
 
 from features.session import T as SESSION
 
-MODEL_VERSION = "rules-0.6"
+MODEL_VERSION = "rules-0.7"
 # rules-0.6: a first-time payee who is a saved contact on the phone is a weaker "new payee" sign.
 # rules-0.5: R7 (tranche) counts only when this payment goes to a payee in the run of new payees.
 # L rose from 2.0 in rules-0.3: it now carries the phone's 30-day task-scam episode, which is as
@@ -23,12 +23,17 @@ BIAS = -5.0  # two strong families (~0.9 each) land near p=0.55; one alone stays
 REASON_MIN_STRENGTH = 0.3
 
 
+def _unknown_caller(f: dict) -> bool:
+    """A caller not in contacts, or a VoIP call whose number the phone cannot see (null is not safe)."""
+    return bool(f["caller_unknown"]) or (bool(f["voip_call"]) and f["caller_unknown"] is None)
+
+
 def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
     s: dict[str, list[tuple[float, str]]] = {"C": [], "L": [], "P": [], "B": []}
     add = lambda fam, strength, code: s[fam].append((strength, code))  # noqa: E731
 
     # Context: who is on the line, and who can see the screen.
-    if f["on_call"] and f["caller_unknown"]:
+    if f["on_call"] and _unknown_caller(f):
         strength = 0.9 if f["foreign_caller"] else 0.8 if f["voip_call"] else 0.7
         # On speaker while paying: someone is talking the user through it (same call, same family).
         if f["call_on_speaker"]:
@@ -144,14 +149,14 @@ PLAYBOOK_RULES: list[tuple[str, str, Callable[[dict], bool]]] = [
     ("digital_arrest", "an arrest-threat message",
      lambda f: f["lure_tag"] == "arrest_threat"),
     ("digital_arrest", "an unknown caller on the line + screen control, a story mismatch or dictated typing",
-     lambda f: bool(f["on_call"] and f["caller_unknown"])
+     lambda f: bool(f["on_call"]) and _unknown_caller(f)
      and bool(f["remote_control"] or f["story_mismatch"] or f["session_dictated"])),
     ("trading_group", "a trading-tip message",
      lambda f: f["lure_tag"] == "trading_tip"),
     ("task_job", "a task or job message",
      lambda f: f["lure_tag"] == "task_job"),
     ("refund_qr", "an unknown caller on the line + a payee that was not typed (QR or picked)",
-     lambda f: bool(f["on_call"] and f["caller_unknown"]) and not f["entry_typed"]),
+     lambda f: bool(f["on_call"]) and _unknown_caller(f) and not f["entry_typed"]),
 ]
 
 
@@ -172,7 +177,12 @@ def score(f: dict) -> dict:
             if strength >= REASON_MIN_STRENGTH:
                 best[code] = max(best.get(code, 0), strength * FAMILY_WEIGHT[k])
     reasons = [c for c, _ in sorted(best.items(), key=lambda kv: -kv[1])][:4]
-    # Every signal that fired, for the analyst's explanation (never sent to the app).
-    signals = [{"family": k, "reason": code, "strength": strength} for k, v in sig.items() for strength, code in v]
     return {"p_scam": round(1 / (1 + math.exp(-z)), 4), "family_scores": fam,
-            "reasons": reasons, "playbook": _playbook(f), "model_version": MODEL_VERSION, "signals": signals}
+            "reasons": reasons, "playbook": _playbook(f), "model_version": MODEL_VERSION}
+
+
+def signals(f: dict) -> list[dict]:
+    """Every rule signal that fires for these features, for the analyst's explanation (api/explain.py).
+    Kept out of score() so the model and the rules keep the same output shape."""
+    return [{"family": k, "reason": code, "strength": strength}
+            for k, v in _signals(f).items() for strength, code in v]

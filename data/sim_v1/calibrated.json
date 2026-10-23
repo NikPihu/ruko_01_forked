@@ -1,0 +1,32 @@
+{
+ "params": {
+  "p2m_bulk_median": 141.0854,
+  "p2m_bulk_sigma": 0.9805,
+  "p2m_tail_median": 1824.0423,
+  "p2m_tail_sigma": 1.3754,
+  "p2m_tail_weight": 0.0811,
+  "p2p_bulk_median": 140.7821,
+  "p2p_bulk_sigma": 1.2839,
+  "p2p_tail_median": 2565.5291,
+  "p2p_tail_sigma": 1.3527,
+  "p2p_tail_weight": 0.318,
+  "p2m_shift": 0.0098
+ },
+ "loss": 0.4615,
+ "achieved": {
+  "p2m_share_of_volume": 0.6226,
+  "p2m_share_of_value": 0.2994,
+  "avg_ticket_p2p_inr": 2216.4096,
+  "avg_ticket_p2m_inr": 573.9995,
+  "p2m_share_below_500": 0.846,
+  "p2p_share_below_500": 0.6071
+ },
+ "targets": {
+  "p2m_share_of_volume": 0.633,
+  "p2m_share_of_value": 0.302,
+  "avg_ticket_p2p_inr": 2320,
+  "avg_ticket_p2m_inr": 582,
+  "p2m_share_below_500": 0.86,
+  "p2p_share_below_500": 0.59
+ }
+}

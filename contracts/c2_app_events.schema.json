@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments",
-  "contract_version": "c2-0.8",
+  "contract_version": "c2-0.9",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.8",
+          "default": "c2-0.9",
           "title": "Contract Version",
           "type": "string"
         }
@@ -272,7 +272,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.8",
+          "default": "c2-0.9",
           "title": "Contract Version",
           "type": "string"
         }
@@ -412,7 +412,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.8",
+          "default": "c2-0.9",
           "title": "Contract Version",
           "type": "string"
         }

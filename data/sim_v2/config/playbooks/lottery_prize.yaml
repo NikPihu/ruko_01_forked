@@ -1,0 +1,23 @@
+name: lottery_prize
+title: "'You won the KBC / company lottery' - pay processing, tax and transfer fees first"
+confidence: guess
+sources: ["I4C / police advisories on KBC lottery WhatsApp fraud"]
+weight: 0.06
+targets: {homemaker: 1.5, senior: 1.5, gig_worker: 1.5, student: 1.0, salaried: 0.6, shopkeeper: 0.8}
+start_hours: [10, 21]
+steps:
+  - id: winner_message
+    stage: S1
+    events: [{type: notification_lure, tag: refund, conf: [0.5, 0.85]}]   # closest contract tag: 'refund'
+    decide: {pressure: 0.3}
+  - id: manager_call
+    stage: S2
+    gap_min: {log: [30, 720]}
+    events: [{type: call, kind: {voip: 0.6, sim: 0.4}, direction: incoming, minutes: {log: [5, 20]}}]
+  - id: processing_fee
+    gap_min: [5, 60]
+    ask: {amount: {log: [1500, 6000]}, entry: {typed: 0.8, qr: 0.2}, round: 0.7, pressure: 0.6, mule: same}
+  - id: more_fees
+    gap_min: {log: [120, 1440]}
+    ask: {amount: {of: prev, x: [1.5, 3.0]}, repeat: {int: [2, 4]}, entry: {typed: 0.8, qr: 0.2}, round: 0.7,
+          pressure: 0.6, mule: rotate}

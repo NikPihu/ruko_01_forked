@@ -6,7 +6,7 @@ from datetime import timedelta
 import pytest
 
 import api.main
-from api.main import create_app as create_engine, pick_scorer
+from api.main import create_app as create_engine, load_scorer
 from evidence.store import pseudonym
 from store.db import TxnStore
 from test_decide import (DEMO_KIRANA_UPI, DEMO_MEENA, MEENA_CONTEXT, NOW, mock, pump, req, users_in,  # noqa: F401
@@ -115,8 +115,8 @@ def test_scorer_switch_falls_back_to_rules(monkeypatch):
             raise ImportError("no ml on this machine")
         return real_import(name, *a, **k)
     monkeypatch.setattr(builtins, "__import__", no_model)
-    _, version, used = pick_scorer("ml")
-    assert used == "rules" and version.startswith("rules")
+    _, version = load_scorer("ml")
+    assert version.startswith("rules")
 
 
 def test_recording_keeps_decide_fast(world, mock):

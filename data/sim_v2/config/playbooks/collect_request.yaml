@@ -1,0 +1,23 @@
+name: collect_request
+title: "'Approve this request / enter your PIN to receive the money' (UPI collect request abuse)"
+confidence: guess
+emerging: true
+sources: ["ml/PLAN.md §3.2", "NPCI advisory: you never need a PIN to receive money"]
+# The contract has no 'collect' entry method yet; approvals are recorded as 'typed' (ask Jagdeep for a
+# new entry_method value if this playbook should be told apart).
+# Lure tag: closest contract tag is 'refund' (a story about receiving money).
+weight: 0.07
+targets: {shopkeeper: 2.0, gig_worker: 1.5, student: 1.2, salaried: 1.0, homemaker: 1.0, senior: 1.2}
+start_hours: [9, 21]
+steps:
+  - id: contact
+    stage: S1
+    events: [{type: call, kind: {sim: 0.7, voip: 0.3}, direction: incoming, minutes: {log: [3, 12]}}]
+    decide: {pressure: 0.6}
+  - id: approve_request
+    gap_min: [1, 5]
+    ask: {during_call: true, amount: {log: [1000, 20000]}, entry: {typed: 1.0}, round: 0.6, pressure: 0.8, mule: same}
+  - id: approve_again
+    p: 0.4
+    gap_min: [2, 10]
+    ask: {during_call: true, amount: {of: prev, x: [1.0, 2.0]}, entry: {typed: 1.0}, round: 0.6, pressure: 0.7, mule: same}

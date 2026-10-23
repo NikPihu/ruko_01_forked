@@ -1,0 +1,17 @@
+name: refund_qr
+title: "'Scan this QR to receive your refund' (marketplace buyer / courier / bank refund)"
+confidence: guess
+sources: ["data/sim/scams.py refund_qr", "NPCI 'scan to pay, never to receive' advisory"]
+weight: 0.12
+targets: {shopkeeper: 2.0, student: 1.2, gig_worker: 1.2, salaried: 1.0, homemaker: 1.0, senior: 1.0}
+start_hours: [9, 21]
+mule_kinds: {merchant_disguised: 0.7, plain: 0.3}
+steps:
+  - id: call
+    stage: S1
+    events: [{type: call, kind: {sim: 0.8, voip: 0.2}, direction: incoming, minutes: {log: [5, 20]}}]
+    decide: {pressure: 0.5}
+  - id: scan_qr
+    gap_min: [2, 10]
+    ask: {during_call: true, amount: {log: [2000, 25000]}, repeat: {int: [1, 3]}, entry: {qr: 1.0}, round: 0.3,
+          pressure: 0.7, mule: same}

@@ -13,6 +13,7 @@ from intel_mock.app import create_app as create_mock
 from sim.accounts import DEMO_KIRANA_UPI, DEMO_MEENA
 from sim.config import SimConfig
 from sim.generate import build_world, write_world
+from schema.events import CONTRACT_VERSION
 
 CFG = SimConfig(seed=5, n_users=200, n_days=10, scam_rate=0.05)
 NOW = CFG.end + timedelta(hours=10)

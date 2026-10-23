@@ -67,10 +67,10 @@ class StageTracker:
         if call is not None:
             recent_end = call.ended_min_ago is not None and call.ended_min_ago <= CALL_MEMORY.total_seconds() / 60
             on_call = bool(call.active) or recent_end
-            # The phone never knows who is on a WhatsApp/VoIP call, and gets no number for outgoing
-            # SIM calls: unknown is not safe (rule 1), so such a call counts as possible contact.
+            # A WhatsApp-type (VoIP) call never shows the number, so its contact status is null:
+            # unknown is not safe (rule 1), so it counts as a possible contact like a stranger's call.
             unknown_caller = call.caller_in_contacts is False or (
-                call.caller_in_contacts is None and call.kind == "voip")
+                call.kind == "voip" and call.caller_in_contacts is None)
             if (call.active or recent_end) and unknown_caller:
                 started = now - timedelta(minutes=call.started_min_ago or 0)
                 if not any(abs((c - started).total_seconds()) < 60 for c in s.contacts):

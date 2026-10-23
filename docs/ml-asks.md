@@ -42,7 +42,7 @@ Features added since `lgbm-0.1` that the next version should learn:
 | `reasons` | up to 4 contract reason codes (`R1_…` to `R12_…`), most important first, only from lit families |
 | `playbook` | `api/rule_scorer._playbook(features)` (keep using it, or return the same names) |
 | `model_version` | e.g. `"lgbm-0.2"` |
-| `signals` | **new, needed for the analyst explanation:** a list of `{family, reason, strength}`. For LightGBM, one entry per reason with its summed positive contribution (0–1 scaled). The console shows these as small / medium / large. |
+| `signals` | **optional, wanted for the analyst explanation:** a list of `{family, reason, strength}`. For LightGBM, one entry per reason with its summed positive contribution (0–1 scaled). The console shows these as small / medium / large. Until the model returns it, the console shows the rules' signals for the same inputs. If you add it, `ml/tests/test_predict.py` (same shape as the rules) needs the key allowed. |
 
 **Must pass:**
 - `ml/tests/test_predict.py`;

@@ -8,5 +8,11 @@
   "stage": "S0",
   "evidence_id": null,
   "fail_open": false,
-  "contract_version": "c2-0.8"
+  "contract_version": "c2-0.9",
+  "threat": {
+    "score": 2,
+    "level": "none",
+    "fraud_type": null,
+    "families": []
+  }
 }

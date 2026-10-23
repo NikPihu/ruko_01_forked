@@ -1,0 +1,32 @@
+name: task_job
+title: "Part-time 'like videos / rate hotels' job: small rewards, then prepaid tasks that never pay out"
+confidence: guess
+sources: ["data/sim/scams.py task_job", "docs/task-scam-watcher.md", "I4C advisories on task-based investment fraud"]
+weight: 0.22
+targets: {student: 2.0, gig_worker: 2.0, homemaker: 1.5, salaried: 1.0, senior: 0.4, shopkeeper: 0.5}
+start_hours: [9, 22]
+variants: {rewards: 0.75, crypto_deposit: 0.25}
+steps:
+  - id: hook
+    stage: S1
+    events: [{type: sms_lure, tag: {rewards: task_job, crypto_deposit: trading_tip}, conf: [0.6, 0.9]}]
+    decide: {pressure: 0.4}           # replies to the message
+  - id: rewards
+    stage: S2
+    when: rewards
+    crew_pays: {amount: {int: [50, 300]}, repeat: {int: [2, 3]}, gap_min: {log: [60, 360]}}
+  - id: first_task
+    gap_min: {log: [120, 1200]}
+    ask: {amount: {log: [800, 3000]}, entry: {typed: 0.7, qr: 0.2, contact: 0.1}, round: 0.4,
+          pressure: 0.6, mule: same}
+  - id: payout
+    when: rewards
+    gap_min: [20, 120]
+    crew_pays: {amount: {of: prev, x: [1.1, 1.4]}}
+  - id: escalate
+    gap_min: {log: [120, 1200]}
+    ask: {amount: {of: prev, x: [1.8, 3.0]}, repeat: {int: [2, 4]}, entry: {typed: 0.75, qr: 0.25},
+          round: 0.4, pressure: 0.7, mule: rotate}
+  - id: withdraw_fee
+    gap_min: {log: [120, 1440]}
+    ask: {amount: {of: total, x: [0.5, 1.5]}, entry: {typed: 1.0}, round: 0.5, pressure: 0.9, mule: rotate}
