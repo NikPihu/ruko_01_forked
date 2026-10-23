@@ -14,7 +14,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `ml/` | Diwansu Pilania | Training replay, the LightGBM server scorer (`model/predict.py`), the on-device model (`device_model.json`), the lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
-| `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
+| `docs/` | shared | `flows.md` (what happens, in order), `features/*.md` (one page per feature), `ml-asks.md`, design briefs (`task-scam-watcher.md`) |
 
 Branches: `android/*`, `backend/*`, `ml/*`, `data/*`, or `feature/*` for cross-folder work.
 Merge to `main` by pull request. Keep `main` runnable.
@@ -140,8 +140,11 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Reads (analyst console): `GET /v1/transactions`, `/v1/transactions/{id}`,
   `/v1/users/{hash}/timeline`, `/v1/payments/{id}/explain` (scores, every reason with its inputs and
   strength, every playbook rule checked, policy steps, sources, what the user saw),
-  `/v1/metrics/alerts` (alert health), `/v1/store/stats`. Console pages: Transactions, Payment
-  explanation (linking graph), Alert health card on Overview.
+  `/v1/metrics/alerts` (alert health), `/v1/store/stats`.
+- Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
+  Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
+  bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
+  dismiss), Evaluation (episode, graph, AI-written messages), Explore.
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs
@@ -215,8 +218,12 @@ mind. Offline episode features for training:
 
 **Backend** (`backend/`)
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
-  evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
-  `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
+  evidence; also `/v1/episode`, `/v1/payment/outcome`, `/v1/feedback`, `/v1/watch`,
+  `/v1/me/payments`, `/v1/cases`, `/v1/alerts`, `/v1/eval` (episode, graph, `ai_lures`),
+  `/v1/graph/*` (incl. `suspects`, `rings`, `rings/{id}`), `/v1/transactions*`,
+  `/v1/payments/{id}/explain`, `/v1/users/{hash}/timeline`, `/v1/metrics/alerts`,
+  `/v1/patterns/emerging` + `/v1/patterns/{id}/review`, `/v1/demo/run` + `/v1/demo/results`,
+  `/v1/store/stats`, `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
 - Scorer: `python -m api.main --scorer ml` (default) runs the trained model `ml/model/predict.py`
   (`lgbm-*`, needs LightGBM from `ml/requirements.txt`; the dev scripts install it) and falls back
   to `api/rule_scorer.py` (`rules-0.7`, hand-set) if it cannot load; `--scorer rules` forces the
@@ -236,8 +243,13 @@ mind. Offline episode features for training:
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
   → coached-session signs), `user_baseline.py` (history before the payment only),
   `offline_episode.py`.
-- `graph/store.py` (crowd signal, money loop, story for the console, one `Payment` per payment id
-  with its decision and outcome), `graph/discover.py`.
+- `graph/store.py` (crowd signal, money loop, bot-scale `automation` with `policy.yaml`
+  `automation:`, story for the console, one `Payment` per payment id with its decision and
+  outcome), `graph/discover.py` (suspects, two-analyst approval, rings, `hub_score`, `ring_view`).
+- `store/` (transaction database, export), `api/explain.py`, `api/feedback.py` (feedback, alert
+  health), `patterns/emerging.py` (A4, thresholds in `policy.yaml` `emerging:`), `demo/agents.py`
+  (scripted victims for every scam type), `evalsuite/ai_lures.py` (A3, AI-written scam messages
+  test). Each has a page in `docs/features/`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
 - `schema/events.py` is the source of truth for the contract; `evidence/store.py` is the
