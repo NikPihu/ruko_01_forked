@@ -17,7 +17,7 @@ contacts, rule 2):
 | Warning | When the phone sends it | Also needs | Server stage |
 |---|---|---|---|
 | `lure_seen` (tag, confidence, `sms` or `notification`, `ai_written`) | a new SMS or chat message matches a scam script with confidence 0.6+ | SMS scam check / Check chat messages | S1 contacted |
-| `long_unknown_call` (kind, minutes) | a call of 15+ minutes ends, and the caller is not a contact (or an unseen VoIP caller) | Call checks | S2 hooked |
+| `long_unknown_call` (kind, minutes) | a call of 15+ minutes ends, and the caller is not a contact (or an unseen VoIP caller) | Call signals | S2 hooked |
 | `remote_access_on` | a screen-sharing app was installed in the last day (checked when the app opens) | App checks | S3 under control |
 | `sideload` | an app from outside the store in the last 24 h | App checks | S3 under control |
 

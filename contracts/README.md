@@ -217,7 +217,7 @@ server's tracker reads the same file, rule 6):
   the apps in `chat_apps`) with a scam tag at `lure_min_conf` or more; the same tag is not repeated
   within `lure_repeat_quiet_min`.
 - `long_unknown_call`: when a call of `long_call_min` minutes or more ends and the caller is not a
-  contact (or a VoIP caller nobody knows), as the tracker counts "unknown". Needs "Call checks".
+  contact (or a VoIP caller nobody knows), as the tracker counts "unknown". Needs "Call signals".
 - `remote_access_on`: a remote access app installed within `device_recent_hours`; `sideload`: an
   app from outside the store in the last 24 h. Checked when the app opens ("App checks"), at most
   once per `device_repeat_quiet_hours`.

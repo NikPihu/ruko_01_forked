@@ -20,7 +20,7 @@ server. These labels are hints and never change a payment's tier (rules 2, 5, 10
    "Check chat messages" on) matches a scam script. It says which kind, and adds "It also looks
    AI-written" when known. It never quotes the message. Tapping it opens Message check.
 3. **"A code arrived while you are on a call" notification.** It appears when an OTP arrives during
-   a call. This needs "SMS scam check" and "Call checks".
+   a call. This needs "SMS scam check" and "Call signals".
 
 **How it works.**
 - **The checks:** `signals/MessageCheck.kt` holds them:

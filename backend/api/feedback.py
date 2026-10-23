@@ -116,5 +116,6 @@ def alert_health(store: TxnStore) -> dict:
     out["interruptions_per_1000_checks"] = round(1000 * interrupted / checks, 2) if checks else None
     out["actions"] = dict(actions)
     out["i_know_them"] = dict(know)
+    out["watch"] = store.watch_counts()      # early warnings from phones, by kind
     out["lures"] = store.lure_counts()   # scam messages phones saw before paying, and how many looked AI-written
     return out

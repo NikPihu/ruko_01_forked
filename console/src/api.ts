@@ -250,6 +250,8 @@ export interface AlertHealth {
   interruptions_per_1000_checks: number | null;
   actions: Record<string, number>;
   i_know_them: { accepted?: number; refused?: number };
+  watch?: Record<string, number>;
+  lures?: { lures_seen: number; ai_written: number };
 }
 
 export interface RingAccount {
