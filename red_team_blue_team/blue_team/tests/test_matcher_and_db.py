@@ -4,7 +4,7 @@ import yaml
 
 from api import rule_scorer
 from blue_team import matcher, playbook_db, tokens
-from conftest import features
+from bt_helpers import features
 
 LEAF = {"feature": "on_call", "op": "is", "value": True}
 
