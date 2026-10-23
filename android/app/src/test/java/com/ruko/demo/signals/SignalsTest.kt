@@ -20,6 +20,12 @@ class SignalsTest {
     }
 
     @Test
+    fun charWbSplitsOnUnicodeWhitespaceLikePython() {
+        // "a b c\nd".split() in Python gives four words; so must the phone.
+        assertEquals(charWbNgrams("a b c d", 3, 3), charWbNgrams("a b c\nd", 3, 3))
+    }
+
+    @Test
     fun linearModelPicksTheHeavierClass() {
         val model = LureModel(
             version = "test",
