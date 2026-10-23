@@ -320,6 +320,12 @@ class TxnStore:
                                  "AND detail LIKE '%\"ai_written\": true%'").fetchone()[0]
         return {"lures_seen": seen, "ai_written": ai}
 
+    def watch_counts(self) -> dict:
+        """Early warnings the phones sent (POST /v1/watch), by kind."""
+        with self.lock:
+            rows = self.db.execute("SELECT kind, COUNT(*) FROM watch_events GROUP BY kind").fetchall()
+        return {k: n for k, n in rows}
+
     def feedback_for(self, payment_id: str) -> list[dict]:
         with self.lock:
             rows = self.db.execute("SELECT * FROM feedback WHERE payment_id = ? ORDER BY ts", [payment_id]).fetchall()

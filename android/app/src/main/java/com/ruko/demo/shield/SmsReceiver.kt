@@ -18,7 +18,7 @@ import com.ruko.demo.ui.scamTagRes
  * SMS_RECEIVED wakes the app even when it is not running (the broadcast is on Android's exempt
  * list). Bank alerts are parsed here and handed to EpisodeWorker; the text is never stored.
  * Also: a one-time code (OTP) that arrives during a call gets a full warning, with "SMS scam
- * check" and "Call checks" on (A5). Ships disabled; ShieldController enables it when "Watch my
+ * check" and "Call signals" on (A5). Ships disabled; ShieldController enables it when "Watch my
  * money alerts" or "SMS scam check" is switched on.
  */
 class SmsReceiver : BroadcastReceiver() {

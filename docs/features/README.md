@@ -17,5 +17,6 @@ of events across features is in [`../flows.md`](../flows.md).
 | AI-written scam messages test | server, console | [ai-written-lures.md](ai-written-lures.md) |
 | Demo agents | server, console | [demo-agents.md](demo-agents.md) |
 
+How to try all of it on a device: [`../testing-on-device.md`](../testing-on-device.md).
 Older design briefs: [`../task-scam-watcher.md`](../task-scam-watcher.md) (the phone's task-scam
 watcher). What the ML models must deliver: [`../ml-asks.md`](../ml-asks.md).

@@ -206,3 +206,16 @@ def test_watch_thresholds_come_from_the_shared_rules_file():
     assert tracker.LURE_MIN_CONF == rules["lure_min_conf"]
     app_copy = Path(__file__).resolve().parents[2] / "android" / "app" / "src" / "main" / "assets" / "watch_rules.json"
     assert json.loads(app_copy.read_text(encoding="utf-8")) == rules
+
+
+def test_alert_health_counts_early_warnings_by_kind():
+    """The console's Alert health card shows which early warnings phones sent (by kind)."""
+    from datetime import datetime, timezone
+
+    from store.db import TxnStore
+
+    s = TxnStore()
+    now = datetime.now(timezone.utc).isoformat()
+    for i, kind in enumerate(["lure_seen", "lure_seen", "long_unknown_call"]):
+        s.record_watch(f"e{i}", "u_demo", kind, {"ai_written": True} if i == 0 else {}, now)
+    assert s.watch_counts() == {"lure_seen": 2, "long_unknown_call": 1}

@@ -114,6 +114,11 @@ const ACTION_TEXT: Record<string, string> = {
 };
 
 /** How people respond to alerts (aggregates only): the alert-fatigue check. */
+const WATCH_TEXT: Record<string, string> = {
+  lure_seen: "scam messages seen", long_unknown_call: "long calls with unknown callers",
+  remote_access_on: "screen-sharing apps installed", sideload: "apps from outside the store",
+};
+
 function AlertHealthCard({ h }: { h: AlertHealth }) {
   const tiers = ["T1", "T2", "T3", "T4"].filter((t) => h.tiers[t]?.shown);
   const actions = Object.entries(h.actions).sort((a, b) => b[1] - a[1]);
@@ -130,6 +135,12 @@ function AlertHealthCard({ h }: { h: AlertHealth }) {
       <p className="ink2" style={{ margin: "12px 0 0" }}>
         {actions.length ? <>On alerts, people {actions.map(([a, n]) => `${ACTION_TEXT[a] ?? a} (${n})`).join(", ")}.</> : "No alert feedback from phones yet."}
         {(h.i_know_them.accepted || h.i_know_them.refused) ? <> "I know this person": {h.i_know_them.accepted ?? 0} accepted, {h.i_know_them.refused ?? 0} refused (someone may control the phone, the payee looks like a mule, or it is on a list).</> : null}
+      </p>
+      <p className="ink2" style={{ margin: "8px 0 0" }}>
+        {h.watch && Object.keys(h.watch).length
+          ? <>Early warnings from phones before paying: {Object.entries(h.watch).map(([k, n]) => `${WATCH_TEXT[k] ?? k} (${n})`).join(", ")}
+              {h.lures?.ai_written ? `; ${h.lures.ai_written} of the scam messages looked AI-written` : ""}.</>
+          : "No early warnings from phones yet (they need the \"Early warnings\" switch on the phone)."}
       </p>
     </Card>
   );
