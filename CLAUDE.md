@@ -11,7 +11,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
-| `ml/` | Diwansu Pilania | Training data replay, server model (`model/predict.py`), on-device model (`device_model.json`), lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
+| `ml/` | Diwansu Pilania | Training replay, the LightGBM server scorer (`model/predict.py`), the on-device model (`device_model.json`), the lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
 | `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
@@ -67,7 +67,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (and later LightGBM) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2`) decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -116,6 +116,21 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   `contracts/c2_payment_outcome.schema.json`. Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
 
+## Which scorer runs
+`api/main.py` scores with the trained model by default (`--scorer ml`): `ml/model/predict.py`
+(`lgbm-0.2`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
+family's `build_features` inputs, including the phone's verdict scores `device_c/l/b`; isotonic
+calibration; a logistic combiner; reasons taken in turns from the lit families; the rules engine's
+playbook matcher). If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
+`api/rule_scorer.py` (`rules-0.7`); `--scorer rules` forces the rules. `GET /health` and evidence
+records report the active scorer's version. `scripts/dev.ps1` / `dev.sh` install LightGBM from
+`ml/requirements.txt`, so the demo runs the trained model. `python -m serve` (`ml/serve.py`) still
+works and does the same.
+
+Held-out world (`dev_test`) through the real policy: 93.7% of scam payments interrupted vs 85.1%
+for `rules-0.7`, 0 vs 6.1 legit interruptions per 1,000 (inflated: the simulated world is too easy,
+see `data/eval/realism/FINDINGS.md`). Details in `ml/PLAN.md` §0.
+
 ## Run it (Windows)
 
 ```powershell
@@ -139,8 +154,8 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
-.venv/Scripts/python -m pytest ml/tests -q               # ML (needs: pip install -r ml/requirements.txt)
+.venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
@@ -199,6 +214,18 @@ mind. Offline episode features for training:
   `assets/device_model.json`, c2-0.8; must match `ml/model/artifacts/`), `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
   encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
+
+**ML** (`ml/`, on the path as `model.*`)
+- `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
+  would have seen them (`phone_view.py` sends the c2-0.8 context, including the phone's
+  `device_verdict`, and replays the payment graph).
+- `model/train.py`, `predict.py` (`lgbm-0.2`), `reasons.py`, `evaluate.py`, `experiments.py`,
+  `metrics.py`, `tune.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier;
+  `model/device/` trains, scores and names the verdict of the on-device model.
+- Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/device_model.json`
+  (+ `device_vectors.json`, `device_feature_vectors.json`, copied to the app's assets),
+  `v0/policy_proposal_*.yaml`, `model/artifacts/lure.json` (+ `lure_metrics.json`,
+  `lure_vectors.json`); `v1/` is empty.
 
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
