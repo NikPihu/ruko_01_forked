@@ -2,9 +2,9 @@
 
     PYTHONPATH=backend;ml;data python -m serve --data data --port 8000 [--demo-clock]
 
-Same app and arguments as `python -m api.main`; only `app.state.score` (the engine's swap point)
-becomes model.predict.score. Evidence records carry the model's version. `/health` still names
-the rules version until backend reports the active scorer (ml/PLAN.md §12, Jagdeep).
+Same app and arguments as `python -m api.main`, which now runs this model by default too
+(`--scorer ml`); unlike it, this fails at start instead of falling back to the rules when the model
+cannot load. `/health` and evidence records carry the model's version.
 """
 from __future__ import annotations
 
@@ -26,8 +26,8 @@ def main() -> None:
     a = p.parse_args()
     app = create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
                      discover_every_s=3600)
-    predict.load()  # fail at start, not on the first payment, if the model file is missing
-    app.state.score = predict.score
+    model = predict.load()  # fail at start, not on the first payment, if the model file is missing
+    app.state.score, app.state.model_version = predict.score, model.version
     uvicorn.run(app, host="0.0.0.0", port=a.port)
 
 
