@@ -11,7 +11,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 | `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
-| `ml/` | Diwansu Pilania | Training data replay, model experiments, lure classifier (`lure.json` trained); plan and status in `ml/PLAN.md` |
+| `ml/` | Diwansu Pilania | Training replay, the LightGBM server scorer (`model/predict.py`, served by `ml/serve.py`), the lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
 | `data/` | Nikunj Santosh Tangle | Simulator (`sim/`), evaluation (`eval/`), generated datasets |
 | `contracts/` | shared | Published contract, generated from `backend/schema/events.py` |
 | `docs/` | shared | Design briefs, e.g. `task-scam-watcher.md` (built; build notes in its §12) |
@@ -64,7 +64,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (and later LightGBM) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.6`) or the LightGBM scorer (`lgbm-0.1`) decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -103,6 +103,24 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   `contracts/c2_payment_outcome.schema.json`. Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
 
+## Which scorer runs
+`api/main.py` scores with `api/rule_scorer.py` (`rules-0.6`) by default. The trained model is a
+drop-in for the same `score(features)` shape and is switched in through the engine's swap point
+`app.state.score`:
+
+```powershell
+$env:PYTHONPATH="backend;ml;data"; .venv\Scripts\python -m serve --data data --port 8000 --demo-clock
+```
+
+`ml/serve.py` takes the same arguments as `api.main` and loads
+`ml/model/artifacts/v0/server_model.json` at start (one LightGBM per family on that family's
+`build_features` inputs, isotonic calibration, a logistic combiner, reasons from lit families, the
+rules engine's playbook matcher). `/health` still reports the rules version even then (open ask to
+Jagdeep in `ml/PLAN.md` §12); evidence records carry the model's version. `scripts/dev.ps1` still
+starts the rules engine. Held-out world through the real policy: 94.7% of scam payments interrupted
+vs 82.1% for `rules-0.6`, 0 vs 6.1 legit interruptions per 1,000 (inflated: the simulated world is
+too easy, see `data/eval/realism/FINDINGS.md`).
+
 ## Run it (Windows)
 
 ```powershell
@@ -127,7 +145,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 157 tests (with PYTHONPATH set)
-.venv/Scripts/python -m pytest ml/tests -q               # ML (needs: pip install -r ml/requirements.txt)
+.venv/Scripts/python -m pytest ml/tests -q               # 44 tests (needs: pip install -r ml/requirements.txt)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
 ```
 
@@ -136,9 +154,7 @@ compileSdk 37, targetSdk 34, minSdk 26. The system `java` (Java 8) does not work
 `android/local.properties` (not committed) needs `sdk.dir` and optionally `API_BASE_URL`
 (or set `ANDROID_HOME` to the SDK folder instead).
 
-`ml/tests` is broken on `main` as of 2026-10-22: `ml/dataset/phone_view.py` still imports
-`MoneySignal`, which was removed from the contract in c2-0.4 (owner: Diwansu). Fix it there,
-not by bringing `money` back.
+All three suites pass on `main` as of 2026-10-23 (`5fc81a7`).
 
 Functional backend tests that need the payee to be recognised should not depend on machine speed:
 use generous time limits like the `engine` fixture in `test_session.py` (intel budget and
@@ -161,7 +177,7 @@ mind. Offline episode features for training:
 - `api/main.py`: decide path tracker → intel (150 ms, parallel) → features → score → policy →
   evidence; also `/v1/episode`, `/v1/cases`, `/v1/alerts`, `/v1/eval`, `/v1/graph/*`,
   `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
-- `api/rule_scorer.py` (`rules-0.6`, hand-set fallback until `ml/model/predict.py` exists),
+- `api/rule_scorer.py` (`rules-0.6`, the default scorer; `ml/model/predict.py` is the trained drop-in),
   `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
   applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
   and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),
@@ -183,6 +199,14 @@ mind. Offline episode features for training:
   encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
   "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
 
+**ML** (`ml/`, on the path as `model.*`)
+- `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
+  would have seen them (`phone_view.py` sends the c2-0.7 context and replays the payment graph).
+- `model/train.py`, `predict.py` (`lgbm-0.1`), `reasons.py`, `evaluate.py`, `experiments.py`,
+  `metrics.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier.
+- Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `model/artifacts/lure.json`
+  (+ `lure_metrics.json`, `lure_vectors.json`); `v1/` is empty.
+
 **Data** (`data/`)
 - `sim/generate.py` builds the world (`sim/extras.py` adds hard negatives on a separate random
   stream so the core world and demo identities never shift; `sim/session.py` adds Pay-screen
@@ -203,7 +227,8 @@ mind. Offline episode features for training:
 
 ## Not built yet
 Real T1 to T4 alert screens (the decision screen is a placeholder), feedback endpoint and buttons,
-the trained server model (`ml/model/predict.py`; the engine still uses `rules-0.6`), copying
+making the trained scorer the default (`dev.ps1` and `api.main` still run `rules-0.6`; use
+`python -m serve`) and reporting the active scorer in `/health`, copying
 `ml/model/artifacts/lure.json` into `android/app/src/main/assets/` (the app still uses its keyword
 fallback), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
