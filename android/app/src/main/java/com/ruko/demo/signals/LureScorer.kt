@@ -36,7 +36,10 @@ data class LureModel(
 class LinearLureClassifier(private val model: LureModel) : LureClassifier {
     override val version: String = model.version
 
-    override fun classify(text: String): LureHit {
+    override fun classify(text: String): LureHit = scamHit(model.classes, probabilities(text))
+
+    /** The probability of each of the model's classes, in `classes` order. */
+    fun probabilities(text: String): List<Double> {
         val counts = HashMap<Int, Int>()
         val input = if (model.lowercase) text.lowercase() else text
         for (gram in charWbNgrams(input, model.ngramRange[0], model.ngramRange[1])) {
@@ -45,10 +48,15 @@ class LinearLureClassifier(private val model: LureModel) : LureClassifier {
         }
         val weights = counts.mapValues { (index, count) -> count * model.idf[index] }
         val norm = sqrt(weights.values.sumOf { it * it })
-        val scores = model.classes.indices.map { k ->
+        val scores = model.coef.indices.map { k ->
             model.intercept[k] + if (norm == 0.0) 0.0 else weights.entries.sumOf { (i, w) -> model.coef[k][i] * w / norm }
         }
-        return scamHit(model.classes, softmax(scores))
+        // Two classes: scikit-learn keeps one row and uses the sigmoid for classes[1].
+        if (scores.size == 1) {
+            val p = 1.0 / (1.0 + exp(-scores[0]))
+            return listOf(1.0 - p, p)
+        }
+        return softmax(scores)
     }
 
     companion object {

@@ -20,6 +20,7 @@ import java.util.Locale
 object ShieldNotifier {
     const val CHANNEL = "scam_shield_alerts"
     private const val CONFIRMED_ID = 200
+    private const val OTP_ON_CALL_ID = 300
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -40,6 +41,12 @@ object ShieldNotifier {
     fun showConfirmed(context: Context, language: String?) {
         val c = localized(context, language)
         post(context, CONFIRMED_ID, c.getString(R.string.shield_confirmed_title), c.getString(R.string.shield_confirmed_text))
+    }
+
+    /** An OTP arrived while a call is going on: whoever asks for it on the call is a scammer (A5). */
+    fun showOtpOnCall(context: Context, language: String?) {
+        val c = localized(context, language)
+        post(context, OTP_ON_CALL_ID, c.getString(R.string.msg_otp_call_title), c.getString(R.string.msg_otp_call_text))
     }
 
     fun post(context: Context, id: Int, title: String, body: String) {

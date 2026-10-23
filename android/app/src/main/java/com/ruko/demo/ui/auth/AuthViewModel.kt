@@ -240,6 +240,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 store.saveProfile(newProfile)
                 store.saveConsents(agreed)
                 if (agreed.moneyWatch) ShieldController.enable(getApplication())
+                ShieldController.syncReceiver(getApplication(), agreed)
             }
             profile = newProfile
             consents = agreed
@@ -312,6 +313,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             // The background watcher follows its switch; off also deletes the money history.
             if (new.moneyWatch && !old.moneyWatch) ShieldController.enable(getApplication())
             if (!new.moneyWatch && old.moneyWatch) ShieldController.disable(getApplication())
+            ShieldController.syncReceiver(getApplication(), new)
             // Switching sharing off deletes anything still waiting to be sent.
             if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
         }

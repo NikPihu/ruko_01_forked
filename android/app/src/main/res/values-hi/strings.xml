@@ -183,4 +183,30 @@
     <string name="debug_alert_preview">अलर्ट स्क्रीन देखें</string>
     <string name="debug_alert_preview_note">सर्वर के बिना, एक नमूना जवाब के साथ हर स्क्रीन दिखाता है। रुकने का समय 1 मिनट है ताकि आप उसे खत्म होते देख सकें।</string>
     <string name="debug_alert_info">अलर्ट पर समय और मैसेज की दिखाएँ</string>
+
+    <!-- Message check (A5) -->
+    <string name="home_message_check">मैसेज जाँच</string>
+    <string name="msg_title">मैसेज जाँच</string>
+    <string name="msg_note">पिछले 3 दिनों के आपके SMS, इसी फ़ोन पर जाँचे गए। मैसेज फ़ोन से बाहर नहीं जाते।</string>
+    <string name="msg_consent_off">मैसेज जाँचने के लिए प्रोफ़ाइल में \"SMS स्कैम जाँच\" चालू करें। आपके चुनने तक यह बंद रहता है।</string>
+    <string name="msg_open_profile">प्रोफ़ाइल खोलें</string>
+    <string name="msg_permission">Cache Pay को SMS पढ़ने दें, ताकि मैसेज इसी फ़ोन पर जाँचे जा सकें।</string>
+    <string name="msg_allow">अनुमति दें</string>
+    <string name="msg_checking">आपके मैसेज जाँचे जा रहे हैं…</string>
+    <string name="msg_empty">पिछले 3 दिनों में कोई SMS नहीं।</string>
+    <string name="msg_summary">%1$d मैसेज जाँचे, %2$d में चेतावनी</string>
+    <string name="msg_refresh">फिर से जाँचें</string>
+    <string name="msg_label_scam">स्कैम स्क्रिप्ट जैसा: %1$s</string>
+    <string name="msg_label_ai">AI से लिखा लगता है</string>
+    <string name="msg_label_otp">OTP: किसी को न बताएं</string>
+    <string name="msg_label_none">कोई चेतावनी नहीं</string>
+    <string name="msg_ai_note">ठग अब AI से ऐसे साफ़-सुथरे, जल्दबाज़ी वाले मैसेज लिखते हैं। यह सिर्फ़ संकेत है, सबूत नहीं: भेजने वाले से किसी और तरीके से पुष्टि करें।</string>
+    <string name="msg_otp_call_title">कॉल के दौरान एक कोड आया है</string>
+    <string name="msg_otp_call_text">कॉल पर जो भी यह कोड माँगे, वह ठग है। बैंक, पुलिस और कंपनियाँ कभी OTP नहीं माँगतीं। कोड न बताएं; कॉल काट दें।</string>
+    <string name="msg_tag_arrest_threat">नकली पुलिस या गिरफ़्तारी की धमकी</string>
+    <string name="msg_tag_kyc">नकली KYC या खाता बंद</string>
+    <string name="msg_tag_refund">नकली रिफ़ंड</string>
+    <string name="msg_tag_task_job">नकली टास्क या नौकरी</string>
+    <string name="msg_tag_trading_tip">नकली निवेश टिप</string>
+    <string name="msg_tag_other">जाना-पहचाना स्कैम</string>
 </resources>

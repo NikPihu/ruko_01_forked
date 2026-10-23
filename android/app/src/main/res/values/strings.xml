@@ -402,4 +402,30 @@
     <string name="debug_alert_preview">Preview alert screens</string>
     <string name="debug_alert_preview_note">Shows each screen with a sample answer, without the server. The pause is 1 min so you can watch it end.</string>
     <string name="debug_alert_info">Show latency and message key on alerts</string>
+
+    <!-- Message check (A5) -->
+    <string name="home_message_check">Message check</string>
+    <string name="msg_title">Message check</string>
+    <string name="msg_note">Your SMS from the last 3 days, checked on this phone. Messages never leave it.</string>
+    <string name="msg_consent_off">Turn on \"SMS scam check\" in your profile to check your messages. It is off until you choose it.</string>
+    <string name="msg_open_profile">Open profile</string>
+    <string name="msg_permission">Allow Cache Pay to read SMS so messages can be checked on this phone.</string>
+    <string name="msg_allow">Allow</string>
+    <string name="msg_checking">Checking your messages…</string>
+    <string name="msg_empty">No SMS in the last 3 days.</string>
+    <string name="msg_summary">%1$d messages checked, %2$d with a warning</string>
+    <string name="msg_refresh">Check again</string>
+    <string name="msg_label_scam">Matches a scam script: %1$s</string>
+    <string name="msg_label_ai">Looks AI-written</string>
+    <string name="msg_label_otp">OTP: never share this</string>
+    <string name="msg_label_none">No warning signs</string>
+    <string name="msg_ai_note">Scammers now use AI to write polished, urgent messages like this. This is a hint, not proof: check with the sender another way.</string>
+    <string name="msg_otp_call_title">A code arrived while you are on a call</string>
+    <string name="msg_otp_call_text">Someone on a call asking for this code is a scammer. Banks, police and companies never ask for an OTP. Do not read it out; hang up.</string>
+    <string name="msg_tag_arrest_threat">fake police or arrest threat</string>
+    <string name="msg_tag_kyc">fake KYC or account block</string>
+    <string name="msg_tag_refund">fake refund</string>
+    <string name="msg_tag_task_job">fake task or job offer</string>
+    <string name="msg_tag_trading_tip">fake investment tip</string>
+    <string name="msg_tag_other">known scam</string>
 </resources>

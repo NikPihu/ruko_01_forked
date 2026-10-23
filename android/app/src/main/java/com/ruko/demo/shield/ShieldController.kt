@@ -99,8 +99,15 @@ object ShieldController {
         )
     }
 
+    /**
+     * The SMS receiver runs while either SMS switch is on: "Watch my money alerts" (bank alerts) or
+     * "SMS scam check" (the OTP-during-a-call warning). Call after any consent change.
+     */
+    fun syncReceiver(context: Context, consents: Consents) = setReceiver(context, consents.moneyWatch || consents.smsLure)
+
     /** On every app start while the switch is on: receiver and the 6-hourly scan, no backfill. */
     fun ensureRunning(context: Context, consents: Consents) {
+        syncReceiver(context, consents)
         if (!isOn(consents)) return
         setReceiver(context, true)
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(

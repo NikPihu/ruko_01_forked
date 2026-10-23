@@ -31,7 +31,12 @@ import com.ruko.demo.net.Context as RequestContext
 /** Runtime permissions each Scam Shield consent needs. App checks need none (manifest <queries>). */
 object ShieldPermissions {
     val CALLS = listOf(READ_PHONE_STATE, READ_CONTACTS, READ_CALL_LOG)
-    val SMS = listOf(READ_SMS)
+    // RECEIVE_SMS and notifications: the warning when an OTP arrives during a call (A5).
+    val SMS = buildList {
+        add(READ_SMS)
+        add(RECEIVE_SMS)
+        if (Build.VERSION.SDK_INT >= 33) add(POST_NOTIFICATIONS)
+    }
     val WATCH = buildList {
         add(RECEIVE_SMS)
         add(READ_SMS)
@@ -68,6 +73,10 @@ object Signals {
     var classifier: LureClassifier = KeywordLureClassifier
         private set
 
+    /** "Looks AI-written" (assets/ai_text.json, A5); null until Diwansu's model is in the app. */
+    var aiText: AiTextScorer? = null
+        private set
+
     /** The on-device model (assets/device_model.json); null when missing, and then no verdict is sent. */
     var deviceModel: DeviceModel? = null
         private set
@@ -86,6 +95,7 @@ object Signals {
         sensor = ContextSensor(app)
         contacts = ContactBook(app)
         classifier = loadLureModel(app)
+        aiText = MessageScan.loadAiText(app)
         deviceModel = try {
             DeviceModel.parse(app.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
         } catch (e: Exception) {

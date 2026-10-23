@@ -80,8 +80,8 @@ human-style SMS (short, informal, typos, Hinglish, abbreviations), in English, H
 
 | File | What |
 |---|---|
-| `ai_text.json` | the model, scored in plain Kotlin like `lure.json` (char n-gram TF-IDF + logistic regression is fine), with a `version` and a recommended `threshold` |
-| `ai_text_vectors.json` | test texts with expected `probability` (to 1e-6) and `label`, so the app's Kotlin can be checked against Python |
+| `ai_text.json` | the model in the same fields as `lure.json` (`version`, `ngram_range`, `classes`, `vocabulary`, `idf`, `coef`, `intercept`; char_wb TF-IDF + logistic regression), plus `threshold` (recommended) and `positive_class` (the class meaning AI-written, default `"ai"`). Two classes with one `coef` row (scikit-learn's binary form) is fine: the app uses the sigmoid for `classes[1]` |
+| `ai_text_vectors.json` | `{"vectors": [{"text", "probability", "label"}]}`: test texts with expected `probability` (to 1e-6) and `label`, so the app's Kotlin can be checked against Python |
 | a short metrics note | accuracy on held-out phrasings, false "AI-written" rate on human-style SMS, per language |
 
 **Limits:**

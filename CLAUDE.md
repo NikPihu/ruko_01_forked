@@ -182,7 +182,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 89 tests
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 95 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -245,7 +245,12 @@ mind. Offline episode features for training:
   `ReviewScreen`; `AlertText.kt` maps `message_key` to words (unknown key → the tier's generic);
   `PaymentViewModel.onAlertAction` is the one place feedback is sent (`POST /v1/feedback`); "I know
   this person" lightens T3 to the T2 card only when the server answers `trusted_accepted`. Alerts use the
-  profile language. Hindi strings in `res/values-hi/`.
+  profile language. `ui/MessageCheckScreen.kt` + `signals/MessageCheck.kt` (A5, Home chip "Message
+  check"): the last 3 days of SMS labelled on the phone ("matches a scam script" from `lure.json`,
+  "looks AI-written" from `assets/ai_text.json` only for personal senders and 12+ words, hidden
+  until that model exists, "OTP: never share this"); an OTP during a call gets a full warning, and
+  `SmsReceiver` posts it as a notification live ("SMS scam check" + "Call checks" on). Nothing is
+  sent. Hindi strings in `res/values-hi/`.
 
 **ML** (`ml/`, on the path as `model.*`)
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
@@ -280,7 +285,7 @@ mind. Offline episode features for training:
 ## Not built yet
 Pause enforcement and `pause_until` (the app
 counts `pause_minutes` from the answer), T4 review polling (no review endpoint), the app's
-"Message check" screen (A5), the app side of watch events (`/v1/watch` exists on the server), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+the "looks AI-written" model (`ai_text.json`, Diwansu), the app side of watch events (`/v1/watch` exists on the server), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).
