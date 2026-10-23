@@ -103,11 +103,13 @@ def discover(g: GraphStore, reviews: dict[str, Review], now: datetime, min_band:
         why, path = _why(g, w, n, seed, hubs)
         e_first = [e.first_ts for (a, b), e in g.edges.items() if (a == n or b == n) and e.first_ts]
         rv = reviews.get(n)
+        auto = g.automation(n, now)
         out.append({
             "upi_id": n, "band": band, "score": round(rel, 3),
             "why": why, "evidence_path": path, "ring_id": rings.get(n),
             "is_hub": n in hubs, "first_seen": min(e_first).isoformat() if e_first else None,
             "registry_listed": bool(g.marks.get(n, {}).get("listed")),
+            "automated": bool(auto["automated"]), "automation_why": auto.get("why"),
             "review": {"approved_by": sorted(rv.approved_by), "rejected_by": sorted(rv.rejected_by),
                        "approved": rv.approved} if rv else {"approved_by": [], "rejected_by": [], "approved": False},
         })

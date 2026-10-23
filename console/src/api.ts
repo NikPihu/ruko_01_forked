@@ -56,6 +56,8 @@ export interface Suspect {
   is_hub: boolean;
   first_seen: string | null;
   registry_listed: boolean;
+  automated?: boolean;            // bot-scale: same amount to/from many people at a steady rhythm
+  automation_why?: string | null;
   review: Review;
 }
 

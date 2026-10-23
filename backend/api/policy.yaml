@@ -55,3 +55,14 @@ session:
 # Alert feedback (c2-0.8): what users do on alert screens.
 feedback:
   per_user_per_day: 30           # more than this from one user in a day is not recorded
+
+# Bot-scale fingerprints (graph/store.py `automation`): AI chatbots and scripts run task scams and
+# mule networks at machine scale. An account is "automated" when, in the window, one side of it
+# (rewards sent, or payments received) has at least min_users distinct RUKO users, per-user amounts
+# within max_amount_spread (std / median) and steady arrivals (gap std / median <= max_gap_spread).
+# Payee family only (reason R11); never enough to interrupt on its own.
+automation:
+  window_days: 7
+  min_users: 8
+  max_amount_spread: 0.10
+  max_gap_spread: 0.35
