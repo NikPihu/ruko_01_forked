@@ -1,0 +1,28 @@
+name: fake_medical_equipment_oxygen_rental
+title: 'Fake medical supply store: collects home oxygen/wheelchair refundable deposit via high-slot merchant QR'
+confidence: guess
+emerging: true
+sources: [Medical equipment rental advance fraud advisories]
+weight: 0.06
+targets: {senior: 2.2, salaried: 1.8, homemaker: 1.6, shopkeeper: 1.2, gig_worker: 0.8, student: 0.4}
+start_hours: [8, 22]
+mules: {slots: 10}
+mule_kinds: {merchant_disguised: 0.85, slow_forward: 0.15}
+steps:
+- id: supplier_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.8, voip: 0.2}
+    direction: outgoing
+    minutes: [3, 10]
+  decide: {pressure: 0.95}
+- id: cylinder_deposit_qr
+  gap_min: [40, 95]
+  ask:
+    amount:
+      log: [800, 2600]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.2
+    pressure: 0.9
+    mule: same

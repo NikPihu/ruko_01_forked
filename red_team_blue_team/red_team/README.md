@@ -1,29 +1,37 @@
 # Red team
 
-Not built yet. The blue team currently uses the six scam types that `data/sim_v2` marks
-`emerging` (RUKO has no playbook for them) as its red team:
+**Nikunj's 50 breakthrough playbooks** (`playbooks/`, his notes in `NIKUNJ_README.md`, his own scores
+in `nikunj_manifest_and_scores.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
+(YAML in the `data/sim_v2/config/playbooks/` format), never executed: the simulator plays them out
+against simulated users, and RUKO judges every payment as it would live.
 
-| sim_v2 playbook | What it is |
-|---|---|
-| `collect_request` | "approve this request / enter your PIN to receive the money" (UPI collect abuse) |
-| `electricity_disconnection` | "your electricity will be cut tonight, call this officer" SMS, a call, a screen-share app |
-| `loan_fee` | "pre-approved instant loan": processing, insurance and GST fees before a disbursal that never comes |
-| `lottery_prize` | "you won the KBC / company lottery": processing, tax and transfer fees first |
-| `marketplace_buyer` | fake buyer on OLX / Marketplace: a small "test" payment by QR, then a large one |
-| `relative_emergency` | voice-clone call: "Papa, I've been arrested / had an accident, send money now" |
+The tricks they use, as the blue team reads them from each script (`blue_team/redteam.py`):
 
-`python -m blue_team.testworld` builds a world where these are common enough to cluster.
+| Trick | Playbooks | Why it hurts RUKO |
+|---|---|---|
+| QR / contact only | 50 | no typed payee: no R6, no "who are you paying?" |
+| diluted mules (8+ slots, merchant-disguised / rented) | 50 | payee fan-in and MuleHunter signals stay low |
+| notification-only hook (WhatsApp, Telegram, Instagram) | 25 | the phone cannot read it: lure family L stays dark |
+| pays 30+ minutes after the call ends | 15 | no live call at Pay: context family C stays dark |
+| SMS hook scored below 0.6 | 10 | below the lure model's send threshold |
+| tiny anchor payment first | 8 | later payments go to a "known payee" |
+| one bait credit | 5 | the task-scam watcher never turns ACTIVE |
 
-## What the red team should add
+## Use them
 
-New scams as sim_v2 playbook YAML (see `data/sim_v2/config/playbooks/README.md`; a new file is
-picked up with no code change), marked `emerging: true`, ideally AI-powered variants:
+From the blue-team console (`python -m blue_team app`, page **Red team**): *Build the red-team world*
+(a sim_v2 world with RUKO's six known scams plus these 50; sim_v2's own unknown scams are left out),
+then start a run on it, then open **Scorecard**. Or on the command line:
 
-- voice-clone relative with a video call (deepfake) and a hospital story;
-- an AI chatbot "customer care" that dictates amounts in short bursts;
-- deepfake video-KYC "bank officer" asking for a screen share;
-- variants that dodge today's signals: ending the call before paying, splitting into small
-  tranches, paying by QR instead of typing, using an old mule account.
+```bash
+python -m blue_team.testworld --red-team --users 4000 --days 30 --victim-rate 0.8 --seed 41 --out data/sim_v2_out/redteam
+python -m dataset.replay --data data/sim_v2_out/redteam --out ml/data/tables/redteam.parquet --warmup-days 7
+python -m blue_team run --table ml/data/tables/redteam.parquet --data data/sim_v2_out/redteam
+```
 
-The blue team needs nothing else: it reads only the world's tables and the complaints
-(`reports.parquet`), exactly as it would read real 1930 / NCRP complaints.
+The scorecard measures, per playbook, the share of its scam payments RUKO interrupted (next to
+Nikunj's claim), where its complaints went, and whether the blue team drafted a playbook for a group
+it dominates. It is the only place that uses the simulator's answer key.
+
+Adding a playbook: drop a new sim_v2 YAML here (unique `name`, `emerging: true`); the console picks
+it up. The `python -m redteam` runner Nikunj's notes mention is not in this folder.

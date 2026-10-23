@@ -37,8 +37,15 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=21)
     p.add_argument("--victim-rate", type=float, default=0.5, help="share approached per 60 days (train default 0.08)")
     p.add_argument("--emerging-boost", type=float, default=4.0)
+    p.add_argument("--red-team", action="store_true",
+                   help="attack with red_team/playbooks (Nikunj's 50) instead of sim_v2's own emerging scams")
+    p.add_argument("--red-boost", type=float, default=2.0, help="red-team playbook weights x this")
     a = p.parse_args()
-    build(a.out, a.users, a.days, a.seed, a.victim_rate, a.emerging_boost)
+    if a.red_team:
+        from blue_team import redteam
+        redteam.build_world(a.out, a.users, a.days, a.seed, a.victim_rate, a.red_boost)
+    else:
+        build(a.out, a.users, a.days, a.seed, a.victim_rate, a.emerging_boost)
 
 
 if __name__ == "__main__":

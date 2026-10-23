@@ -1,0 +1,47 @@
+name: olx_army_furniture_anchor_drain
+title: 'OLX buyer/seller scam: victim sends ₹50-₹150 ''gate pass'' first (marks mule as known payee), then ₹3,500
+  transport fee'
+confidence: guess
+emerging: true
+sources: [Police advisories on CISF/Army transfer furniture OLX scams, ml/dataset/replay.py paid_before logic]
+weight: 0.09
+targets: {salaried: 1.8, shopkeeper: 1.6, student: 1.6, gig_worker: 1.4, homemaker: 1.2, senior: 0.8}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: olx_whatsapp_quote
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.4, 0.7]
+  decide: {pressure: 0.8}
+- id: cantonment_gate_pass_anchor
+  gap_min: [15, 60]
+  ask:
+    amount:
+      int: [100, 220]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.0
+    pressure: 0.95
+    mule: same
+- id: tempo_freight_advance
+  gap_min: [30, 120]
+  ask:
+    amount:
+      log: [1200, 3800]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.3
+    pressure: 0.9
+    mule: same
+- id: octroi_release_payment
+  p: 0.6
+  gap_min: [60, 240]
+  ask:
+    amount:
+      log: [1500, 4200]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.3
+    pressure: 0.85
+    mule: same

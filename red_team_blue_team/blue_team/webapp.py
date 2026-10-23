@@ -55,6 +55,14 @@ class Reset(BaseModel):
     confirm: str
 
 
+class RedBuild(BaseModel):
+    users: int | None = None
+    days: int | None = None
+    victim_rate: float | None = None
+    red_boost: float | None = None
+    seed: int | None = None
+
+
 def engine_status(card: dict) -> dict:
     """Can this card go into the engine's data/playbooks/playbooks.yaml today, and if not, why not."""
     from schema.events import FraudType
@@ -84,6 +92,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     repo = repo or Path.cwd()
     app = FastAPI(title="RUKO blue team console", docs_url=None, redoc_url=None)
     running: dict = {"thread": None, "run_id": None}
+    building: dict = {"thread": None, "state": "idle", "step": None, "params": None}
 
     def load(name: str) -> tuple[dict, str]:
         try:
@@ -127,6 +136,8 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     def start_run(body: StartRun) -> dict:
         if running["thread"] is not None and running["thread"].is_alive():
             raise HTTPException(409, f"run {running['run_id']} is still going")
+        if building["thread"] is not None and building["thread"].is_alive():
+            raise HTTPException(409, "the red-team world is being built; run after it finishes")
         ws = worlds()
         if not 0 <= body.world < len(ws) or not ws[body.world]["ready"]:
             raise HTTPException(400, "that world's replayed table is not built (see README: testworld + replay)")
@@ -145,12 +156,116 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
 
         # The folder exists before the thread starts, so the timeline can poll it at once.
         (runs / run_id).mkdir(parents=True, exist_ok=True)
-        (runs / run_id / "status.json").write_text(json.dumps({"run_id": run_id, "state": "running", "world": w["data"]}),
-                                                   encoding="utf-8")
+        (runs / run_id / "status.json").write_text(json.dumps({"run_id": run_id, "state": "running", "world": w["data"],
+                                                               "table": w["table"]}), encoding="utf-8")
         t = threading.Thread(target=go, daemon=True, name=f"blue-team-{run_id}")
         running.update(thread=t, run_id=run_id)
         t.start()
         return {"run_id": run_id}
+
+    # ---- red team ------------------------------------------------------------------------------
+    def red_world() -> dict:
+        w = next((w for w in config.load()["console"]["worlds"] if w.get("red_team")), None)
+        if not w:
+            return {}
+        data_dir, table = repo / w["data"], repo / w["table"]
+        meta = read_json(data_dir / "red_team.json", {})
+        info = {"data": w["data"], "table": w["table"], "built": bool(meta), "replayed": table.exists(), "meta": meta}
+        if meta and (data_dir / "journeys.parquet").exists():
+            import pandas as pd
+            j = pd.read_parquet(data_dir / "journeys.parquet", columns=["playbook", "n_payments", "reported"])
+            red = j["playbook"].isin(meta.get("red_team", []))
+            info.update(journeys=int(len(j)), red_journeys=int(red.sum()),
+                        red_types=int(j.loc[red, "playbook"].nunique()), red_paid=int((j.loc[red, "n_payments"] > 0).sum()),
+                        red_reported=int(j.loc[red, "reported"].sum()))
+        return info
+
+    @app.get("/api/redteam")
+    def redteam_info() -> dict:
+        from blue_team import redteam
+        pbs = redteam.load()
+        for p in pbs:
+            pb = p.pop("playbook")
+            p["steps_detail"] = [{"id": s.get("id"), "gap_min": s.get("gap_min"), "events": s.get("events", []),
+                                  "ask": s.get("ask"), "crew_pays": s.get("crew_pays"), "p": s.get("p")}
+                                 for s in pb.get("steps", [])]
+            p["mules"], p["mule_kinds"] = pb.get("mules"), pb.get("mule_kinds")
+        return {"playbooks": pbs, "techniques": redteam.TECHNIQUES, "world": red_world(),
+                "build": build_status(), "defaults": config.load()["console"]["red_team_build"]}
+
+    def build_status() -> dict:
+        log_p = repo / config.load()["console"]["red_team_build"]["log"]
+        tail = log_p.read_text(encoding="utf-8", errors="replace").splitlines()[-25:] if log_p.exists() else []
+        alive = building["thread"] is not None and building["thread"].is_alive()
+        return {"state": "running" if alive else building["state"], "step": building["step"],
+                "params": building["params"], "log": tail}
+
+    @app.get("/api/redteam/build")
+    def redteam_build_status() -> dict:
+        return build_status()
+
+    @app.post("/api/redteam/build")
+    def redteam_build(body: RedBuild) -> dict:
+        import os
+        import subprocess
+        import sys
+        if building["thread"] is not None and building["thread"].is_alive():
+            raise HTTPException(409, "the red-team world is already being built")
+        if running["thread"] is not None and running["thread"].is_alive():
+            raise HTTPException(409, "a blue-team run is going; build after it finishes")
+        d = config.load()["console"]["red_team_build"]
+        prm = {k: getattr(body, k) if getattr(body, k) is not None else d[k] for k in ("users", "days", "victim_rate", "red_boost", "seed")}
+        if not (100 <= prm["users"] <= 20000 and 7 <= prm["days"] <= 60 and 0 < prm["victim_rate"] <= 1 and 0 < prm["red_boost"] <= 10):
+            raise HTTPException(400, "users 100-20000, days 7-60, victim_rate 0-1, red_boost 0-10")
+        w = next(w for w in config.load()["console"]["worlds"] if w.get("red_team"))
+        log_p = repo / d["log"]
+        log_p.parent.mkdir(parents=True, exist_ok=True)
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(["backend", "ml", "data", "red_team_blue_team"]),
+               "PYTHONIOENCODING": "utf-8"}
+        steps = [("building the world with sim_v2", [sys.executable, "-m", "blue_team.testworld", "--red-team",
+                  "--users", str(prm["users"]), "--days", str(prm["days"]), "--victim-rate", str(prm["victim_rate"]),
+                  "--red-boost", str(prm["red_boost"]), "--seed", str(prm["seed"]), "--out", w["data"]]),
+                 ("replaying every payment through RUKO (minutes)", [sys.executable, "-m", "dataset.replay", "--data", w["data"],
+                  "--out", w["table"], "--warmup-days", "7"])]
+
+        def go():
+            with open(log_p, "w", encoding="utf-8") as fh:
+                for step, cmd in steps:
+                    building["step"] = step
+                    fh.write(f"== {step}\n")
+                    fh.flush()
+                    rc = subprocess.run(cmd, cwd=repo, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
+                    if rc:
+                        fh.write(f"== failed with exit code {rc}\n")
+                        building["state"] = "failed"
+                        return
+                fh.write("== done\n")
+            building.update(state="done", step=None)
+
+        t = threading.Thread(target=go, daemon=True, name="red-team-build")
+        building.update(thread=t, state="running", step="starting", params=prm)
+        t.start()
+        return build_status()
+
+    @app.get("/api/runs/{run_id}/scorecard")
+    def scorecard(run_id: str) -> dict:
+        from blue_team import redteam
+        d = run_dir(run_id)
+        cached = d / "scorecard.json"
+        if cached.exists():
+            return read_json(cached)
+        st = read_json(d / "status.json", {})
+        if st.get("state") != "done":
+            raise HTTPException(409, "the run has not finished")
+        world, table = Path(st.get("world", "")), Path(st.get("table", ""))
+        if not world.is_absolute():
+            world, table = repo / world, repo / table
+        if not (world / "journeys.parquet").exists() or not table.exists():
+            raise HTTPException(404, "the run's world or replayed table is gone")
+        res = redteam.scorecard(d, world, table)
+        if "error" not in res:
+            cached.write_text(json.dumps(res, default=str), encoding="utf-8")
+        return res
 
     @app.get("/api/runs/{run_id}/events")
     def events(run_id: str, after: int = 0) -> dict:

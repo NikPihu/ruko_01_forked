@@ -1,0 +1,37 @@
+name: instagram_thrift_boutique_prepay
+title: 'Instagram page selling ethnic wear / sneakers: takes advance QR payment and shipping surcharge, never ships'
+confidence: guess
+emerging: true
+sources: [Cybercrime portal complaints on Instagram shopping & thrift store advance scams]
+weight: 0.08
+targets: {student: 2.2, homemaker: 1.8, salaried: 1.6, gig_worker: 1.0, shopkeeper: 0.6, senior: 0.3}
+start_hours: [10, 23]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: dm_offer
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.65]
+  decide: {pressure: 0.7}
+- id: order_qr
+  gap_min: [20, 120]
+  ask:
+    amount:
+      log: [450, 1900]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.8
+    mule: same
+- id: cod_insurance_hold
+  p: 0.6
+  gap_min: [180, 720]
+  ask:
+    amount:
+      log: [500, 1700]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.2
+    pressure: 0.75
+    mule: same

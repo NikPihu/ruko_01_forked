@@ -1,0 +1,38 @@
+name: courier_customs_cooloff
+title: 'Fake FedEx/DHL customs officer call: coaches victim to hang up and pay duty via QR 40-90 min later'
+confidence: guess
+emerging: true
+sources: [I4C parcel/customs fraud advisories, ml/PLAN.md §3.2 cool-off call evasion]
+weight: 0.08
+targets: {salaried: 2.0, shopkeeper: 1.8, senior: 1.2, homemaker: 1.0, student: 0.8, gig_worker: 0.8}
+start_hours: [9, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.65, rented: 0.25, slow_forward: 0.1}
+steps:
+- id: customs_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.7, voip: 0.3}
+    direction: incoming
+    minutes: [6, 18]
+  decide: {pressure: 0.9}
+- id: clearance_qr
+  gap_min: [45, 110]
+  ask:
+    amount:
+      log: [650, 2400]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.9
+    mule: same
+- id: stamp_duty_followup
+  p: 0.65
+  gap_min: [180, 480]
+  ask:
+    amount:
+      log: [900, 2900]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.25
+    pressure: 0.85
+    mule: same

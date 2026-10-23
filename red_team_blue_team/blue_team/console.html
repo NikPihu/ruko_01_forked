@@ -148,7 +148,7 @@ function evidenceList(ev) {
 // ---------------------------------------------------------------- state
 const who = document.getElementById("analyst");
 who.value = store.get("ruko.analyst"); who.addEventListener("input", () => store.set("ruko.analyst", who.value));
-let runs = [], run = null, pollTimer = null, lastSeq = 0, timeline = [];
+let runs = [], run = null, pollTimer = null, buildTimer = null, lastSeq = 0, timeline = [];
 const cache = {};
 async function data(kind) {
   if (!run) return null;
@@ -171,6 +171,7 @@ document.getElementById("runsel").addEventListener("change", e => { run = e.targ
 
 // ---------------------------------------------------------------- sidebar
 const PAGES = [
+  ["redteam", "Red team", "the attacks (Nikunj's 50)"],
   ["run", "Run & timeline", "start, watch every step"],
   ["complaints", "Complaints", "where the shield broke"],
   ["hdbscan", "HDBSCAN", "grouping the breaches"],
@@ -178,11 +179,12 @@ const PAGES = [
   ["analyst", "Analyst agent", "second opinion"],
   ["playbooks", "Playbooks", "final card · human review"],
   ["database", "Playbook database", "what is stored"],
+  ["scorecard", "Scorecard", "red team vs blue team"],
 ];
 function renderSide(page) {
   const s = document.getElementById("side");
   put(s, el("div", { class: "brand" }, "RUKO blue team"), el("div", { class: "tag" }, "find the scams the shield missed"),
-    PAGES.map(([k, t, sub], i) => el("a", { href: "#/" + k, class: k === page ? "on" : "" }, el("span", { class: "num" }, i), el("span", {}, t, el("span", { class: "sub" }, sub)))),
+    PAGES.map(([k, t, sub], i) => el("a", { href: "#/" + k, class: k === page ? "on" : "" }, el("span", { class: "num" }, i === 0 ? "◆" : i), el("span", {}, t, el("span", { class: "sub" }, sub)))),
     el("div", { class: "foot" }, "Every decision links to its evidence: complaint ids, cluster ids, the agent's tool calls, and config keys in ", el("span", { class: "mono" }, "blue_team/config.yaml"), "."));
 }
 
@@ -193,6 +195,7 @@ async function route() {
   const params = Object.fromEntries(new URLSearchParams(q || ""));
   renderSide(page);
   if (pollTimer && page !== "run") { clearInterval(pollTimer); pollTimer = null; }
+  if (buildTimer && page !== "redteam") { clearInterval(buildTimer); buildTimer = null; }
   const c = document.getElementById("content");
   put(c, el("div", { class: "empty" }, "Loading…"));
   try { put(c, ...await PAGE[page](params)); }
@@ -591,6 +594,119 @@ PAGE.database = async () => {
     el("h2", { style: "margin-top:16px" }, "Known (the engine's list)"),
     d.known.map(k => el("div", { class: "card" }, el("div", { class: "row" }, el("b", {}, k.name)), el("p", {}, k.title),
       el("details", {}, el("summary", {}, "rules, in the engine's order"), k.rules.map((r, i) => el("div", {}, el("span", { class: "mono" }, `priority ${r.priority}: ${r.in_words}`), el("div", { style: "font-size:12.5px;color:var(--muted)" }, "why: " + (k.why[i] || "")))))))];
+};
+
+// ---------------------------------------------------------------- red team
+const TECH_SHORT = { cool_off: "pays after the call", notification_lure: "notification-only hook", sub_threshold_sms: "weak SMS hook",
+  anchor_then_drain: "tiny anchor first", single_bait: "one bait credit", non_typed_entry: "QR / contact only", mule_cover: "diluted mules" };
+function spec(s) {
+  if (s === null || s === undefined) return "–";
+  if (typeof s === "number") return String(s);
+  if (Array.isArray(s)) return `${s[0]}–${s[s.length - 1]}`;
+  if (s.log) return `${s.log[0]}–${s.log[1]} (log)`;
+  if (s.int) return `${s.int[0]}–${s.int[1]}`;
+  if (s.of) return `×${spec(s.x)} the ${s.of === "prev" ? "previous ask" : "total so far"}`;
+  return JSON.stringify(s);
+}
+function stepText(s) {
+  const parts = [];
+  if (s.gap_min !== undefined) parts.push(`after ${spec(s.gap_min)} min`);
+  for (const e of s.events || []) parts.push(e.type === "call" ? `call (${e.direction || "?"}, ${spec(e.minutes)} min)` : `${e.type.replace("_", " ")}${e.tag ? " '" + e.tag + "'" : ""}${e.conf ? " conf " + spec(e.conf) : ""}`);
+  if (s.crew_pays) parts.push(`crew pays ₹${spec(s.crew_pays.amount)} ×${s.crew_pays.repeat || 1}`);
+  if (s.ask) parts.push(`asks ₹${spec(s.ask.amount)} by ${Object.keys(s.ask.entry || {}).join("/") || "?"}${s.ask.during_call ? " during the call" : ""}${s.ask.mule ? " to " + s.ask.mule + " mule" : ""}`);
+  if (s.p !== undefined) parts.push(`(happens ${Math.round(s.p * 100)}% of the time)`);
+  return parts.join(" · ");
+}
+PAGE.redteam = async (p) => {
+  const d = await api("/api/redteam");
+  const w = d.world || {}, b = d.build, df = d.defaults;
+  const inputs = { users: el("input", { size: 6, value: df.users }), days: el("input", { size: 4, value: df.days }),
+                   victim_rate: el("input", { size: 4, value: df.victim_rate }), red_boost: el("input", { size: 4, value: df.red_boost }) };
+  const logBox = el("pre", { style: "max-height:260px" }, (b.log || []).join("\n") || "no build yet");
+  const state = el("div", { class: "row" });
+  const msg = el("div");
+  const drawBuild = s => {
+    put(state, chip(s.state, s.state === "done" ? "good" : s.state === "failed" ? "bad" : s.state === "running" ? "warn" : ""), s.step ? el("span", {}, " " + s.step) : null);
+    logBox.textContent = (s.log || []).join("\n") || "no build yet";
+  };
+  drawBuild(b);
+  const startBuild = el("button", { class: "primary", onclick: async () => {
+    try {
+      const body = {}; for (const [k, i] of Object.entries(inputs)) body[k] = Number(i.value);
+      drawBuild(await api("/api/redteam/build", body)); poll();
+    } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  } }, w.built ? "Rebuild the red-team world" : "Build the red-team world");
+  const poll = () => {
+    if (buildTimer) clearInterval(buildTimer);
+    buildTimer = setInterval(async () => {
+      const s = await api("/api/redteam/build"); drawBuild(s);
+      if (s.state !== "running") { clearInterval(buildTimer); buildTimer = null; if (s.state === "done") route(); }
+    }, 2000);
+  };
+  if (b.state === "running") poll();
+  const techCount = {}; for (const pb of d.playbooks) for (const t of pb.techniques) techCount[t] = (techCount[t] || 0) + 1;
+  let open = p.pb || null;
+  const table = el("table", {});
+  const drawTable = () => {
+    put(table, el("tr", {}, ["playbook", "what it pretends to be", "evasion tricks (read from its script)", "Nikunj's claim: ML missed"].map(h => el("th", {}, h))),
+      d.playbooks.map(pb => [el("tr", { class: "click", onclick: () => { open = open === pb.name ? null : pb.name; drawTable(); } },
+        el("td", { class: "mono" }, pb.name), el("td", {}, pb.title), el("td", {}, el("span", { class: "chips" }, pb.techniques.map(x => chip(TECH_SHORT[x] || x)))),
+        el("td", {}, pb.claimed_ml_missed === null ? "–" : pct(pb.claimed_ml_missed))),
+        open === pb.name ? el("tr", {}, el("td", { colspan: 4 },
+          el("div", { style: "font-size:12.5px;color:var(--muted)" }, `weight ${pb.weight} · mule slots ${(pb.mules || {}).slots ?? "default"} · mule kinds ${JSON.stringify(pb.mule_kinds || {})} · file red_team/playbooks/${pb.file}`),
+          el("ol", {}, pb.steps_detail.map(s => el("li", {}, el("b", {}, s.id), " — ", stepText(s)))))) : null]));
+  };
+  drawTable();
+  return [el("h1", {}, "Red team: the attacks"),
+    explain(["Nikunj's ", el("b", {}, "50 breakthrough playbooks"), " (", el("span", { class: "mono" }, "red_team/playbooks/"), "): sim_v2 scam scripts written to slip past RUKO. They are data, never executed: the simulator plays them out against simulated users, and RUKO judges every payment exactly as it would live."],
+      "Each playbook's evasion tricks are read straight from its script (a call followed by a payment 30+ minutes later, a notification-only hook, an SMS hook scored below 0.6, a tiny anchor payment first, a single bait credit, QR/contact only, diluted mules). Nikunj's own scores are his claims; the Scorecard measures them independently.",
+      [el("span", { class: "mono" }, "redteam.py · testworld.py --red-team · red_team/NIKUNJ_README.md")]),
+    el("div", { class: "stats" }, Object.entries(d.techniques).map(([k, v]) => el("div", { class: "stat", title: v }, el("b", {}, techCount[k] || 0), el("span", {}, TECH_SHORT[k] + " — " + v)))),
+    el("div", { class: "card" }, el("h2", {}, "The attack world"),
+      w.built ? el("p", {}, chip("built", "good"), ` ${w.meta.users} users × ${w.meta.days} days, victim rate ${w.meta.victim_rate}, red-team weight ×${w.meta.red_boost}: ${w.journeys} scam journeys, ${w.red_journeys} by the red team (${w.red_types} of 50 playbooks), ${w.red_paid} victims paid, ${w.red_reported} reported. `,
+                       w.replayed ? chip("replayed through RUKO", "good") : chip("not replayed yet", "warn"))
+              : el("p", {}, chip("not built", "warn"), " Build it once; then start a run on it from Run & timeline."),
+      el("p", { style: "color:var(--muted);font-size:13px" }, "A sim_v2 world with RUKO's six known scams plus the 50 red-team playbooks (sim_v2's own unknown scams are left out, so the red team is the only unknown). Then every payment is replayed through RUKO's engine as it was at the time. A few minutes."),
+      el("div", { class: "row" }, "users", inputs.users, "days", inputs.days, "victim rate", inputs.victim_rate, "red-team weight ×", inputs.red_boost, startBuild),
+      msg, state, logBox,
+      w.replayed ? el("p", {}, "Next: ", ref("start a run on the red-team world", "run"), " (pick it in the world list), then open the ", ref("Scorecard", "scorecard"), ".") : null),
+    el("div", { class: "card scroll" }, el("h2", {}, "The 50 playbooks (click one for its script)"), table)];
+};
+
+// ---------------------------------------------------------------- scorecard
+PAGE.scorecard = async () => {
+  if (!run) return noRun();
+  const st = runs.find(r => r.run_id === run) || {};
+  let s;
+  try { s = await api(`/api/runs/${run}/scorecard`); }
+  catch (e) { return [el("h1", {}, "Scorecard"), el("div", { class: "msg err" }, e.message)]; }
+  if (s.error) return [el("h1", {}, "Scorecard"), el("div", { class: "msg err" }, s.error)];
+  const sm = s.summary, rows = s.rows.slice().sort((a, b) => (b.red_team - a.red_team) || (b.complaints - a.complaints));
+  const outcome = r => r.blue_team === "drafted" ? chip("playbook drafted", "good") : r.blue_team === "grouped" ? chip("grouped, not majority", "acc")
+    : r.blue_team === "complaints, no group" ? chip("one-off complaints", "warn") : chip("no complaint yet");
+  const t = el("table", {}, el("tr", {}, ["playbook", "journeys", "scam payments", "RUKO interrupted (measured)", "Nikunj's claim: missed", "complaints (missed / unnamed / held)", "blue team", "drafted playbook · analyst verdict"].map(h => el("th", {}, h))),
+    rows.map(r => el("tr", {},
+      el("td", {}, el("span", { class: "mono" }, r.playbook), r.red_team ? null : el("div", { style: "font-size:12px;color:var(--muted)" }, "known to RUKO (baseline)")),
+      el("td", {}, r.journeys), el("td", {}, r.scam_payments),
+      el("td", {}, r.ruko_interrupted === null ? "–" : pct(r.ruko_interrupted), Object.keys(r.ruko_named).length ? el("div", { style: "font-size:12px;color:var(--muted)" }, "named: " + Object.entries(r.ruko_named).map(([k, v]) => `${k} ×${v}`).join(", ")) : null),
+      el("td", {}, r.red_team && r.claimed !== null && r.claimed !== undefined ? pct(r.claimed) : "–"),
+      el("td", {}, r.complaints ? `${r.complaints} (${r.status.missed || 0} / ${r.status.unnamed || 0} / ${r.status.held || 0})` : "0"),
+      el("td", {}, outcome(r), r.groups.length ? el("div", { style: "font-size:12px" }, r.groups.slice(0, 3).map((g, i) => [i ? ", " : "", ref(g.group, "hdbscan", { c: g.group }), ` (${g.complaints})`])) : null),
+      el("td", {}, r.drafted.length ? r.drafted.map(dd => el("div", {}, ref(dd.playbook, "playbooks", { name: dd.playbook }), " · ", verdictChip(dd.verdict))) : "–"))));
+  return [el("h1", {}, "Scorecard: red team vs blue team"),
+    explain(["For every scam playbook in run ", el("span", { class: "mono" }, run), "'s world: how many of its scam payments RUKO interrupted, how many victims complained and where those complaints went, and whether the blue team drafted a playbook for a group it dominates."],
+      ["This page is the only one that uses the simulator's ", el("b", {}, "answer key"), " (which journey ran which playbook), to grade the run. The pipeline itself never sees it (CLAUDE.md rule 9). A red-team playbook counts as caught when it is the majority of a group the agents drafted a playbook for."],
+      [el("span", { class: "mono" }, "redteam.scorecard() · runs/<id>/payment_tiers.parquet")]),
+    s.is_red_world ? el("div", { class: "stats" },
+      el("div", { class: "stat" }, el("b", {}, `${sm.red_with_journeys}/${sm.red_playbooks}`), el("span", {}, "red-team playbooks that attacked")),
+      el("div", { class: "stat" }, el("b", {}, pct(sm.red_ruko_interrupted)), el("span", {}, `of ${sm.red_scam_payments} red-team scam payments RUKO interrupted`)),
+      el("div", { class: "stat" }, el("b", {}, sm.red_with_complaints), el("span", {}, "red-team playbooks with complaints")),
+      el("div", { class: "stat" }, el("b", {}, sm.red_grouped), el("span", {}, "of them grouped by HDBSCAN")),
+      el("div", { class: "stat" }, el("b", {}, sm.red_drafted), el("span", {}, "got a drafted playbook")),
+      el("div", { class: "stat" }, el("b", {}, sm.red_drafted_new_scam), el("span", {}, "of those judged a new scam by the analyst")))
+      : el("div", { class: "msg err" }, "This run's world is not the red-team world: rows are sim_v2's own scam types. Start a run on the red-team world for the red-team grades."),
+    el("p", { style: "color:var(--muted);font-size:13px" }, `World: ${st.world || "?"}. Complaints arrive days after the scam, so short worlds leave many playbooks without enough complaints to group: that limit is the data's, not the blue team's.`),
+    el("div", { class: "card scroll" }, t)];
 };
 
 // ---------------------------------------------------------------- go

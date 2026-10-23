@@ -1,0 +1,37 @@
+name: pilgrimage_darshan_helicopter_anchor
+title: 'Fake Kedarnath/Tirupati VIP darshan & helicopter booking: ₹150 shrine registration anchor, then ₹2,600 ticket
+  QR'
+confidence: guess
+emerging: true
+sources: [Uttarakhand Police & TTD advisories on fake helicopter/darshan booking portals]
+weight: 0.08
+targets: {senior: 2.4, homemaker: 2.0, salaried: 1.6, shopkeeper: 1.6, gig_worker: 0.8, student: 0.4}
+start_hours: [8, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: yatra_desk_msg
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.85}
+- id: pilgrim_id_anchor
+  gap_min: [15, 60]
+  ask:
+    amount:
+      int: [110, 250]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.1
+    pressure: 0.95
+    mule: same
+- id: heli_shuttle_voucher
+  gap_min: [30, 150]
+  ask:
+    amount:
+      log: [1300, 3400]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.9
+    mule: same

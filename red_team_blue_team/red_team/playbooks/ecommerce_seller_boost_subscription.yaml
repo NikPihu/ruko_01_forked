@@ -1,0 +1,46 @@
+name: ecommerce_seller_boost_subscription
+title: 'Fake Meesho/Flipkart seller-rank booster: 1 small test order payout followed by steady catalog promotion
+  QR fees'
+confidence: guess
+emerging: true
+sources: [Marketplace merchant optimization & task scam advisories]
+weight: 0.07
+targets: {shopkeeper: 2.5, homemaker: 1.8, gig_worker: 1.4, student: 1.2, salaried: 1.0, senior: 0.5}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: seller_hub_notif
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: task_job
+    conf: [0.35, 0.65]
+  decide: {pressure: 0.75}
+- id: trial_order_settlement
+  stage: S2
+  gap_min: [30, 120]
+  crew_pays:
+    amount:
+      int: [180, 350]
+    repeat: 1
+- id: ad_boost_slot_1
+  gap_min: [120, 420]
+  ask:
+    amount:
+      log: [500, 1600]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.85
+    mule: same
+- id: ad_boost_slot_2
+  p: 0.65
+  gap_min: [240, 840]
+  ask:
+    amount:
+      of: prev
+      x: [1.0, 1.3]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.85
+    mule: same

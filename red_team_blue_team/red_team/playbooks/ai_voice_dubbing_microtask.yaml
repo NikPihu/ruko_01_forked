@@ -1,0 +1,46 @@
+name: ai_voice_dubbing_microtask
+title: 'Vernacular voice-recording task bot: 1 small test credit followed by ''studio verification'' QR fees to
+  same payee'
+confidence: guess
+emerging: true
+sources: [AI dataset labeling / dubbing work-from-home task scam reports]
+weight: 0.07
+targets: {student: 2.2, homemaker: 1.8, gig_worker: 1.8, salaried: 1.0, shopkeeper: 0.6, senior: 0.4}
+start_hours: [9, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: dubbing_bot_msg
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: task_job
+    conf: [0.4, 0.7]
+  decide: {pressure: 0.75}
+- id: sample_clip_bonus
+  stage: S2
+  gap_min: [20, 90]
+  crew_pays:
+    amount:
+      int: [100, 220]
+    repeat: 1
+- id: creator_badge_qr
+  gap_min: [90, 360]
+  ask:
+    amount:
+      log: [350, 1100]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.85
+    mule: same
+- id: project_allocation_deposit
+  p: 0.6
+  gap_min: [180, 600]
+  ask:
+    amount:
+      of: prev
+      x: [1.05, 1.35]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.8
+    mule: same

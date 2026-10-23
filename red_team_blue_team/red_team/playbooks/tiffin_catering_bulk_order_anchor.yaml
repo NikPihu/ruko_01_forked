@@ -1,0 +1,38 @@
+name: tiffin_catering_bulk_order_anchor
+title: 'Fake corporate/army canteen bulk food order: asks caterer/shopkeeper to do ₹100 vendor-registration QR test
+  then ₹2,800 security deposit'
+confidence: guess
+emerging: true
+sources: [Police advisories on fake bulk catering / school meal order QR scams]
+weight: 0.08
+targets: {shopkeeper: 2.8, homemaker: 2.0, gig_worker: 1.2, salaried: 0.6, student: 0.4, senior: 0.8}
+start_hours: [9, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: purchase_officer_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.75, voip: 0.25}
+    direction: incoming
+    minutes: [4, 12]
+  decide: {pressure: 0.9}
+- id: vendor_code_anchor
+  gap_min: [40, 95]
+  ask:
+    amount:
+      int: [100, 200]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.0
+    pressure: 0.95
+    mule: same
+- id: emd_security_deposit
+  gap_min: [30, 120]
+  ask:
+    amount:
+      log: [1100, 3200]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.9
+    mule: same

@@ -145,6 +145,9 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
         ev("breaches", f"{len(ids)} {s}: {meaning}", kind="decision",
            refs={"rule": f"breach.interrupt_tiers {cfg['breach']['interrupt_tiers']}", "cases": ids})
     (out / "cases.json").write_text(json.dumps(cases_json(ws), default=str, ensure_ascii=False), encoding="utf-8")
+    # what RUKO said about every replayed payment (no labels): the red-team scorecard grades it later
+    ws.scored.rows[["tx_id", "tier", "named"]].assign(tx_id=lambda d: d["tx_id"].astype(str)).to_parquet(
+        out / "payment_tiers.parquet", index=False)
 
     cc = cfg["cluster"]
     br = [c for c in ws.clusters.clusters if c.kind != "misnamed"]

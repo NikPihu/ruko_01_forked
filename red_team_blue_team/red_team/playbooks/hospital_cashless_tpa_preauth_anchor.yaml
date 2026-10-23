@@ -1,0 +1,37 @@
+name: hospital_cashless_tpa_preauth_anchor
+title: Fake insurance TPA desk asks patient's family for ₹150 file registration QR, then ₹2,900 consumable deposit
+confidence: guess
+emerging: true
+sources: [Health insurance TPA & hospital billing desk impersonation alerts]
+weight: 0.06
+targets: {salaried: 1.8, senior: 2.0, homemaker: 1.6, shopkeeper: 1.4, gig_worker: 1.0, student: 0.6}
+start_hours: [8, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: tpa_desk_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.8, voip: 0.2}
+    direction: incoming
+    minutes: [3, 9]
+  decide: {pressure: 0.95}
+- id: claim_file_stamp_anchor
+  gap_min: [40, 90]
+  ask:
+    amount:
+      int: [120, 250]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.0
+    pressure: 0.95
+    mule: same
+- id: non_medical_consumables_qr
+  gap_min: [30, 120]
+  ask:
+    amount:
+      log: [1200, 3200]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.9
+    mule: same

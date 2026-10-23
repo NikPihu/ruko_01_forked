@@ -82,7 +82,18 @@ review:
   approvals_needed: 2                # two different analysts (same rule as graph/discover.py)
 
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
+  red_team_build:                    # defaults for "Build the red-team world"
+    users: 4000
+    days: 30
+    victim_rate: 0.8
+    red_boost: 2.0
+    seed: 41
+    log: ml/runs/redteam_build.log
   worlds:
+    - name: "red team: Nikunj's 50 playbooks attack (build it on the Red team page)"
+      table: ml/data/tables/redteam.parquet
+      data: data/sim_v2_out/redteam
+      red_team: true
     - name: "seed 33 world (prompts never tuned on it)"
       table: ml/data/tables/breach_s33.parquet
       data: data/sim_v2_out/breach_s33

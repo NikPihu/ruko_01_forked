@@ -1,0 +1,28 @@
+name: credit_card_reward_points_expiry_sms
+title: 'Soft-toned bank reward redemption SMS (conf < 0.55): asks GST/redemption processing fee via merchant QR'
+confidence: guess
+emerging: true
+sources: [RBI & bank advisories on reward point redemption scams]
+weight: 0.07
+targets: {salaried: 2.2, shopkeeper: 1.8, senior: 1.4, homemaker: 1.0, student: 0.6, gig_worker: 0.8}
+start_hours: [10, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: rewards_sms
+  stage: S1
+  events:
+  - type: sms_lure
+    tag: refund
+    conf: [0.35, 0.56]
+    has_link: true
+  decide: {pressure: 0.75}
+- id: redemption_tax_qr
+  gap_min: [15, 75]
+  ask:
+    amount:
+      log: [400, 1650]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.85
+    mule: same
