@@ -9,6 +9,7 @@ deliberately simple -- the point is a transparent fallback, not a tuned model.
 from __future__ import annotations
 
 import math
+from typing import Callable
 
 from features.session import T as SESSION
 
@@ -129,25 +130,33 @@ def _noisy_or(xs: list[float]) -> float:
     return 1 - math.prod(1 - x for x in xs)
 
 
-def _playbook(f: dict) -> str | None:
-    tag = f["lure_tag"]
+# Which scam playbook a payment looks like. Checked in this order; the first rule that matches names
+# the playbook. Each rule has a plain description so the analyst console can show every playbook
+# that was checked and why one matched (api/explain.py).
+PLAYBOOK_RULES: list[tuple[str, str, Callable[[dict], bool]]] = [
     # An active task-scam episode beats any older message on the phone.
-    if f["episode_state"] == 2:
-        return "task_job"
-    if f["sideloaded_last_24h"] and tag == "kyc":
-        return "fake_kyc_apk"
-    if f["outgoing_to_unknown"] and (f["remote_control"] or f["session_dictated"]):
-        return "fake_customer_care"
-    if tag == "arrest_threat" or (f["on_call"] and f["caller_unknown"]
-                                  and (f["remote_control"] or f["story_mismatch"] or f["session_dictated"])):
-        return "digital_arrest"
-    if tag == "trading_tip":
-        return "trading_group"
-    if tag == "task_job":
-        return "task_job"
-    if f["on_call"] and f["caller_unknown"] and not f["entry_typed"]:
-        return "refund_qr"
-    return None
+    ("task_job", "the phone's task-scam watcher is ACTIVE (rewards in, bigger payments out)",
+     lambda f: f["episode_state"] == 2),
+    ("fake_kyc_apk", "an app installed from outside the store + a KYC message",
+     lambda f: bool(f["sideloaded_last_24h"]) and f["lure_tag"] == "kyc"),
+    ("fake_customer_care", "the user called an unknown number + screen control or dictated typing",
+     lambda f: bool(f["outgoing_to_unknown"]) and bool(f["remote_control"] or f["session_dictated"])),
+    ("digital_arrest", "an arrest-threat message",
+     lambda f: f["lure_tag"] == "arrest_threat"),
+    ("digital_arrest", "an unknown caller on the line + screen control, a story mismatch or dictated typing",
+     lambda f: bool(f["on_call"] and f["caller_unknown"])
+     and bool(f["remote_control"] or f["story_mismatch"] or f["session_dictated"])),
+    ("trading_group", "a trading-tip message",
+     lambda f: f["lure_tag"] == "trading_tip"),
+    ("task_job", "a task or job message",
+     lambda f: f["lure_tag"] == "task_job"),
+    ("refund_qr", "an unknown caller on the line + a payee that was not typed (QR or picked)",
+     lambda f: bool(f["on_call"] and f["caller_unknown"]) and not f["entry_typed"]),
+]
+
+
+def _playbook(f: dict) -> str | None:
+    return next((name for name, _, rule in PLAYBOOK_RULES if rule(f)), None)
 
 
 def score(f: dict) -> dict:
@@ -163,5 +172,7 @@ def score(f: dict) -> dict:
             if strength >= REASON_MIN_STRENGTH:
                 best[code] = max(best.get(code, 0), strength * FAMILY_WEIGHT[k])
     reasons = [c for c, _ in sorted(best.items(), key=lambda kv: -kv[1])][:4]
+    # Every signal that fired, for the analyst's explanation (never sent to the app).
+    signals = [{"family": k, "reason": code, "strength": strength} for k, v in sig.items() for strength, code in v]
     return {"p_scam": round(1 / (1 + math.exp(-z)), 4), "family_scores": fam,
-            "reasons": reasons, "playbook": _playbook(f), "model_version": MODEL_VERSION}
+            "reasons": reasons, "playbook": _playbook(f), "model_version": MODEL_VERSION, "signals": signals}

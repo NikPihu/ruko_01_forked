@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS decision_details (
     policy_steps   TEXT,               -- JSON list of policy rules that changed the tier
     intel_status   TEXT,               -- JSON {source: ok | timeout | ...}
     stage_path     TEXT,               -- JSON [[stage, ts], ...]
+    signals        TEXT,               -- JSON [{family, reason, strength}], every signal that fired
     explanation    TEXT                -- JSON, filled by the explainable layer
 );
 
@@ -115,7 +116,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 TIER_RANK = {"T0": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4}
 _JSON_PAYMENT = ("reasons",)
 _JSON_DETAILS = ("features", "family_scores", "lit_families", "policy_steps", "intel_status", "stage_path",
-                 "explanation")
+                 "signals", "explanation")
 
 
 def _iso(ts: datetime | str | None) -> Optional[str]:
@@ -148,7 +149,7 @@ class TxnStore:
                 "evidence_id", "fail_open", "latency_ms", "status")
         d = {k: (_dumps(details.get(k)) if k in _JSON_DETAILS else details.get(k)) for k in
              ("features", "p_scam", "family_scores", "lit_families", "policy_steps", "intel_status", "stage_path",
-              "explanation")}
+              "signals", "explanation")}
         if d["features"] is None or d["features"] == "null":
             d["features"] = "{}"
         with self.lock, self.db:
@@ -158,10 +159,10 @@ class TxnStore:
                 "ON CONFLICT(payment_id) DO NOTHING", [p.get(c) for c in cols])
             self.db.execute(
                 "INSERT INTO decision_details (payment_id, features, p_scam, family_scores, lit_families, "
-                "policy_steps, intel_status, stage_path, explanation) VALUES (?,?,?,?,?,?,?,?,?) "
+                "policy_steps, intel_status, stage_path, signals, explanation) VALUES (?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(payment_id) DO NOTHING",
                 [p["payment_id"], d["features"], d["p_scam"], d["family_scores"], d["lit_families"],
-                 d["policy_steps"], d["intel_status"], d["stage_path"], d["explanation"]])
+                 d["policy_steps"], d["intel_status"], d["stage_path"], d["signals"], d["explanation"]])
 
     def record_outcome(self, payment_id: str, status: str, ts: datetime | str) -> bool:
         """Completed or cancelled; the first final status wins (as in the payment graph)."""

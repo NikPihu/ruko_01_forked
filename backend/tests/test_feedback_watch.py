@@ -149,3 +149,14 @@ def test_alert_health_counts_actions(engine, mock, world):
 def _hash(user):
     from evidence.store import pseudonym
     return pseudonym(user)
+
+
+def test_i_know_them_refused_for_a_mule_like_payee_without_remote_control(engine, mock, world):
+    """Coached on a call, no screen control, mule not listed yet: the payee itself looks like a mule."""
+    pump(mock[1], world)
+    ctx = {"call": {"active": True, "kind": "voip", "caller_in_contacts": False, "started_min_ago": 30},
+           "lures": [], "session": {"amount_digits": 5, "amount_gap_vs_usual": 4.8, "payee_pasted": True,
+                                    "pasted_within_s_of_return": 6.0, "app_switches": 3}}
+    engine.post("/v1/decide", json=req(context=ctx, rid="p_c"))
+    ans = engine.post("/v1/feedback", json=fb("p_c", DEMO_MEENA, "i_know_them", why="family")).json()
+    assert ans["trusted_accepted"] is False and ans["message_key"] == "know_them_not_accepted"

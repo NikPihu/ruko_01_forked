@@ -83,7 +83,8 @@ export function PaymentCase({ id }: { id: string }) {
           {a.payment_id && (
             <p>Payment ID <a className="mono" href={exploreHref(a.payee, a.payment_id)}>{a.payment_id}</a> · What the user did:{" "}
               <b>{PAYMENT_STATUS[data.payment?.status ?? "checked"]}</b>
-              {data.payment?.outcome_ts ? ` (${when(data.payment.outcome_ts)})` : ""}</p>
+              {data.payment?.outcome_ts ? ` (${when(data.payment.outcome_ts)})` : ""}
+              {" · "}<a href={`#/transactions/${encodeURIComponent(a.payment_id)}`}>Full explanation with scores →</a></p>
           )}
         </div>
       </div>

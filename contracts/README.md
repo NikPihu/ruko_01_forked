@@ -164,9 +164,11 @@ retry with the same `feedback_id`).
 
 Reply: `recorded` (`false` for an unknown payment, someone else's, or over 30 a day), and for
 `i_know_them`: `trusted_accepted`. It is `false` when RUKO still recommends waiting: the payee or
-caller is on a list, or someone may control the phone (stage S3 or a remote app). Then
-`message_key` is `know_them_not_accepted` and the app stays on the pause screen. When accepted, the
-payee joins the user's trusted list (same rule as `policy.yaml` `trusted_payee`).
+caller is on a list, someone may control the phone (stage S3 or a remote app), or the payee
+account itself looks like a mule (the payee family was lit). A user can vouch for a person, not for
+a mule account; coached victims tap "I know them" too. Then `message_key` is
+`know_them_not_accepted` and the app stays on the pause screen. When accepted, the payee joins the
+user's trusted list.
 
 ## POST /v1/watch (c2-0.8)
 

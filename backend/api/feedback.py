@@ -1,8 +1,9 @@
 """Alert feedback (c2-0.8): what users do on alert screens, and the alert-health numbers it gives.
 
 One row per action in the transaction database. "I know this person" adds the payee to the user's
-trusted list only when RUKO had no reason to doubt it: no list hit on the payee or caller, and no
-sign that someone else controls the phone (stage S3 or a remote-control app). Coached victims tap
+trusted list only when RUKO had no reason to doubt it: no list hit on the payee or caller, no
+sign that someone else controls the phone (stage S3 or a remote-control app), and a payee whose
+own evidence (the payee family) was not lit: a user can vouch for a person, not for a mule account. Coached victims tap
 "I know them" too, so it can never switch off the strongest warnings (same rule as policy.yaml
 `trusted_payee.overridden_by`).
 """
@@ -50,8 +51,10 @@ class FeedbackService:
             details = self.store.details(fb.request_id) or {}
             f = details.get("features") or {}
             control = bool(f.get("remote_control")) or any(st == "S3" for st, _ in details.get("stage_path") or [])
+            # The user can vouch for a person, not for an account that behaves like a mule.
+            mule_like = "P" in (details.get("lit_families") or [])
             # Unknown is not safe: without the decision's details there is nothing to vouch for.
-            accepted = bool(f) and not (intel_hit(_with_defaults(f)) or control)
+            accepted = bool(f) and not (intel_hit(_with_defaults(f)) or control or mule_like)
             if accepted:
                 self.trusted.setdefault(fb.user_id, set()).add(payment["payee_upi"])
                 self.persist(self.store.record_trusted, fb.user_id, payment["payee_upi"], "feedback", now)

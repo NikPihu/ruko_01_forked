@@ -45,6 +45,7 @@ from api.episode_events import EpisodeService
 from graph import discover as discovery
 from graph.store import GraphStore
 from store.db import TxnStore
+from api.explain import explain
 from api.feedback import FeedbackService, alert_health
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
                            Feedback, FeedbackResponse, MyPayment, MyPayments, PaymentOutcome,
@@ -229,7 +230,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         trace.update(details={
             "features": feats, "p_scam": s["p_scam"], "family_scores": s["family_scores"],
             "lit_families": d.lit_families, "policy_steps": d.applied, "intel_status": res.status,
-            "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path]},
+            "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
+            "signals": s.get("signals")},
             scorer_version=s.get("model_version", scorer_version))
         if d.tier != "T0":
             alerts.append({
@@ -448,6 +450,15 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         if p is None:
             raise HTTPException(404, "no recorded payment with that id")
         return {"payment": p, "details": store.details(payment_id), "feedback": store.feedback_for(payment_id)}
+
+    @app.get("/v1/payments/{payment_id}/explain")
+    def explain_payment(payment_id: str) -> dict:
+        """Why this payment got its tier: everything for the analyst, and what the user saw.
+        Analyst console only; the app gets the short reasons in /v1/decide (rule 4)."""
+        p = store.payment(payment_id)
+        if p is None:
+            raise HTTPException(404, "no recorded payment with that id")
+        return explain(p, store.details(payment_id))
 
     @app.get("/v1/users/{user_hash}/timeline")
     def user_timeline(user_hash: str, limit: int = 200) -> dict:

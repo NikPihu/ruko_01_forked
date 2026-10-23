@@ -6,10 +6,12 @@ import { Evaluation } from "./pages/Evaluation";
 import { Explore } from "./pages/Explore";
 import { Overview } from "./pages/Overview";
 import { Suspects } from "./pages/Suspects";
+import { PaymentExplain, Transactions } from "./pages/Transactions";
 
 const NAV = [
   { key: "", label: "Overview", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
   { key: "alerts", label: "Alerts & cases", icon: "M12 2 1 21h22zm0 5 7.5 12h-15zm-1 4v4h2v-4zm0 5v2h2v-2z" },
+  { key: "transactions", label: "Transactions", icon: "M3 5h18v2H3zm0 6h18v2H3zm0 6h12v2H3z" },
   { key: "suspects", label: "Mule suspects", icon: "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" },
   { key: "explore", label: "Account explorer", icon: "M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" },
   { key: "evaluation", label: "Evaluation", icon: "M4 20h16v2H4zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z" },
@@ -31,6 +33,8 @@ export function App() {
   if (section === "alerts") page = <Alerts tab={path[1] ?? ""} />;
   else if (section === "case" && path[1] === "payment") page = <PaymentCase id={path[2] ?? ""} />;
   else if (section === "case" && path[1] === "episode") page = <EpisodeCaseView id={path[2] ?? ""} />;
+  else if (section === "transactions" && path[1]) page = <PaymentExplain id={decodeURIComponent(path[1])} />;
+  else if (section === "transactions") page = <Transactions />;
   else if (section === "suspects") page = <Suspects />;
   else if (section === "explore") page = <Explore upi={query.get("upi") ?? ""} payment={query.get("payment") ?? ""} />;
   else if (section === "evaluation") page = <Evaluation />;

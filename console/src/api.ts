@@ -169,6 +169,63 @@ export interface EvalResults {
   } | null;
 }
 
+// ---------- transaction database (every payment check) and explanations ----------
+
+export interface Transaction {
+  payment_id: string;
+  user_hash: string;
+  payee_upi: string;
+  amount_inr: number;
+  entry_method: string | null;
+  ts: string;
+  tier: Tier;
+  reasons: string[];
+  message_key: string | null;
+  playbook: string | null;
+  stage: string | null;
+  scorer_version: string | null;
+  policy_version: string | null;
+  evidence_id: string | null;
+  fail_open: boolean;
+  latency_ms: number | null;
+  status: "checked" | "completed" | "cancelled";
+  outcome_ts: string | null;
+}
+
+export interface ExplainReason {
+  code: string;
+  text: string;
+  family: string | null;
+  strength: number | null;
+  band: "small" | "medium" | "large" | null;
+  signals: number;
+  shown_to_user: boolean;
+  inputs: Record<string, unknown>;
+}
+
+export interface Explanation {
+  payment_id: string;
+  user_view: { tier: Tier; reasons: string[]; message_key: string | null; playbook: string | null; pause_minutes: number | null };
+  scores: { p_scam: number | null; families: Record<string, number>; lit_families: string[]; family_names: Record<string, string> };
+  reasons: ExplainReason[];
+  playbooks: { playbook: string; rule: string; matched: boolean; chosen: boolean }[];
+  policy_steps: string[];
+  sources: Record<string, string>;
+  stage_path: [string, string][];
+  scorer_version: string | null;
+  policy_version: string | null;
+  evidence_id: string | null;
+  fail_open: boolean;
+}
+
+export interface AlertHealth {
+  checks: number;
+  tiers: Record<string, { shown: number; completed_share: number | null; cancelled_share: number | null; median_dwell_ms: number | null; actions: Record<string, number> }>;
+  interruptions_per_1000_checks: number | null;
+  actions: Record<string, number>;
+  i_know_them: { accepted?: number; refused?: number };
+}
+
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(path, { headers: { Accept: "application/json" } });
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
@@ -191,6 +248,12 @@ export const api = {
     return r.json() as Promise<Payment>;
   },
   evaluation: () => get<EvalResults>("/v1/eval"),
+  transactions: (params: { min_tier?: Tier | "T0"; status?: string; payee?: string; user_hash?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+    return get<{ count: number; transactions: Transaction[] }>(`/v1/transactions?${q}`);
+  },
+  explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
+  alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
   review: async (upi: string, reviewer: string, decision: "approve" | "reject") => {
     const r = await fetch(`/v1/graph/suspects/${encodeURIComponent(upi)}/review`, {
       method: "POST",
