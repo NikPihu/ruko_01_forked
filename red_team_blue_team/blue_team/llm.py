@@ -142,8 +142,11 @@ def _converse(rt, model_id: str, system: str, messages: list, specs: list, cfg: 
     return rt.converse(**kw, toolConfig={"tools": specs})
 
 
-def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], final: str, max_turns: int) -> AgentResult:
-    """Converse until the model calls `final` and its handler accepts the input, or turns run out."""
+def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], final: str, max_turns: int,
+              on_event=None) -> AgentResult:
+    """Converse until the model calls `final` and its handler accepts the input, or turns run out.
+    `on_event(kind, text, data)` hears every turn as it happens (the console's live timeline)."""
+    emit = on_event or (lambda *a, **k: None)
     cfg = config.load()["agents"]
     by_name = {t.name: t for t in tools}
     messages = [{"role": "user", "content": [{"text": task}]}]
@@ -162,12 +165,14 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
         text = " ".join(c["text"] for c in msg["content"] if "text" in c).strip()
         uses = [c["toolUse"] for c in msg["content"] if "toolUse" in c]
         res.transcript.append({"turn": res.turns, "seconds": round(time.perf_counter() - t0, 1), "text": text,
-                               "tool_calls": [{"name": u["name"], "input": _short(u["input"])} for u in uses]})
+                               "tool_calls": [{"name": u["name"], "id": u["toolUseId"], "input": _short(u["input"], 3000)}
+                                              for u in uses]})
         if r.get("stopReason") in ("content_filtered", "guardrail_intervened") or FILTERED in text:
             # The model's own safety filter ate the reply. Drop it (the conversation stays valid: the
             # last message is still ours) and ask again, briefly; give up after a few in a row.
             res.filtered += 1
             res.transcript[-1]["filtered"] = True
+            emit("filtered", f"turn {res.turns}: the model's own content filter blocked the reply; asking again", {})
             if res.filtered >= MAX_FILTERED:
                 break
             last = messages[-1]["content"]
@@ -177,6 +182,8 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
             continue
         res.filtered = 0
         messages.append(msg)
+        if text:
+            emit("thought", f"turn {res.turns}: {text[:600]}", {"turn": res.turns})
         if not uses:
             messages.append({"role": "user", "content": [{"text": f"Keep using the tools, and finish by calling {final}."}]})
             continue
@@ -191,7 +198,11 @@ def run_agent(rt, model_id: str, system: str, task: str, tools: list[Tool], fina
                 out, status = {"error": f"{type(e).__name__}: {e}"}, "error"
             if not isinstance(out, dict):
                 out = {"result": out}
-            res.transcript[-1].setdefault("tool_results", []).append({"name": u["name"], "output": _short(out, 800)})
+            res.transcript[-1].setdefault("tool_results", []).append({"name": u["name"], "id": u["toolUseId"],
+                                                                      "output": _short(out, 6000)})
+            emit("tool", f"turn {res.turns}: {u['name']}" + ("" if status == "success" else " -> error"),
+                 {"turn": res.turns, "tool": u["name"], "tool_use_id": u["toolUseId"], "input": _short(u["input"], 2000),
+                  "output": _short(out, 2000), "status": status})
             results.append({"toolResult": {"toolUseId": u["toolUseId"], "content": [{"json": out}], "status": status}})
             if u["name"] == final and status == "success" and out.get("accepted"):
                 res.final = u["input"]

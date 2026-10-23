@@ -22,7 +22,7 @@ def client(tmp_db, tmp_path):
 def test_page_and_list(tmp_db, tmp_path):
     queued(tmp_db)
     c = client(tmp_db, tmp_path)
-    assert "playbook review" in c.get("/").text
+    assert "Blue Team Console" in c.get("/").text
     lst = c.get("/api/cards").json()
     assert [s["name"] for s in lst["review"]] == ["relative_voice_clone"] and lst["approved"] == []
 
@@ -58,3 +58,35 @@ def test_reject_needs_a_reason_and_edits_clear_approvals(tmp_db, tmp_path):
     r = c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "ravi", "decision": "reject", "note": "same as digital_arrest"}).json()
     assert r["status"] == "rejected"
     assert c.get("/api/cards/digital_arrest").status_code == 404
+
+
+def test_runs_events_and_reset(tmp_db, tmp_path):
+    import json
+    run = tmp_path / "runs" / "r1"
+    (run / "candidates").mkdir(parents=True)
+    (run / "status.json").write_text(json.dumps({"run_id": "r1", "state": "done"}), encoding="utf-8")
+    lines = [json.dumps({"seq": i, "ts": "2026-10-23T00:00:00", "stage": "hdbscan", "kind": "decision",
+                         "text": f"step {i}", "refs": {}, "data": {}}) for i in (1, 2, 3)]
+    (run / "events.jsonl").write_text("".join(line + chr(10) for line in lines), encoding="utf-8")
+    (run / "cases.json").write_text(json.dumps([{"case_id": "rep1", "status": "missed"}]), encoding="utf-8")
+    queued(tmp_db)
+    c = client(tmp_db, tmp_path)
+    assert [r["run_id"] for r in c.get("/api/runs").json()] == ["r1"]
+    ev = c.get("/api/runs/r1/events?after=1").json()
+    assert [e["seq"] for e in ev["events"]] == [2, 3] and ev["status"]["state"] == "done"
+    assert c.get("/api/runs/r1/cases").json()[0]["case_id"] == "rep1"
+    assert c.get("/api/runs/..%2Fetc/events").status_code == 404           # run ids are checked
+    assert "relative_voice_clone" in c.get("/api/cards/relative_voice_clone/yaml").text
+    db = c.get("/api/database").json()
+    assert {k["name"] for k in db["known"]} >= {"digital_arrest", "refund_qr"} and db["waiting"] == 1
+    assert c.post("/api/reset", json={"confirm": "yes"}).status_code == 400
+    assert c.post("/api/reset", json={"confirm": "RESET"}).json()["deleted_cards"] == 1
+    assert c.get("/api/runs").json() == [] and c.get("/api/cards").json()["review"] == []
+
+
+def test_cited_sources_are_checked_against_real_tool_calls():
+    from blue_team.investigator import check_sources
+    tr = [{"tool_calls": [{"name": "get_case", "input": {"case_id": "rep_7"}}, {"name": "get_cluster_overview", "input": {}}]}]
+    out = check_sources([{"source": "get_case rep_7", "fact": "a"}, {"source": "get_case rep_9", "fact": "b"},
+                         {"source": "get_cluster_overview", "fact": "c"}, {"source": "test_matcher", "fact": "d"}], tr)
+    assert [e["seen"] for e in out] == [True, False, True, False]

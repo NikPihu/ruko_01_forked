@@ -34,10 +34,15 @@ class Scored:
     rows: pd.DataFrame          # one row per payment: tx_id, ts (UTC), user_id, payee_upi, amount, weight, tier, named
     feats: list[dict]           # engine features + request fields (entry_method, payer_says), row-aligned
     scorer: str
+    missing_features: tuple[str, ...] = ()   # engine features the replayed table predates (treated as unknown)
 
 
 def score(table: pd.DataFrame, scorer: str = "ml", pbs: list[playbook_db.Playbook] | None = None) -> Scored:
     df = table.reset_index(drop=True)
+    from features.build import FAMILY
+    missing = tuple(k for k in FAMILY if k not in df.columns)
+    if missing:   # a table replayed before these features existed: unknown, never 0 / false (rule 1)
+        df = df.assign(**{k: None for k in missing})
     feats = raw_features(df)
     for f, em, says in zip(feats, df["entry_method"], df["payer_says"]):
         f["entry_method"], f["payer_says"] = em, (None if pd.isna(says) else says)
@@ -62,7 +67,7 @@ def score(table: pd.DataFrame, scorer: str = "ml", pbs: list[playbook_db.Playboo
         "tier": tiers(df, feats, scores), "named": named,
         "p_scam": [s["p_scam"] for s in scores],
     })
-    return Scored(rows, feats, version)
+    return Scored(rows, feats, version, missing)
 
 
 def _encode(df: pd.DataFrame) -> pd.DataFrame:

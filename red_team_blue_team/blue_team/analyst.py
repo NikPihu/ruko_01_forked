@@ -21,8 +21,13 @@ REVIEW_SCHEMA = {
         "required_changes": {"type": "array", "items": {"type": "string"},
                              "description": "what must change in the card before humans approve it"},
         "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+        "evidence": {"type": "array", "items": {"type": "object", "properties": {
+            "source": {"type": "string", "description": "the tool call it came from, e.g. 'get_case rep_001239', 'get_cluster_overview', 'test_matcher'"},
+            "fact": {"type": "string", "description": "the fact, in one short sentence, as the tool returned it"}},
+            "required": ["source", "fact"]},
+                     "description": "the 2-6 facts your verdict rests on, each with the tool call it came from"},
     },
-    "required": ["verdict", "rationale", "confidence"],
+    "required": ["verdict", "rationale", "confidence", "evidence"],
 }
 
 SYSTEM = """You are the analyst on RUKO's blue team: a skeptical second reviewer. An investigator
@@ -57,8 +62,9 @@ them, and X's *other* complaints). Example: X = digital_arrest is an "officer" t
 usually with remote control and a "government" payment; a group where the payer says "family",
 with no remote control, is a different story even if RUKO's digital_arrest rule fired.
 Check the investigator's claims against the cases yourself; run test_matcher if a number looks off;
-compare with the nearest known playbooks. Do not invent evidence. Your verdict is advice to two
-human analysts, who decide. Finish by calling submit_review."""
+compare with the nearest known playbooks. Do not invent evidence: list the 2-6 facts your verdict
+rests on in `evidence`, each with the tool call it came from (code checks you made those calls).
+Your verdict is advice to two human analysts, who decide. Finish by calling submit_review."""
 
 
 def _tools(ws: Workspace, cluster_id: str, draft: dict) -> list[llm.Tool]:
@@ -70,6 +76,9 @@ def _tools(ws: Workspace, cluster_id: str, draft: dict) -> list[llm.Tool]:
             return {"accepted": False, "errors": [f"verdict must be one of {VERDICTS}"]}
         if i["verdict"] == "variant_of_known" and i.get("nearest_playbook") not in known:
             return {"accepted": False, "errors": [f"variant_of_known needs nearest_playbook, one of {sorted(known)}"]}
+        ev = i.get("evidence")
+        if not isinstance(ev, list) or not ev or not all(isinstance(e, dict) and e.get("source") and e.get("fact") for e in ev):
+            return {"accepted": False, "errors": ["evidence: at least 1 item, each {source: the tool call, fact: what it returned}"]}
         return {"accepted": True}
 
     return [
@@ -94,15 +103,17 @@ def _tools(ws: Workspace, cluster_id: str, draft: dict) -> list[llm.Tool]:
     ]
 
 
-def review(ws: Workspace, cluster_id: str, draft: dict, rt, model_id: str) -> dict:
+def review(ws: Workspace, cluster_id: str, draft: dict, rt, model_id: str, on_event=None) -> dict:
     a = config.load()["agents"]
     task = f"Review the draft playbook '{draft['card']['name']}' for cluster {cluster_id}."
-    res = llm.run_agent(rt, model_id, SYSTEM, task, _tools(ws, cluster_id, draft), "submit_review", a["analyst_max_turns"])
+    res = llm.run_agent(rt, model_id, SYSTEM, task, _tools(ws, cluster_id, draft), "submit_review", a["analyst_max_turns"],
+                        on_event=on_event)
     if res.final is None:
         out = review_offline(ws, cluster_id, draft)
         out["reviewed_by"] = f"offline (the {model_id} analyst gave no verdict in {res.turns} turns)"
     else:
-        out = {**res.final, "reviewed_by": model_id}
+        from blue_team.investigator import check_sources
+        out = {**res.final, "reviewed_by": model_id, "evidence": check_sources(res.final.get("evidence"), res.transcript)}
     out["transcript"] = res.transcript
     out["usage"] = {"turns": res.turns, "tokens_in": res.tokens_in, "tokens_out": res.tokens_out}
     return out
@@ -147,6 +158,12 @@ def review_offline(ws: Workspace, cluster_id: str, draft: dict) -> dict:
         verdict, why = "insufficient_evidence", f"{cases} cases, matcher case recall {bt['cluster_case_recall'] if bt else 0:.0%}"
     else:
         verdict, why = "new_scam", f"no known playbook is close (nearest {nearest}, {sim:.2f}) and the matcher passes the gates"
-    return {"verdict": verdict, "nearest_playbook": nearest, "rationale": f"Offline rules: {why}.",
+    evidence = [{"source": "signal_similarity_lures_ignored", "fact": f"closest known playbook: {nearest} at {sim:.2f} "
+                 f"(variant threshold {rules['variant_similarity']})", "seen": True}]
+    if bt:
+        evidence.append({"source": "test_matcher", "fact": f"case recall {bt['cluster_case_recall']:.0%}, "
+                         f"{bt['legit_payments_named_per_1000']} legit per 1,000, "
+                         f"{bt['known_playbook_payments_also_matched']:.0%} of other known-scam payments", "seen": True})
+    return {"verdict": verdict, "nearest_playbook": nearest, "rationale": f"Offline rules: {why}.", "evidence": evidence,
             "required_changes": ["write the scam's story (no LLM draft)"] if draft["drafted_by"] == "offline" else [],
             "confidence": "low", "reviewed_by": "offline", "profile_similarity": {k: round(v, 2) for k, v in sims.items()}}

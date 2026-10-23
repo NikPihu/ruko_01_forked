@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blue Team Console</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e1e4e9; --side: #eef0f3;
+    --accent: #2457c5; --accent-ink: #fff; --good: #1e7a46; --good-bg: #e5f4eb; --bad: #b42318; --bad-bg: #fdecea;
+    --warn: #8a5a00; --warn-bg: #fff3d6; --chip: #eef1f5; --code: #f1f3f6; --dec: #eaf0ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111419; --panel: #191d24; --ink: #e6e9ed; --muted: #98a1ac; --line: #2a3039; --side: #151920;
+      --accent: #6b9bff; --accent-ink: #0c0f15; --good: #6fd39b; --good-bg: #17321f; --bad: #ff8a80; --bad-bg: #3a1c1a;
+      --warn: #f2c46b; --warn-bg: #3a2e14; --chip: #242a33; --code: #1f242c; --dec: #1c2740;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .app { display: grid; grid-template-columns: 236px 1fr; min-height: 100vh; }
+  @media (max-width: 820px) { .app { grid-template-columns: 1fr; } nav.side { position: static !important; height: auto !important; } }
+  nav.side { background: var(--side); border-right: 1px solid var(--line); padding: 14px 10px; position: sticky; top: 0; height: 100vh; overflow: auto; }
+  nav.side .brand { font-weight: 700; padding: 4px 8px 2px; } nav.side .tag { color: var(--muted); font-size: 12px; padding: 0 8px 12px; }
+  nav.side a { display: flex; gap: 10px; align-items: baseline; padding: 7px 8px; border-radius: 7px; color: var(--ink); text-decoration: none; }
+  nav.side a .num { color: var(--muted); font-size: 12px; width: 14px; } nav.side a .sub { display: block; color: var(--muted); font-size: 12px; }
+  nav.side a:hover { background: var(--chip); } nav.side a.on { background: var(--panel); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+  nav.side .foot { border-top: 1px solid var(--line); margin-top: 12px; padding: 12px 8px 0; font-size: 12.5px; color: var(--muted); }
+  .top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 20px;
+         border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 3; }
+  .top .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
+  select, input, textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+  textarea { width: 100%; min-height: 64px; }
+  .content { padding: 18px 22px 60px; max-width: 1250px; }
+  @media (max-width: 820px) { .content { padding: 14px 16px 60px; } }
+  h1 { font-size: 21px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 0 0 6px; }
+  .explain { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0 16px; color: var(--muted); }
+  .explain b { color: var(--ink); } .explain .refs { margin-top: 6px; font-size: 12.5px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+  .chip { background: var(--chip); color: var(--muted); border-radius: 999px; padding: 1px 9px; font-size: 12.5px; white-space: nowrap; }
+  .chip.good { background: var(--good-bg); color: var(--good); } .chip.bad { background: var(--bad-bg); color: var(--bad); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); } .chip.acc { background: var(--dec); color: var(--accent); }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  a.ref { color: var(--accent); cursor: pointer; text-decoration: none; } a.ref:hover { text-decoration: underline; }
+  pre { background: var(--code); border-radius: 8px; padding: 9px 11px; overflow: auto; font-size: 12.5px; margin: 6px 0; white-space: pre-wrap; word-break: break-word; max-height: 420px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; } tr.click { cursor: pointer; } tr.click:hover td { background: var(--chip); }
+  .scroll { overflow-x: auto; }
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl li { display: grid; grid-template-columns: 34px 92px 1fr; gap: 8px; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .tl li.decision { background: var(--dec); } .tl li.warning, .tl li.filtered { background: var(--warn-bg); } .tl li.error { background: var(--bad-bg); }
+  .tl .seq { color: var(--muted); font-size: 12px; } .tl .stage { font-size: 12px; color: var(--muted); }
+  .tl .body .refs { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  details summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
+  .split { display: grid; grid-template-columns: 280px 1fr; gap: 14px; }
+  @media (max-width: 980px) { .split { grid-template-columns: 1fr; } }
+  .pick .it { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; } .pick .it:hover { background: var(--chip); }
+  .pick .it.on { background: var(--chip); box-shadow: inset 3px 0 0 var(--accent); } .pick .it .n { font-weight: 600; }
+  .turn { border-left: 3px solid var(--line); padding: 4px 0 6px 12px; margin: 10px 0; }
+  .turn .h { font-size: 12px; color: var(--muted); } .turn .thought { font-style: italic; }
+  .ev { list-style: none; padding: 0; margin: 6px 0; } .ev li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .stat { background: var(--chip); border-radius: 8px; padding: 7px 12px; min-width: 120px; }
+  .stat b { display: block; font-size: 17px; } .stat span { font-size: 12px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .advice { background: var(--chip); border-radius: 8px; padding: 9px 12px; } .advice .lang { font-size: 12px; color: var(--muted); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.danger { color: var(--bad); border-color: var(--bad); } button:disabled { opacity: .5; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .msg { padding: 9px 12px; border-radius: 8px; margin-top: 8px; } .msg.ok { background: var(--good-bg); color: var(--good); } .msg.err { background: var(--bad-bg); color: var(--bad); }
+  .empty { color: var(--muted); padding: 24px; text-align: center; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; margin-top: 6px; }
+  .flow span.s { background: var(--chip); padding: 3px 9px; border-radius: 6px; } .flow span.a { color: var(--muted); }
+  label.f { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" id="side"></nav>
+  <div>
+    <div class="top">
+      <div class="ctl"><label for="runsel">Run</label><select id="runsel"></select><span id="runstate" class="chip"></span></div>
+      <div class="ctl"><label for="analyst">Analyst</label><input id="analyst" size="12" placeholder="your name" autocomplete="off"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<script>
+// ---------------------------------------------------------------- helpers
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) n.append(k instanceof Node ? k : String(k));
+  return n;
+}
+// replaceChildren does not flatten lists and turns null into text: put() does both properly.
+function put(node, ...kids) { node.replaceChildren(...kids.flat(Infinity).filter(k => k !== null && k !== undefined && k !== false)); return node; }
+const chip = (t, k) => el("span", { class: "chip" + (k ? " " + k : "") }, t);
+const pct = x => (x === null || x === undefined) ? "–" : Math.round(x * 100) + "%";
+const inr = x => (x === null || x === undefined) ? "–" : "₹" + Number(x).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const store = { get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const ct = r.headers.get("content-type") || "";
+  const data = ct.includes("json") ? await r.json().catch(() => ({})) : await r.text();
+  if (!r.ok) throw new Error((data && data.detail) || ("HTTP " + r.status));
+  return data;
+}
+function go(page, params) { location.hash = "#/" + page + (params ? "?" + new URLSearchParams(params) : ""); }
+function ref(text, page, params) { return el("a", { class: "ref", onclick: () => go(page, params) }, text); }
+function caseLinks(ids, max) {
+  max = max || 12; const out = [];
+  (ids || []).slice(0, max).forEach((id, i) => { if (i) out.push(" "); out.push(ref(id, "complaints", { case: id })); });
+  if ((ids || []).length > max) out.push(` … +${ids.length - max} more`);
+  return out;
+}
+const VERDICT = { new_scam: "new scam", variant_of_known: "known scam, new form", lookalike_not_scam: "look-alike, not a scam", insufficient_evidence: "not enough evidence" };
+const verdictChip = v => chip(VERDICT[v] || v || "–", v === "new_scam" ? "good" : v === "variant_of_known" ? "acc" : "");
+const kindChip = (k, was) => k === "misnamed" ? chip("misnamed? RUKO said " + (was || "?"), "warn") : k === "new" ? chip("new pattern", "good") : chip(k || "–");
+function explain(what, how, refs) {
+  return el("div", { class: "explain" }, el("div", {}, el("b", {}, "What happens here: "), what),
+    how ? el("div", {}, el("b", {}, "How it decides: "), how) : null,
+    refs ? el("div", { class: "refs" }, "Code / config: ", refs) : null);
+}
+function evidenceList(ev) {
+  if (!ev || !ev.length) return el("p", { class: "muted" }, "No evidence listed.");
+  return el("ul", { class: "ev" }, ev.map(e => el("li", {},
+    e.seen === false ? chip("source not found in its tool calls", "bad") : chip("checked", "good"), " ",
+    el("span", { class: "mono" }, e.source), " — ", e.fact)));
+}
+
+// ---------------------------------------------------------------- state
+const who = document.getElementById("analyst");
+who.value = store.get("ruko.analyst"); who.addEventListener("input", () => store.set("ruko.analyst", who.value));
+let runs = [], run = null, pollTimer = null, lastSeq = 0, timeline = [];
+const cache = {};
+async function data(kind) {
+  if (!run) return null;
+  const key = run + ":" + kind;
+  if (!cache[key]) cache[key] = await api(`/api/runs/${run}/${kind}`);
+  return cache[key];
+}
+async function loadRuns(select) {
+  runs = await api("/api/runs");
+  const sel = document.getElementById("runsel"); put(sel);
+  if (!runs.length) sel.append(el("option", { value: "" }, "no runs yet"));
+  for (const r of runs) sel.append(el("option", { value: r.run_id }, `${r.run_id} · ${r.state}${r.cases ? " · " + r.cases + " complaints" : ""}`));
+  if (select) run = select; else if (!run || !runs.find(r => r.run_id === run)) run = runs.length ? runs[0].run_id : null;
+  sel.value = run || "";
+  const st = runs.find(r => r.run_id === run);
+  const rs = document.getElementById("runstate");
+  rs.textContent = st ? st.state + (st.agents ? " · agents: " + st.agents : "") : ""; rs.className = "chip" + (st && st.state === "done" ? " good" : st && st.state === "failed" ? " bad" : " warn");
+}
+document.getElementById("runsel").addEventListener("change", e => { run = e.target.value; lastSeq = 0; timeline = []; route(); loadRuns(run); });
+
+// ---------------------------------------------------------------- sidebar
+const PAGES = [
+  ["run", "Run & timeline", "start, watch every step"],
+  ["complaints", "Complaints", "where the shield broke"],
+  ["hdbscan", "HDBSCAN", "grouping the breaches"],
+  ["generator", "Generator agent", "investigates, drafts"],
+  ["analyst", "Analyst agent", "second opinion"],
+  ["playbooks", "Playbooks", "final card · human review"],
+  ["database", "Playbook database", "what is stored"],
+];
+function renderSide(page) {
+  const s = document.getElementById("side");
+  put(s, el("div", { class: "brand" }, "RUKO blue team"), el("div", { class: "tag" }, "find the scams the shield missed"),
+    PAGES.map(([k, t, sub], i) => el("a", { href: "#/" + k, class: k === page ? "on" : "" }, el("span", { class: "num" }, i), el("span", {}, t, el("span", { class: "sub" }, sub)))),
+    el("div", { class: "foot" }, "Every decision links to its evidence: complaint ids, cluster ids, the agent's tool calls, and config keys in ", el("span", { class: "mono" }, "blue_team/config.yaml"), "."));
+}
+
+// ---------------------------------------------------------------- router
+async function route() {
+  const [p, q] = (location.hash.replace(/^#\//, "") || "run").split("?");
+  const page = PAGES.find(x => x[0] === p) ? p : "run";
+  const params = Object.fromEntries(new URLSearchParams(q || ""));
+  renderSide(page);
+  if (pollTimer && page !== "run") { clearInterval(pollTimer); pollTimer = null; }
+  const c = document.getElementById("content");
+  put(c, el("div", { class: "empty" }, "Loading…"));
+  try { put(c, ...await PAGE[page](params)); }
+  catch (e) { put(c, el("div", { class: "msg err" }, e.message)); }
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+const noRun = () => [el("div", { class: "empty" }, "No run selected. Start one on ", ref("Run & timeline", "run"), ".")];
+
+const PAGE = {};
+
+// ---------------------------------------------------------------- 0 run
+PAGE.run = async () => {
+  const worlds = await api("/api/worlds");
+  const wsel = el("select", {}, worlds.map(w => el("option", { value: w.index, disabled: w.ready ? null : "disabled" }, w.name + (w.ready ? "" : " (not built)"))));
+  const lsel = el("select", {}, el("option", { value: "auto" }, "Bedrock if available, else offline"), el("option", { value: "bedrock" }, "Bedrock only"), el("option", { value: "offline" }, "offline (no LLM)"));
+  const model = el("input", { placeholder: "model id (optional)", size: 26 });
+  const msg = el("div");
+  const start = el("button", { class: "primary", onclick: async () => {
+    try {
+      const r = await api("/api/runs", { world: Number(wsel.value), llm: lsel.value, model: model.value.trim() || null });
+      cacheClear(); await loadRuns(r.run_id); lastSeq = 0; timeline = []; route();
+    } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  } }, "Start a run");
+  const reset = el("button", { class: "danger", onclick: async () => {
+    const t = prompt("This deletes every run, every drafted, approved and rejected playbook, and the exports. Type RESET to confirm.");
+    if (t !== "RESET") return;
+    try { const r = await api("/api/reset", { confirm: "RESET" }); cacheClear(); run = null; await loadRuns(); put(msg, el("div", { class: "msg ok" }, `Cleared: ${r.deleted_cards} playbook cards, all runs and exports.`)); route(); }
+    catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  } }, "Reset everything");
+  const out = [
+    el("h1", {}, "Run & timeline"),
+    explain(["A run reads victim complaints, finds the payments RUKO let through or named wrongly, groups them with HDBSCAN, lets a ",
+             el("b", {}, "generator agent"), " draft a playbook for each new group and an ", el("b", {}, "analyst agent"),
+             " judge it, then queues each playbook for two human analysts. Every step below is one line of the run's log, in order."],
+            "Lines in blue are decisions; each shows its reason and links to what it rests on.",
+            el("span", { class: "mono" }, "pipeline.py → runs/<run_id>/events.jsonl")),
+    el("div", { class: "flow" }, ["Complaints", "Breaches", "HDBSCAN", "Generator agent", "Analyst agent", "Human review", "Playbook database"]
+      .flatMap((s, i) => i ? [el("span", { class: "a" }, "→"), el("span", { class: "s" }, s)] : [el("span", { class: "s" }, s)])),
+    el("div", { class: "card" }, el("h2", {}, "Start"), el("div", { class: "row" }, wsel, lsel, model, start, reset), msg,
+      el("p", { class: "muted", style: "font-size:12.5px;color:var(--muted)" }, "Bedrock needs AWS_BEARER_TOKEN_BEDROCK set in the terminal that started this console. A run takes about a minute offline, a few minutes with an LLM.")),
+  ];
+  if (!run) return out.concat(el("div", { class: "empty" }, "No runs yet."));
+  const list = el("ul", { class: "tl" });
+  const status = el("div", { class: "row" });
+  out.push(el("div", { class: "card" }, el("h2", {}, "Timeline of run ", el("span", { class: "mono" }, run)), status, list));
+  const renderEv = e => {
+    const r = e.refs || {}, d = e.data || {};
+    const refs = [];
+    if (r.cases) refs.push(el("div", {}, `complaints (${r.cases.length}): `, caseLinks(r.cases, 10)));
+    if (r.noise && r.noise.length) refs.push(el("div", {}, `one-offs (${r.noise.length}): `, caseLinks(r.noise, 8)));
+    if (r.cluster) refs.push(el("div", {}, "group: ", ref(r.cluster, "hdbscan", { c: r.cluster }),
+      e.stage === "generator" || e.stage === "analyst" || e.stage === "database" ? [" · ", ref("generator", "generator", { c: r.cluster }), " · ", ref("analyst", "analyst", { c: r.cluster })] : null));
+    if (r.card) refs.push(el("div", {}, "playbook: ", ref(r.card, "playbooks", { name: r.card })));
+    if (r.rule) refs.push(el("div", {}, "rule: ", el("span", { class: "mono" }, r.rule)));
+    if (r.top_tokens) refs.push(el("div", {}, "signals: ", r.top_tokens.join(", ")));
+    for (const k of ["config", "rule", "code", "source", "file", "gates"]) if (r[k] && k !== "rule") refs.push(el("div", {}, k + ": ", el("span", { class: "mono" }, r[k])));
+    if (r.evidence && r.evidence.length) refs.push(el("details", {}, el("summary", {}, `evidence cited (${r.evidence.length})`), evidenceList(r.evidence)));
+    if (r.task) refs.push(el("details", {}, el("summary", {}, "the task given to the agent"), el("pre", {}, r.task)));
+    if (d.input !== undefined) refs.push(el("details", {}, el("summary", {}, "tool input → output (the proof)"),
+      el("pre", {}, typeof d.input === "string" ? d.input : JSON.stringify(d.input, null, 1)), el("pre", {}, typeof d.output === "string" ? d.output : JSON.stringify(d.output, null, 1))));
+    return el("li", { class: e.kind }, el("span", { class: "seq" }, "#" + e.seq), el("span", { class: "stage" }, e.stage, el("br"), e.ts.slice(11, 19)),
+      el("div", { class: "body" }, e.text, refs.length ? el("div", { class: "refs" }, refs) : null));
+  };
+  const poll = async () => {
+    try {
+      const r = await api(`/api/runs/${run}/events?after=${lastSeq}`);
+      for (const e of r.events) { timeline.push(e); lastSeq = e.seq; }
+      put(list, ...timeline.map(renderEv));
+      const st = r.status || {};
+      put(status, chip(st.state || "?", st.state === "done" ? "good" : st.state === "failed" ? "bad" : "warn"),
+        st.error ? el("span", {}, " " + st.error) : null, el("span", { style: "color:var(--muted)" }, ` ${timeline.length} steps`));
+      if (st.state !== "running" && pollTimer) { clearInterval(pollTimer); pollTimer = null; cacheClear(); loadRuns(run); }
+    } catch (e) { put(status, el("span", { class: "msg err" }, e.message)); }
+  };
+  lastSeq = 0; timeline = [];
+  await poll();
+  if (pollTimer) clearInterval(pollTimer);
+  const st = runs.find(x => x.run_id === run);
+  if (st && st.state === "running") pollTimer = setInterval(poll, 1500);
+  return out;
+};
+function cacheClear() { for (const k of Object.keys(cache)) delete cache[k]; }
+
+// ---------------------------------------------------------------- 1 complaints
+PAGE.complaints = async (p) => {
+  if (!run) return noRun();
+  const cs = await data("cases");
+  let status = p.status || "all", open = p.case || null, q = (p.case || "").toLowerCase();
+  const counts = { all: cs.length }; for (const c of cs) counts[c.status] = (counts[c.status] || 0) + 1;
+  const tableBox = el("div", { class: "scroll" });
+  const filters = el("div", { class: "row" });
+  const search = el("input", { placeholder: "search complaint id or signal", size: 28, oninput: e => { q = e.target.value.toLowerCase(); draw(); } });
+  search.value = p.case || "";
+  const draw = () => {
+    put(filters, ...["all", "missed", "unnamed", "held"].map(s => el("button", { class: s === status ? "primary" : "", onclick: () => { status = s; draw(); } }, `${s} (${counts[s] || 0})`)), search);
+    const rows = cs.filter(c => (status === "all" || c.status === status) &&
+      (!q || c.case_id.toLowerCase().includes(q) || c.document.toLowerCase().includes(q)));
+    const t = el("table", {}, el("tr", {}, ["complaint", "status", "why (code's decision)", "RUKO's highest tier", "group", "lost"].map(h => el("th", {}, h))));
+    for (const c of rows) {
+      t.append(el("tr", { class: "click", onclick: () => { open = open === c.case_id ? null : c.case_id; draw(); } },
+        el("td", { class: "mono" }, c.case_id), el("td", {}, chip(c.status, c.status === "missed" ? "bad" : c.status === "unnamed" ? "warn" : "acc")),
+        el("td", {}, c.why), el("td", {}, c.max_tier + (c.named.length ? " · " + c.named.join(", ") : "")),
+        el("td", {}, c.group ? ref(c.group, "hdbscan", { c: c.group }) : el("span", { style: "color:var(--muted)" }, c.status === "held" ? "–" : "one-off")),
+        el("td", {}, inr(c.total_inr))));
+      if (open === c.case_id) t.append(el("tr", {}, el("td", { colspan: 6 },
+        el("div", { style: "font-size:12.5px;color:var(--muted)" }, `filed ${c.filed_at.slice(0, 16)} via ${c.source} by ${c.user} · the payments it names, as RUKO saw them:`),
+        el("table", {}, el("tr", {}, ["when", "₹", "payee", "entry", "payer says", "RUKO said", "p(scam)", "signals the server saw"].map(h => el("th", {}, h))),
+          c.payments.map(x => el("tr", {}, el("td", {}, x.ts.slice(0, 16)), el("td", {}, inr(x.amount_inr)), el("td", { class: "mono" }, x.payee_upi_id),
+            el("td", {}, x.entry_method || "–"), el("td", {}, x.payer_says || "–"), el("td", {}, x.ruko_tier + (x.ruko_named ? " · " + x.ruko_named : "")),
+            el("td", {}, x.p_scam), el("td", { class: "mono" }, x.signals.join(" "))))),
+        el("div", { style: "font-size:12.5px;color:var(--muted);margin-top:4px" }, "As one document for clustering: "), el("pre", {}, c.document))));
+    }
+    put(tableBox, rows.length ? t : el("div", { class: "empty" }, "No complaints match."));
+  };
+  draw();
+  return [el("h1", {}, "Complaints: where the shield broke"),
+    explain(["Each complaint (1930 call or NCRP report) names the accounts a victim paid. It is joined to that victim's own payments to those accounts, and each payment is shown with the tier and scam name RUKO gave it ", el("b", {}, "at the time"), "."],
+      ["A complaint is ", chip("missed", "bad"), " if no payment reached T2 (the shield broke), ", chip("unnamed", "warn"), " if it was interrupted but no playbook named the scam, ", chip("held", "acc"), " if it was interrupted and named, yet the victim still paid. Missed and unnamed go to HDBSCAN; held ones are checked for a wrong name. No simulator ground truth is used."],
+      [el("span", { class: "mono" }, "breach.py"), " · ", el("span", { class: "mono" }, "config breach.interrupt_tiers")]),
+    filters, el("div", { class: "card" }, tableBox)];
+};
+
+// ---------------------------------------------------------------- 2 hdbscan
+PAGE.hdbscan = async (p) => {
+  if (!run) return noRun();
+  const d = await data("clusters"), cands = await data("candidates");
+  const cand = Object.fromEntries(cands.map(c => [c.cluster_id, c]));
+  const cfg = d.config, m = d.misnamed_config;
+  const groupCard = g => el("div", { class: "card", id: "g-" + g.cluster_id, style: p.c === g.cluster_id ? "box-shadow: 0 0 0 2px var(--accent)" : "" },
+    el("div", { class: "row" }, el("h2", { style: "margin:0" }, g.cluster_id), kindChip(g.kind, g.nearest_playbook), chip(`${g.cases.length} complaints`)),
+    el("p", {}, el("b", {}, "Decision: "), g.reason),
+    el("div", {}, el("b", {}, "Signals that define it: "), el("span", { class: "chips" }, g.top_tokens.slice(0, 8).map(t => chip(`${t[0]} ×${t[1]}`)))),
+    el("div", { style: "margin-top:6px" }, el("b", {}, "Members: "), caseLinks(g.cases, 20)),
+    cand[g.cluster_id] ? el("div", { style: "margin-top:6px" }, el("b", {}, "Sent to the agents → "), ref("generator", "generator", { c: g.cluster_id }), " · ",
+      ref("analyst", "analyst", { c: g.cluster_id }), " · playbook ", ref(cand[g.cluster_id].name, "playbooks", { name: cand[g.cluster_id].name }))
+      : el("div", { style: "margin-top:6px;color:var(--muted)" }, g.kind === "known" ? "Not sent to the agents: a known scam (a tuning issue, not a new playbook)." : ""));
+  const br = d.clusters.filter(g => g.kind !== "misnamed"), mis = d.clusters.filter(g => g.kind === "misnamed");
+  const out = [el("h1", {}, "HDBSCAN: grouping the breaches"),
+    explain(["Each missed or unnamed complaint becomes a sequence of signals (call, caller, remote control, what the payer said, amount, entry, gaps between payments). These are turned into TF-IDF n-grams, reduced with SVD, and grouped with ", el("b", {}, "HDBSCAN"), ", which needs no number of groups and leaves one-off complaints out as noise."],
+      [`A group is `, chip("known"), ` if ≥ ${pct(cfg.known_named_share)} of it was already named by a playbook, or its centroid is ≥ ${cfg.known_similarity} similar to a playbook's cases; otherwise `, chip("new pattern", "good"),
+       `. Separately, each playbook's held complaints (≥ ${m.min_cases}) are clustered on their own; a subgroup that fits the rest below ${m.fit_below} is `, chip("misnamed?", "warn"), "."],
+      [el("span", { class: "mono" }, "cluster.py"), ` · ngram ${cfg.ngram_range}, max_df ${cfg.max_df}, SVD ${cfg.svd_components}, min_cluster_size ${cfg.min_cluster_size}, min_samples ${cfg.min_samples}, ${cfg.selection}`]),
+    el("h2", {}, `Breach groups (${br.length})`), br.length ? br.map(groupCard) : el("div", { class: "empty" }, "No groups."),
+    el("h2", { style: "margin-top:18px" }, `Misnamed? groups (${mis.length})`), mis.length ? mis.map(groupCard) : el("div", { class: "empty" }, "None."),
+    el("div", { class: "card" }, el("b", {}, `One-offs left as noise (${(d.summary.noise || 0)}): `), "kept for the next run, when more complaints may join them.")];
+  if (p.c) setTimeout(() => { const n = document.getElementById("g-" + p.c); if (n) n.scrollIntoView({ block: "center" }); }, 50);
+  return out;
+};
+
+// ---------------------------------------------------------------- 3/4 agents
+function picker(cands, current, page) {
+  return el("div", { class: "card pick", style: "padding:0" }, cands.map(c => el("div", { class: "it" + (c.cluster_id === current ? " on" : ""), onclick: () => go(page, { c: c.cluster_id }) },
+    el("div", { class: "n" }, c.cluster_id), el("div", { style: "font-size:13px" }, c.name), el("div", { class: "chips" }, kindChip(c.kind, c.ruko_named), page === "analyst" ? verdictChip(c.verdict) : chip(c.cases + " complaints")))));
+}
+function transcript(tr, offline, which) {
+  if (offline) return el("p", {}, chip("offline", "warn"), which === "analyst"
+    ? " No LLM: fixed rules decided, from the backtest and each known playbook's signal similarity (lures ignored), shown below."
+    : " No LLM: the card was built by code (an exhaustive search over the group's distinctive signals for the best rule that passes the gates, with template text).");
+  if (!tr || !tr.length) return el("p", {}, "No turns recorded.");
+  return tr.map(t => el("div", { class: "turn" },
+    el("div", { class: "h" }, `turn ${t.turn} · ${t.seconds}s` + (t.filtered ? " · blocked by the model's content filter" : "")),
+    t.text ? el("div", { class: "thought" }, t.text) : null,
+    (t.tool_calls || []).map((c, i) => {
+      const res = (t.tool_results || []).find(r => r.id === c.id) || (t.tool_results || [])[i];
+      return el("div", {}, chip("calls " + c.name, "acc"), " ",
+        el("details", {}, el("summary", {}, "input"), el("pre", {}, typeof c.input === "string" ? c.input : JSON.stringify(c.input, null, 1))),
+        res ? el("details", {}, el("summary", {}, "what the tool returned (the proof)"), el("pre", {}, typeof res.output === "string" ? res.output : JSON.stringify(res.output, null, 1))) : null);
+    })));
+}
+async function agentPage(p, which) {
+  if (!run) return noRun();
+  const cands = await data("candidates");
+  if (!cands.length) return [el("h1", {}, which === "generator" ? "Generator agent" : "Analyst agent"), el("div", { class: "empty" }, "No groups were sent to the agents in this run.")];
+  const cur = p.c && cands.find(c => c.cluster_id === p.c) ? p.c : cands[0].cluster_id;
+  const c = await api(`/api/runs/${run}/candidates/${encodeURIComponent(cur)}`);
+  const card = c.draft.card, bt = c.draft.backtest || {}, a = c.analyst;
+  const offline = which === "generator" ? String(c.draft.drafted_by).startsWith("offline") : String(a.reviewed_by || "").startsWith("offline");
+  const head = [el("div", { class: "row" }, el("h2", { style: "margin:0" }, cur), kindChip(c.cluster.kind, c.cluster.nearest_playbook), chip(`${c.cluster.case_ids.length} complaints`),
+    ref("group in HDBSCAN", "hdbscan", { c: cur }), " · ", ref(which === "generator" ? "analyst's review" : "generator's draft", which === "generator" ? "analyst" : "generator", { c: cur })),
+    el("p", {}, el("b", {}, "Why this group: "), c.cluster.reason)];
+  let body;
+  if (which === "generator") {
+    body = [el("div", { class: "card" }, el("h2", {}, "Turn by turn"), el("p", { style: "color:var(--muted)" }, `Drafted by ${c.draft.drafted_by}` + (c.draft.usage ? ` · ${c.draft.usage.turns} turns, ${c.draft.usage.tokens_in} tokens in` : "")), transcript(c.draft.transcript, offline, "generator")),
+      el("div", { class: "card" }, el("h2", {}, "What it drafted"), el("div", { class: "mono" }, card.name), el("p", {}, el("b", {}, card.title)), el("p", {}, card.summary),
+        el("ol", {}, (card.steps || []).map(s => el("li", {}, s))),
+        el("p", {}, el("b", {}, "AI-powered? "), card.ai_powered ? (card.ai_powered.likely ? "likely — " : "not evident — ") + card.ai_powered.why : "–"),
+        el("h2", {}, "Evidence it cites"), evidenceList(card.evidence),
+        el("h2", {}, "Rule, checked by code over every past payment"), el("pre", {}, bt.rule_in_words || ""),
+        card.drafted_matcher ? el("p", {}, chip("rule replaced", "warn"), " The agent's own rule failed the gates (", card.drafted_matcher.gate_failures.join("; "), "), so code searched for one that passes.") : null,
+        el("div", { class: "stats" }, el("div", { class: "stat" }, el("b", {}, pct(bt.cluster_case_recall)), el("span", {}, "of the group's complaints it names")),
+          el("div", { class: "stat" }, el("b", {}, bt.legit_payments_named_per_1000 ?? "–"), el("span", {}, "legit payments named per 1,000")),
+          el("div", { class: "stat" }, el("b", {}, pct(bt.known_playbook_payments_also_matched)), el("span", {}, "of other known-scam payments it would take"))),
+        (c.draft.gate_failures || []).length ? el("p", {}, chip("gates fail", "bad"), " ", c.draft.gate_failures.join("; ")) : el("p", {}, chip("all gates pass", "good"), " (config gates.*)"))];
+  } else {
+    body = [el("div", { class: "card" }, el("h2", {}, "Turn by turn"), el("p", { style: "color:var(--muted)" }, `Reviewed by ${a.reviewed_by}` + (a.usage ? ` · ${a.usage.turns} turns` : "")), transcript(a.transcript, offline, "analyst"),
+        offline && a.profile_similarity ? el("pre", {}, "lure-ignored similarity to each known playbook:\n" + JSON.stringify(a.profile_similarity, null, 1)) : null),
+      el("div", { class: "card" }, el("h2", {}, "Verdict"), el("div", { class: "row" }, verdictChip(a.verdict), a.nearest_playbook ? chip("nearest: " + a.nearest_playbook) : null, a.confidence ? chip("confidence: " + a.confidence) : null),
+        el("p", {}, a.rationale), el("h2", {}, "The facts it rests on (its references)"), evidenceList(a.evidence),
+        (a.required_changes || []).length ? [el("h2", {}, "Changes it asks for"), el("ul", {}, a.required_changes.map(x => el("li", {}, x)))] : null,
+        el("p", { style: "color:var(--muted)" }, "This is advice to the two human analysts; it approves nothing."))];
+  }
+  return [el("h1", {}, which === "generator" ? "Generator agent: investigates and drafts" : "Analyst agent: an independent second opinion"),
+    which === "generator"
+      ? explain("An LLM agent (Amazon Bedrock) reads the group only through read-only tools: the group overview, single complaints, payees, the known playbooks, comparisons. It tries rules with test_matcher, which code runs over every past payment, then submits a card that must cite the facts it rests on.",
+          "Code validates the card (name, Hindi warning, evidence) and backtests its rule against the gates; a card failing them goes back to the agent. Each cited source is checked against the calls the agent really made.",
+          [el("span", { class: "mono" }, "investigator.py · evidence.py · llm.py · config agents.*, gates.*")])
+      : explain("A second LLM agent with the same read-only tools and a skeptical brief: is this a new scam, a known scam in a new form (e.g. the phone missed the scam SMS), a look-alike, or not enough evidence? For a misnamed? group: was RUKO's name right?",
+          "It must cite the facts its verdict rests on; code checks each cited source against its own tool calls.",
+          [el("span", { class: "mono" }, "analyst.py")]),
+    el("div", { class: "split" }, picker(cands, cur, which), el("div", {}, head, body))];
+}
+PAGE.generator = p => agentPage(p, "generator");
+PAGE.analyst = p => agentPage(p, "analyst");
+
+// ---------------------------------------------------------------- 5 playbooks
+PAGE.playbooks = async (p) => {
+  const all = await api("/api/cards");
+  const list = [...all.review, ...all.approved, ...all.rejected].filter(s => !run || s.run_id === run || p.name === s.name);
+  const head = [el("h1", {}, "Playbooks: the final card and the human decision"),
+    explain(["The minimal playbook a person needs to judge, with links back to the group, the generator's draft and the analyst's verdict. Below it is ", el("b", {}, "exactly what is stored"), " in the playbook database, and whether the engine's live list can take it yet."],
+      "Two different analysts must approve. A rejection needs a reason. Editing the text clears earlier approvals, so both approve the final words. A card whose rule fails the gates cannot be approved.",
+      [el("span", { class: "mono" }, "review.py · playbooks/review → approved/ · exports/<name>/")])];
+  if (!list.length) return head.concat(el("div", { class: "empty" }, run ? "No playbooks from this run." : "No playbooks yet."));
+  const cur = p.name && list.find(s => s.name === p.name) ? p.name : list[0].name;
+  const d = await api(`/api/cards/${encodeURIComponent(cur)}`);
+  const yamlText = await api(`/api/cards/${encodeURIComponent(cur)}/yaml`);
+  const c = d.card, s = d.summary, a = c.analyst || {}, msg = el("div");
+  const pick = el("div", { class: "card pick", style: "padding:0" }, list.map(x => el("div", { class: "it" + (x.name === cur ? " on" : ""), onclick: () => go("playbooks", { name: x.name }) },
+    el("div", { class: "n", style: "font-size:13px" }, x.name), el("div", { class: "chips" }, chip(x.state, x.state === "approved" ? "good" : x.state === "rejected" ? "bad" : "warn"), verdictChip(x.verdict),
+      x.state === "review" ? chip(`${x.approvals.length}/${x.needed}`) : null))));
+  const minimal = el("div", { class: "card" },
+    el("div", { class: "row" }, el("span", { class: "mono" }, c.name), kindChip(s.kind, c.misnamed_as), chip(d.state, d.state === "approved" ? "good" : d.state === "rejected" ? "bad" : "warn")),
+    el("h2", { style: "margin-top:6px" }, c.title),
+    el("ol", {}, (c.steps || []).slice(0, 5).map(x => el("li", {}, x))),
+    el("div", { class: "grid2" }, el("div", { class: "advice" }, el("div", { class: "lang" }, "Warning (English)"), c.advice_en), el("div", { class: "advice" }, el("div", { class: "lang" }, "चेतावनी (हिन्दी)"), c.advice_hi)),
+    el("p", {}, el("b", {}, "Rule: "), el("span", { class: "mono" }, c.rule_in_words)),
+    el("div", { class: "row" }, el("b", {}, "Analyst agent: "), verdictChip(a.verdict), a.nearest_playbook ? chip("nearest " + a.nearest_playbook) : null),
+    el("p", { style: "font-size:13px;color:var(--muted)" }, a.rationale || ""),
+    el("div", {}, el("b", {}, "References: "), `${s.cases} complaints in `, ref(s.cluster_id || "group", "hdbscan", { c: s.cluster_id }), " · ",
+      ref("generator's turns", "generator", { c: s.cluster_id }), " · ", ref("analyst's turns", "analyst", { c: s.cluster_id }),
+      " · backtest: ", `${pct((c.backtest || {}).cluster_case_recall)} of the complaints, ${(c.backtest || {}).legit_payments_named_per_1000} legit per 1,000`,
+      (c.gate_failures || []).length ? chip("gates fail", "bad") : chip("gates pass", "good")));
+  const eng = d.engine;
+  const stored = el("div", { class: "card" }, el("h2", {}, "Stored in the playbook database"),
+    el("p", { style: "color:var(--muted)" }, `playbooks/${d.state}/${c.name}.yaml — the full card, its rule at priority ${(c.match || [{}])[0].priority}${c.misnamed_as ? " (just before " + c.misnamed_as + ", which it corrects)" : " (after all known playbooks)"}, the evidence, the backtest, the analyst's verdict, the mule accounts and every review.`),
+    el("details", {}, el("summary", {}, "show the stored YAML"), el("pre", {}, yamlText)),
+    el("h2", { style: "margin-top:12px" }, "Into the engine's live list"),
+    eng.ready ? el("p", {}, chip("ready", "good"), " Paste this entry into data/playbooks/playbooks.yaml where the comment says.")
+      : el("div", {}, el("p", {}, chip("not yet", "warn"), " The engine needs:"), el("ul", {}, eng.blockers.map(b => el("li", {}, b)))),
+    el("details", {}, el("summary", {}, "entry for data/playbooks/playbooks.yaml"), el("pre", {}, eng.entry)));
+  const revs = (c.reviews || []).concat((c.edits || []).map(e => ({ analyst: e.analyst, decision: "edited " + e.fields.join(", "), at: e.at })));
+  const reviews = el("div", { class: "card" }, el("h2", {}, "Human decisions"),
+    revs.length ? el("ul", {}, revs.map(r => el("li", {}, `${(r.at || "").slice(0, 16)} · ${r.analyst}: ${r.decision}${r.note ? " — " + r.note : ""}`))) : el("p", {}, "No one has reviewed it yet."));
+  if (d.state === "review") {
+    const note = el("textarea", { placeholder: "Note (required to reject)" });
+    const act = async (decision) => {
+      try {
+        const r = await api(`/api/cards/${encodeURIComponent(c.name)}/decision`, { analyst: who.value, decision, note: note.value });
+        put(msg, el("div", { class: "msg ok" }, r.status === "approved" ? "Approved by two analysts: it is now in the playbook database." + (r.engine_entry ? " Engine: " + r.engine_entry : "")
+          : r.status === "rejected" ? "Rejected." : `Recorded (${r.approvals.length}/${r.needed}). It needs another analyst.`));
+        setTimeout(route, 900);
+      } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+    };
+    const fields = {}, editBox = el("div", { style: "display:none" });
+    for (const k of d.editable) { fields[k] = k === "title" ? el("input", { style: "width:100%" }) : el("textarea", {}); fields[k].value = k === "steps" ? (c.steps || []).join("\n") : (c[k] || ""); editBox.append(el("label", { class: "f" }, k === "steps" ? "steps (one per line)" : k), fields[k]); }
+    editBox.append(el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "primary", onclick: async () => {
+      const body = {}; for (const k of d.editable) body[k] = k === "steps" ? fields[k].value.split("\n").map(x => x.trim()).filter(Boolean) : fields[k].value.trim();
+      try { const r = await api(`/api/cards/${encodeURIComponent(c.name)}/text`, { analyst: who.value, fields: body });
+        put(msg, el("div", { class: "msg ok" }, r.changed.length ? `Saved ${r.changed.join(", ")}.` + (r.approvals_cleared.length ? ` Approvals by ${r.approvals_cleared.join(", ")} were cleared.` : "") : "Nothing changed.")); setTimeout(route, 900);
+      } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); } } }, "Save text")));
+    reviews.append(el("p", {}, "Approve if this is a real scam pattern, the story and warning are right, and the rule is safe for naming it. Your name: ", el("b", {}, who.value || "(type it at the top right)")),
+      note, el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "primary", onclick: () => act("approve") }, "Approve"),
+        el("button", { class: "danger", onclick: () => act("reject") }, "Reject"), el("button", { onclick: () => { editBox.style.display = editBox.style.display === "none" ? "block" : "none"; } }, "Edit the text")), editBox, msg);
+  }
+  return head.concat(el("div", { class: "split" }, pick, el("div", {}, minimal, stored, reviews)));
+};
+
+// ---------------------------------------------------------------- 6 database
+PAGE.database = async () => {
+  const d = await api("/api/database");
+  return [el("h1", {}, "Playbook database"),
+    explain(["Known playbooks are the engine's own list (", el("span", { class: "mono" }, d.engine_file), "): what RUKO names today, first match wins. Approved playbooks are the ones two analysts accepted from the blue team."],
+      "An approved playbook runs after all known ones, except a fix for a misnamed group, which runs just before the playbook it corrects. It only names the scam and its warning; tiers still come from the scorer.",
+      [el("span", { class: "mono" }, "engine_file.py · playbook_db.py")]),
+    el("div", { class: "stats" }, el("div", { class: "stat" }, el("b", {}, d.known.length), el("span", {}, "known (engine)")), el("div", { class: "stat" }, el("b", {}, d.approved.length), el("span", {}, "approved by analysts")),
+      el("div", { class: "stat" }, el("b", {}, d.waiting), el("span", {}, "waiting for review")), el("div", { class: "stat" }, el("b", {}, d.rejected), el("span", {}, "rejected"))),
+    el("h2", {}, "Approved by the blue team"),
+    d.approved.length ? d.approved.map(a => el("div", { class: "card" }, el("div", { class: "row" }, ref(a.name, "playbooks", { name: a.name }), a.misnamed_as ? chip("corrects " + a.misnamed_as, "warn") : chip("new", "good"),
+        chip("approved by " + a.approved_by.join(" + "), "good"), a.engine.ready ? chip("engine: ready", "good") : chip("engine: not yet", "warn")),
+      el("p", {}, a.title), a.rules.map(r => el("div", { class: "mono" }, `priority ${r.priority}: ${r.in_words}`))))
+      : el("div", { class: "card empty" }, "None approved yet. Approve a playbook on the Playbooks page."),
+    el("h2", { style: "margin-top:16px" }, "Known (the engine's list)"),
+    d.known.map(k => el("div", { class: "card" }, el("div", { class: "row" }, el("b", {}, k.name)), el("p", {}, k.title),
+      el("details", {}, el("summary", {}, "rules, in the engine's order"), k.rules.map((r, i) => el("div", {}, el("span", { class: "mono" }, `priority ${r.priority}: ${r.in_words}`), el("div", { style: "font-size:12.5px;color:var(--muted)" }, "why: " + (k.why[i] || "")))))))];
+};
+
+// ---------------------------------------------------------------- go
+(async () => { await loadRuns(); route(); setInterval(() => loadRuns(run), 10000); })();
+</script>
+</body>
+</html>

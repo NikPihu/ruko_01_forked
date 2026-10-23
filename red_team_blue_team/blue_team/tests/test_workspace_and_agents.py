@@ -13,7 +13,9 @@ def card(**kw):
          "signals": ["CALL_ON", "SAYS_FAMILY"], "matcher": GOOD, "reason_codes": ["R1_live_unknown_call"],
          "advice_en": "Hang up and call your relative back on their saved number.",
          "advice_hi": "फ़ोन काटें और अपने रिश्तेदार को उनके सेव नंबर पर वापस कॉल करें।",
-         "ai_powered": {"likely": True, "why": "VoIP call, family story"}, "confidence": "medium"}
+         "ai_powered": {"likely": True, "why": "VoIP call, family story"}, "confidence": "medium",
+         "evidence": [{"source": "get_cluster_overview", "fact": "SAYS_FAMILY in most cases"},
+                      {"source": "test_matcher", "fact": "names every case, no legit payments"}]}
     c.update(kw)
     return c
 
@@ -94,8 +96,8 @@ def test_agent_that_never_submits_falls_back_to_offline(ws, new_cluster):
 def test_analyst_agent_needs_a_known_playbook_for_variant(ws, new_cluster):
     draft = investigator.investigate_offline(ws, new_cluster, set())
     rt = FakeBedrock([
-        [use("submit_review", {"verdict": "variant_of_known", "nearest_playbook": "made_up", "rationale": "x", "confidence": "low"}, 1)],
-        [use("submit_review", {"verdict": "new_scam", "rationale": "no known playbook has a family story", "confidence": "medium"}, 2)],
+        [use("submit_review", {"verdict": "variant_of_known", "nearest_playbook": "made_up", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)],
+        [use("submit_review", {"verdict": "new_scam", "rationale": "no known playbook has a family story", "confidence": "medium", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 2)],
     ])
     rev = analyst.review(ws, new_cluster, draft, rt, "fake-model")
     assert rev["verdict"] == "new_scam" and rev["reviewed_by"] == "fake-model"
@@ -103,7 +105,7 @@ def test_analyst_agent_needs_a_known_playbook_for_variant(ws, new_cluster):
 
 def test_tool_errors_go_back_to_the_model(ws, new_cluster):
     rt = FakeBedrock([[use("get_case", {"case_id": "nope"}, 1)], [use("no_such_tool", {}, 2)],
-                      [use("submit_review", {"verdict": "insufficient_evidence", "rationale": "x", "confidence": "low"}, 3)]])
+                      [use("submit_review", {"verdict": "insufficient_evidence", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 3)]])
     tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
     res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 5)
     assert res.final["verdict"] == "insufficient_evidence"
@@ -115,7 +117,7 @@ def test_tool_errors_go_back_to_the_model(ws, new_cluster):
 def test_filtered_replies_are_dropped_and_retried(ws, new_cluster):
     blocked = [{"text": "- The generated text has been blocked by our content filters."}]
     rt = FakeBedrock([blocked, blocked,
-                      [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low"}, 1)]])
+                      [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)]])
     tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
     res = llm.run_agent(rt, "fake", "sys", "task", tools, "submit_review", 6)
     assert res.final["verdict"] == "new_scam"
@@ -150,7 +152,7 @@ class NoForcedChoice(FakeBedrock):
 
 
 def test_tool_choice_is_forced_when_allowed_and_dropped_when_refused(ws, new_cluster):
-    submit = [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low"}, 1)]
+    submit = [use("submit_review", {"verdict": "new_scam", "rationale": "x", "confidence": "low", "evidence": [{"source": "get_cluster_overview", "fact": "x"}]}, 1)]
     tools = analyst._tools(ws, new_cluster, investigator.investigate_offline(ws, new_cluster, set()))
     rt = FakeBedrock([submit])
     llm.run_agent(rt, "forced-ok", "sys", "task", tools, "submit_review", 3)

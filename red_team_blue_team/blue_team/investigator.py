@@ -8,6 +8,7 @@ to the human reviewers. Offline, a deterministic drafter builds the card from th
 """
 from __future__ import annotations
 
+import json
 import re
 import typing
 from datetime import datetime, timezone
@@ -40,9 +41,14 @@ CARD_SCHEMA = {
                        "required": ["likely", "why"]},
         "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
         "open_questions": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"type": "array", "items": {"type": "object", "properties": {
+            "source": {"type": "string", "description": "the tool call it came from, e.g. 'get_case rep_001239', 'get_cluster_overview', 'test_matcher'"},
+            "fact": {"type": "string", "description": "the fact, in one short sentence, as the tool returned it"}},
+            "required": ["source", "fact"]},
+                     "description": "3-8 facts this card rests on, each with the tool call it came from"},
     },
     "required": ["name", "title", "summary", "steps", "signals", "matcher", "reason_codes", "advice_en", "advice_hi",
-                 "ai_powered", "confidence"],
+                 "ai_powered", "confidence", "evidence"],
 }
 
 MATCHER_HELP = f"""Matcher format (JSON). A leaf: {{"feature": <field>, "op": <op>, "value": <value>}}.
@@ -81,6 +87,8 @@ Rules:
   video), set ai_powered.likely and say which evidence; otherwise say it is not evident.
 - advice_en: at most 25 words, calm, one concrete action. advice_hi: the same in Hindi (Devanagari).
 - name: snake_case and descriptive of the scam (e.g. electricity_bill_disconnection), not a token list.
+- evidence: list the 3-8 facts the card rests on, each with its source, the tool call it came from
+  ("get_case rep_001239", "get_cluster_overview", "test_matcher"). Code checks you made those calls.
 - This is fraud-prevention work for defenders: describe how the scam works factually so analysts
   can warn victims. Keep free text short; put your work into tool calls.
 
@@ -145,6 +153,9 @@ def check_card(card: dict, existing: set[str]) -> list[str]:
         errs.append("advice_en: at most 25 words")
     if not DEVANAGARI.search(str(card.get("advice_hi", ""))):
         errs.append("advice_hi must be in Hindi (Devanagari script)")
+    ev = card.get("evidence")
+    if not isinstance(ev, list) or len(ev) < 2 or not all(isinstance(e, dict) and e.get("source") and e.get("fact") for e in ev):
+        errs.append("evidence: at least 2 items, each {source: the tool call, fact: what it returned}")
     return errs
 
 
@@ -162,7 +173,19 @@ def _submit(ws: Workspace, cluster_id: str, card: dict, state: dict) -> dict:
     return {"accepted": True, "backtest": bt}
 
 
-def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[str]) -> dict:
+def check_sources(evidence: list[dict], transcript: list[dict]) -> list[dict]:
+    """Mark each cited source `seen` if the agent really called that tool (with that argument, if given)."""
+    calls = [(c["name"], json.dumps(c.get("input"), ensure_ascii=False)) for t in transcript for c in t.get("tool_calls", [])]
+    out = []
+    for e in evidence or []:
+        src = str(e.get("source", "")).strip()
+        name, _, arg = src.partition(" ")
+        seen = any(n == name and (not arg or arg.strip("'\" ") in inp) for n, inp in calls)
+        out.append({**e, "seen": seen})
+    return out
+
+
+def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[str], on_event=None) -> dict:
     """Run the LLM investigator; returns the draft (card + backtest + transcript)."""
     a, g = config.load()["agents"], config.load()["gates"]
     state = {"taken": taken, "last": None, "gate_retries": 0}
@@ -170,7 +193,7 @@ def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[st
         "{max_legit}", str(g["max_legit_per_1000"])).replace("{max_overlap}", str(g["max_known_overlap"]))
     task = task_for(ws, cluster_id)
     res = llm.run_agent(rt, model_id, system, task, _tools(ws, cluster_id, state), "submit_playbook",
-                        a["investigator_max_turns"])
+                        a["investigator_max_turns"], on_event=on_event)
     card, bt = (res.final, state["last"][1]) if res.final else (state["last"] or (None, None))
     if card is None:
         card, bt = offline_card(ws, cluster_id, taken)
@@ -188,6 +211,8 @@ def investigate(ws: Workspace, cluster_id: str, rt, model_id: str, taken: set[st
             how = model_id
     else:
         how = model_id
+    if not how.startswith("offline"):
+        card = {**card, "evidence": check_sources(card.get("evidence"), res.transcript)}
     return _draft(card, bt, cluster_id, how, res)
 
 
@@ -215,6 +240,11 @@ def offline_card(ws: Workspace, cluster_id: str, taken: set[str]) -> tuple[dict,
         "advice_hi": "दूसरे लोगों ने ऐसे भुगतानों को धोखा बताया है। रुकें, किसी भरोसेमंद व्यक्ति से पूछें, और शक हो तो 1930 पर कॉल करें।",
         "ai_powered": {"likely": False, "why": "not assessed offline"}, "confidence": "low",
         "open_questions": ["What story did the scammer tell? (no LLM draft)"],
+        "evidence": [{"source": "get_cluster_overview", "fact": f"{d['token']} in {d['share_of_cases']:.0%} of the cases "
+                      f"({d['lift']}x {ov.get('lift_is_against', 'the baseline')})", "seen": True}
+                     for d in ov["distinctive_tokens"][:4]]
+                    + [{"source": "test_matcher", "fact": f"the rule names {bt['cluster_case_recall']:.0%} of the cases and "
+                        f"{bt['legit_payments_named_per_1000']} legit payments per 1,000", "seen": True}],
     }
     return card, bt
 

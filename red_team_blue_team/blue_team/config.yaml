@@ -80,3 +80,12 @@ analyst_offline:                     # the no-LLM analyst's fixed rules (a basel
 
 review:
   approvals_needed: 2                # two different analysts (same rule as graph/discover.py)
+
+console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
+  worlds:
+    - name: "seed 33 world (prompts never tuned on it)"
+      table: ml/data/tables/breach_s33.parquet
+      data: data/sim_v2_out/breach_s33
+    - name: "seed 21 world"
+      table: ml/data/tables/breach.parquet
+      data: data/sim_v2_out/breach

@@ -41,6 +41,7 @@ class Cluster:
     named_share: float            # share of its cases some playbook already named
     top_tokens: list[tuple[str, float]] = field(default_factory=list)   # (token n-gram, lift)
     baseline_ids: list[str] | None = None   # misnamed: the playbook's other held cases, to compare with
+    reason: str = ""              # why this kind, with the numbers and the config thresholds used
 
 
 @dataclass
@@ -97,12 +98,18 @@ def run(case_df: pd.DataFrame) -> Result:
             if named_share >= cfg["known_named_share"]:
                 kind, nearest = "known", Counter(named).most_common(1)[0][0]
                 sim = sims.get(nearest, sim)
+                reason = (f"known: {named_share:.0%} of its cases were already named {nearest} by a playbook "
+                          f"(>= cluster.known_named_share {cfg['known_named_share']:.0%}); a known scam that slipped past the tiers")
             elif sim >= cfg["known_similarity"]:
                 kind = "known"
+                reason = (f"known: its centroid is {sim:.2f} similar to the cases {nearest} names "
+                          f"(>= cluster.known_similarity {cfg['known_similarity']})")
             else:
                 kind = "new"
+                reason = (f"new: only {named_share:.0%} of its cases were named (< {cfg['known_named_share']:.0%}) and the "
+                          f"closest playbook, {nearest}, is {sim:.2f} similar (< {cfg['known_similarity']})")
             clusters.append(Cluster(f"c{lab:02d}", g["case_id"].tolist(), kind, nearest, round(float(sim), 3),
-                                    round(named_share, 3), _top_tokens(x_br, labels == lab, vocab)))
+                                    round(named_share, 3), _top_tokens(x_br, labels == lab, vocab), reason=reason))
     else:
         br = br.assign(cluster=-1)
     clusters += suspects
@@ -132,7 +139,10 @@ def misnamed(case_df: pd.DataFrame) -> list[Cluster]:
             fit = profile_cosine(mine, rest, sets, w)
             if fit < mcfg["fit_below"]:
                 out.append(Cluster(f"m_{pb}_{lab}", mine, "misnamed", pb, round(fit, 3), 1.0,
-                                   _top_tokens(x, labels == lab, vocab), baseline_ids=rest))
+                                   _top_tokens(x, labels == lab, vocab), baseline_ids=rest,
+                                   reason=(f"misnamed?: RUKO interrupted and named these {len(mine)} complaints {pb}, but their "
+                                           f"signals fit {pb}'s other {len(rest)} held complaints only {fit:.2f} "
+                                           f"(< misnamed.fit_below {mcfg['fit_below']})")))
     return out
 
 

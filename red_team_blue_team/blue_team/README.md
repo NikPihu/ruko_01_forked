@@ -3,6 +3,26 @@
 Owner: Diwansu Pilania. Everything lives in this folder; it only *reads* `backend/` (features,
 policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds).
 
+## The console (start here)
+
+```bash
+export PYTHONPATH="backend;ml;data;red_team_blue_team" PYTHONIOENCODING=utf-8
+export AWS_BEARER_TOKEN_BEDROCK=...        # optional: without it runs are offline (no LLM)
+.venv/Scripts/python -m blue_team app      # -> http://127.0.0.1:8765
+```
+
+One page with a sidebar, every decision with its reason and its references:
+
+| Page | What you see |
+|---|---|
+| Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
+| Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
+| HDBSCAN | the method and parameters, every group with the reason for its kind (numbers and thresholds), the misnamed? groups and the one-offs |
+| Generator agent | per group: the task, every turn (its words, each tool call and what the tool returned: the proof), the card, the evidence it cites (each source checked against its real tool calls), the backtest and gates |
+| Analyst agent | the same for the second opinion: turns, verdict, rationale and the facts it rests on |
+| Playbooks | the minimal card (title, steps, rule, warnings in English and Hindi, verdict, references), exactly what is stored (the YAML), whether the engine can take it yet, and approve / reject / edit |
+| Playbook database | the engine's known playbooks (its live file) and the ones analysts approved |
+
 ## The flow
 
 | Step | Module | What happens |
