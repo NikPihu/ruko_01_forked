@@ -221,6 +221,13 @@ mind. Offline episode features for training:
   (`lgbm-*`, needs LightGBM from `ml/requirements.txt`; the dev scripts install it) and falls back
   to `api/rule_scorer.py` (`rules-0.7`, hand-set) if it cannot load; `--scorer rules` forces the
   rules. `GET /health` reports which one is running.
+- Playbooks (the scam type a payment looks like): `data/playbooks/playbooks.yaml` (data owns the
+  list; checked in order, first match wins), read by `api/playbooks.py` (format, loader, the same
+  rules built in as the fallback if the file is missing or wrong; `GET /health` says which:
+  `file:<version>` or `builtin`). `tests/test_playbooks.py` checks the file and the fallback agree.
+  Naming an emerging pattern in the console drafts an entry in this format. A new name needs app
+  words for `<tier>_<name>`, else the app shows the tier's generic text. Not the same as the
+  simulator's journey scripts in `data/sim_v2/config/playbooks/`.
 - `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
   applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
   and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),

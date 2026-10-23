@@ -9,8 +9,8 @@ deliberately simple -- the point is a transparent fallback, not a tuned model.
 from __future__ import annotations
 
 import math
-from typing import Callable
 
+from api import playbooks
 from features.session import T as SESSION
 
 MODEL_VERSION = "rules-0.7"
@@ -23,9 +23,7 @@ BIAS = -5.0  # two strong families (~0.9 each) land near p=0.55; one alone stays
 REASON_MIN_STRENGTH = 0.3
 
 
-def _unknown_caller(f: dict) -> bool:
-    """A caller not in contacts, or a VoIP call whose number the phone cannot see (null is not safe)."""
-    return bool(f["caller_unknown"]) or (bool(f["voip_call"]) and f["caller_unknown"] is None)
+_unknown_caller = playbooks.unknown_caller
 
 
 def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
@@ -142,29 +140,10 @@ def _noisy_or(xs: list[float]) -> float:
     return 1 - math.prod(1 - x for x in xs)
 
 
-# Which scam playbook a payment looks like. Checked in this order; the first rule that matches names
-# the playbook. Each rule has a plain description so the analyst console can show every playbook
-# that was checked and why one matched (api/explain.py).
-PLAYBOOK_RULES: list[tuple[str, str, Callable[[dict], bool]]] = [
-    # An active task-scam episode beats any older message on the phone.
-    ("task_job", "the phone's task-scam watcher is ACTIVE (rewards in, bigger payments out)",
-     lambda f: f["episode_state"] == 2),
-    ("fake_kyc_apk", "an app installed from outside the store + a KYC message",
-     lambda f: bool(f["sideloaded_last_24h"]) and f["lure_tag"] == "kyc"),
-    ("fake_customer_care", "the user called an unknown number + screen control or dictated typing",
-     lambda f: bool(f["outgoing_to_unknown"]) and bool(f["remote_control"] or f["session_dictated"])),
-    ("digital_arrest", "an arrest-threat message",
-     lambda f: f["lure_tag"] == "arrest_threat"),
-    ("digital_arrest", "an unknown caller on the line + screen control, a video call, a story mismatch or dictated typing",
-     lambda f: bool(f["on_call"]) and _unknown_caller(f)
-     and bool(f["remote_control"] or f.get("video_call") or f["story_mismatch"] or f["session_dictated"])),
-    ("trading_group", "a trading-tip message",
-     lambda f: f["lure_tag"] == "trading_tip"),
-    ("task_job", "a task or job message",
-     lambda f: f["lure_tag"] == "task_job"),
-    ("refund_qr", "an unknown caller on the line + a payee that was not typed (QR or picked)",
-     lambda f: bool(f["on_call"]) and _unknown_caller(f) and not f["entry_typed"]),
-]
+# Which scam playbook a payment looks like: data/playbooks/playbooks.yaml, read once at start, with
+# the same rules built in as a fallback (api/playbooks.py). Checked in order; the first rule that
+# matches names the playbook. Each has a plain description for the analyst console (api/explain.py).
+PLAYBOOK_RULES, PLAYBOOK_SOURCE = playbooks.load()
 
 
 def _playbook(f: dict) -> str | None:

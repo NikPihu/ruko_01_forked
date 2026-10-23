@@ -117,15 +117,37 @@ def find(store: TxnStore, now: datetime, reviews: dict[str, dict] | None = None)
     return sorted(out, key=lambda x: (-x["people"], -x["payments"]))
 
 
+def draft_match(sig: dict) -> dict:
+    """The pattern's signals as playbook conditions (api/playbooks.py format)."""
+    m: dict = {}
+    call = sig.get("call") or ""
+    if call == "user called an unknown number":
+        m["outgoing_to_unknown"] = True
+    elif call:
+        m["on_call"] = True
+        if "unknown caller" in call:
+            m["unknown_caller"] = True
+        if call.startswith("video call"):
+            m["video_call"] = True
+    if sig.get("lure"):
+        m["lure_tag"] = sig["lure"]
+    if sig.get("control") == "screen control":
+        m["remote_control"] = True
+    elif sig.get("control"):
+        m["sideloaded_last_24h"] = True
+    for words, feature in (("amount dictated", "session_dictated"),
+                           ("UPI ID pasted after switching apps", "session_pasted_after_switch")):
+        if words in sig.get("pay_screen", []):
+            m[feature] = True
+    if sig.get("entry"):
+        m["entry_typed"] = sig["entry"] == "typed"
+    return m
+
+
 def draft_playbook(pattern: dict, name: str) -> str:
-    """A draft for the data folder's playbook files, for the data owner to finish and add."""
-    sig = pattern["signature"]
-    doc = {
-        "name": name,
-        "title": pattern["description"],
-        "confidence": "guess",
-        "sources": [f"RUKO emerging pattern {pattern['pattern_id']}: {pattern['people']} people, "
-                    f"{pattern['payments']} payments, first seen {pattern['first_seen'][:10]}"],
-        "signals": {k: v for k, v in sig.items() if v not in (None, [], False)},
-    }
-    return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
+    """A draft entry for data/playbooks/playbooks.yaml (api/playbooks.py format), for the data owner
+    to check and add. Where it goes in the list matters: the first match names the payment."""
+    entry = {"name": name, "why": pattern["description"], "match": draft_match(pattern["signature"])}
+    head = (f"# RUKO emerging pattern {pattern['pattern_id']}: {pattern['people']} people, "
+            f"{pattern['payments']} payments, first seen {pattern['first_seen'][:10]}\n")
+    return head + yaml.safe_dump([entry], sort_keys=False, allow_unicode=True)

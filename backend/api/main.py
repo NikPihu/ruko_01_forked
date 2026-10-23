@@ -257,7 +257,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok", "model_version": app.state.model_version, "scorer": scorer_used,
-                "policy_version": policy.version, "contract_version": CONTRACT_VERSION,
+                "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE, "contract_version": CONTRACT_VERSION,
                 "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)
