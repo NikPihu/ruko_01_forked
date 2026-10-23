@@ -40,6 +40,9 @@ interface RukoApi {
     /** The user's own payments as RUKO recorded them (c2-0.8): plain words, never a score. */
     @GET("v1/me/payments")
     suspend fun myPayments(@Query("user_id") userId: String): MyPayments
+    /** "I know this person" (demo endpoint, unauthenticated): this user trusts this payee. */
+    @POST("v1/trusted/{user_id}/{payee_upi_id}")
+    suspend fun trust(@Path("user_id") userId: String, @Path("payee_upi_id") payee: String): ResponseBody
 }
 
 /** The mock NPCI, playing the part a real PSP app talks to. Not part of the RUKO contract. */

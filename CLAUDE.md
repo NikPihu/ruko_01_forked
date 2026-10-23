@@ -182,7 +182,7 @@ Meena's contacts into the phone's address book (`python -m sim.contacts --data d
 ```bash
 .venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 62 tests
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 89 tests
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -239,7 +239,13 @@ mind. Offline episode features for training:
   SMS parser, `DeviceModel.kt` + `DeviceFeatures.kt` + `DeviceVerdict.kt` (on-device model,
   `assets/device_model.json`, c2-0.8; must match `ml/model/artifacts/`), `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,
   encrypted event queue). `data/`: encrypted account store, `PaymentHistory.kt` (payment history: id, decision, outcome; 90 days). `ui/`: screens incl. `HistoryScreen.kt` (bottom-bar History), `ContactsScreen.kt` (To Mobile Number), debug panel (long press
-  "Cache Pay" on Home), `EpisodeCard.kt`. Hindi strings in `res/values-hi/`.
+  "Cache Pay" on Home; "Preview alert screens" shows T1 to T4 without the server), `EpisodeCard.kt`.
+  `ui/alerts/`: T1 `TipBanner` on the PIN screen, T2 `ExplainCard` (5 s read gate, `SlideToConfirm`),
+  T3 `PauseScreen` (countdown, trusted person, 1930, wait reminder, "I know this person"), T4
+  `ReviewScreen`; `AlertText.kt` maps `message_key` to words (unknown key → the tier's generic);
+  `PaymentViewModel.onAlertAction` is the one place feedback is sent (`POST /v1/feedback`); "I know
+  this person" lightens T3 to the T2 card only when the server answers `trusted_accepted`. Alerts use the
+  profile language. Hindi strings in `res/values-hi/`.
 
 **ML** (`ml/`, on the path as `model.*`)
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
@@ -272,9 +278,9 @@ mind. Offline episode features for training:
 - Coached example (`contracts/examples/decide_request_coached.json`) → T3 or T4 with R12 and R1.
 
 ## Not built yet
-Full T1 to T4 alert screens (the decision screen shows the tier, threat level, scam type, score,
-reasons and the next step, but not the T3 pause or trusted-contact flow), feedback endpoint and
-buttons, new-pattern discovery (only the six known playbooks are named), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+Pause enforcement and `pause_until` (the app
+counts `pause_minutes` from the answer), T4 review polling (no review endpoint), the app's
+"Message check" screen (A5), the app side of watch events (`/v1/watch` exists on the server), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).
