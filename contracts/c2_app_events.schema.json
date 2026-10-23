@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments",
-  "contract_version": "c2-0.9",
+  "contract_version": "c2-0.10",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.9",
+          "default": "c2-0.10",
           "title": "Contract Version",
           "type": "string"
         }
@@ -209,6 +209,18 @@
           "default": null,
           "title": "Source"
         },
+        "ai_written": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ai Written"
+        },
         "call_kind": {
           "anyOf": [
             {
@@ -272,7 +284,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.9",
+          "default": "c2-0.10",
           "title": "Contract Version",
           "type": "string"
         }
@@ -412,7 +424,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.9",
+          "default": "c2-0.10",
           "title": "Contract Version",
           "type": "string"
         }

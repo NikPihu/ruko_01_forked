@@ -83,7 +83,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.9)
+## Contract (current: c2-0.10)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -117,8 +117,13 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - `POST /v1/watch` (c2-0.9): early warnings before any payment (scam message tag, long unknown call,
   remote access, sideload) move the scam stage; opt-in, tags and counts only.
 - `GET /v1/me/payments` (c2-0.9): the user's own payments in words, never a score.
+- c2-0.10 (AI-enabled scams): `call.video` (a VoIP call while another app uses the camera: a video
+  call, e.g. a deepfake "officer"; strengthens R1, counts for digital arrest; the phone sees only
+  that the camera is busy) and `WatchEvent.ai_written` (a scam message that looked AI-written;
+  counted for the console). The payment graph's `payee_automated` (bot-scale ring: same amount to or
+  from many people at a steady rhythm, `policy.yaml` `automation:`) is payee-family evidence (R11).
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.8
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.9
   requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode

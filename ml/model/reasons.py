@@ -10,7 +10,7 @@ REASON = {
     # C: who is on the line, and who can see the screen
     "on_call": "R1_live_unknown_call", "caller_unknown": "R1_live_unknown_call", "voip_call": "R1_live_unknown_call",
     "foreign_caller": "R1_live_unknown_call", "outgoing_to_unknown": "R1_live_unknown_call",
-    "call_on_speaker": "R1_live_unknown_call",
+    "call_on_speaker": "R1_live_unknown_call", "video_call": "R1_live_unknown_call",
     "remote_control": "R2_remote_control", "untrusted_accessibility": "R2_remote_control",
     "sideloaded_last_24h": "R2_remote_control",
     # L: the hook (a scam-script SMS) and the task-scam episode

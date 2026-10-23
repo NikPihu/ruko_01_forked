@@ -331,8 +331,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         watch_seen.add(ev.event_id)
         ts = server_ts(ev.ts)
         stage = tracker.observe(ev.user_id, ev.kind, ts, lure_conf=ev.lure_conf, call_minutes=ev.call_minutes)
-        detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "call_kind",
-                                                           "call_minutes"}).items() if v is not None}
+        detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "ai_written",
+                                                           "call_kind", "call_minutes"}).items() if v is not None}
         persist(store.record_watch, ev.event_id, ev.user_id, ev.kind, detail, ts)
         return WatchEventResponse(event_id=ev.event_id, recorded=True, stage=stage)
 

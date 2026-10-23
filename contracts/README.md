@@ -24,7 +24,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.9`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.8 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.10`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.9 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -44,7 +44,7 @@ give up after its own short timeout and let the payment go through (fail open, T
 | `context` | object or `null` | `null` = the user opted out of phone signals |
 
 `context` holds only flags derived on the phone. SMS text, audio, contacts and screen content are never sent.
-- `call`: `active`, `kind` (`sim`\|`voip`), `direction` (`incoming`\|`outgoing`), `caller_number`, `caller_in_contacts`, `started_min_ago`, `ended_min_ago`, `speaker_on` (c2-0.5: call audio is on the loudspeaker at the moment of Pay; `null` when no call)
+- `call`: `active`, `kind` (`sim`\|`voip`), `direction` (`incoming`\|`outgoing`), `caller_number`, `caller_in_contacts`, `started_min_ago`, `ended_min_ago`, `speaker_on` (c2-0.5: call audio is on the loudspeaker at the moment of Pay; `null` when no call), `video` (c2-0.10: a VoIP call while another app uses the camera, i.e. a video call; `null` when not measurable)
 - `device`: `remote_access_active`, `remote_app_installed_min_ago`, `untrusted_accessibility`, `sideloaded_last_24h`
 - `episode` (c2-0.3): the task-scam episode the phone's background watcher keeps for up to 30 days across all payees and UPI apps (bank SMS + this app's payments). `state` (`none` \| `watching` \| `active` \| `dismissed`), `age_days`, `bait_credits`, `bait_inr`, `outs`, `outs_inr`, `new_payees`, `escalation_steps`, `last_out_inr`, `out_to_in_ratio`, `payee_seen_in_episode`, `rules_version`. Rules: `episode_rules.json`; shared test cases: `examples/episode_vectors.json`. Bait fields are `null` when SMS can't be read; `episode` is `null` when the watcher is off. The engine counts it as **one lure-family signal**.
 - `money` (c2-0.2, **removed in c2-0.4**, now 422): the payer's own money flow over the last 72 h, counted on the phone from the app's payments and bank SMS alerts. Only counts and sums leave the phone. `bait_credits` (small credits of Rs 500 or less from UPI IDs the user never paid), `credits_inr`, `debits` (not counting this one), `debits_inr`, `new_payees`, `escalation_steps` (run of payments each at least 1.5x the one before, up to the latest), `last_debit_inr`. Credit fields are `null` when SMS checks are off.
@@ -204,7 +204,7 @@ by the time the user pays. Sent only when a threshold is crossed (never on a tim
 
 | `kind` | Extra fields | Moves the stage to |
 |---|---|---|
-| `lure_seen` | `lure_tag`, `lure_conf`, `source` (`sms` \| `notification`) | S1 contacted (only with `lure_conf` ≥ 0.6) |
+| `lure_seen` | `lure_tag`, `lure_conf`, `source` (`sms` \| `notification`), `ai_written` (c2-0.10, optional) | S1 contacted (only with `lure_conf` ≥ 0.6) |
 | `long_unknown_call` | `call_kind` (`sim` \| `voip`), `call_minutes` | S2 hooked |
 | `remote_access_on` | none | S3 under control |
 | `sideload` | none | S3 under control |
@@ -231,6 +231,7 @@ Plain words only, never a score (rule 4). The phone shows them next to its own h
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.10**: `call.video` (a VoIP call with the camera in use by another app while paying: a video call, e.g. a deepfake "officer" watching; only that the camera is busy, never images) and `WatchEvent.ai_written` (the scam message looked AI-written; the phone's model, text never leaves). Engine: a video call from an unknown caller strengthens R1 and counts for the digital-arrest playbook; `payee_automated` (bot-scale ring) is payee-family evidence (R11). Additive: c2-0.9 requests still validate.
 - **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.
 - **c2-0.8**: `context.device_verdict` (`DeviceVerdict`: the phone's model verdict, fraud class and family scores; raw readings stay on the phone) and response `threat` (`Threat`: score 0–100, level, fraud type, lit families). Engine `rules-0.7`: a WhatsApp / VoIP call whose caller cannot be seen counts as an unknown caller. The API runs the trained server model by default (`--scorer ml`, falls back to rules). Additive: c2-0.7 requests still validate.
 - **c2-0.7**: `context.payee_in_contacts`. Engine `rules-0.6`: a first-time payee who is a saved contact is a weaker R6; a payee this user completed a payment to (c2-0.6) counts as known. Additive: c2-0.6 requests still validate.

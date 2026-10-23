@@ -38,6 +38,10 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         # On speaker while paying: someone is talking the user through it (same call, same family).
         if f["call_on_speaker"]:
             strength = min(0.95, strength + 0.1)
+        # A video call from an unknown caller while paying: someone is watching the payment
+        # (deepfake "officer"). Still the same call, so it only strengthens R1 (rule 5).
+        if f.get("video_call"):
+            strength = min(0.95, strength + 0.1)
         add("C", strength, "R1_live_unknown_call")
     elif f["on_call"] and f["outgoing_to_unknown"]:
         add("C", 0.5, "R1_live_unknown_call")
@@ -151,9 +155,9 @@ PLAYBOOK_RULES: list[tuple[str, str, Callable[[dict], bool]]] = [
      lambda f: bool(f["outgoing_to_unknown"]) and bool(f["remote_control"] or f["session_dictated"])),
     ("digital_arrest", "an arrest-threat message",
      lambda f: f["lure_tag"] == "arrest_threat"),
-    ("digital_arrest", "an unknown caller on the line + screen control, a story mismatch or dictated typing",
+    ("digital_arrest", "an unknown caller on the line + screen control, a video call, a story mismatch or dictated typing",
      lambda f: bool(f["on_call"]) and _unknown_caller(f)
-     and bool(f["remote_control"] or f["story_mismatch"] or f["session_dictated"])),
+     and bool(f["remote_control"] or f.get("video_call") or f["story_mismatch"] or f["session_dictated"])),
     ("trading_group", "a trading-tip message",
      lambda f: f["lure_tag"] == "trading_tip"),
     ("task_job", "a task or job message",

@@ -292,6 +292,14 @@ class TxnStore:
         items += [{"kind": "episode", **{**dict(r), "accounts": json.loads(r["accounts"] or "[]")}} for r in ee]
         return sorted(items, key=lambda i: i["ts"])[-limit:]
 
+    def lure_counts(self) -> dict:
+        """Scam messages the phones reported (watch events), and how many looked AI-written."""
+        with self.lock:
+            seen = self.db.execute("SELECT COUNT(*) FROM watch_events WHERE kind = 'lure_seen'").fetchone()[0]
+            ai = self.db.execute("SELECT COUNT(*) FROM watch_events WHERE kind = 'lure_seen' "
+                                 "AND detail LIKE '%\"ai_written\": true%'").fetchone()[0]
+        return {"lures_seen": seen, "ai_written": ai}
+
     def feedback_for(self, payment_id: str) -> list[dict]:
         with self.lock:
             rows = self.db.execute("SELECT * FROM feedback WHERE payment_id = ? ORDER BY ts", [payment_id]).fetchall()

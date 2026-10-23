@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
@@ -33,6 +34,11 @@ class ContextSensor(private val app: Context) {
 
     private val telephony = app.getSystemService(TelephonyManager::class.java)
     private val audio = app.getSystemService(AudioManager::class.java)
+    private val cameras = app.getSystemService(CameraManager::class.java)
+    // Cameras another app is using right now. Android tells any app this, with no permission
+    // and no images: only "camera N is busy". A busy camera during a VoIP call means a video call.
+    private val busyCameras = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+    private var cameraListening = false
     private val packages = app.packageManager
     private val mainExecutor = ContextCompat.getMainExecutor(app)
 
@@ -67,6 +73,10 @@ class ContextSensor(private val app: Context) {
                 )
                 receiverRegistered = true
             }
+        }
+        if (!cameraListening && cameras != null) {
+            cameras.registerAvailabilityCallback(mainExecutor, cameraCallback)
+            cameraListening = true
         }
         if (!audioListening && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             audio.addOnModeChangedListener(mainExecutor) { mode -> onAudioMode(mode) }
@@ -118,7 +128,19 @@ class ContextSensor(private val app: Context) {
             endedMinAgo = if (endedRecently) minutes(now - lastCallEndedAt) else null,
             callerNumber = number,
             speakerOn = if (active) speakerOn() else null,
+            // Only a VoIP call can be a video call here; without the camera service it is unknown.
+            video = if (voipActive && cameraListening) busyCameras.isNotEmpty() else null,
         )
+    }
+
+    private val cameraCallback = object : CameraManager.AvailabilityCallback() {
+        override fun onCameraUnavailable(cameraId: String) {
+            busyCameras.add(cameraId)
+        }
+
+        override fun onCameraAvailable(cameraId: String) {
+            busyCameras.remove(cameraId)
+        }
     }
 
     /** Call audio on the loudspeaker: the user is being talked through the payment while typing. */

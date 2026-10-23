@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.9"
+CONTRACT_VERSION = "c2-0.10"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -38,6 +38,9 @@ class CallSignal(_M):
     started_min_ago: Optional[float] = Field(None, ge=0)
     ended_min_ago: Optional[float] = Field(None, ge=0)  # for a call that just finished
     speaker_on: Optional[bool] = None            # c2-0.5: call audio on the loudspeaker at Pay
+    # c2-0.10: a VoIP call with the camera in use by another app at Pay (a video call, e.g. a fake
+    # "officer" watching the payment). The phone sees only that the camera is busy, never images.
+    video: Optional[bool] = None
 
 
 class DeviceSignal(_M):
@@ -271,6 +274,7 @@ class WatchEvent(_M):
     lure_tag: Optional[LureTag] = None            # lure_seen only
     lure_conf: Optional[float] = Field(None, ge=0, le=1)
     source: Optional[Literal["sms", "notification"]] = None   # lure_seen only
+    ai_written: Optional[bool] = None             # lure_seen only (c2-0.10): the message looked AI-written
     call_kind: Optional[Literal["sim", "voip"]] = None        # long_unknown_call only
     call_minutes: Optional[float] = Field(None, ge=0)         # long_unknown_call only
 

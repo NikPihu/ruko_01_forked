@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.9: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.10: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.9"
+const val CONTRACT_VERSION = "c2-0.10"
 
 @Serializable
 enum class CallKind {
@@ -52,6 +52,7 @@ data class CallSignal(
     @SerialName("started_min_ago") val startedMinAgo: Double? = null,
     @SerialName("ended_min_ago") val endedMinAgo: Double? = null, // a call that just finished
     @SerialName("speaker_on") val speakerOn: Boolean? = null, // c2-0.5: call on the loudspeaker at Pay
+    val video: Boolean? = null, // c2-0.10: VoIP call while another app uses the camera (a video call)
 )
 
 @Serializable
@@ -299,6 +300,7 @@ data class WatchEvent(
     @SerialName("lure_tag") val lureTag: String? = null,
     @SerialName("lure_conf") val lureConf: Double? = null,
     val source: String? = null, // sms | notification
+    @SerialName("ai_written") val aiWritten: Boolean? = null, // c2-0.10, lure_seen only
     @SerialName("call_kind") val callKind: CallKind? = null,
     @SerialName("call_minutes") val callMinutes: Double? = null,
 )

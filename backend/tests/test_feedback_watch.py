@@ -160,3 +160,35 @@ def test_i_know_them_refused_for_a_mule_like_payee_without_remote_control(engine
     engine.post("/v1/decide", json=req(context=ctx, rid="p_c"))
     ans = engine.post("/v1/feedback", json=fb("p_c", DEMO_MEENA, "i_know_them", why="family")).json()
     assert ans["trusted_accepted"] is False and ans["message_key"] == "know_them_not_accepted"
+
+
+# ---------- A1: video call while paying; A5: AI-written lures (c2-0.10) ----------
+
+def test_video_call_with_unknown_caller_makes_it_digital_arrest(engine, mock, world):
+    import json as _json
+    from pathlib import Path
+    pump(mock[1], world)
+    body = _json.loads((Path(__file__).resolve().parents[2] / "contracts/examples/decide_request_video_call.json")
+                       .read_text(encoding="utf-8"))
+    body["ts"] = NOW.isoformat()
+    r = engine.post("/v1/decide", json=body).json()
+    assert r["tier"] in ("T3", "T4") and r["playbook"] == "digital_arrest"
+    assert "R1_live_unknown_call" in r["reasons"]
+    feats = engine.get(f"/v1/transactions/{r['request_id']}").json()["details"]["features"]
+    assert feats["video_call"] is True
+
+
+def test_video_call_alone_never_interrupts(engine, world):
+    user = users_in(world)[0]
+    ctx = {"call": {"active": True, "kind": "voip", "caller_in_contacts": None, "started_min_ago": 5, "video": True},
+           "lures": []}
+    r = engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=180, entry="qr", context=ctx)).json()
+    assert r["tier"] in ("T0", "T1")
+
+
+def test_ai_written_lures_are_counted(engine, world):
+    user = users_in(world)[0]
+    for i, ai in enumerate([True, True, False]):
+        engine.post("/v1/watch", json={"event_id": f"l{i}", "user_id": user, "kind": "lure_seen", "ts": NOW.isoformat(),
+                                       "lure_tag": "kyc", "lure_conf": 0.9, "source": "sms", "ai_written": ai})
+    assert engine.get("/v1/metrics/alerts").json()["lures"] == {"lures_seen": 3, "ai_written": 2}

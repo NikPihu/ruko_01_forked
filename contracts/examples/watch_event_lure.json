@@ -7,5 +7,6 @@
   "lure_conf": 0.91,
   "source": "notification",
   "call_kind": null,
-  "call_minutes": null
+  "call_minutes": null,
+  "ai_written": true
 }

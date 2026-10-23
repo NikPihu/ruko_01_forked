@@ -91,6 +91,8 @@ fun DebugPanel(vm: PaymentViewModel, consents: Consents, onBack: () -> Unit) {
         BoolOverride("screen_recorded", o.screenRecorded) { set(o.copy(screenRecorded = it)) }
         ChoiceOverride("lure_tags", o.lureTag, LURE_TAGS) { set(o.copy(lureTag = it)) }
         BoolOverride("call.speaker_on", o.speakerOn) { set(o.copy(speakerOn = it)) }
+        // Yes = a video call (deepfake "officer" watching the payment); needs on_call too.
+        BoolOverride("call.video", o.videoCall) { set(o.copy(videoCall = it)) }
         // Yes = a coached Pay screen (slow dictated amount, UPI ID pasted after switching apps).
         BoolOverride("session.coached", o.coachedSession) { set(o.copy(coachedSession = it)) }
         BoolOverride("payee_in_contacts", o.payeeInContacts) { set(o.copy(payeeInContacts = it)) }
