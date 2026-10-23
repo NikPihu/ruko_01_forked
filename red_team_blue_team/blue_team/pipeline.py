@@ -75,6 +75,7 @@ def run(table: Path, world: Path, scorer: str = "ml", provider: str | None = Non
         log(f"    drafted '{card['name']}' ({draft['drafted_by']}), gates "
             f"{'pass' if not draft['gate_failures'] else 'FAIL'}; analyst: {rev['verdict']} ({rev.get('reviewed_by')})")
         cand = {"run_id": run_id, "cluster": c.__dict__, "overview": ws.overview(c.cluster_id), "draft": draft, "analyst": rev,
+                "examples": [ws.case(i) for i in c.case_ids[:3]],   # shown to the human reviewers
                 "mules": ws.mules(c.cluster_id), "labels": ws.labels(c.cluster_id)}
         (out / "candidates" / f"{c.cluster_id}_{card['name']}.json").write_text(
             json.dumps(cand, indent=1, default=str, ensure_ascii=False), encoding="utf-8")

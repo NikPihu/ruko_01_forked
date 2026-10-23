@@ -52,6 +52,39 @@ def queue(root: Path | None = None) -> list[dict]:
     return out
 
 
+EDITABLE = ("title", "summary", "steps", "advice_en", "advice_hi")
+
+
+def edit_text(name: str, analyst: str, fields: dict, root: Path | None = None) -> dict:
+    """An analyst fixes the card's words before approving. The matcher is not editable here (it must be
+    backtested: `retest`). Any edit clears earlier approvals, so both analysts approve the final text."""
+    analyst = analyst.strip().lower()
+    if not analyst:
+        raise ReviewError("an analyst name is required")
+    card, state = load_card(name, root)
+    if state != "review":
+        raise ReviewError(f"{name} is {state}; only cards waiting for review can be edited")
+    bad = set(fields) - set(EDITABLE)
+    if bad:
+        raise ReviewError(f"only {', '.join(EDITABLE)} can be edited here, not {sorted(bad)}")
+    changed = {k: v for k, v in fields.items() if v != card.get(k)}
+    if "steps" in changed and (not isinstance(changed["steps"], list) or not 2 <= len(changed["steps"]) <= 8):
+        raise ReviewError("steps: 2 to 8 steps")
+    if "advice_hi" in changed:
+        from blue_team.investigator import DEVANAGARI
+        if not DEVANAGARI.search(str(changed["advice_hi"])):
+            raise ReviewError("advice_hi must be in Hindi (Devanagari script)")
+    if not changed:
+        return {"name": name, "changed": []}
+    card.update(changed)
+    dropped = [r["analyst"] for r in card.get("reviews", []) if r["decision"] == "approve"]
+    card["reviews"] = [r for r in card.get("reviews", []) if r["decision"] != "approve"]
+    card.setdefault("edits", []).append({"analyst": analyst, "fields": sorted(changed),
+                                         "at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+    playbook_db.write(card, "review", root)
+    return {"name": name, "changed": sorted(changed), "approvals_cleared": dropped}
+
+
 def decide(name: str, analyst: str, decision: str, note: str = "", root: Path | None = None,
            exports: Path | None = None) -> dict:
     """Record one analyst's decision; promote or reject the card when the rule says so."""

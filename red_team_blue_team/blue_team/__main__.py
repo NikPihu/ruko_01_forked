@@ -2,6 +2,7 @@
 
     python -m blue_team probe                                   # which Bedrock models answer
     python -m blue_team run --table ml/data/tables/breach.parquet --data data/sim_v2_out/breach [--llm offline]
+    python -m blue_team app                                     # review page: http://127.0.0.1:8765
     python -m blue_team queue                                   # candidates waiting for analysts
     python -m blue_team show <name>
     python -m blue_team approve <name> --analyst <you> [--note ...]
@@ -35,6 +36,8 @@ def main() -> None:
     r.add_argument("--model", default=None, help="one Bedrock model id instead of the config.yaml list")
     r.add_argument("--region", default=None, help="Bedrock region (default: config / AWS_REGION)")
     sub.add_parser("queue", help="candidates waiting for analysts")
+    ap = sub.add_parser("app", help="the review page in your browser: see, edit, approve or reject drafted playbooks")
+    ap.add_argument("--port", type=int, default=8765)
     s = sub.add_parser("show")
     s.add_argument("name")
     for cmd in ("approve", "reject"):
@@ -63,6 +66,9 @@ def main() -> None:
         as_of = pd.Timestamp(a.as_of, tz="UTC") if a.as_of and pd.Timestamp(a.as_of).tzinfo is None else (
             pd.Timestamp(a.as_of) if a.as_of else None)
         pipeline.run(a.table, a.data, a.scorer, a.llm, as_of, model=a.model, region=a.region)
+    elif a.cmd == "app":
+        from blue_team import webapp
+        webapp.main(a.port)
     elif a.cmd == "queue":
         from blue_team import review
         q = review.queue()

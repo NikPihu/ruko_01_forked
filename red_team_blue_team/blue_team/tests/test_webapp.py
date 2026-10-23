@@ -1,0 +1,60 @@
+from fastapi.testclient import TestClient
+
+from blue_team import playbook_db, webapp
+
+
+def queued(tmp_db, name="relative_voice_clone", **kw):
+    card = {"name": name, "title": "Voice-clone relative", "status": "review", "summary": "s", "steps": ["call", "pay"],
+            "advice_en": "Call your relative back.", "advice_hi": "अपने रिश्तेदार को वापस कॉल करें।",
+            "match": [{"priority": 100, "rule": {"all": [{"feature": "on_call", "op": "is", "value": True},
+                                                          {"feature": "payer_says", "op": "eq", "value": "family"}]}}],
+            "evidence": {"cases": 8, "cluster_id": "c00", "run_id": "none"}, "gate_failures": [],
+            "analyst": {"verdict": "new_scam"}, "mule_accounts": [{"upi_id": "m@ybl", "cases": 3}],
+            "label_tx_ids": ["tx1"], "reviews": [], "rule_in_words": "(on_call is True AND payer_says eq family)"}
+    card.update(kw)
+    playbook_db.write(card, "review", tmp_db)
+
+
+def client(tmp_db, tmp_path):
+    return TestClient(webapp.create_app(root=tmp_db, exports=tmp_path / "exports", runs=tmp_path / "runs"))
+
+
+def test_page_and_list(tmp_db, tmp_path):
+    queued(tmp_db)
+    c = client(tmp_db, tmp_path)
+    assert "playbook review" in c.get("/").text
+    lst = c.get("/api/cards").json()
+    assert [s["name"] for s in lst["review"]] == ["relative_voice_clone"] and lst["approved"] == []
+
+
+def test_detail_shows_engine_blockers_and_hides_labels(tmp_db, tmp_path):
+    queued(tmp_db)
+    d = client(tmp_db, tmp_path).get("/api/cards/relative_voice_clone").json()
+    assert "label_tx_ids" not in d["card"] and d["engine"]["ready"] is False
+    assert any("payer_says" in b for b in d["engine"]["blockers"]) and any("FraudType" in b for b in d["engine"]["blockers"])
+
+
+def test_two_analysts_approve_through_the_page(tmp_db, tmp_path):
+    queued(tmp_db)
+    c = client(tmp_db, tmp_path)
+    r = c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "asha", "decision": "approve"}).json()
+    assert r["status"] == "review"
+    assert c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "asha", "decision": "approve"}).status_code == 400
+    r = c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "ravi", "decision": "approve"}).json()
+    assert r["status"] == "approved" and (tmp_path / "exports" / "relative_voice_clone" / "playbooks_entry.yaml").exists()
+    assert [s["name"] for s in c.get("/api/cards").json()["approved"]] == ["relative_voice_clone"]
+
+
+def test_reject_needs_a_reason_and_edits_clear_approvals(tmp_db, tmp_path):
+    queued(tmp_db)
+    c = client(tmp_db, tmp_path)
+    c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "asha", "decision": "approve"})
+    r = c.post("/api/cards/relative_voice_clone/text", json={"analyst": "ravi", "fields": {"title": "Voice-clone 'son in trouble' call"}}).json()
+    assert r["changed"] == ["title"] and r["approvals_cleared"] == ["asha"]
+    bad = c.post("/api/cards/relative_voice_clone/text", json={"analyst": "ravi", "fields": {"advice_hi": "english only"}})
+    assert bad.status_code == 400 and "Devanagari" in bad.json()["detail"]
+    assert c.post("/api/cards/relative_voice_clone/text", json={"analyst": "ravi", "fields": {"match": []}}).status_code == 400
+    assert c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "ravi", "decision": "reject"}).status_code == 400
+    r = c.post("/api/cards/relative_voice_clone/decision", json={"analyst": "ravi", "decision": "reject", "note": "same as digital_arrest"}).json()
+    assert r["status"] == "rejected"
+    assert c.get("/api/cards/digital_arrest").status_code == 404

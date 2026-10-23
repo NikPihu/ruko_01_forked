@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playbook Review</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e2e5ea;
+    --accent: #2457c5; --accent-ink: #ffffff; --good: #1e7a46; --good-bg: #e6f4ec; --bad: #b42318;
+    --bad-bg: #fdecea; --warn: #8a5a00; --warn-bg: #fff4dc; --chip: #eef1f5; --code: #f1f3f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --panel: #1a1e25; --ink: #e7eaee; --muted: #9aa3ae; --line: #2b313a;
+      --accent: #6b9bff; --accent-ink: #0d1016; --good: #6fd39b; --good-bg: #183324; --bad: #ff8a80;
+      --bad-bg: #3a1c1a; --warn: #f2c46b; --warn-bg: #3a2e14; --chip: #252b34; --code: #20252d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+           padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .who { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  input, textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+                    border-radius: 6px; padding: 6px 8px; }
+  textarea { width: 100%; min-height: 70px; }
+  main { display: grid; grid-template-columns: 360px 1fr; gap: 16px; padding: 16px 20px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; background: none; border: 0; padding: 10px 6px; font: inherit; color: var(--muted); cursor: pointer;
+                 border-bottom: 2px solid transparent; }
+  .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  .list { max-height: calc(100vh - 170px); overflow: auto; }
+  .item { padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item:hover { background: var(--chip); }
+  .item.on { background: var(--chip); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .n { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--muted); }
+  .item .t { font-weight: 600; margin: 2px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--chip); color: var(--muted); border-radius: 999px; padding: 1px 9px; font-size: 12.5px; white-space: nowrap; }
+  .chip.good { background: var(--good-bg); color: var(--good); } .chip.bad { background: var(--bad-bg); color: var(--bad); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .detail { padding: 18px 22px; min-height: 300px; }
+  .detail h2 { margin: 2px 0 6px; font-size: 21px; }
+  .mono { font-family: ui-monospace, Consolas, monospace; }
+  section { border-top: 1px solid var(--line); padding: 14px 0 4px; margin-top: 14px; }
+  section h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .why { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 10px 12px; margin: 10px 0 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .advice { background: var(--chip); border-radius: 8px; padding: 10px 12px; }
+  .advice .lang { font-size: 12px; color: var(--muted); }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .stat { background: var(--chip); border-radius: 8px; padding: 8px 12px; min-width: 120px; }
+  .stat b { display: block; font-size: 18px; } .stat span { font-size: 12.5px; color: var(--muted); }
+  pre { background: var(--code); border-radius: 8px; padding: 10px 12px; overflow: auto; font-size: 13px; margin: 6px 0; white-space: pre-wrap; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin-top: 8px; }
+  button.act { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 7px; font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.danger { color: var(--bad); border-color: var(--bad); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .msg { margin-top: 10px; padding: 9px 12px; border-radius: 8px; display: none; }
+  .msg.ok { display: block; background: var(--good-bg); color: var(--good); } .msg.err { display: block; background: var(--bad-bg); color: var(--bad); }
+  .empty { color: var(--muted); padding: 30px 14px; text-align: center; }
+  label.f { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  ul.plain { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>RUKO blue team · playbook review</h1>
+    <div class="sub">Scams the shield missed or misnamed, drafted by the agents. Two different analysts must approve before a playbook joins the database.</div>
+  </div>
+  <div class="who"><label for="analyst">You are</label><input id="analyst" placeholder="analyst name" size="14" autocomplete="off"></div>
+</header>
+<main>
+  <div class="panel">
+    <div class="tabs" id="tabs"></div>
+    <div class="list" id="list"></div>
+  </div>
+  <div class="panel detail" id="detail"><div class="empty">Pick a playbook on the left.</div></div>
+</main>
+<script>
+const TABS = [["review", "Waiting"], ["approved", "Approved"], ["rejected", "Rejected"]];
+const VERDICT = { new_scam: "new scam", variant_of_known: "known scam, new form", lookalike_not_scam: "look-alike, not a scam",
+                  insufficient_evidence: "not enough evidence" };
+let cards = { review: [], approved: [], rejected: [] }, tab = "review", selected = null;
+
+const store = { get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+const who = document.getElementById("analyst");
+who.value = store.get("ruko.analyst");
+who.addEventListener("input", () => store.set("ruko.analyst", who.value));
+
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) n.append(k instanceof Node ? k : String(k));
+  return n;
+}
+const pct = x => (x === null || x === undefined) ? "–" : Math.round(x * 100) + "%";
+const chip = (text, kind) => el("span", { class: "chip" + (kind ? " " + kind : "") }, text);
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || ("HTTP " + r.status));
+  return data;
+}
+
+async function loadList(keep) {
+  cards = await api("/api/cards");
+  renderTabs(); renderList();
+  if (keep && selected) select(selected, true);
+}
+
+function renderTabs() {
+  const t = document.getElementById("tabs"); t.replaceChildren();
+  for (const [k, label] of TABS)
+    t.append(el("button", { class: k === tab ? "on" : "", onclick: () => { tab = k; renderTabs(); renderList(); } }, `${label} (${cards[k].length})`));
+}
+
+function kindChip(s) {
+  return s.kind === "misnamed" ? chip("misnamed: was " + s.misnamed_as, "warn") : chip("new pattern");
+}
+
+function renderList() {
+  const l = document.getElementById("list"); l.replaceChildren();
+  if (!cards[tab].length) { l.append(el("div", { class: "empty" }, tab === "review" ? "Nothing waiting. Run the blue team to draft playbooks." : "None yet.")); return; }
+  for (const s of cards[tab]) {
+    l.append(el("div", { class: "item" + (s.name === selected ? " on" : ""), onclick: () => select(s.name) },
+      el("div", { class: "n" }, s.name), el("div", { class: "t" }, s.title || s.name),
+      el("div", { class: "chips" }, kindChip(s), chip(`${s.cases} complaints`),
+        s.verdict ? chip("agent: " + (VERDICT[s.verdict] || s.verdict), s.verdict === "new_scam" ? "good" : "") : null,
+        s.gates_pass ? null : chip("gates fail", "bad"),
+        s.state === "review" ? chip(`approvals ${s.approvals.length}/${s.needed}`) : null)));
+  }
+}
+
+async function select(name, quiet) {
+  selected = name; renderList();
+  const d = document.getElementById("detail");
+  if (!quiet) d.replaceChildren(el("div", { class: "empty" }, "Loading…"));
+  try { renderDetail(await api("/api/cards/" + encodeURIComponent(name))); }
+  catch (e) { d.replaceChildren(el("div", { class: "msg err", style: "display:block" }, e.message)); }
+}
+
+function renderDetail(d) {
+  const c = d.card, s = d.summary, ov = (d.candidate || {}).overview || {}, bt = c.backtest || {}, a = c.analyst || {};
+  const box = document.getElementById("detail");
+  const msg = el("div", { class: "msg" });
+  const parts = [];
+
+  parts.push(el("div", { class: "n mono" }, c.name), el("h2", {}, c.title || c.name),
+    el("div", { class: "chips" }, kindChip(s), chip(`${s.cases} complaints`), chip("state: " + d.state),
+      c.confidence ? chip("draft confidence: " + c.confidence) : null, c.drafted_by ? chip("drafted by " + c.drafted_by) : null));
+  parts.push(el("div", { class: "why" }, c.misnamed_as
+    ? `RUKO interrupted these ${s.cases} complaints' payments and called them "${c.misnamed_as}", yet the victims still paid and complained. Is that the right story?`
+    : `${s.cases} complaints about payments RUKO did not stop, or stopped without naming the scam. No known playbook matches them.`));
+
+  parts.push(el("section", {}, el("h3", {}, "The scam, as the investigator agent describes it"),
+    el("p", {}, c.summary || ""), el("ol", { class: "plain" }, (c.steps || []).map(x => el("li", {}, x))),
+    c.ai_powered ? el("p", {}, el("b", {}, "AI-powered? "), (c.ai_powered.likely ? "likely. " : "not evident. ") + (c.ai_powered.why || "")) : null));
+
+  parts.push(el("section", {}, el("h3", {}, "What the user would be told"),
+    el("div", { class: "grid2" },
+      el("div", { class: "advice" }, el("div", { class: "lang" }, "English"), c.advice_en || ""),
+      el("div", { class: "advice" }, el("div", { class: "lang" }, "हिन्दी"), c.advice_hi || ""))));
+
+  parts.push(el("section", {}, el("h3", {}, "Rule and backtest (run by code over every past payment)"),
+    el("pre", {}, c.rule_in_words || ""),
+    el("div", { class: "stats" },
+      el("div", { class: "stat" }, el("b", {}, pct(bt.cluster_case_recall)), el("span", {}, "of these complaints it names")),
+      el("div", { class: "stat" }, el("b", {}, bt.legit_payments_named_per_1000 ?? "–"), el("span", {}, "legit payments named per 1,000")),
+      el("div", { class: "stat" }, el("b", {}, pct(bt.known_playbook_payments_also_matched)), el("span", {}, "of other known-scam payments it would take"))),
+    (c.gate_failures || []).length ? el("ul", { class: "plain" }, c.gate_failures.map(g => el("li", {}, chip("gate", "bad"), " ", g)))
+                                   : el("p", {}, chip("all gates pass", "good"))));
+
+  parts.push(el("section", {}, el("h3", {}, "Analyst agent's verdict"),
+    el("div", { class: "chips" }, chip(VERDICT[a.verdict] || a.verdict || "–", a.verdict === "new_scam" ? "good" : ""),
+      a.nearest_playbook ? chip("nearest: " + a.nearest_playbook) : null, a.confidence ? chip("confidence: " + a.confidence) : null,
+      a.reviewed_by ? chip("by " + a.reviewed_by) : null),
+    el("p", {}, a.rationale || ""),
+    (a.required_changes || []).length ? el("ul", { class: "plain" }, a.required_changes.map(x => el("li", {}, x))) : null));
+
+  const ex = (d.candidate || {}).examples || [];
+  parts.push(el("section", {}, el("h3", {}, "Evidence"),
+    el("div", { class: "stats" },
+      el("div", { class: "stat" }, el("b", {}, ov.users ?? "–"), el("span", {}, "different victims")),
+      el("div", { class: "stat" }, el("b", {}, ov.amount_inr ? "₹" + Number(ov.amount_inr.median).toLocaleString("en-IN") : "–"), el("span", {}, "median payment")),
+      el("div", { class: "stat" }, el("b", {}, ov.amount_inr ? "₹" + Number(ov.amount_inr.total).toLocaleString("en-IN") : "–"), el("span", {}, "lost in total")),
+      el("div", { class: "stat" }, el("b", {}, (c.mule_accounts || []).length), el("span", {}, "payee accounts (mule suspects)"))),
+    ov.distinctive_tokens ? el("p", {}, el("b", {}, "Signals that stand out: "),
+      el("span", { class: "chips" }, ov.distinctive_tokens.slice(0, 10).map(t => chip(`${t.token} · ${pct(t.share_of_cases)}`)))) : null,
+    ex.length ? el("div", { class: "scroll" }, el("table", {},
+      el("tr", {}, ["complaint", "when", "₹", "entry", "payer says", "RUKO said", "signals"].map(h => el("th", {}, h))),
+      ex.flatMap(e => e.payments.map((p, i) => el("tr", {},
+        el("td", { class: "mono" }, i ? "" : e.case_id), el("td", {}, String(p.ts).slice(0, 16)),
+        el("td", {}, Number(p.amount_inr).toLocaleString("en-IN")), el("td", {}, p.entry_method || "–"),
+        el("td", {}, p.payer_says || "–"), el("td", {}, p.ruko_tier + (p.ruko_named ? " · " + p.ruko_named : "")),
+        el("td", {}, (p.tokens || []).join(" "))))))) : (ov.typical_case ? el("pre", {}, ov.typical_case.sequence) : null)));
+
+  const eng = d.engine;
+  parts.push(el("section", {}, el("h3", {}, "Into the engine's playbook list (data/playbooks/playbooks.yaml)"),
+    eng.ready ? el("p", {}, chip("ready to add", "good"), " After approval, add this entry where the comment says.")
+              : el("div", {}, el("p", {}, chip("not yet", "warn"), " Approval adds it to the blue team's database; the engine needs:"),
+                               el("ul", { class: "plain" }, eng.blockers.map(b => el("li", {}, b)))),
+    el("pre", {}, eng.entry)));
+
+  const reviews = (c.reviews || []).concat((c.edits || []).map(e => ({ analyst: e.analyst, decision: "edited " + e.fields.join(", "), at: e.at })));
+  parts.push(el("section", {}, el("h3", {}, "Reviews"),
+    reviews.length ? el("ul", { class: "plain" }, reviews.map(r => el("li", {}, `${r.at || ""} · ${r.analyst}: ${r.decision}${r.note ? " — " + r.note : ""}`)))
+                   : el("p", {}, "No one has reviewed it yet.")));
+
+  if (d.state === "review") {
+    const note = el("textarea", { placeholder: "Note (required to reject; optional to approve)" });
+    const go = async (decision) => {
+      try {
+        const r = await api(`/api/cards/${encodeURIComponent(c.name)}/decision`, { analyst: who.value, decision, note: note.value });
+        msg.className = "msg ok";
+        msg.textContent = r.status === "approved" ? `Approved by two analysts: added to the playbook database. ${r.engine_entry ? "Engine: " + r.engine_entry : ""}`
+          : r.status === "rejected" ? "Rejected." : `Your approval is recorded (${r.approvals.length}/${r.needed}). It needs another analyst.`;
+        if (r.status !== "review") { tab = r.status; selected = c.name; }
+        await loadList(true);
+      } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+    };
+    const editBox = el("div", { style: "display:none" });
+    const fields = {};
+    for (const k of d.editable) {
+      const v = k === "steps" ? (c.steps || []).join("\n") : (c[k] || "");
+      fields[k] = k === "title" ? el("input", { style: "width:100%" }) : el("textarea", {});
+      fields[k].value = v;
+      editBox.append(el("label", { class: "f" }, k === "steps" ? "steps (one per line)" : k), fields[k]);
+    }
+    editBox.append(el("div", { class: "actions" }, el("button", { class: "act primary", onclick: async () => {
+      const body = {};
+      for (const k of d.editable) body[k] = k === "steps" ? fields[k].value.split("\n").map(x => x.trim()).filter(Boolean) : fields[k].value.trim();
+      try {
+        const r = await api(`/api/cards/${encodeURIComponent(c.name)}/text`, { analyst: who.value, fields: body });
+        msg.className = "msg ok";
+        msg.textContent = r.changed.length ? `Saved (${r.changed.join(", ")}).` + (r.approvals_cleared.length ? ` Approvals by ${r.approvals_cleared.join(", ")} were cleared: they must approve the new text.` : "") : "Nothing changed.";
+        await loadList(true);
+      } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+    } }, "Save text")));
+    parts.push(el("section", {}, el("h3", {}, "Your decision"),
+      el("p", {}, "Approving means: this is a real scam pattern, the story and warning are right, and the rule is safe to use for naming it. Two different analysts must approve."),
+      note,
+      el("div", { class: "actions" },
+        el("button", { class: "act primary", onclick: () => go("approve") }, "Approve"),
+        el("button", { class: "act danger", onclick: () => go("reject") }, "Reject"),
+        el("button", { class: "act", onclick: () => { editBox.style.display = editBox.style.display === "none" ? "block" : "none"; } }, "Edit the text")),
+      editBox, msg));
+  } else {
+    parts.push(msg);
+    if (d.state === "approved") parts.push(el("p", {}, `Approved by ${(c.approved_by || []).join(" and ")} on ${String(c.approved_at || "").slice(0, 10)}. Exports: mule accounts, retrain labels and the engine entry in exports/${c.name}/.`));
+  }
+  box.replaceChildren(...parts);
+}
+
+loadList().catch(e => { document.getElementById("list").replaceChildren(el("div", { class: "msg err", style: "display:block" }, e.message)); });
+</script>
+</body>
+</html>

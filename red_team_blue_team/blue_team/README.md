@@ -11,7 +11,7 @@ policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds)
 | 2 Clusters | `tokens.py`, `cluster.py` | Each missed / unnamed case becomes a token sequence (`CALL_ON CALLER_UNKNOWN SAYS_FAMILY AMT_10K_50K ... GAP_UNDER_1H PAY ...`), then TF-IDF n-grams → SVD → **HDBSCAN** (`leaf`). A cluster is *known* if most of it was already named by a playbook or its centroid is close to a playbook's cases; otherwise *new*. |
 | 3 Investigator | `investigator.py`, `evidence.py`, `llm.py` | An LLM agent on **Amazon Bedrock** (Converse API with tools) reads the cluster: overview, cases, payees, known playbooks, comparisons. It tries matchers with `test_matcher` and submits a playbook card: name, story, steps, signals, matcher, reason codes, advice in English and Hindi, and whether it looks AI-powered. Code validates the card and backtests the matcher; a card failing the gates goes back to the agent (twice). |
 | 4 Analyst | `analyst.py` | A second, skeptical LLM agent with the same read-only tools gives a verdict: `new_scam` / `variant_of_known` / `lookalike_not_scam` / `insufficient_evidence`. |
-| 5 Humans | `review.py` | Two different analysts approve (`approvals_needed`), or one rejects with a reason. An approved card moves to `playbooks/approved/` and writes `exports/<name>/mule_accounts.csv` (for the graph suspect review) and `labels.csv` (for the next retrain). |
+| 5 Humans | `review.py`, `webapp.py` | **Review page** (`python -m blue_team app` → http://127.0.0.1:8765): each drafted playbook in full (story, steps, warning in English and Hindi, rule and backtest, the analyst agent's verdict and reasons, example complaints, mule accounts, whether the engine can take it yet). Analysts can fix the text (an edit clears earlier approvals), approve or reject (a reason is required). Two different analysts approve (`approvals_needed`); the card then moves to `playbooks/approved/` and writes `exports/<name>/`: the entry for `data/playbooks/playbooks.yaml`, `mule_accounts.csv` (for the graph suspect review) and `labels.csv` (for the next retrain). The same steps work on the command line. |
 
 **The playbook database:** the *known* playbooks are the engine's own `data/playbooks/playbooks.yaml`,
 read into the matcher format by `engine_file.py` (a test checks they name exactly like
@@ -48,6 +48,7 @@ export AWS_BEARER_TOKEN_BEDROCK=...        # PowerShell: $env:AWS_BEARER_TOKEN_B
 .venv/Scripts/python -m blue_team probe    # which models in config.yaml answer
 
 .venv/Scripts/python -m blue_team run --table ml/data/tables/breach.parquet --data data/sim_v2_out/breach
+.venv/Scripts/python -m blue_team app      # review page: http://127.0.0.1:8765
 .venv/Scripts/python -m blue_team queue
 .venv/Scripts/python -m blue_team show <name>
 .venv/Scripts/python -m blue_team approve <name> --analyst <you> --note "..."
