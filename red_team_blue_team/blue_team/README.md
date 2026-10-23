@@ -132,6 +132,19 @@ hides that number for the group's own playbook and returns the playbook's story 
 agents are told to judge misnamed groups by the story (payer_says, caller, remote control, entry,
 amounts), and temperature is 0 so runs can be compared.
 
+**After that fix (gpt-oss-120b, temperature 0):**
+
+| World | New-scam clusters right | Misnamed groups right | Emerging scams found new |
+|---|---|---|---|
+| seed 33 (prompts never tuned on it) | 5/6 | 2/3 (was 1/3) | collect_request, marketplace_buyer |
+| seed 21 | 6/10 | 4/5 (was 3/5) | collect_request, electricity_disconnection, lottery_prize, relative_emergency |
+
+Misnamed verdicts went from 4/8 to 6/8 across both worlds. Remaining errors: known scams without
+their lure still called new (fake_customer_care twice, task_job, trading_group); one voice-clone /
+collect mix still called digital_arrest, where the investigator wrote an "arrest threat" story the
+cases do not show. Both worlds have only 4 to 16 complaints per group, so one verdict moves the
+score by 10 to 30 points: read these as "works, with errors", and keep the two-analyst review.
+
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
 ## What other folders need (not done here)
