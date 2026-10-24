@@ -50,8 +50,14 @@ object ShieldController {
 
     private val io = Executors.newSingleThreadExecutor()
 
+    /** Reads the encrypted episode file on the watcher's thread, never the UI thread. */
     fun refresh(context: Context, consents: Consents) {
-        live.value = if (isOn(consents)) EpisodeStore(context).load() else null
+        if (!isOn(consents)) {
+            live.value = null
+            return
+        }
+        val app = context.applicationContext
+        io.execute { live.value = EpisodeStore(app).load() }
     }
 
     fun dismissAsync(context: Context) = io.execute { dismiss(context) }

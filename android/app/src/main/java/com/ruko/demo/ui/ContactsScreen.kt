@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import com.ruko.demo.R
 import com.ruko.demo.signals.SavedContact
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.signals.toE164
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * "To Mobile Number": pick a saved contact or type a number. The number is turned into the UPI ID
@@ -40,7 +43,9 @@ import com.ruko.demo.signals.toE164
 fun ContactsScreen(vm: PaymentViewModel, onBack: () -> Unit, onReady: () -> Unit) {
     var query by remember { mutableStateOf("") }
     var reload by remember { mutableIntStateOf(0) }
-    val book = remember(reload) { Signals.contacts.all() }
+    // Read off the UI thread: a large address book made this screen freeze on open.
+    val loaded by produceState<BookRead?>(null, reload) { value = BookRead(withContext(Dispatchers.IO) { Signals.contacts.all() }) }
+    val book = loaded?.book
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { reload++ }
 
     Screen {
@@ -83,6 +88,7 @@ fun ContactsScreen(vm: PaymentViewModel, onBack: () -> Unit, onReady: () -> Unit
             }
         }
 
+        if (loaded == null) return@Screen // still reading the address book
         if (book == null) {
             Column(
                 Modifier.fillMaxWidth().cacheCard().padding(18.dp),
@@ -122,3 +128,6 @@ private fun ContactRow(c: SavedContact, saved: Boolean, onClick: () -> Unit) {
         }
     }
 }
+
+/** The address book as read: null without the contacts permission. */
+private class BookRead(val book: List<SavedContact>?)

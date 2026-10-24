@@ -6,6 +6,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -21,6 +23,9 @@ import com.ruko.demo.data.PaymentState
 import com.ruko.demo.shield.ReceivedPayments
 import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.signals.ContactBook
+import com.ruko.demo.signals.SavedContact
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.ui.alerts.AlertScreen
 import com.ruko.demo.ui.alerts.AlertUser
@@ -212,7 +217,9 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
             // Money received: the credits the watcher read from bank SMS (none while it is off).
             val context = LocalContext.current.applicationContext
             LaunchedEffect(auth.consents) { ShieldController.refresh(context, auth.consents) }
-            val contacts = remember { ContactBook(context).all().orEmpty() }
+            val contacts by produceState(emptyList<SavedContact>()) {
+                value = withContext(Dispatchers.IO) { ContactBook(context).all().orEmpty() }
+            }
             HistoryScreen(
                 history = auth.history,
                 received = ReceivedPayments.from(ShieldController.live.value?.watcher, contacts),
