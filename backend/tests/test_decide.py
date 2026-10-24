@@ -576,6 +576,27 @@ def test_payee_paid_here_is_known_only_after_a_holding_period(engine, world):
         assert engine.get(f"/v1/evidence/{later['evidence_id']}").json()["features"]["first_time_payee"] is False
 
 
+def test_salami_slicing_adds_up(engine, world):
+    """Small QR payments to new payees in a day add up past the user's usual, so the cumulative
+    outflow lights behaviour even though no single payment is unusual (audit §2.5). With a scam
+    message also seen, the two families together interrupt."""
+    users = world[1]["users"].set_index("user_id")
+    user = users_in(world)[15]
+    base = baseline(world, user)
+    fresh = [users.loc[u].upi_id for u in users_in(world, "Delhi")
+             if users.loc[u].upi_id not in base.known_payees][:4]
+    each = round(base.max_90d * 0.6)  # each below 1x the usual max; four of them are well above
+    last = {}
+    for i, payee in enumerate(fresh):
+        last = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=each, entry="qr",
+                                                  context={"lures": LURE}, rid=f"sl_{i}",
+                                                  ts=NOW + timedelta(minutes=10 * i))).json()
+    # The cumulative outflow to new payees is well over the user's biggest-ever payment...
+    assert engine.get(f"/v1/evidence/{last['evidence_id']}").json()["features"]["outflow_24h_to_max_90d"] >= 1.5
+    # ...and with the scam message (L) it corroborates into an interruption naming the tranche pattern.
+    assert last["tier"] in ("T2", "T3", "T4") and "R7_tranche_pattern" in last["reasons"]
+
+
 def test_anchor_then_drain_is_flagged(engine, world):
     """A tiny sub-cap "gate pass" payment, then a drain to the same mule, is an anchor pattern that
     no longer launders the payee (known-payee poisoning, audit §2.1)."""

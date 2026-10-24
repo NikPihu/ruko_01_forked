@@ -40,7 +40,7 @@ FAMILY = {
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "payee_micro_anchor": "B",
     "payee_in_contacts": "B",
-    "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
+    "new_payee_sum_to_max_90d": "B", "outflow_24h_to_max_90d": "B", "trusted_payee": "B",
     # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
     "session_dictated": "B", "session_pasted_after_switch": "B", "session_app_switches": "B",
     "session_hesitation": "B", "session_abandoned_30m": "B",
@@ -140,6 +140,8 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["attempts_72h"] = st.attempts_72h
     f["payee_in_run"] = st.payee_in_run
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
+    # Cumulative 24h outflow to new payees vs the user's biggest-ever payment: salami slicing (§2.5).
+    f["outflow_24h_to_max_90d"] = round(st.outflow_24h / base.max_90d, 3) if base.max_90d else None
     f["payee_micro_anchor"] = micro_anchor   # a small recent payment to this payee, then this one
     f["trusted_payee"] = trusted
     f.update(session_features(ctx.session if ctx else None))
