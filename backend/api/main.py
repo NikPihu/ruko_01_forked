@@ -36,6 +36,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from api import overlay
 from api import rule_scorer as scorer
 from features.user_baseline import Baselines
 from evidence.store import EvidenceStore, pseudonym
@@ -218,6 +219,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         dv = req.context.device_verdict if req.context else None
         if s["playbook"] is None and dv is not None and dv.fraud_class is not None:
             s = {**s, "playbook": dv.fraud_class}
+        # RUKO's own cross-user evidence (e.g. a new account many users are paying) counts with any
+        # scorer, including the trained model that has not learned it yet (api/overlay.py).
+        s = overlay.apply(s, feats, policy.cfg)
         ms["score"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()

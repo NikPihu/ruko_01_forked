@@ -98,6 +98,9 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
     # Bot-scale ring (AI chatbots / scripts): same amount to or from many people at a steady rhythm.
     if f.get("payee_automated"):
         add("P", 0.7, "R11_ring_link")
+    # New to RUKO and already paid by several users: a fresh mule, before any registry lists it.
+    if f.get("payee_new_and_spreading"):
+        add("P", 0.6, "R3_mule_like_payee")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]

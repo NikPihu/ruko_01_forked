@@ -248,9 +248,16 @@ mind. Offline episode features for training:
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
   → coached-session signs), `user_baseline.py` (history before the payment only),
   `offline_episode.py`.
-- `graph/store.py` (crowd signal, money loop, bot-scale `automation` with `policy.yaml`
-  `automation:`, story for the console, one `Payment` per payment id with its decision and
-  outcome), `graph/discover.py` (suspects, two-analyst approval, rings, `hub_score`, `ring_view`).
+- `graph/store.py` (crowd signal with thresholds in `policy.yaml` `crowd:`, money loop, bot-scale
+  `automation` with `policy.yaml` `automation:`, `new_and_spreading` = an account RUKO first saw
+  within 48 h that 3+ users already pay → feature `payee_new_and_spreading` (P, R3; not for verified
+  merchants or bank-old accounts), story for the console, one `Payment` per payment id with its
+  decision and outcome), `graph/discover.py` (suspects, two-analyst approval, rings, `hub_score`,
+  `ring_view`).
+- `api/overlay.py` (evidence overlay): RUKO's own cross-user evidence (`policy.yaml`
+  `evidence_overlay.features`) counts with any scorer, including the trained model that never
+  learned it — it lifts its family and reason, and the policy raises to T2 only when a second
+  family is lit (rule 5).
 - `store/` (transaction database, export), `api/explain.py`, `api/feedback.py` (feedback, alert
   health), `patterns/emerging.py` (A4, thresholds in `policy.yaml` `emerging:`), `demo/agents.py`
   (scripted victims for every scam type), `evalsuite/ai_lures.py` (A3, AI-written scam messages

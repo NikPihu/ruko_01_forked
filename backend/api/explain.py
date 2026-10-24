@@ -29,7 +29,8 @@ REASON_INPUTS = {
     "R2_remote_control": ["remote_control", "untrusted_accessibility", "sideloaded_last_24h"],
     "R3_mule_like_payee": ["payee_account_age_days", "payee_uniq_payers_6h", "payee_uniq_payers_7d",
                            "payee_repeat_ratio", "payee_pass_through_24h", "payee_median_hold_min",
-                           "payee_mulehunter", "payee_holder_type", "payee_verified_merchant"],
+                           "payee_mulehunter", "payee_holder_type", "payee_verified_merchant",
+                           "payee_new_and_spreading"],
     "R4_unusual_amount": ["amount_inr", "amount_to_max_90d", "amount_to_median_90d"],
     "R5_lure_message": ["lure_max_conf_72h", "lure_tag"],
     "R6_new_payee_typed": ["first_time_payee", "entry_typed", "payee_in_contacts"],
@@ -190,6 +191,7 @@ INPUT_WORDS: dict[str, Callable[[Any], Optional[str]]] = {
     "payee_forwards_to_cashout": lambda v: "it forwards money to a known cash-out account",
     "payee_approved_suspect": lambda v: "two analysts approved it as a mule",
     "payee_automated": lambda v: "bot-scale: the same amount to or from many people at a steady rhythm",
+    "payee_new_and_spreading": lambda v: "new to RUKO in the last 2 days and already paid by several different people",
     "amount_inr": lambda v: f"amount {_inr(v)}",
     "amount_to_max_90d": lambda v: f"{_times(v)} the user's biggest payment in 90 days" if v >= 1 else None,
     "amount_to_median_90d": lambda v: f"{_times(v)} the user's usual payment" if v >= 1.5 else None,
@@ -217,6 +219,7 @@ STEP_WORDS = {
     "corroboration_gate": "fewer kinds of evidence were lit than needed, so RUKO did not interrupt",
     "trusted_payee": "the user had said they know this payee, so the alert was lowered",
     "alert_budget": "the user already had several alerts this month, so it was softened to a tip",
+    "evidence_overlay": "RUKO's own cross-user evidence (e.g. a new account many people are paying) lit a family and raised the tier",
 }
 
 

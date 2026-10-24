@@ -93,6 +93,30 @@ automation:
   max_gap_spread: 0.35
   burst_min: 1.0                  # new people less than a minute apart on average: a burst, also machine-like
 
+# Crowd signals in the payment graph (graph/store.py `account_signals`). Payee family only (R11/R3).
+crowd:
+  bait_users: 5                  # distinct users with a bait credit from one account in 7 days
+  episode_users: 3               # distinct users' episodes in which one account was a payee
+  fanin_6h: 10                   # distinct RUKO users paying one account in 6 hours
+  new_user_weight: 0.5           # crowd votes from users first seen in the last 24 h count for less
+  # New and spreading: AI crews burn a fresh mule every few victims, before any registry lists it.
+  # An account RUKO first saw within new_account_hours that new_account_min_users different users
+  # already tried to pay. Not for verified merchants, nor accounts the bank says are older than
+  # new_account_max_age_days (unknown age still counts: rule 1).
+  new_account_hours: 48
+  new_account_min_users: 3
+  new_account_max_age_days: 30
+
+# RUKO's own cross-user evidence, applied after any scorer (also the trained model, which has not
+# learned these features yet): each feature lifts its family to family_floor and adds its reason.
+# The tier is raised to min_tier only when at least corroboration_min_families families are lit,
+# so this evidence alone never interrupts (rule 5).
+evidence_overlay:
+  family_floor: 0.6
+  min_tier: T2                   # explain card, slide to pay: a warning, never a block
+  features:
+    payee_new_and_spreading: {family: P, reason: R3_mule_like_payee}
+
 # Emerging patterns (patterns/emerging.py): scam workflows with no known playbook. Analyst view only,
 # never in the payment decision. A group of payments with the same signature in the window is shown
 # when it has at least min_payments from at least min_users different people. Near misses: T0

@@ -15,6 +15,7 @@ from features.user_baseline import UserBaseline
 from api.intel import IntelResult
 from schema.events import DecideRequest
 from features.tracker import TrackerState
+from graph.store import CROWD
 
 FRI_LEVEL = {"NONE": 0, "MEDIUM": 1, "HIGH": 2, "VERY_HIGH": 3}
 
@@ -36,6 +37,7 @@ FAMILY = {
     # Payment graph (c2-0.4): crowd signal and money loop; payee family only.
     "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
     "payee_automated": "P",  # bot-scale ring: same amount, many people, steady rhythm
+    "payee_new_and_spreading": "P",  # new to RUKO and already paid by several users (fresh AI-crew mule)
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "payee_micro_anchor": "B",
@@ -128,6 +130,12 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["payee_forwards_to_cashout"] = ring["forwards_to_known_cashout"] if ring else None
     f["payee_approved_suspect"] = ring.get("approved_suspect") if ring else None
     f["payee_automated"] = ring.get("automated") if ring else None
+    # New and spreading (policy.yaml `crowd:`): first seen by RUKO recently, already paid by several
+    # users. A verified merchant, or an account the bank says is old, does not count; unknown age does.
+    age = f["payee_account_age_days"]
+    f["payee_new_and_spreading"] = (None if not ring else bool(ring.get("new_and_spreading"))
+                                    and not f["payee_verified_merchant"]
+                                    and (age is None or age <= CROWD["new_account_max_age_days"]))
 
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr

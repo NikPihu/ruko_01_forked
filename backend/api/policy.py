@@ -7,6 +7,7 @@ Rules, in order:
   3b. A playbook two analysts approved (blue team, `approved_by` in the playbooks file) raises the
      tier to approved_playbooks.min_tier when its own conditions span min_condition_families
      families (rule 5: the evidence is still two independent families, checked by people).
+  3c. RUKO's own cross-user evidence (evidence_overlay) raises to its min_tier when >= 2 families are lit.
   4. Amount caps (small payments are never interrupted).
   5. Trusted payee -> T0, unless an override holds (intel hit, or the journey reached S3 control).
   6. Approved-mule floor: a two-analyst-approved mule (rule 11) pauses even as the only lit family.
@@ -73,6 +74,14 @@ class Policy:
         if ap and fams is not None and len(fams) >= ap["min_condition_families"] and _rank(tier) < _rank(ap["min_tier"]):
             tier = ap["min_tier"]
             applied.append("approved_playbook")
+
+        # RUKO's own cross-user evidence (api/overlay.py) raises the tier only when it corroborates
+        # with another lit family: on its own it never interrupts (rule 5).
+        ov = c.get("evidence_overlay")
+        if (ov and s.get("overlay") and len(lit) >= c["corroboration_min_families"]
+                and _rank(tier) < _rank(ov["min_tier"])):
+            tier = ov["min_tier"]
+            applied.append("evidence_overlay")
 
         for cap in c["amount_caps"]:
             if f["amount_inr"] < cap["below"] and _rank(tier) > _rank(cap["max_tier"]):
