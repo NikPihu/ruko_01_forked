@@ -173,8 +173,9 @@ def _watch_policy() -> dict:
 
 def why_missed(r) -> str:
     """Why a scam payment was not stopped, from the engine's own decision."""
-    steps = str(r.get("policy_steps") or "")
-    fam = str(r.get("approved_families") or "")
+    def text(v) -> str:                              # a CSV round trip turns empty cells into NaN
+        return v if isinstance(v, str) else ""
+    steps, fam = text(r.get("policy_steps")), text(r.get("approved_families"))
     if r.get("fail_open"):
         return "the engine failed open (no answer in time)"
     if fam and "+" not in fam:
