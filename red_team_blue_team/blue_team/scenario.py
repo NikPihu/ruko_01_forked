@@ -120,6 +120,8 @@ def stream(world: Path, out: Path) -> None:
     rows = []
     try:
         for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0):
+            if rec["body"].get("ts"):
+                srv.clock(rec["body"]["ts"])         # the mock services answer as of this message's time
             if rec["kind"] == "episode":
                 srv.post("/v1/episode", rec["body"])
                 continue
