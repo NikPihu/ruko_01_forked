@@ -19,22 +19,34 @@ The tricks they use, as the blue team reads them from each script (`blue_team/re
 
 ## Use them
 
-From the blue-team console (`python -m blue_team app`, page **Red team**): *Build the red-team world*
-(a sim_v2 world with RUKO's six known scams plus these 50; sim_v2's own unknown scams are left out),
-then start a run on it, then open **Scorecard**. Or on the command line:
+The red team is run by **Nikunj's runner**, `synthetic_playbook/interface_script` (team main, PR #27):
+each playbook plays out in its own small sim_v2 world against the **real RUKO engine**, and every
+reply is judged by its threat score (70 or less = RUKO called it normal). When 75% of a playbook's
+scam payments come back normal it is a **breakthrough**, and the runner's `blue_team` sink
+(`interface_script/sinks.py`) drops it into the blue team's inbox (`blue_team/inbox.py`).
+
+From the blue-team console (`python -m blue_team app`, page **Red team**):
+1. **Run the red team** over these 50 (or sim_v2's own library): several at a time, resumable.
+2. **The blue-team inbox** fills with every verdict and each breakthrough.
+3. **Build the attack world** from the breakthroughs (one world where they all run at once, next to
+   RUKO's six known scams), replay it, then start a blue-team run on it and open **Scorecard**.
+
+Command line, the same steps:
 
 ```bash
-python -m blue_team.testworld --red-team --users 4000 --days 30 --victim-rate 0.8 --seed 41 --out data/sim_v2_out/redteam
+export PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team" PYTHONIOENCODING=utf-8
+python -m interface_script run-all --playbooks red_team_blue_team/red_team/playbooks
+python -m blue_team.testworld --red-team --red-dir red_team_blue_team/blue_team/inbox/breakthroughs --users 4000 --days 30 --victim-rate 0.8 --seed 41 --out data/sim_v2_out/redteam
 python -m dataset.replay --data data/sim_v2_out/redteam --out ml/data/tables/redteam.parquet --warmup-days 7
 python -m blue_team run --table ml/data/tables/redteam.parquet --data data/sim_v2_out/redteam
 ```
 
-The scorecard measures, per playbook, the share of its scam payments RUKO interrupted (next to
-Nikunj's claim), where its complaints went, and whether the blue team drafted a playbook for a group
-it dominates. It is the only place that uses the simulator's answer key.
+The scorecard puts, per playbook, the runner's verdict (alone in its own world) next to what RUKO
+did in the shared attack world, where its complaints went, and whether the blue team drafted a
+playbook for a group it dominates. It is the only place that uses the simulator's answer key.
 
 Adding a playbook: drop a new sim_v2 YAML here (unique `name`, `emerging: true`); the console picks
-it up. The `python -m redteam` runner Nikunj's notes mention is not in this folder.
+it up.
 
 ## First result (offline agents, 4,000 users x 30 days, seed 41)
 

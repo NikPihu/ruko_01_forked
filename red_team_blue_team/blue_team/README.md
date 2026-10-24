@@ -6,7 +6,7 @@ policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds)
 ## The console (start here)
 
 ```bash
-export PYTHONPATH="backend;ml;data;red_team_blue_team" PYTHONIOENCODING=utf-8
+export PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team" PYTHONIOENCODING=utf-8
 export AWS_BEARER_TOKEN_BEDROCK=...        # optional: without it runs are offline (no LLM)
 .venv/Scripts/python -m blue_team app      # -> http://127.0.0.1:8765
 ```
@@ -15,7 +15,7 @@ One page with a sidebar, every decision with its reason and its references:
 
 | Page | What you see |
 |---|---|
-| Red team | Nikunj's 50 playbooks (`../red_team/`) with the evasion tricks read from each script and his claimed scores; **build the red-team world** (sim_v2 + replay, live log) |
+| Red team | **1** run Nikunj's runner (`synthetic_playbook/interface_script`) over his 50 playbooks against the real engine, several at a time (resumable); **2** the blue-team inbox (`inbox.py`), filled by his `blue_team` sink with every verdict and each breakthrough (75% of scam payments called normal); **3** build the attack world from the breakthroughs (sim_v2 + replay, live log). Also each playbook's evasion tricks, read from its script |
 | Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
 | Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
 | HDBSCAN | a **map** of the complaints (t-SNE of the same vectors HDBSCAN grouped; colour = new / known / misnamed?, an outline per group, its id at the centre, shape = missed / unnamed; hover for the complaint, click to open it), a second map per playbook for the misnamed check, then every group with the reason for its kind (numbers and thresholds) and the one-offs |
@@ -23,7 +23,7 @@ One page with a sidebar, every decision with its reason and its references:
 | Analyst agent | the same for the second opinion: turns, verdict, rationale and the facts it rests on |
 | Playbooks | the minimal card (title, steps, rule, warnings in English and Hindi, verdict, references), exactly what is stored (the YAML), whether the engine can take it yet, and approve / reject / edit |
 | Playbook database | the engine's known playbooks (its live file) and the ones analysts approved |
-| Scorecard | red team vs blue team per playbook: RUKO's measured interruption rate (next to the red team's claim), complaints and where they went, drafted playbooks and verdicts. The only page that uses the simulator's answer key |
+| Scorecard | red team vs blue team per playbook: RUKO's interruption rate in the shared attack world next to the runner's verdict for the playbook alone, complaints and where they went, drafted playbooks and verdicts. The only page that uses the simulator's answer key |
 
 ## The flow
 
@@ -58,7 +58,7 @@ run without a key; `--llm auto` (the default) uses Bedrock when it answers.
 ## Run it (repo root)
 
 ```bash
-export PYTHONPATH="backend;ml;data;red_team_blue_team" PYTHONIOENCODING=utf-8
+export PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team" PYTHONIOENCODING=utf-8
 .venv/Scripts/python -m pip install -r red_team_blue_team/blue_team/requirements.txt
 
 # a world with enough breaches, replayed through the engine (about 2 + 5 minutes)
@@ -211,6 +211,10 @@ The blue team reads the engine's file for the known playbooks, so it never judge
 text from the response.
 
 **Diwansu (ml):** read `exports/*/labels.csv` in `model/train.py` as extra labels for the next retrain.
+
+**Nikunj (`synthetic_playbook/interface_script/sinks.py`):** this branch adds one sink, `blue_team`, to
+his `SINKS` list. It does nothing when `red_team_blue_team` is not on the path, so his runner works as
+before without the blue team.
 
 **Nikunj or the red team:** AI-powered scam variants as `emerging` sim_v2 playbooks (`../red_team/README.md`).
 
