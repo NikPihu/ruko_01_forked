@@ -42,8 +42,9 @@ class EventLog:
             self.echo(("    " if stage in ("generator", "analyst", "database") else "") + text)
 
 
-def workspace(table: Path, world: Path, scorer: str = "ml", as_of: pd.Timestamp | None = None) -> Workspace:
-    pbs = playbook_db.load(("known", "approved"))
+def workspace(table: Path, world: Path, scorer: str = "ml", as_of: pd.Timestamp | None = None,
+              playbook_root: Path | None = None) -> Workspace:
+    pbs = playbook_db.load(("known", "approved"), playbook_root)
     scored = breach.score(breach.load_table(table), scorer, pbs)
     comp = breach.complaints(world, as_of)
     cases = breach.cases(scored, comp)
@@ -61,7 +62,7 @@ def connect(provider: str, log=print, model: str | None = None, region: str | No
     except llm.LLMUnavailable as e:
         if provider == "bedrock":
             raise
-        log(f"Bedrock unavailable ({str(e).splitlines()[0]})")
+        log("Bedrock unavailable, so the agents run offline: " + " ".join(str(e).split()))
         return None, None
 
 
@@ -130,7 +131,7 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
     ev("setup", f"Run {run_id}: world {world}, replayed payments {table}, scorer '{scorer}'",
        refs={"config": "red_team_blue_team/blue_team/config.yaml", "world": str(world), "table": str(table)})
 
-    ws = workspace(table, world, scorer, as_of)
+    ws = workspace(table, world, scorer, as_of, playbook_root)
     if ws.scored.missing_features:
         ev("setup", f"The replayed table predates {', '.join(ws.scored.missing_features)}: treated as unknown for every "
            "payment (re-run the replay to measure them)", kind="warning", refs={"rule": "CLAUDE.md rule 1"})
@@ -145,6 +146,9 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
         ev("breaches", f"{len(ids)} {s}: {meaning}", kind="decision",
            refs={"rule": f"breach.interrupt_tiers {cfg['breach']['interrupt_tiers']}", "cases": ids})
     (out / "cases.json").write_text(json.dumps(cases_json(ws), default=str, ensure_ascii=False), encoding="utf-8")
+    # what RUKO said about every replayed payment (no labels): the red-team scorecard grades it later
+    ws.scored.rows[["tx_id", "tier", "named"]].assign(tx_id=lambda d: d["tx_id"].astype(str)).to_parquet(
+        out / "payment_tiers.parquet", index=False)
 
     cc = cfg["cluster"]
     br = [c for c in ws.clusters.clusters if c.kind != "misnamed"]

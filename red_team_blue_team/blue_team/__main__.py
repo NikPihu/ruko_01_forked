@@ -9,6 +9,9 @@
     python -m blue_team reject  <name> --analyst <you> --note "why"
     python -m blue_team retest  <name> --table ... --data ...   # after editing a queued matcher
     python -m blue_team evaluate --run <runs/run_id> --data <world>   # ground truth, scoring only
+    python -m blue_team verify <name> [--offline-only] [--retrain]    # approved: does RUKO now catch it?
+    python -m blue_team scenario start | redraft | rerun | status   # the whole loop on one small world
+    python -m blue_team app --scenario                          # approve the scenario's drafts
 """
 from __future__ import annotations
 
@@ -38,6 +41,12 @@ def main() -> None:
     sub.add_parser("queue", help="candidates waiting for analysts")
     ap = sub.add_parser("app", help="the review page in your browser: see, edit, approve or reject drafted playbooks")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--scenario", action="store_true", help="the scenario's own playbook database (scenario.py)")
+    sc = sub.add_parser("scenario", help="new scams get through, the blue team learns them, analysts approve, rerun")
+    sc.add_argument("step", choices=["start", "redraft", "rerun", "status"])
+    sc.add_argument("--new", default=None, help="red-team playbooks new to RUKO, comma separated (config: scenario.new)")
+    sc.add_argument("--known", default=None, help="known scams, comma separated (config: scenario.known)")
+    sc.add_argument("--llm", choices=["bedrock", "offline", "auto"], default=None)
     s = sub.add_parser("show")
     s.add_argument("name")
     for cmd in ("approve", "reject"):
@@ -53,6 +62,10 @@ def main() -> None:
     e = sub.add_parser("evaluate")
     e.add_argument("--run", type=Path, required=True)
     e.add_argument("--data", type=Path, required=True)
+    v = sub.add_parser("verify", help="an approved playbook: does RUKO now name / interrupt the scam (verify.py)")
+    v.add_argument("name")
+    v.add_argument("--offline-only", action="store_true", help="check 1 only (seconds), no runner")
+    v.add_argument("--retrain", action="store_true", help="also retrain LightGBM with the card's labels (check 3)")
     a = p.parse_args()
 
     if a.cmd == "probe":
@@ -68,7 +81,21 @@ def main() -> None:
         pipeline.run(a.table, a.data, a.scorer, a.llm, as_of, model=a.model, region=a.region)
     elif a.cmd == "app":
         from blue_team import webapp
-        webapp.main(a.port)
+        webapp.main(a.port, scenario=a.scenario)
+    elif a.cmd == "scenario":
+        from blue_team import scenario
+        s = scenario.settings()
+        if a.step == "start":
+            scenario.start(a.new.split(",") if a.new else s["new"], a.known.split(",") if a.known else s["known"], a.llm)
+        elif a.step == "redraft":
+            scenario.redraft(a.llm)
+        elif a.step == "rerun":
+            scenario.rerun()
+        else:
+            st = scenario.load_state()
+            print(json.dumps({k: v for k, v in st.items() if k not in ("before", "after")}, indent=1) if st else "no scenario yet")
+            if st.get("before"):
+                print(scenario.report(st["before"], st.get("after"), st["new"]))
     elif a.cmd == "queue":
         from blue_team import review
         q = review.queue()
@@ -104,6 +131,12 @@ def main() -> None:
         card["gate_failures"] = bt.get("gate_failures", bt.get("errors", []))
         playbook_db.write(card, "review")
         print(json.dumps(bt, indent=1))
+    elif a.cmd == "verify":
+        from blue_team import review, verify
+        try:
+            verify.verify(a.name, live_check=not a.offline_only, retrain_check=a.retrain)
+        except review.ReviewError as err:
+            sys.exit(f"error: {err}")
     elif a.cmd == "evaluate":
         from blue_team import evaluate
         print(json.dumps(evaluate.evaluate(a.run, a.data), indent=1))

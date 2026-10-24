@@ -60,7 +60,7 @@ def _embed(docs: pd.Series, cfg: dict):
     k = max(2, min(cfg["svd_components"], x.shape[0] - 1, x.shape[1] - 1))
     z = normalize(TruncatedSVD(n_components=k, random_state=0).fit_transform(x))
     hd = HDBSCAN(min_cluster_size=cfg["min_cluster_size"], min_samples=cfg["min_samples"],
-                 cluster_selection_method=cfg["selection"], copy=True).fit(z)
+                 cluster_selection_method=cfg["selection"], copy=True, allow_single_cluster=cfg.get("allow_single_cluster", False)).fit(z)
     return vec, x, hd.labels_, z, hd.probabilities_
 
 

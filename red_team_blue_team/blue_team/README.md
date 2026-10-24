@@ -6,7 +6,7 @@ policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds)
 ## The console (start here)
 
 ```bash
-export PYTHONPATH="backend;ml;data;red_team_blue_team" PYTHONIOENCODING=utf-8
+export PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team" PYTHONIOENCODING=utf-8
 export AWS_BEARER_TOKEN_BEDROCK=...        # optional: without it runs are offline (no LLM)
 .venv/Scripts/python -m blue_team app      # -> http://127.0.0.1:8765
 ```
@@ -15,6 +15,7 @@ One page with a sidebar, every decision with its reason and its references:
 
 | Page | What you see |
 |---|---|
+| Red team | **1** run Nikunj's runner (`synthetic_playbook/interface_script`) over his 50 playbooks against the real engine, several at a time (resumable); **2** the blue-team inbox (`inbox.py`), filled by his `blue_team` sink with every verdict and each breakthrough (75% of scam payments called normal); **3** build the attack world from the breakthroughs (sim_v2 + replay, live log). Also each playbook's evasion tricks, read from its script |
 | Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
 | Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
 | HDBSCAN | a **map** of the complaints (t-SNE of the same vectors HDBSCAN grouped; colour = new / known / misnamed?, an outline per group, its id at the centre, shape = missed / unnamed; hover for the complaint, click to open it), a second map per playbook for the misnamed check, then every group with the reason for its kind (numbers and thresholds) and the one-offs |
@@ -22,6 +23,7 @@ One page with a sidebar, every decision with its reason and its references:
 | Analyst agent | the same for the second opinion: turns, verdict, rationale and the facts it rests on |
 | Playbooks | the minimal card (title, steps, rule, warnings in English and Hindi, verdict, references), exactly what is stored (the YAML), whether the engine can take it yet, and approve / reject / edit |
 | Playbook database | the engine's known playbooks (its live file) and the ones analysts approved |
+| Scorecard | red team vs blue team per playbook: RUKO's interruption rate in the shared attack world next to the runner's verdict for the playbook alone, complaints and where they went, drafted playbooks and verdicts. The only page that uses the simulator's answer key |
 
 ## The flow
 
@@ -56,7 +58,7 @@ run without a key; `--llm auto` (the default) uses Bedrock when it answers.
 ## Run it (repo root)
 
 ```bash
-export PYTHONPATH="backend;ml;data;red_team_blue_team" PYTHONIOENCODING=utf-8
+export PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team" PYTHONIOENCODING=utf-8
 .venv/Scripts/python -m pip install -r red_team_blue_team/blue_team/requirements.txt
 
 # a world with enough breaches, replayed through the engine (about 2 + 5 minutes)
@@ -170,6 +172,28 @@ score by 10 to 30 points: read these as "works, with errors", and keep the two-a
 
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
+## After approval: does RUKO now catch it? (`verify.py`)
+
+Two analysts approving says the story and rule look right; **Verify** (Playbooks page, on an approved
+card, or `python -m blue_team verify <name> [--offline-only] [--retrain]`) measures what approving it
+changes. A playbook only **names** a scam (the warning's words and `threat.fraud_type`); **interrupting**
+(T2+) comes from the model, so the checks keep the two apart:
+
+| Check | Time | What it answers |
+|---|---|---|
+| 1 named, offline | seconds | The engine's playbook file plus this entry (checked by the engine's own parser) over the card's world: share of the scam's payments named, on its own complaints and on payments **nobody complained about** (answer key, evaluation only), legit payments named per 1,000, payments taken from a known playbook. A rule the file format cannot express is measured with the blue-team matcher and flagged |
+| 2 live | ~5 min | Nikunj's runner on the scam's playbooks in a fresh world (`verify.seed`), judged by the engine as it is, with the entry pasted into its file (`RUKO_PLAYBOOKS`), and a **preview** with the rule in the engine's namer and the contract open to new names (`verify_engine.py`). Named, interrupted, called-normal, fail-open, before vs after |
+| 3 retrain | +~10 min | LightGBM retrained on its own training table plus the card's complaint-labelled payments into `exports/<name>/model/` (v0 untouched), then check 2's world again with `RUKO_MODEL` |
+
+Verify runs never write the red-team inbox (the runner's blue-team sink is dropped) or anything in
+`backend/`, `data/` or `ml/model/artifacts/`. Results: `exports/<name>/verify.json`.
+
+What it found on the first cards: before playbooks-0.2, a playbook only *named* a scam and the engine
+showed the name only at T1+, so an approved playbook changed nothing for a victim LightGBM scored T0
+(live: named 43% of a red-team scam inside the engine, 0% shown, 0% interrupted). Hence the policy
+step below. It also catches overfitting: `qr_dictated_payment_scam` (LLM run) named 75% of its own
+complaints but 0% of the same scam's payments nobody complained about.
+
 ## What other folders need (not done here)
 
 How an approved playbook goes live: `approve` (two analysts) writes
@@ -178,27 +202,25 @@ How an approved playbook goes live: `approve` (two analysts) writes
 playbook it corrects. Someone pastes it into the file and the engine names that scam from then on.
 The blue team reads the engine's file for the known playbooks, so it never judges against a stale copy.
 
-**Jagdeep (backend):**
-1. **Blocker: open the scam-name list in the contract.** `Threat.fraud_type` and
-   `DeviceVerdict.fraud_class` are `FraudType`, a fixed list of six names (c2-0.10), and `threat.fraud_type`
-   is the playbook. So *any* new name in `playbooks.yaml` (from the blue team, or from naming an A4
-   emerging pattern) fails validation when the `/v1/decide` response is built. Make it a string
-   (snake_case), or keep the list but map unknown names to `null` plus a new `scam_name` field.
-   Rule 8: version bump, examples, Models.kt, ContractTest.
-2. **Extend the playbooks-0.1 format** so blue-team rules fit. Of the 24 cards gpt-oss drafted in the
-   two test worlds, 3 export as they are; the rest need:
-   - the request fields `entry_method` (20 cards) and `payer_says` (6) as match keys (they are in
-     every `/v1/decide` request but are not `FAMILY` features);
-   - number comparisons, e.g. `amount_inr: {gte: 10000, lt: 50000}` (`>=` in 17 cards, `<` in 7);
-     the blue team's ops are `>=`, `<=`, `>`, `<`; unknown (null) must never satisfy them (rule 1).
-   `engine_file.export_entry` lists exactly what is missing for each card, and
-   `tests/test_matcher_and_db.py` checks an exported entry names payments exactly like the matcher.
-3. **Message text for new names.** The app shows `<tier>_<name>` strings from AlertText.kt and falls
+**Jagdeep (backend): done on this branch, please review** (`backend/api/playbooks.py`, `policy.py`,
+`policy.yaml`, `main.py`, `rule_scorer.py`, `tests/test_approved_playbooks.py`):
+1. **Approved playbooks warn.** An entry with `approved_by` (two different analysts) makes policy raise
+   its payments to at least T2 (`policy.yaml` `approved_playbooks`), even when LightGBM scored them
+   low, which it does for scams it never saw. Rule 5 holds: the entry's own conditions must span two
+   families (`playbooks.families`); amount caps, trusted payees and the alert budget apply after it.
+   A rule made only of behaviour signals still just names the scam.
+2. **No fail-open on a new name.** `threat.fraud_type` stays the contract's six names; a newer name goes
+   out in `playbook` and the message key only (before, it failed the response and the engine failed
+   open). No contract change: the app shows the tier's generic words until item 3.
+3. **playbooks-0.2 format:** number comparisons (`amount_inr: {gte: 1000, lt: 10000}`, unknown never
+   matches, rule 1), the request fields `entry_method` / `payer_says`, and `approved_by`. 48 of the 49
+   cards drafted so far export (was 3); 17 of them warn, the rest only name.
+4. **Message text for new names.** The app shows `<tier>_<name>` strings from AlertText.kt and falls
    back to the tier's generic text. An approved card carries `advice_en` / `advice_hi`; either ship
    them in the response (with item 1) or add them to AlertText.kt per playbook.
-4. **Mule accounts:** `exports/<name>/mule_accounts.csv` as seeds for `graph/discover.py`'s suspect
+5. **Mule accounts:** `exports/<name>/mule_accounts.csv` as seeds for `graph/discover.py`'s suspect
    review (still two analysts, rule 11), e.g. `POST /v1/graph/suspects/import`.
-5. **Emerging patterns (your A4) and the blue team** look at different moments: A4 groups flagged
+6. **Emerging patterns (your A4) and the blue team** look at different moments: A4 groups flagged
    and near-miss payments *before* a loss; the blue team groups 1930 / NCRP complaints *after* one,
    including interruptions that named the wrong scam. Both draft entries in the same file format,
    so they can share the review step. Optional: send an A4 pattern to the blue team's investigator
@@ -209,6 +231,10 @@ The blue team reads the engine's file for the known playbooks, so it never judge
 text from the response.
 
 **Diwansu (ml):** read `exports/*/labels.csv` in `model/train.py` as extra labels for the next retrain.
+
+**Nikunj (`synthetic_playbook/interface_script/sinks.py`):** this branch adds one sink, `blue_team`, to
+his `SINKS` list. It does nothing when `red_team_blue_team` is not on the path, so his runner works as
+before without the blue team.
 
 **Nikunj or the red team:** AI-powered scam variants as `emerging` sim_v2 playbooks (`../red_team/README.md`).
 

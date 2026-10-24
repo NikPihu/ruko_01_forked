@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import time
+import typing
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -35,6 +36,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from api import overlay
 from api import rule_scorer as scorer
 from features.user_baseline import Baselines
 from evidence.store import EvidenceStore, pseudonym
@@ -43,14 +45,15 @@ from api.intel import IntelAdapter
 from api.policy import Policy
 from api.episode_events import EpisodeService
 from graph import discover as discovery
+from graph.campaigns import CampaignStore, wire_value
 from graph.store import GraphStore
 from store.db import TxnStore
 from api.explain import explain
 from patterns import emerging
 from api.feedback import FeedbackService, alert_health
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
-                           Feedback, FeedbackResponse, MoneyReceived, MoneyReceivedResponse, MyPayment, MyPayments,
-                           PaymentOutcome, PaymentOutcomeResponse, Threat, WatchEvent, WatchEventResponse)
+                           Feedback, FeedbackResponse, FraudType, MoneyReceived, MoneyReceivedResponse, MyPayment,
+                           MyPayments, PaymentOutcome, PaymentOutcomeResponse, Threat, WatchEvent, WatchEventResponse)
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
@@ -134,6 +137,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             fn(*args)
     app.state.evidence, app.state.trusted = evidence, trusted
     graph = GraphStore()
+    campaigns = CampaignStore()   # money handles across scam messages (c2-0.13)
     app.state.graph = graph
     reviews: dict[str, discovery.Review] = {}
     found: dict = {"suspects": [], "last_run": None}
@@ -201,17 +205,30 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
+        # Same scam, many phones (c2-0.13): is this UPI ID, or the caller's number, being pushed in
+        # scam messages to several different users right now? Unknown number -> None (rule 1).
+        ring["in_campaign"] = campaigns.spreading("upi", upi, req.ts)
+        caller = wire_value("phone", call.caller_number) if call and call.caller_number else None
+        ring["caller_in_campaign"] = campaigns.spreading("phone", caller, req.ts) if caller else None
         feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here,
                                micro_anchor=micro_anchor)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
         s = app.state.score(feats)
+        if scorer.PLAYBOOK_USES_REQUEST:   # a playbook-0.2 rule reads the request's entry method / payer_says
+            s = {**s, "playbook": scorer._playbook({**feats, "entry_method": req.entry_method,
+                                                     "payer_says": req.payer_says})}
+        # Two analysts approved this playbook (blue team): policy may raise the tier (approved_playbooks).
+        s = {**s, "playbook_families": scorer.PLAYBOOK_APPROVED.get(s["playbook"])}
         # The phone's fraud class names the scam when the server's playbook matcher found none (c2-0.8),
         # e.g. a WhatsApp "digital arrest" call whose number the phone cannot see.
         dv = req.context.device_verdict if req.context else None
         if s["playbook"] is None and dv is not None and dv.fraud_class is not None:
             s = {**s, "playbook": dv.fraud_class}
+        # RUKO's own cross-user evidence (e.g. a new account many users are paying) counts with any
+        # scorer, including the trained model that has not learned it yet (api/overlay.py).
+        s = overlay.apply(s, feats, policy.cfg)
         ms["score"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -361,6 +378,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         stage = tracker.observe(ev.user_id, ev.kind, ts, lure_conf=ev.lure_conf, call_minutes=ev.call_minutes)
         detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "ai_written",
                                                            "call_kind", "call_minutes"}).items() if v is not None}
+        # Money handles from the flagged message (c2-0.13): UPI plain, link/number pseudonyms, no text.
+        if ev.kind == "lure_seen" and ev.handles:
+            campaigns.record(ev.user_id, [(h.kind, h.value) for h in ev.handles], ts)
+            campaigns.expire(ts)
+            detail["handles"] = [h.model_dump() for h in ev.handles]
         persist(store.record_watch, ev.event_id, ev.user_id, ev.kind, detail, ts)
         return WatchEventResponse(event_id=ev.event_id, recorded=True, stage=stage)
 
@@ -521,6 +543,14 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             now = max(now, ts)
         return now
 
+    @app.get("/v1/campaigns/spreading")
+    def campaigns_spreading(limit: int = 20) -> dict:
+        """Money handles going around in scam messages right now (console "Spreading now"). UPI IDs
+        plain; links and numbers stay hidden (only their pseudonyms are known). Analyst view only."""
+        now = max(patterns_now(), campaigns.latest() or patterns_now())
+        return {"as_of": now.isoformat(), "window_minutes": campaigns.window.total_seconds() / 60,
+                "min_users": campaigns.min_users, "handles": campaigns.top(now, limit=max(1, min(limit, 100)))}
+
     @app.get("/v1/patterns/emerging")
     def emerging_patterns() -> dict:
         """New scam workflows with no known playbook (A4): analyst view only, never in a decision."""
@@ -602,6 +632,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         trusted.clear()
         episodes.reset()
         graph.reset()
+        campaigns.reset()
         reviews.clear()
         alerts.clear()
         store.reset()
@@ -619,14 +650,19 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     return app
 
 
+FRAUD_TYPES = set(typing.get_args(FraudType))
 THREAT_LEVEL = {"T0": "none", "T1": "low", "T2": "medium", "T3": "high", "T4": "critical"}
 
 
 def threat_of(s: dict, d) -> Threat:
     """The threat analysis the app shows (c2-0.8): score 0..100, a level in words from the tier, the
     known scam it matches, and the families that agree."""
+    # The contract's FraudType lists the six known scams; a newer playbook name (an approved blue-team
+    # playbook) goes out in `playbook` and the message key only, never as an invalid fraud_type, which
+    # would fail the response and fail open.
+    name = s["playbook"] if d.tier != "T0" and s["playbook"] in FRAUD_TYPES else None
     return Threat(score=max(0, min(100, round(100 * s["p_scam"]))), level=THREAT_LEVEL[d.tier],
-                  fraud_type=s["playbook"] if d.tier != "T0" else None, families=list(d.lit_families))
+                  fraud_type=name, families=list(d.lit_families))
 
 
 def load_scorer(name: str):

@@ -33,6 +33,7 @@ from api.intel import NUMBER_UPI, IntelAdapter, IntelResult
 from dataset.device_features import device_features
 from dataset.episodes import EpisodeFeed
 from dataset.graph import ReplayGraphStore
+from graph.campaigns import CampaignStore, wire_value
 from dataset.phone_view import PhoneView, epoch_seconds, keyed_rng, load_assumptions
 from evidence.store import EvidenceStore
 from features.build import build_features
@@ -108,6 +109,7 @@ class EngineReplay:
         self.tracker = StageTracker()
         self.intel = IntelReplay(store)
         self.graph = ReplayGraphStore()
+        self.campaigns = CampaignStore()   # stays empty: replayed phones send no money handles
         self._data_dir = data_dir
         self._episodes: EpisodeService | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -144,6 +146,10 @@ class EngineReplay:
         res = self.intel.lookup(upi, call.caller_number if call else None, req.ts)
         ring = self.graph.account_signals(upi, req.ts)
         ring["approved_suspect"] = False  # two analysts approve discovered suspects live; none in a replay
+        # Same as api/main.py (c2-0.13); the campaign store is empty here, so these are False/None.
+        ring["in_campaign"] = self.campaigns.spreading("upi", upi, req.ts)
+        caller = wire_value("phone", call.caller_number) if call and call.caller_number else None
+        ring["caller_in_campaign"] = self.campaigns.spreading("phone", caller, req.ts) if caller else None
         return state, res, build_features(req, state, res, base, trusted, ring=ring, paid_here=paid_here,
                                           micro_anchor=micro_anchor)
 

@@ -77,6 +77,7 @@
     <string name="reason_R10_bait_then_pay">You got small payments from strangers, and now you are paying out more and more. This is how task and job scams work</string>
     <string name="reason_R11_ring_link">This account is linked to the group that sent small "reward" payments to many people</string>
     <string name="reason_R12_coached_session">It looks like someone is telling you what to type: the amount was entered slowly, digit by digit, or the UPI ID was pasted right after you switched apps</string>
+    <string name="reason_R13_scam_campaign">This account is being sent to many people in scam messages right now</string>
     <string name="reason_R9_story_mismatch">This account belongs to a private person, not who you said you are paying</string>
 
     <!-- Who are you paying? (contract field payer_says) -->

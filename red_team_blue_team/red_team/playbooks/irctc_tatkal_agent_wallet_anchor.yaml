@@ -1,0 +1,37 @@
+name: irctc_tatkal_agent_wallet_anchor
+title: 'Telegram/WhatsApp Tatkal ticket booking agent: takes ₹150 booking service fee first, then ₹1,800-₹3,500
+  fare QR'
+confidence: guess
+emerging: true
+sources: [RPF / IRCTC advisories on unauthorized Tatkal ticket agents on Telegram]
+weight: 0.07
+targets: {salaried: 1.8, student: 1.8, gig_worker: 1.6, shopkeeper: 1.4, homemaker: 1.0, senior: 1.0}
+start_hours: [8, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: tatkal_chat
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.85}
+- id: agent_queue_fee_anchor
+  gap_min: [10, 45]
+  ask:
+    amount:
+      int: [120, 250]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.1
+    pressure: 0.95
+    mule: same
+- id: pnr_fare_payment
+  gap_min: [20, 90]
+  ask:
+    amount:
+      log: [1100, 2900]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.9
+    mule: same

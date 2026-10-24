@@ -1,0 +1,39 @@
+name: zero_bait_ipo_allotment_club
+title: 'WhatsApp SME-IPO institutional allotment group: no bait credits sent on-chain (profits shown only in web
+  dashboard)'
+confidence: guess
+emerging: true
+sources: [SEBI warnings on fake institutional QIB / SME IPO allotment WhatsApp groups]
+weight: 0.08
+targets: {salaried: 2.2, shopkeeper: 2.0, senior: 1.4, homemaker: 1.0, student: 0.8, gig_worker: 0.6}
+start_hours: [9, 17]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.65, rented: 0.25, slow_forward: 0.1}
+steps:
+- id: ipo_club_notif
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: trading_tip
+    conf: [0.4, 0.75]
+  decide: {pressure: 0.75}
+- id: lot_booking_margin
+  gap_min: [120, 600]
+  ask:
+    amount:
+      log: [800, 2600]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.3
+    pressure: 0.85
+    mule: same
+- id: additional_lot_subscription
+  p: 0.7
+  gap_min: [480, 1440]
+  ask:
+    amount:
+      of: prev
+      x: [1.0, 1.35]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.3
+    pressure: 0.85
+    mule: same

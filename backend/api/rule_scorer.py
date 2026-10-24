@@ -98,6 +98,16 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
     # Bot-scale ring (AI chatbots / scripts): same amount to or from many people at a steady rhythm.
     if f.get("payee_automated"):
         add("P", 0.7, "R11_ring_link")
+    # New to RUKO and already paid by several users: a fresh mule, before any registry lists it.
+    if f.get("payee_new_and_spreading"):
+        add("P", 0.6, "R3_mule_like_payee")
+    # Same scam, many phones (c2-0.13): the payee UPI ID is being pushed in scam messages to several
+    # users. One campaign is one source of evidence: it lights the payee family, or (only when the
+    # payee does not match) the call family for a caller whose number is in those messages (rule 5).
+    if f.get("payee_in_campaign"):
+        add("P", 0.75, "R13_scam_campaign")
+    elif f.get("caller_in_campaign"):
+        add("C", 0.6, "R13_scam_campaign")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]
@@ -152,6 +162,9 @@ def _noisy_or(xs: list[float]) -> float:
 # the same rules built in as a fallback (api/playbooks.py). Checked in order; the first rule that
 # matches names the playbook. Each has a plain description for the analyst console (api/explain.py).
 PLAYBOOK_RULES, PLAYBOOK_SOURCE = playbooks.load()
+# Playbooks two analysts approved (blue team): policy may raise their payments (policy.yaml
+# approved_playbooks). Whether any rule reads the request's own fields (main.py adds them).
+PLAYBOOK_APPROVED, PLAYBOOK_USES_REQUEST = playbooks.load_approved()
 
 
 def _playbook(f: dict) -> str | None:

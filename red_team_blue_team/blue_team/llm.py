@@ -88,6 +88,21 @@ def ping(rt, model: str) -> str:
     return "tools (no forced choice)"
 
 
+NO_KEY = ("no Bedrock key in this process: set AWS_BEARER_TOKEN_BEDROCK in the same window before starting "
+          "the console (or `python -m blue_team run`); a key set in another window, or after the start, is not seen")
+
+
+def has_credentials() -> bool:
+    """A Bedrock API key in the environment, or any AWS credentials boto3 can find (profile, SSO, ...)."""
+    if os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
+        return True
+    try:
+        import boto3
+        return boto3.Session().get_credentials() is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def connect(models: list[str] | None = None, rt=None, log=None, region: str | None = None) -> tuple[Any, str]:
     """(bedrock-runtime client, the first model id that answers with tool use). Raises LLMUnavailable."""
     from botocore.exceptions import BotoCoreError, ClientError
@@ -96,6 +111,8 @@ def connect(models: list[str] | None = None, rt=None, log=None, region: str | No
         rt = rt or client(region)
     except Exception as e:  # noqa: BLE001 (no boto3, no region, ...)
         raise LLMUnavailable(f"cannot create a Bedrock client: {e}") from e
+    if not has_credentials():
+        raise LLMUnavailable(NO_KEY)
     errors = []
     for m in models:
         try:

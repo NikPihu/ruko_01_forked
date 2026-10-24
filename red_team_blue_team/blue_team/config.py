@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]                 # the ruko_01 checkout
 PLAYBOOKS = HERE / "playbooks"          # the playbook database: known/, review/, approved/
 RUNS = HERE / "runs"                    # one folder per run (git ignored)
 

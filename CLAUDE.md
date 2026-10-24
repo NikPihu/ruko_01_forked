@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.12)
+## Contract (current: c2-0.13)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -131,9 +131,16 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   Received) and, from c2-0.12, in the payment graph as a sender → user edge (credits of
   `bait_max_inr` or less are bait votes for the crowd signal, payee family). The app's History shows
   received money from the phone's own watcher. A message that reads like a scam is never a credit.
-- Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.11
-  requests still validate.
+- c2-0.13 (same scam, many phones): `WatchEvent.handles` — money handles from a flagged scam
+  message (UPI ID plain; link host and call-back number as salted SHA-256, `watch_rules.json
+  handle_salt`, `examples/handle_vectors.json` shared with the phone's `signals/Handles.kt`). The
+  server counts distinct users per handle (`graph/campaigns.py`, `policy.yaml campaign:`); a spreading
+  payee UPI (`payee_in_campaign`, P) or caller number (`caller_in_campaign`, C) gives reason
+  `R13_scam_campaign` — one campaign lights at most one family (rule 5). Console: Overview "Spreading
+  now" (`GET /v1/campaigns/spreading`). See `docs/features/campaigns.md`.
+- Reason codes R1 to R13 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
+  `R13_scam_campaign`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
+  c2-0.3 to c2-0.12 requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
@@ -252,9 +259,16 @@ mind. Offline episode features for training:
   `episode.py` + `bank_sms.py` (same state machine as the phone), `session.py` (Pay-screen numbers
   → coached-session signs), `user_baseline.py` (history before the payment only),
   `offline_episode.py`.
-- `graph/store.py` (crowd signal, money loop, bot-scale `automation` with `policy.yaml`
-  `automation:`, story for the console, one `Payment` per payment id with its decision and
-  outcome), `graph/discover.py` (suspects, two-analyst approval, rings, `hub_score`, `ring_view`).
+- `graph/store.py` (crowd signal with thresholds in `policy.yaml` `crowd:`, money loop, bot-scale
+  `automation` with `policy.yaml` `automation:`, `new_and_spreading` = an account RUKO first saw
+  within 48 h that 3+ users already pay → feature `payee_new_and_spreading` (P, R3; not for verified
+  merchants or bank-old accounts), story for the console, one `Payment` per payment id with its
+  decision and outcome), `graph/discover.py` (suspects, two-analyst approval, rings, `hub_score`,
+  `ring_view`).
+- `api/overlay.py` (evidence overlay): RUKO's own cross-user evidence (`policy.yaml`
+  `evidence_overlay.features`) counts with any scorer, including the trained model that never
+  learned it — it lifts its family and reason, and the policy raises to T2 only when a second
+  family is lit (rule 5).
 - `store/` (transaction database, export), `api/explain.py`, `api/feedback.py` (feedback, alert
   health), `patterns/emerging.py` (A4, thresholds in `policy.yaml` `emerging:`), `demo/agents.py`
   (scripted victims for every scam type), `evalsuite/ai_lures.py` (A3, AI-written scam messages

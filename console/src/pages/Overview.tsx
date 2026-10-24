@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { api, type AlertHealth } from "../api";
+import { api, type AlertHealth, type Spreading } from "../api";
 import { inr, pct, PLAYBOOKS, userLabel, when } from "../format";
 import { reasonText } from "../reasons";
 import { BandChip, Card, Check, Empty, Loading, Stat, TierChip, exploreHref, go, useLoad } from "../components/ui";
 
 export function Overview() {
   const { data, error, loading } = useLoad(async () => {
-    const [alerts, cases, suspects, verify, health, alertHealth] = await Promise.all([
+    const [alerts, cases, suspects, verify, health, alertHealth, spreading] = await Promise.all([
       api.alerts("T1"), api.cases(), api.suspects("med"), api.verify(), api.health(),
-      api.alertHealth().catch(() => null),
+      api.alertHealth().catch(() => null), api.spreading().catch(() => null),
     ]);
-    return { alerts, cases, suspects, verify, health, alertHealth };
+    return { alerts, cases, suspects, verify, health, alertHealth, spreading };
   });
   if (!data) return <Loading error={error} loading={loading} />;
 
@@ -40,6 +40,7 @@ export function Overview() {
       </div>
 
       {data.alertHealth && <AlertHealthCard h={data.alertHealth} />}
+      {data.spreading && <SpreadingCard s={data.spreading} />}
       <DemoCard />
 
       <div className="grid grid-main">
@@ -185,6 +186,45 @@ function DemoCard() {
                   <td>{r.playbooks.map((b) => PLAYBOOKS[b] ?? b).join(", ") || "none known"}</td>
                   <td className="muted">{r.expect}</td>
                   <td>{r.ok ? <span className="chip good">✓ as expected</span> : <span className="chip t4">✕ check</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+const HANDLE_KIND: Record<string, string> = { upi: "UPI ID", link: "Link", phone: "Call-back number" };
+
+/**
+ * Same scam, many phones (c2-0.13): money handles going around in scam messages right now. AI crews
+ * reword the message for every victim but must reuse the UPI ID, link or number; RUKO counts how many
+ * different people got each one. Links and numbers stay hidden (only their pseudonyms reach RUKO).
+ */
+function SpreadingCard({ s }: { s: Spreading }) {
+  return (
+    <Card title="Spreading now" pad={false}>
+      <p className="ink2" style={{ margin: "12px 16px 0" }}>
+        The same UPI ID, link or call-back number in scam messages on different phones in the last {s.window_minutes} minutes.
+        At {s.min_users}+ people, paying it gets the reason "this account is being sent to many people in scam messages" (R13),
+        before any registry knows it.
+      </p>
+      {s.handles.length === 0 ? (
+        <div style={{ padding: 16 }}><Empty title="Nothing spreading right now">Handles appear here when two or more phones report the same one.</Empty></div>
+      ) : (
+        <div className="table-wrap">
+          <table className="list">
+            <thead><tr><th>What</th><th>Handle</th><th>People</th><th>First seen</th><th>Last seen</th></tr></thead>
+            <tbody>
+              {s.handles.map((h, i) => (
+                <tr key={i}>
+                  <td>{HANDLE_KIND[h.kind] ?? h.kind}{h.spreading && <span className="chip bad" style={{ marginLeft: 6 }}>spreading</span>}</td>
+                  <td className="mono">{h.value ?? <span className="muted">hidden (pseudonym only)</span>}</td>
+                  <td>{h.users}</td>
+                  <td>{when(h.first_seen)}</td>
+                  <td>{when(h.last_seen)}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,0 +1,37 @@
+name: kirana_wholesale_oil_tin_anchor
+title: 'Fake FMCG distributor offers discounted cooking-oil tins: ₹150 sample/invoice fee first, then ₹3,500 crate
+  payment'
+confidence: guess
+emerging: true
+sources: [B2B kirana & restaurant wholesale supply advance scams]
+weight: 0.08
+targets: {shopkeeper: 3.0, homemaker: 1.2, gig_worker: 0.8, salaried: 0.6, student: 0.3, senior: 0.6}
+start_hours: [8, 19]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.8, rented: 0.1, slow_forward: 0.1}
+steps:
+- id: distributor_rate_card
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.85}
+- id: gst_bilty_anchor
+  gap_min: [15, 60]
+  ask:
+    amount:
+      int: [120, 280]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.1
+    pressure: 0.95
+    mule: same
+- id: half_load_advance_qr
+  gap_min: [45, 180]
+  ask:
+    amount:
+      log: [1400, 4200]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.25
+    pressure: 0.9
+    mule: same

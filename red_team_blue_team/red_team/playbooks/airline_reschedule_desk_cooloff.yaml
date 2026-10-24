@@ -1,0 +1,39 @@
+name: airline_reschedule_desk_cooloff
+title: Victim calls fake airline helpline, ends call to check boarding details, pays fare difference via QR 40 min
+  later
+confidence: guess
+emerging: true
+sources: [I4C advisories on fake airline customer care numbers on search engines]
+weight: 0.07
+targets: {salaried: 2.2, shopkeeper: 1.6, senior: 1.2, student: 1.0, homemaker: 1.0, gig_worker: 0.6}
+start_hours: [8, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: helpline_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.65, voip: 0.35}
+    direction: outgoing
+    minutes: [5, 16]
+  decide: {pressure: 0.85}
+- id: fare_diff_qr
+  gap_min: [40, 100]
+  ask:
+    amount:
+      log: [700, 2600]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.15
+    pressure: 0.9
+    mule: same
+- id: seat_reissue_charge
+  p: 0.5
+  gap_min: [120, 360]
+  ask:
+    amount:
+      log: [600, 1900]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.2
+    pressure: 0.8
+    mule: same

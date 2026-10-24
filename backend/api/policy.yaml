@@ -20,6 +20,15 @@ tiers:
   T2: {min_p: 0.50, min_families: 2}                             # explain card, slide to pay
   T1: {min_p: 0.30, min_families: 2}                             # inline tip
 
+# A playbook two analysts approved (blue team: red_team_blue_team/blue_team, `approved_by` in
+# data/playbooks/playbooks.yaml) labels the payment as that scam and raises it to at least this tier,
+# even when the model scored it low: the model cannot learn a scam it has never seen. Rule 5 holds
+# because the playbook's own conditions must come from this many families (api/playbooks.families).
+# Amount caps, trusted payees and the alert budget below still apply.
+approved_playbooks:
+  min_tier: T2                   # explain card, slide to pay: a warning, never a block
+  min_condition_families: 2
+
 # A payee two analysts approved as a mule (rule 11) always warrants a pause, even if it is the only
 # lit family — it is human-verified, so it cannot be a false registry entry (audit §2.6).
 approved_mule_min_tier: T3
@@ -83,6 +92,41 @@ automation:
   max_amount_spread: 0.10
   max_gap_spread: 0.35
   burst_min: 1.0                  # new people less than a minute apart on average: a burst, also machine-like
+
+# Crowd signals in the payment graph (graph/store.py `account_signals`). Payee family only (R11/R3).
+crowd:
+  bait_users: 5                  # distinct users with a bait credit from one account in 7 days
+  episode_users: 3               # distinct users' episodes in which one account was a payee
+  fanin_6h: 10                   # distinct RUKO users paying one account in 6 hours
+  new_user_weight: 0.5           # crowd votes from users first seen in the last 24 h count for less
+  # New and spreading: AI crews burn a fresh mule every few victims, before any registry lists it.
+  # An account RUKO first saw within new_account_hours that new_account_min_users different users
+  # already tried to pay. Not for verified merchants, nor accounts the bank says are older than
+  # new_account_max_age_days (unknown age still counts: rule 1).
+  new_account_hours: 48
+  new_account_min_users: 3
+  new_account_max_age_days: 30
+
+# Same scam, many phones (graph/campaigns.py): money handles (UPI ID, link host, call-back number)
+# found in scam messages on different phones (c2-0.13 lure_seen handles). A handle that reached
+# min_users different users within window_minutes is "spreading"; entries are kept keep_hours.
+campaign:
+  window_minutes: 60
+  min_users: 3
+  keep_hours: 24
+
+# RUKO's own cross-user evidence, applied after any scorer (also the trained model, which has not
+# learned these features yet): each feature lifts its family to family_floor and adds its reason.
+# The tier is raised to min_tier only when at least corroboration_min_families families are lit,
+# so this evidence alone never interrupts (rule 5).
+evidence_overlay:
+  family_floor: 0.6
+  min_tier: T2                   # explain card, slide to pay: a warning, never a block
+  features:
+    payee_new_and_spreading: {family: P, reason: R3_mule_like_payee}
+    # One campaign is one source: features in the same group light at most one family (rule 5).
+    payee_in_campaign: {family: P, reason: R13_scam_campaign, group: campaign}
+    caller_in_campaign: {family: C, reason: R13_scam_campaign, group: campaign}
 
 # Emerging patterns (patterns/emerging.py): scam workflows with no known playbook. Analyst view only,
 # never in the payment decision. A group of payments with the same signature in the window is shown

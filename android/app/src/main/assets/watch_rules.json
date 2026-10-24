@@ -1,5 +1,5 @@
 {
-  "version": "watch-0.1",
+  "version": "watch-0.2",
   "lure_min_conf": 0.6,
   "long_call_min": 5,
   "lure_repeat_quiet_min": 30,
@@ -14,5 +14,7 @@
     "com.facebook.orca",
     "com.facebook.katana",
     "com.truecaller"
-  ]
+  ],
+  "handle_salt": "ruko-handles-v1",
+  "max_handles": 10
 }

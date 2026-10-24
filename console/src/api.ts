@@ -256,6 +256,22 @@ export interface Explanation {
   fail_open: boolean;
 }
 
+export interface SpreadingHandle {
+  kind: "upi" | "link" | "phone";
+  value: string | null;          // the UPI ID; null for links and numbers (only their pseudonyms are known)
+  users: number;
+  spreading: boolean;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface Spreading {
+  as_of: string;
+  window_minutes: number;
+  min_users: number;
+  handles: SpreadingHandle[];
+}
+
 export interface AlertHealth {
   checks: number;
   tiers: Record<string, { shown: number; completed_share: number | null; cancelled_share: number | null; median_dwell_ms: number | null; actions: Record<string, number> }>;
@@ -348,6 +364,7 @@ export const api = {
   },
   explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
   alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),
+  spreading: () => get<Spreading>("/v1/campaigns/spreading"),
   demoRun: async () => {
     const r = await fetch("/v1/demo/run", { method: "POST" });
     if (!r.ok) throw new Error(`demo: ${r.status}`);

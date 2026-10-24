@@ -1,0 +1,36 @@
+name: used_two_wheeler_rc_transfer_anchor
+title: 'Second-hand scooter listing: ₹120 Vahan RC check fee to mule, followed by ₹2,800 booking & insurance transfer'
+confidence: guess
+emerging: true
+sources: [Second-hand vehicle marketplace advance-fee fraud advisories]
+weight: 0.08
+targets: {gig_worker: 2.4, student: 2.0, salaried: 1.4, shopkeeper: 1.2, homemaker: 0.6, senior: 0.4}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.65, rented: 0.25, slow_forward: 0.1}
+steps:
+- id: seller_chat
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.65]
+  decide: {pressure: 0.8}
+- id: rto_noc_fee_anchor
+  gap_min: [15, 60]
+  ask:
+    amount:
+      int: [110, 240]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.0
+    pressure: 0.95
+    mule: same
+- id: delivery_truck_booking
+  gap_min: [40, 160]
+  ask:
+    amount:
+      log: [1100, 3200]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.25
+    pressure: 0.9
+    mule: same

@@ -1,0 +1,48 @@
+name: gold_sip_festival_scheme_chat
+title: 'Fake jeweller digital-gold SIP scheme on WhatsApp: collects 3 equal instalments via merchant QR'
+confidence: guess
+emerging: true
+sources: [Consumer warnings on unregulated digital gold & festival chit-fund apps]
+weight: 0.08
+targets: {homemaker: 2.5, senior: 1.8, salaried: 1.5, shopkeeper: 1.4, gig_worker: 1.2, student: 0.6}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.8, rented: 0.1, slow_forward: 0.1}
+steps:
+- id: gold_passbook_notif
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: trading_tip
+    conf: [0.35, 0.65]
+  decide: {pressure: 0.8}
+- id: sip_instalment_1
+  gap_min: [60, 360]
+  ask:
+    amount:
+      log: [500, 1500]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.4
+    pressure: 0.85
+    mule: same
+- id: sip_instalment_2
+  gap_min: [720, 2160]
+  ask:
+    amount:
+      of: prev
+      x: [0.98, 1.05]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.4
+    pressure: 0.85
+    mule: same
+- id: sip_instalment_3
+  p: 0.65
+  gap_min: [720, 2160]
+  ask:
+    amount:
+      of: prev
+      x: [0.98, 1.05]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.4
+    pressure: 0.85
+    mule: same

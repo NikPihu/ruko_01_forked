@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.12: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.13: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.12"
+const val CONTRACT_VERSION = "c2-0.13"
 
 @Serializable
 enum class CallKind {
@@ -312,6 +312,14 @@ enum class WatchKind {
     @SerialName("sideload") SIDELOAD,
 }
 
+/**
+ * A money handle from a flagged scam message (c2-0.13): what the crew wants paid, opened or called.
+ * [kind] "upi" | "link" | "phone". The UPI ID is plain; a link host or number is "sha256:<hex>"
+ * (signals/Handles.kt). Never the message text.
+ */
+@Serializable
+data class Handle(val kind: String, val value: String)
+
 /** POST /v1/watch. Sent only when a threshold is crossed, only with "Early warnings" on. */
 @Serializable
 data class WatchEvent(
@@ -325,6 +333,7 @@ data class WatchEvent(
     @SerialName("ai_written") val aiWritten: Boolean? = null, // c2-0.10, lure_seen only
     @SerialName("call_kind") val callKind: CallKind? = null,
     @SerialName("call_minutes") val callMinutes: Double? = null,
+    val handles: List<Handle>? = null, // c2-0.13, lure_seen only: money handles, never text
 )
 
 @Serializable

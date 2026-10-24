@@ -34,20 +34,25 @@ from evidence.store import pseudonym
 _AUTO_DEFAULTS = {"window_days": 7, "min_users": 8, "max_amount_spread": 0.10, "max_gap_spread": 0.35,
                   "burst_min": 1.0}
 _POLICY = Path(__file__).resolve().parents[1] / "api" / "policy.yaml"
-AUTOMATION = {**_AUTO_DEFAULTS, **((yaml.safe_load(_POLICY.read_text()) or {}).get("automation") or {})}
+_CFG = yaml.safe_load(_POLICY.read_text()) or {}
+AUTOMATION = {**_AUTO_DEFAULTS, **(_CFG.get("automation") or {})}
+# Crowd thresholds live in policy.yaml `crowd:` (rule 6); the names below are kept for callers.
+_CROWD_DEFAULTS = {"bait_users": 5, "episode_users": 3, "fanin_6h": 10, "new_user_weight": 0.5,
+                   "new_account_hours": 48, "new_account_min_users": 3, "new_account_max_age_days": 30}
+CROWD = {**_CROWD_DEFAULTS, **(_CFG.get("crowd") or {})}
 
 # The phone's watcher and this graph agree on what a "bait" credit is (rule 6).
 _EPISODE_RULES = Path(__file__).resolve().parents[2] / "contracts" / "episode_rules.json"
 BAIT_MAX_INR = float(json.loads(_EPISODE_RULES.read_text(encoding="utf-8"))["bait_max_inr"])
 
 KEEP = timedelta(days=30)
-CROWD_BAIT_USERS = 5        # distinct users with a bait credit from one account in 7 days
-CROWD_EPISODE_USERS = 3     # distinct users' episodes in which one account was a payee
-CROWD_FANIN_6H = 10         # distinct RUKO users paying one account in 6 hours
+CROWD_BAIT_USERS = CROWD["bait_users"]          # distinct users with a bait credit from one account in 7 days
+CROWD_EPISODE_USERS = CROWD["episode_users"]    # distinct users' episodes in which one account was a payee
+CROWD_FANIN_6H = CROWD["fanin_6h"]              # distinct RUKO users paying one account in 6 hours
 MAX_EVENTS_PER_USER_DAY = 20
 MAX_CREDITS_PER_USER_DAY = 50   # received credits one phone may add to the graph per day
 MAX_UNCHECKED_OUTCOMES_PER_USER_DAY = 20   # outcomes for payments the server never checked
-NEW_USER_WEIGHT = 0.5       # crowd votes from users first seen in the last 24 h count for less
+NEW_USER_WEIGHT = CROWD["new_user_weight"]      # crowd votes from users first seen in the last 24 h count for less
 
 
 @dataclass
@@ -128,6 +133,7 @@ class GraphStore:
         u = user_node(user_id)
         payee = payee.strip().lower()
         self._seen(u, ts)
+        self._seen(payee, ts)   # accounts too: "new to RUKO" (crowd new_and_spreading)
         self._edge(u, payee, inr, ts, "decide")
         if request_id and request_id not in self.payments:
             self.payments[request_id] = Payment(request_id, u, payee, inr, ts, checked=True)
@@ -152,6 +158,7 @@ class GraphStore:
             if self._events_today[key] > MAX_UNCHECKED_OUTCOMES_PER_USER_DAY:
                 return status, False
             self._seen(u, ts)
+            self._seen(payee, ts)
             self._edge(u, payee, inr, ts, "outcome")
             p = self.payments[request_id] = Payment(request_id, u, payee, inr, ts, checked=False)
             self.payments_into[payee].append(request_id)
@@ -179,6 +186,7 @@ class GraphStore:
         for a in ev.accounts:
             upi = a.upi_id.strip().lower()
             seen_at = now - timedelta(minutes=a.first_seen_min_ago)
+            self._seen(upi, seen_at)
             if a.role == "bait_sender":
                 e = self.edges.get((upi, u))
                 if e is not None and "received" in e.sources:
@@ -281,10 +289,18 @@ class GraphStore:
         forwards = any(b in hubs for b in self.out.get(acc, ()) if "bank_flows" in self.edges[(acc, b)].sources)
         crowd = (fanout >= CROWD_BAIT_USERS or in_eps >= CROWD_EPISODE_USERS or fanin_6h >= CROWD_FANIN_6H or shared)
         auto = self.automation(acc, now)
+        # New and spreading: RUKO first saw this account recently and several users already tried to
+        # pay it -- a fresh AI-crew mule, before any registry knows it (policy.yaml `crowd:`).
+        first = self.first_seen.get(acc)
+        hours = (now - first).total_seconds() / 3600 if first is not None else None
+        new_and_spreading = (hours is not None and hours <= CROWD["new_account_hours"]
+                             and len(payers) >= CROWD["new_account_min_users"])
         return {"bait_sender_fanout_7d": fanout, "payee_in_episodes_7d": in_eps, "payee_fanin_ruko_6h": fanin_6h,
                 "shared_bait_sender": shared, "money_loop": loop, "loop_path": path,
                 "forwards_to_known_cashout": forwards, "crowd": crowd,
-                "automated": auto["automated"], "automation": auto}
+                "automated": auto["automated"], "automation": auto,
+                "first_seen_hours": round(hours, 1) if hours is not None else None,
+                "ruko_payers": len(payers), "new_and_spreading": new_and_spreading}
 
     def automation(self, account: str, now: datetime) -> dict:
         """Does this account move money like a bot? Checked on both sides: the "rewards" it sent to RUKO

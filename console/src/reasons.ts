@@ -14,6 +14,7 @@ const TEXT: Record<string, { title: string; family: string }> = {
   R10_bait_then_pay: { title: "Small “rewards” came in, then bigger and bigger payments went out", family: "Lure" },
   R11_ring_link: { title: "Payee is linked to the account that sent the “rewards”", family: "Payee" },
   R12_coached_session: { title: "The Pay screen was used as if someone was guiding them (dictated amount, pasted ID)", family: "Behaviour" },
+  R13_scam_campaign: { title: "This account (or the caller's number) is being pushed in scam messages to many people right now", family: "Payee" },
   ruko_unavailable: { title: "RUKO could not decide in time; the payment went ahead", family: "System" },
 };
 

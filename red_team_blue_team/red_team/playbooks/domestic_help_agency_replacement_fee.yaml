@@ -1,0 +1,38 @@
+name: domestic_help_agency_replacement_fee
+title: Fake maid/cook placement agency collects registration & police-verification fee via QR after phone inquiry
+confidence: guess
+emerging: true
+sources: [Urban consumer complaints on fake domestic-help placement agencies]
+weight: 0.07
+targets: {homemaker: 2.4, salaried: 2.0, senior: 2.0, shopkeeper: 1.0, student: 0.2, gig_worker: 0.2}
+start_hours: [9, 19]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: agency_inquiry_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.8, voip: 0.2}
+    direction: outgoing
+    minutes: [5, 15]
+  decide: {pressure: 0.8}
+- id: profile_shortlist_fee
+  gap_min: [45, 180]
+  ask:
+    amount:
+      log: [500, 1800]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.3
+    pressure: 0.85
+    mule: same
+- id: maid_travel_advance
+  p: 0.6
+  gap_min: [180, 600]
+  ask:
+    amount:
+      log: [700, 2200]
+    entry: {qr: 0.75, contact: 0.25}
+    round: 0.3
+    pressure: 0.85
+    mule: same

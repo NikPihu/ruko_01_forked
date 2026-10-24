@@ -1,0 +1,25 @@
+{
+  "request_id": "9b2e4c71-0d3a-4e8f-a6c5-1f7d2b9e3a60",
+  "tier": "T2",
+  "reasons": [
+    "R13_scam_campaign",
+    "R5_lure_message",
+    "R6_new_payee_typed"
+  ],
+  "message_key": "t2_generic",
+  "pause_minutes": 0,
+  "playbook": null,
+  "stage": "S4",
+  "evidence_id": "e_7c2d91a4e0f3",
+  "fail_open": false,
+  "contract_version": "c2-0.13",
+  "threat": {
+    "score": 58,
+    "level": "medium",
+    "fraud_type": null,
+    "families": [
+      "L",
+      "P"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+name: passport_police_verification_hangup
+title: 'Fake passport seva / local thana verification call: asks applicant to pay file-Verification charge 1h after
+  call'
+confidence: guess
+emerging: true
+sources: [MEA Passport Seva advisories on fake verification fee calls]
+weight: 0.06
+targets: {salaried: 1.8, student: 1.6, shopkeeper: 1.4, homemaker: 1.2, gig_worker: 1.0, senior: 1.0}
+start_hours: [9, 19]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.55, rented: 0.35, slow_forward: 0.1}
+steps:
+- id: verification_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.85, voip: 0.15}
+    direction: incoming
+    minutes: [4, 12]
+  decide: {pressure: 0.8}
+- id: verification_fee
+  gap_min: [45, 150]
+  ask:
+    amount:
+      log: [400, 1500]
+    entry: {contact: 0.4, qr: 0.6}
+    round: 0.3
+    pressure: 0.85
+    mule: same
+- id: dispatch_courier_fee
+  p: 0.5
+  gap_min: [180, 600]
+  ask:
+    amount:
+      log: [500, 1800]
+    entry: {contact: 0.4, qr: 0.6}
+    round: 0.3
+    pressure: 0.8
+    mule: same

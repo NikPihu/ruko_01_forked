@@ -1,0 +1,37 @@
+name: rental_flat_visit_token_anchor
+title: 'NoBroker/99acres fake landlord: collects ₹150 ''society gate entry pass'' first, then ₹2,500-₹5,000 visiting/token
+  deposit'
+confidence: guess
+emerging: true
+sources: [Bengaluru/Pune/Mumbai cyber police advisories on rental flat visiting-card & token scams]
+weight: 0.08
+targets: {student: 2.2, salaried: 2.2, gig_worker: 1.2, shopkeeper: 0.8, homemaker: 1.0, senior: 0.5}
+start_hours: [9, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.6, rented: 0.3, slow_forward: 0.1}
+steps:
+- id: owner_whatsapp_photos
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.65]
+  decide: {pressure: 0.85}
+- id: guard_gate_pass_anchor
+  gap_min: [15, 75]
+  ask:
+    amount:
+      int: [100, 250]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.1
+    pressure: 0.95
+    mule: same
+- id: lock_in_token_advance
+  gap_min: [45, 180]
+  ask:
+    amount:
+      log: [1200, 3500]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.3
+    pressure: 0.9
+    mule: same

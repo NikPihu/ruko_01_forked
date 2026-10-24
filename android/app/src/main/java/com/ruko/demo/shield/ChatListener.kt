@@ -45,7 +45,7 @@ class ChatListener : NotificationListenerService() {
                     app, store.loadProfile()?.language, { c -> c.getString(scamTagRes(tag)) }, m.aiWritten == true,
                     Math.floorMod(pkg.hashCode(), 50),
                 )
-                WatchSender.report(app, Sighting.Lure(tag, m.scamConf ?: 0.0, "notification", m.aiWritten))
+                WatchSender.report(app, Sighting.Lure(tag, m.scamConf ?: 0.0, "notification", m.aiWritten, m.handles))
             } catch (e: Exception) {
                 Log.w("ChatListener", "chat message check failed", e)
             }

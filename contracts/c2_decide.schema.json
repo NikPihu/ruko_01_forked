@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.12",
+  "contract_version": "c2-0.13",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -359,6 +359,7 @@
                 "R10_bait_then_pay",
                 "R11_ring_link",
                 "R12_coached_session",
+                "R13_scam_campaign",
                 "ruko_unavailable"
               ],
               "type": "string"
@@ -897,6 +898,7 @@
             "R10_bait_then_pay",
             "R11_ring_link",
             "R12_coached_session",
+            "R13_scam_campaign",
             "ruko_unavailable"
           ],
           "type": "string"
@@ -963,7 +965,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.12",
+        "default": "c2-0.13",
         "title": "Contract Version",
         "type": "string"
       },

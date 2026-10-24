@@ -30,8 +30,15 @@ def test_page_and_list(tmp_db, tmp_path):
 def test_detail_shows_engine_blockers_and_hides_labels(tmp_db, tmp_path):
     queued(tmp_db)
     d = client(tmp_db, tmp_path).get("/api/cards/relative_voice_clone").json()
-    assert "label_tx_ids" not in d["card"] and d["engine"]["ready"] is False
-    assert any("payer_says" in b for b in d["engine"]["blockers"]) and any("FraudType" in b for b in d["engine"]["blockers"])
+    assert "label_tx_ids" not in d["card"] and d["engine"]["ready"] is True
+    assert d["engine"]["effect"] == "warns" and d["engine"]["families"] == ["B", "C"]   # on_call + payer_says
+    assert any("fraud_type stays empty" in n for n in d["engine"]["notes"])
+    queued(tmp_db, name="qr_only", match=[{"priority": 100, "rule": {"all": [
+        {"feature": "entry_method", "op": "eq", "value": "qr"}, {"feature": "amount_inr", "op": "<", "value": 1000}]}}])
+    assert client(tmp_db, tmp_path).get("/api/cards/qr_only").json()["engine"]["effect"] == "names only"
+    queued(tmp_db, name="not_range", match=[{"priority": 100, "rule": {"not": {"feature": "amount_inr", "op": "<", "value": 1000}}}])
+    e = client(tmp_db, tmp_path).get("/api/cards/not_range").json()["engine"]
+    assert e["ready"] is False and any("NOT" in b for b in e["blockers"])
 
 
 def test_two_analysts_approve_through_the_page(tmp_db, tmp_path):
@@ -90,3 +97,19 @@ def test_cited_sources_are_checked_against_real_tool_calls():
     out = check_sources([{"source": "get_case rep_7", "fact": "a"}, {"source": "get_case rep_9", "fact": "b"},
                          {"source": "get_cluster_overview", "fact": "c"}, {"source": "test_matcher", "fact": "d"}], tr)
     assert [e["seen"] for e in out] == [True, False, True, False]
+
+
+def test_the_console_script_parses(tmp_path):
+    """A syntax error blanks every page; node checks the page's script when it is installed."""
+    import shutil
+    import subprocess
+
+    import pytest
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed")
+    page = webapp.PAGE.read_text(encoding="utf-8")
+    js = tmp_path / "console.js"
+    js.write_text(page[page.index("<script>") + 8:page.rindex("</script>")], encoding="utf-8")
+    r = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-800:]
