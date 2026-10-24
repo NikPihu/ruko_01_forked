@@ -2,7 +2,8 @@
 
 The new look for the red-team / blue-team console (`red_team_blue_team/blue_team/console.html`,
 served by `blue_team/webapp.py`). This folder holds the approved mockups and everything needed to
-build them. **Design only: nothing here is wired yet.**
+build them. **Built** in `console.html` with the endpoints below (2026-10-25); the mockups stay as
+the reference for the look.
 
 - **Live mockups (clickable):** https://claude.ai/artifact/9xdc3rsC2fBWN43XMrmANb (the owner must
   share it with you from the page's Share menu).
@@ -11,8 +12,8 @@ build them. **Design only: nothing here is wired yet.**
   The red-team playbook names and evasion tricks are real; every count is made up.
   They load `./support.js` from the design tool and won't open on their own: read them as
   layout and style references.
-- **Owner:** `red_team_blue_team/` is Diwansu's folder (see `CLAUDE.md`). Agree with him before
-  replacing `console.html`.
+- **Owner:** `red_team_blue_team/` belongs to the ML owner (see the owners table in `CLAUDE.md`), who
+  agreed to and built the replacement of `console.html`.
 
 ## The idea
 
