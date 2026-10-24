@@ -97,6 +97,11 @@ class AccountStore(context: Context) {
 
     fun saveHistory(history: List<PaymentRecord>) = write(HISTORY_FILE, ListSerializer(PaymentRecord.serializer()), history)
 
+    /** Warnings the phone showed (kind, scam type, time; never the message), for the Alerts screen. */
+    fun loadAlerts(): AlertLogFile = read(ALERTS_FILE, AlertLogFile.serializer()) ?: AlertLogFile()
+
+    fun saveAlerts(alerts: AlertLogFile) = write(ALERTS_FILE, AlertLogFile.serializer(), alerts)
+
     /** Right to erasure: remove the files and the key that could decrypt any copy of them. */
     fun deleteAll() {
         store.delete(PROFILE_FILE)
@@ -105,6 +110,7 @@ class AccountStore(context: Context) {
         store.delete(PAYEES_FILE)
         store.delete(PAYMENTS_FILE)
         store.delete(TYPING_FILE)
+        store.delete(ALERTS_FILE)
         store.deleteKey()
     }
 
@@ -133,5 +139,6 @@ class AccountStore(context: Context) {
         const val PAYMENTS_FILE = "payments.enc"
         const val TYPING_FILE = "typing.enc"
         const val HISTORY_FILE = "history.enc"
+        const val ALERTS_FILE = "alerts.enc"
     }
 }
