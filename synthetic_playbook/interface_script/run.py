@@ -44,6 +44,8 @@ def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
             for rec in records.stream(sc.world_dir, seed=cfg["world"]["seed"],
                                       warmup_days=cfg["world"]["warmup_days"],
                                       normal_sample=cfg["scenario"]["normal_sample"]):
+                if rec["body"].get("ts"):
+                    srv.clock(rec["body"]["ts"])  # the mock services answer as of this message's time
                 if rec["kind"] == "episode":
                     srv.post("/v1/episode", rec["body"])
                     sent["episode"] += 1
