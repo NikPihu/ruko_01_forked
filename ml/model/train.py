@@ -1,6 +1,6 @@
 """Train the server scorer: four LightGBM family models + a logistic combiner -> server_model.json
 
-    PYTHONPATH=backend;ml;data python -m model.train --table ml/data/tables/dev.parquet --out ml/model/artifacts/v0
+    PYTHONPATH=backend;ml;data python -m model.train --table ml/data/tables/dev_v3.parquet ml/data/tables/rt_train_v3.parquet --out ml/model/artifacts/v0
 
 1. One LightGBM per family (C, L, P, B), each on that family's features only (the FAMILY map in
    backend/features/build.py), so each output is evidence from that family alone.
@@ -15,6 +15,9 @@
    this the model learns "no verdict = nothing to see" and an app that sends raw signals but no
    verdict (older build, model asset missing) gets T0 even on Meena's digital arrest.
 Final family models are refit on all rows. Ground truth is used only as the training label.
+
+lgbm-0.3 trains on several tables at once (the old dev world plus a red-team world, dataset/redteam_worlds.py),
+with every feature the engine computes today; folds keep each world's users apart.
 """
 from __future__ import annotations
 
@@ -35,7 +38,7 @@ from model.data import SERVER_FAMILIES, STAGE_FEATURES, encode_frame
 from model.metrics import evaluate, summary_line
 from model.reasons import REASON
 
-VERSION = "lgbm-0.2"
+VERSION = "lgbm-0.3"
 FAMILIES = ("C", "L", "P", "B")
 FAMILY_K = 10.0     # a family is lit when its evidence alone makes a scam >= 10x likelier
 PARAMS = dict(objective="binary", learning_rate=0.05, num_leaves=15, min_data_in_leaf=20,
@@ -63,8 +66,22 @@ def combiner_inputs(cal: dict[str, np.ndarray], stage: np.ndarray) -> np.ndarray
     return np.column_stack([logit(cal[f]) for f in FAMILIES] + [np.nan_to_num(stage, nan=0.0)])
 
 
-def train(table: Path, folds: int = 5, seed: int = 0) -> tuple[dict, pd.DataFrame, np.ndarray]:
-    df = pd.read_parquet(table)
+def load_tables(tables: list[Path]) -> pd.DataFrame:
+    """One training frame from several replayed tables; user and journey ids are prefixed per table,
+    because two worlds can reuse the same ids for different people."""
+    parts = []
+    for i, t in enumerate(tables):
+        d = pd.read_parquet(t)
+        d["user_id"] = f"w{i}:" + d["user_id"].astype(str)
+        if "journey_id" in d:
+            d["journey_id"] = d["journey_id"].map(lambda j, i=i: None if pd.isna(j) else f"w{i}:{j}")
+        parts.append(d)
+    return pd.concat(parts, ignore_index=True) if len(parts) > 1 else parts[0]
+
+
+def train(tables: Path | list[Path], folds: int = 5, seed: int = 0) -> tuple[dict, pd.DataFrame, np.ndarray]:
+    tables = [tables] if isinstance(tables, (str, Path)) else list(tables)
+    df = load_tables([Path(t) for t in tables])
     x = encode_frame(df)
     hide = np.random.default_rng(seed).random(len(x)) < VERDICT_DROPOUT
     x.loc[hide, [c for c in VERDICT if c in x.columns]] = np.nan
@@ -101,7 +118,7 @@ def train(table: Path, folds: int = 5, seed: int = 0) -> tuple[dict, pd.DataFram
         families[f] = {"features": feats[f], "booster": final.model_to_string(),
                        "iso_x": iso.X_thresholds_.tolist(), "iso_y": iso.y_thresholds_.tolist()}
     model = {
-        "version": VERSION, "trained_on": str(table), "rows": int(len(df)), "scam_payments": int(y.sum()),
+        "version": VERSION, "trained_on": ";".join(str(t) for t in tables), "rows": int(len(df)), "scam_payments": int(y.sum()),
         "scam_journeys": int(df.loc[y, "journey_id"].nunique()), "prior": prior, "family_k": FAMILY_K,
         "verdict_dropout": VERDICT_DROPOUT,
         "families": families,
@@ -118,7 +135,7 @@ def train(table: Path, folds: int = 5, seed: int = 0) -> tuple[dict, pd.DataFram
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--table", type=Path, required=True)
+    p.add_argument("--table", type=Path, nargs="+", required=True, help="one or more replayed tables")
     p.add_argument("--out", type=Path, default=ARTIFACTS / "v0")
     a = p.parse_args()
     t0 = time.perf_counter()
