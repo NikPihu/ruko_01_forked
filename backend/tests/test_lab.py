@@ -128,9 +128,9 @@ def test_send_delivers_message_then_call(engine):
 
 def test_latest_is_the_victims_newest_payment_in_words(engine):
     tc, _ = engine
-    assert tc.get("/v1/lab/latest").json() == {"payment": None}
+    assert tc.get("/v1/lab/latest").json()["payment"] is None
     tc.post("/v1/lab/workflows/new_scam/prepare")          # other users' payments are not the victim's
-    assert tc.get("/v1/lab/latest").json() == {"payment": None}
+    assert tc.get("/v1/lab/latest").json()["payment"] is None
     rid, r = decide(tc, lab.KIRANA, 150, entry="qr")
     out = tc.get("/v1/lab/latest", params={"workflow": "everyday"}).json()
     assert out["payment"]["payment_id"] == rid and out["payment"]["tier"] == r["tier"]
@@ -156,7 +156,7 @@ def test_reset_clears_the_lab(engine):
     decide(tc, lab.KIRANA, 150)
     assert tc.post("/v1/lab/reset").json() == {"ok": True}
     assert tc.get("/v1/lab/sent").json() == {"sent": []}
-    assert tc.get("/v1/lab/latest").json() == {"payment": None}
+    assert tc.get("/v1/lab/latest").json()["payment"] is None
 
 
 @pytest.mark.parametrize("tier,status,result", [("T3", "cancelled", "stopped"), ("T3", "completed", "paid_anyway"),
@@ -164,3 +164,18 @@ def test_reset_clears_the_lab(engine):
                                                 ("T1", "checked", "not_flagged")])
 def test_verdict_words(tier, status, result):
     assert lab.verdict(tier, status)["result"] == result
+
+
+def test_the_lab_follows_whichever_demo_account_paid_last(engine, world):
+    tc, _ = engine
+    people = {v["user_id"] for v in tc.get("/v1/lab/status").json()["victims"]}
+    assert {"u_demo_meena", "u_001435"} <= people             # Meena and Rahul (app's demo accounts)
+    w = __import__("demo.agents", fromlist=["load_world"]).load_world(world[0])
+    assert not people & set(w.users[:60])                       # the lab and demo agents never act as them
+    rid = str(uuid.uuid4())
+    tc.post("/v1/decide", json={"request_id": rid, "user_id": "u_001435", "payee_upi_id": lab.KIRANA,
+                                "amount_inr": 150, "entry_method": "qr", "ts": NOW.isoformat(), "context": None})
+    assert tc.get("/v1/lab/status").json()["victim"] == "u_001435"
+    out = tc.get("/v1/lab/latest").json()
+    assert out["victim"] == "u_001435" and out["payment"]["payment_id"] == rid
+    assert tc.get("/v1/lab/latest", params={"user_id": "u_demo_meena"}).json()["payment"] is None

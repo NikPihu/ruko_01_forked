@@ -11,7 +11,7 @@ build them. **Design only: nothing here is wired yet.**
   The red-team playbook names and evasion tricks are real; every count is made up.
   They load `./support.js` from the design tool and won't open on their own: read them as
   layout and style references.
-- **Owner:** `red_team_blue_team/` is Diwansu's folder (see `CLAUDE.md`). Agree with him before
+- **Owner:** `red_team_blue_team/` belongs to the ML owner (see `CLAUDE.md`). Agree with them before
   replacing `console.html`.
 
 ## The idea

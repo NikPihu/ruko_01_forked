@@ -254,6 +254,16 @@ class LabState:
 # ---------- the endpoints (registered only with --lab) ----------
 
 VICTIM = "u_demo_meena"
+# The demo accounts Cache Pay can sign in as (Meena, Rahul, ...), written by sim/demo_users.py.
+DEMO_USERS = ROOT / "android" / "app" / "src" / "main" / "assets" / "demo_users.json"
+
+
+def victims() -> list[dict]:
+    try:
+        rows = json.loads(DEMO_USERS.read_text(encoding="utf-8"))
+        return [{"user_id": u["user_id"], "name": u["full_name"]} for u in rows] or [{"user_id": VICTIM, "name": "Meena"}]
+    except (OSError, ValueError, KeyError):
+        return [{"user_id": VICTIM, "name": "Meena"}]
 
 
 def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
@@ -275,14 +285,23 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
     app.state.lab_intel = lambda: httpx.Client(base_url=intel_url, timeout=30)
     cache: dict = {}
 
-    def contacts() -> list[dict]:
-        if "contacts" not in cache:
+    def contacts(victim: str) -> list[dict]:
+        key = f"contacts:{victim}"
+        if key not in cache:
             try:
                 from sim.contacts import address_book
-                cache["contacts"] = address_book(Path(data_dir))
+                cache[key] = address_book(Path(data_dir), victim)
             except Exception:   # no generated data: the lab still sends what the judge types
-                cache["contacts"] = []
-        return cache["contacts"]
+                cache[key] = []
+        return cache[key]
+
+    def active(victim: Optional[str]) -> str:
+        """The victim asked for, else the demo account that paid most recently on the phone."""
+        people = [v["user_id"] for v in victims()]
+        if victim:
+            return victim
+        newest = [(rows[0]["ts"], u) for u in people if (rows := store.transactions(user_hash=pseudonym(u), limit=1))]
+        return max(newest)[1] if newest else people[0]
 
     def world():
         if "world" not in cache:
@@ -293,9 +312,9 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
                 cache["world"] = None
         return cache["world"]
 
-    def flows() -> dict[str, Workflow]:
+    def flows(victim: str) -> dict[str, Workflow]:
         w = world()
-        return {f.id: f for f in workflows(contacts(), w.fresh_mule if w else "fresh.mule.demo@okaxis")}
+        return {f.id: f for f in workflows(contacts(victim), w.fresh_mule if w else "fresh.mule.demo@okaxis")}
 
     def wrap(fn, *args):
         try:
@@ -307,11 +326,12 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
 
     @app.get("/v1/lab/status")
     def lab_status() -> dict:
-        return {"lab": True, "adb": device.adb, "emulator": device.emulator(), "victim": VICTIM}
+        return {"lab": True, "adb": device.adb, "emulator": device.emulator(), "victim": active(None),
+                "victims": victims()}
 
     @app.get("/v1/lab/presets")
-    def lab_presets() -> dict:
-        return presets(contacts())
+    def lab_presets(victim: Optional[str] = None) -> dict:
+        return presets(contacts(active(victim)))
 
     @app.post("/v1/lab/sms")
     def lab_sms(body: SmsIn) -> dict:
@@ -330,14 +350,15 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
         return {"sent": list(state.sent)}
 
     @app.get("/v1/lab/workflows")
-    def lab_workflows() -> dict:
-        return {"victim": VICTIM, "workflows": [as_dict(f) for f in flows().values()],
+    def lab_workflows(victim: Optional[str] = None) -> dict:
+        v = active(victim)
+        return {"victim": v, "workflows": [as_dict(f) for f in flows(v).values()],
                 "app_switches": ["SMS scam check", "Call signals", "Session checks", "Early warnings (optional)"]}
 
     @app.post("/v1/lab/workflows/{flow_id}/prepare")
-    def lab_prepare(flow_id: str, request: Request) -> dict:
+    def lab_prepare(flow_id: str, request: Request, victim: Optional[str] = None) -> dict:
         """The server-side set-up: other (simulated) phones and banks, never the victim's phone."""
-        f = flows().get(flow_id)
+        f = flows(active(victim)).get(flow_id)
         if f is None:
             raise HTTPException(404, "no such workflow")
         w = world()
@@ -374,9 +395,9 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
         return done
 
     @app.post("/v1/lab/workflows/{flow_id}/send")
-    def lab_send(flow_id: str) -> dict:
+    def lab_send(flow_id: str, victim: Optional[str] = None) -> dict:
         """The scammer's move: the workflow's message, then its call (if any), to the emulator."""
-        f = flows().get(flow_id)
+        f = flows(active(victim)).get(flow_id)
         if f is None:
             raise HTTPException(404, "no such workflow")
         out: dict = {"workflow": f.id}
@@ -389,20 +410,21 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
         return out
 
     @app.get("/v1/lab/latest")
-    def lab_latest(user_id: str = VICTIM, workflow: Optional[str] = None) -> dict:
+    def lab_latest(user_id: Optional[str] = None, workflow: Optional[str] = None) -> dict:
         """The victim's newest payment, from the scammer's side: did it work? Analyst words, no
         message text (the engine never had any)."""
+        user_id = active(user_id)
         rows = store.transactions(user_hash=pseudonym(user_id), limit=1)
         if not rows:
-            return {"payment": None}
+            return {"payment": None, "victim": user_id}
         p = rows[0]
         ex = explain_fn(p, store.details(p["payment_id"]))
         out = {"payment": {k: p[k] for k in ("payment_id", "payee_upi", "amount_inr", "ts", "tier", "playbook",
                                              "status", "message_key")},
                "reasons": [{"code": r, "text": REASON_TEXT.get(r, r)} for r in p["reasons"]],
                "headline": ex["summary"]["headline"], "lit": ex["scores"]["lit_families"],
-               **verdict(p["tier"], p["status"])}
-        f = flows().get(workflow) if workflow else None
+               "victim": user_id, **verdict(p["tier"], p["status"])}
+        f = flows(user_id).get(workflow) if workflow else None
         if f is not None:
             out["expected"] = {"workflow": f.id, "words": f.expect, "met": p["tier"] in f.expect_tiers,
                                "same_payee": p["payee_upi"] == f.payee}

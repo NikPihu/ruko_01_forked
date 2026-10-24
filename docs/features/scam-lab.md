@@ -23,6 +23,8 @@ analyst "Why".
 3. In Cache Pay, switch on SMS scam check, Call signals and Session checks (Early warnings is
    optional).
 4. Open the console → **AI scammer**. The status strip must say "Emulator emulator-5554".
+   **Victim** follows the phone: whichever demo account (Meena Kulkarni, Rahul Yadav) paid last;
+   pick one by hand before the first payment. Contacts in the workflows are that user's.
 
 **Ready-made scams** (`backend/demo/lab.py` `workflows()`):
 
