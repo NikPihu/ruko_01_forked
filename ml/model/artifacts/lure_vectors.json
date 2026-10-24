@@ -1,312 +1,480 @@
 {
- "version": "lure-0.1",
+ "version": "lure-0.2",
  "classes": [
   "arrest_threat",
   "kyc",
   "normal",
+  "other_scam",
   "refund",
   "task_job",
   "trading_tip"
  ],
+ "temperature": 0.671615,
+ "unclear_below": 0.6,
  "vectors": [
   {
    "text": "This is CBI. A parcel in your name with drugs was seized. Join the video call now or you will be arrested.",
    "tag": "arrest_threat",
-   "conf": 0.987973,
-   "scam_tag": "arrest_threat",
-   "scam_conf": 0.992864,
+   "conf": 0.981602,
+   "top": "arrest_threat",
    "probs": [
-    0.987973,
-    0.001299,
-    0.007136,
-    0.001571,
-    0.000585,
-    0.001435
+    0.981602,
+    5.8e-05,
+    0.01733,
+    0.000842,
+    3.4e-05,
+    6.7e-05,
+    6.8e-05
    ]
   },
   {
    "text": "आप डिजिटल अरेस्ट में हैं। कैमरा चालू रखें और 50,000 रुपये सुरक्षित खाते में भेजें।",
    "tag": "arrest_threat",
-   "conf": 0.847813,
-   "scam_tag": "arrest_threat",
-   "scam_conf": 0.879161,
+   "conf": 0.97121,
+   "top": "arrest_threat",
    "probs": [
-    0.847813,
-    0.003454,
-    0.120839,
-    0.002682,
-    0.008299,
-    0.016915
+    0.97121,
+    0.000147,
+    0.025589,
+    0.000497,
+    3.6e-05,
+    0.000373,
+    0.002148
    ]
   },
   {
-   "text": "Aapka KYC expire ho gaya hai, ye app install karo aur sab permission allow karo bit.ly/3xK9pQ",
+   "text": "Aapka KYC expire ho gaya hai, ye app install karo aur sab permission allow karo short.example/Rk7Tq",
    "tag": "kyc",
-   "conf": 0.992982,
-   "scam_tag": "kyc",
-   "scam_conf": 0.999239,
+   "conf": 0.998816,
+   "top": "kyc",
    "probs": [
-    0.000222,
-    0.992982,
-    0.000761,
-    0.001355,
-    0.003658,
-    0.001023
+    2e-06,
+    0.998816,
+    8e-06,
+    5e-06,
+    0.000427,
+    0.000697,
+    4.6e-05
    ]
   },
   {
-   "text": "Dear SBI customer, your account will be blocked today. Update KYC now: sbi-kyc-update.com",
+   "text": "Dear SBI customer, your account will be blocked today. Update KYC now: sbi-kyc-update.example",
    "tag": "kyc",
-   "conf": 0.998676,
-   "scam_tag": "kyc",
-   "scam_conf": 0.999618,
+   "conf": 0.999952,
+   "top": "kyc",
    "probs": [
-    6.4e-05,
-    0.998676,
-    0.000382,
-    0.000514,
-    8.5e-05,
-    0.000278
+    1e-06,
+    0.999952,
+    3e-06,
+    3.2e-05,
+    3e-06,
+    1e-06,
+    8e-06
    ]
   },
   {
    "text": "Like YouTube videos and earn ₹200 per task. Join us on Telegram today!",
    "tag": "task_job",
-   "conf": 0.99798,
-   "scam_tag": "task_job",
-   "scam_conf": 0.998716,
+   "conf": 0.999829,
+   "top": "task_job",
    "probs": [
-    0.000227,
-    0.00015,
-    0.001284,
-    0.000141,
-    0.99798,
-    0.000218
+    3e-06,
+    1e-06,
+    0.000108,
+    5.4e-05,
+    1e-06,
+    0.999829,
+    3e-06
    ]
   },
   {
    "text": "Your commission of Rs 12,000 is frozen. Pay Rs 8,500 to unlock withdrawal.",
    "tag": "task_job",
-   "conf": 0.960455,
-   "scam_tag": "task_job",
-   "scam_conf": 0.985518,
+   "conf": 0.994498,
+   "top": "task_job",
    "probs": [
-    0.000581,
-    0.001527,
-    0.014482,
-    0.001487,
-    0.960455,
-    0.021468
+    1e-05,
+    9e-06,
+    0.000181,
+    0.000203,
+    1e-05,
+    0.994498,
+    0.005089
    ]
   },
   {
    "text": "SEBI registered expert: IREDA will give 300% return this week. Join our VIP group.",
    "tag": "trading_tip",
-   "conf": 0.997835,
-   "scam_tag": "trading_tip",
-   "scam_conf": 0.999501,
+   "conf": 0.997374,
+   "top": "trading_tip",
    "probs": [
-    0.000185,
-    0.000234,
-    0.000499,
-    0.000448,
-    0.0008,
-    0.997835
+    2e-05,
+    6e-06,
+    0.001837,
+    3.2e-05,
+    6e-06,
+    0.000725,
+    0.997374
    ]
   },
   {
    "text": "Your refund of ₹4,999 is approved. Scan the QR code and enter your UPI PIN to receive it.",
    "tag": "refund",
-   "conf": 0.999508,
-   "scam_tag": "refund",
-   "scam_conf": 0.999749,
+   "conf": 1.0,
+   "top": "refund",
    "probs": [
-    3.7e-05,
-    0.000152,
-    0.000251,
-    0.999508,
-    2.9e-05,
-    2.3e-05
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
    ]
   },
   {
-   "text": "Aapki bijli aaj raat kat jayegi, turant 9876543210 pe call karo.",
-   "tag": "refund",
-   "conf": 0.893737,
-   "scam_tag": "refund",
-   "scam_conf": 0.982887,
+   "text": "Aapki bijli aaj raat kat jayegi, turant 9800001234 pe call karo.",
+   "tag": "other_scam",
+   "conf": 0.972766,
+   "top": "other_scam",
    "probs": [
-    0.05987,
-    0.008714,
-    0.017113,
-    0.893737,
-    0.014804,
-    0.005762
+    0.008832,
+    0.004212,
+    0.004808,
+    0.972766,
+    0.003752,
+    0.00141,
+    0.004221
+   ]
+  },
+  {
+   "text": "Your parcel is held at the warehouse. Pay Rs 25 redelivery fee within 24 hours: parcel-redeliver.example/fee",
+   "tag": "other_scam",
+   "conf": 0.989926,
+   "top": "other_scam",
+   "probs": [
+    0.001105,
+    0.001408,
+    0.003647,
+    0.989926,
+    0.002282,
+    0.000578,
+    0.001054
+   ]
+  },
+  {
+   "text": "Congratulations! Your number won Rs 25,00,000 in the KBC lucky draw. Pay the processing tax to claim it.",
+   "tag": "other_scam",
+   "conf": 0.997129,
+   "top": "other_scam",
+   "probs": [
+    0.000137,
+    7e-06,
+    0.000151,
+    0.997129,
+    0.0003,
+    0.000332,
+    0.001943
+   ]
+  },
+  {
+   "text": "Your loan of Rs 50,000 is approved without CIBIL. Pay Rs 1,999 processing fee to get the money now.",
+   "tag": "other_scam",
+   "conf": 0.999612,
+   "top": "other_scam",
+   "probs": [
+    4e-06,
+    4e-06,
+    0.000142,
+    0.999612,
+    9.1e-05,
+    2.2e-05,
+    0.000126
+   ]
+  },
+  {
+   "text": "I have recorded your video call. Pay Rs 20,000 in one hour or I send it to your family.",
+   "tag": "other_scam",
+   "conf": 0.990769,
+   "top": "other_scam",
+   "probs": [
+    0.003655,
+    2.3e-05,
+    0.004417,
+    0.990769,
+    0.000189,
+    0.000905,
+    4.2e-05
    ]
   },
   {
    "text": "482913 is your OTP for a transaction of Rs 1,250 at Amazon. Do not share it with anyone. -HDFC Bank",
    "tag": "normal",
-   "conf": 0.997229,
-   "scam_tag": "normal",
-   "scam_conf": 0.997229,
+   "conf": 0.999441,
+   "top": "normal",
    "probs": [
-    0.000974,
-    0.000553,
-    0.997229,
-    0.000187,
-    0.000342,
-    0.000716
+    0.000129,
+    2.6e-05,
+    0.999441,
+    1.9e-05,
+    0.000144,
+    1e-05,
+    0.00023
    ]
   },
   {
    "text": "Rs 2,000 debited from a/c XX1234 to VPA shreeganesh.kirana@okaxis. -SBI",
    "tag": "normal",
-   "conf": 0.973101,
-   "scam_tag": "normal",
-   "scam_conf": 0.973101,
+   "conf": 0.994882,
+   "top": "normal",
    "probs": [
-    0.001625,
-    0.003754,
-    0.973101,
-    0.002698,
-    0.012726,
-    0.006095
+    4.7e-05,
+    4.2e-05,
+    0.994882,
+    0.003157,
+    3.5e-05,
+    0.001219,
+    0.000617
    ]
   },
   {
    "text": "Police never arrest anyone over a video call. Report fraud at 1930.",
    "tag": "normal",
-   "conf": 0.924861,
-   "scam_tag": "normal",
-   "scam_conf": 0.924861,
+   "conf": 0.999623,
+   "top": "normal",
    "probs": [
-    0.061902,
-    0.001312,
-    0.924861,
-    0.004163,
-    0.005111,
-    0.00265
+    0.000247,
+    0.0,
+    0.999623,
+    0.000121,
+    1e-06,
+    5e-06,
+    2e-06
    ]
   },
   {
    "text": "Dear Customer, KYC update is due. Please visit your home branch. We never ask for OTP.",
    "tag": "normal",
-   "conf": 0.942147,
-   "scam_tag": "normal",
-   "scam_conf": 0.942147,
+   "conf": 0.996279,
+   "top": "normal",
    "probs": [
-    0.002437,
-    0.035587,
-    0.942147,
-    0.013254,
-    0.005468,
-    0.001108
+    2.3e-05,
+    0.003365,
+    0.996279,
+    5.1e-05,
+    3.3e-05,
+    0.000231,
+    1.8e-05
    ]
   },
   {
    "text": "Mummy main ghar pahunch gaya, khana kha liya.",
    "tag": "normal",
-   "conf": 0.992079,
-   "scam_tag": "normal",
-   "scam_conf": 0.992079,
+   "conf": 0.99997,
+   "top": "normal",
    "probs": [
-    0.001521,
-    0.000743,
-    0.992079,
-    0.001704,
-    0.001797,
-    0.002156
+    5e-06,
+    1e-06,
+    0.99997,
+    8e-06,
+    1e-06,
+    5e-06,
+    1.1e-05
    ]
   },
   {
    "text": "Refund of Rs 499 for your Flipkart order has been processed. It may take 3 to 5 days.",
    "tag": "normal",
-   "conf": 0.985728,
-   "scam_tag": "normal",
-   "scam_conf": 0.985728,
+   "conf": 0.997296,
+   "top": "normal",
    "probs": [
-    0.000639,
-    0.000404,
-    0.985728,
-    0.010822,
-    0.001396,
-    0.001012
+    5.9e-05,
+    1e-06,
+    0.997296,
+    2.2e-05,
+    0.002557,
+    4.6e-05,
+    2e-05
    ]
   },
   {
    "text": "🚨 Y0ur acc0unt w1ll be bl0cked t0day 🚨 update KYC now",
    "tag": "kyc",
-   "conf": 0.862921,
-   "scam_tag": "kyc",
-   "scam_conf": 0.915047,
+   "conf": 0.989713,
+   "top": "kyc",
    "probs": [
-    0.006753,
-    0.862921,
-    0.084953,
-    0.026519,
-    0.00654,
-    0.012313
+    5.5e-05,
+    0.989713,
+    0.00979,
+    0.000367,
+    2e-06,
+    7e-06,
+    6.6e-05
    ]
   },
   {
    "text": "URGENT URGENT CALL BACK",
    "tag": "normal",
-   "conf": 0.823505,
-   "scam_tag": "normal",
-   "scam_conf": 0.823505,
+   "conf": 0.988684,
+   "top": "normal",
    "probs": [
-    0.070155,
-    0.021409,
-    0.823505,
-    0.042705,
-    0.016482,
-    0.025743
+    0.001167,
+    0.000145,
+    0.988684,
+    0.004035,
+    0.002396,
+    0.000284,
+    0.00329
+   ]
+  },
+  {
+   "text": "Please call me back when you can",
+   "tag": "normal",
+   "conf": 0.999162,
+   "top": "normal",
+   "probs": [
+    0.00034,
+    6e-06,
+    0.999162,
+    0.000321,
+    0.000143,
+    7e-06,
+    2.1e-05
    ]
   },
   {
    "text": "ok",
    "tag": "normal",
-   "conf": 0.884486,
-   "scam_tag": "normal",
-   "scam_conf": 0.884486,
+   "conf": 0.999532,
+   "top": "normal",
    "probs": [
-    0.006988,
-    0.013902,
-    0.884486,
-    0.01622,
-    0.057526,
-    0.020877
+    4.1e-05,
+    1.3e-05,
+    0.999532,
+    6.8e-05,
+    1e-05,
+    0.000145,
+    0.000191
    ]
   },
   {
    "text": "",
    "tag": "normal",
-   "conf": 0.861766,
-   "scam_tag": "normal",
-   "scam_conf": 0.861766,
+   "conf": 0.998795,
+   "top": "normal",
    "probs": [
-    0.013937,
-    0.016153,
-    0.861766,
-    0.023715,
-    0.047458,
-    0.036971
+    5.5e-05,
+    2.9e-05,
+    0.998795,
+    0.000256,
+    3.8e-05,
+    0.000266,
+    0.00056
    ]
   },
   {
-   "text": "Part time job: earn Rs 5,000 daily, message us",
+   "text": "Part time job: earn Rs 5,000 daily, message us",
    "tag": "task_job",
-   "conf": 0.963737,
-   "scam_tag": "task_job",
-   "scam_conf": 0.978353,
+   "conf": 0.971917,
+   "top": "task_job",
    "probs": [
-    0.002686,
-    0.001371,
-    0.021647,
-    0.002334,
-    0.963737,
-    0.008226
+    6.4e-05,
+    6e-06,
+    0.027326,
+    0.000148,
+    1.2e-05,
+    0.971917,
+    0.000528
+   ]
+  },
+  {
+   "text": "Kindly confirm the amount and the details by evening",
+   "tag": "unclear",
+   "conf": 0.476333,
+   "top": "refund",
+   "probs": [
+    0.038474,
+    0.010031,
+    0.23582,
+    0.211208,
+    0.476333,
+    0.010343,
+    0.017791
+   ]
+  },
+  {
+   "text": "Dear customer, your account has been put on hold. Your mobile number is n है। बचने के लिए तुरंत +91 9700004401 पर संपर्क करें।",
+   "tag": "unclear",
+   "conf": 0.562278,
+   "top": "kyc",
+   "probs": [
+    0.429155,
+    0.562278,
+    0.002763,
+    0.002578,
+    0.002,
+    0.000438,
+    0.000788
+   ]
+  },
+  {
+   "text": "Your Bank of Baroda YONO account is locked due to incomplete documents. rcuit stocks. Transfer the upgrade fee of 18,100 rupees to activate.",
+   "tag": "unclear",
+   "conf": 0.538013,
+   "top": "trading_tip",
+   "probs": [
+    0.001336,
+    0.326072,
+    0.105748,
+    0.014055,
+    0.000391,
+    0.014385,
+    0.538013
+   ]
+  },
+  {
+   "text": "आप डिजिटल अरेस्ट में हैं। कैमरा चालू रखें और कमरे से बाहर न जाएं। अपन is paid. Thank you for shopping with us.",
+   "tag": "unclear",
+   "conf": 0.504674,
+   "top": "normal",
+   "probs": [
+    0.48631,
+    0.00284,
+    0.504674,
+    0.000318,
+    0.001063,
+    0.002819,
+    0.001976
+   ]
+  },
+  {
+   "text": "Blue Dart: your parcel is held at the warehouse due to an incomplete address. Pay a ₹357 redelivery fee at echallan-pay.test/fine within 24 hours.",
+   "tag": "other_scam",
+   "conf": 0.999278,
+   "top": "other_scam",
+   "probs": [
+    5.8e-05,
+    0.000415,
+    5.6e-05,
+    0.999278,
+    8.7e-05,
+    8.1e-05,
+    2.5e-05
+   ]
+  },
+  {
+   "text": "DTDC: your parcel is held at the warehouse due to an incomplete address. Pay a INR 900 redelivery fee at sbi-kyc-update.example within 24 hours.",
+   "tag": "other_scam",
+   "conf": 0.999198,
+   "top": "other_scam",
+   "probs": [
+    3.7e-05,
+    0.000509,
+    3.4e-05,
+    0.999198,
+    8.9e-05,
+    0.000109,
+    2.4e-05
    ]
   }
  ]

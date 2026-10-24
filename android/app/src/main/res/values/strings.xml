@@ -431,6 +431,7 @@
     <string name="msg_label_ai">Looks AI-written</string>
     <string name="msg_label_otp">OTP: never share this</string>
     <string name="msg_label_none">No warning signs</string>
+    <string name="msg_label_unclear">Couldn\'t tell — be careful</string>
     <string name="msg_ai_note">Scammers now use AI to write polished, urgent messages like this. This is a hint, not proof: check with the sender another way.</string>
     <string name="msg_otp_call_title">A code arrived while you are on a call</string>
     <string name="msg_otp_call_text">Someone on a call asking for this code is a scammer. Banks, police and companies never ask for an OTP. Do not read it out; hang up.</string>
@@ -443,6 +444,7 @@
     <string name="msg_tag_task_job">fake task or job offer</string>
     <string name="msg_tag_trading_tip">fake investment tip</string>
     <string name="msg_tag_other">known scam</string>
+    <string name="msg_tag_other_scam">common scam (parcel, bill cut-off, prize, loan fee)</string>
     <!-- Money received, read by the watcher from bank SMS alerts (History) -->
     <string name="history_received">Received</string>
     <string name="history_received_source">from your bank\'s SMS</string>

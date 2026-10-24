@@ -1,54 +1,235 @@
 {
-  "version": "lure-0.1",
-  "held_out_templates": {
-    "n": 918,
-    "macro_f1": 0.682350599414614,
-    "per_class_f1": {
-      "arrest_threat": 0.8108108108108109,
-      "kyc": 0.7192982456140351,
-      "normal": 0.8467336683417085,
-      "refund": 0.208955223880597,
-      "task_job": 0.8571428571428571,
-      "trading_tip": 0.6511627906976745
+  "version": "lure-0.2",
+  "corpus": {
+    "messages": 26894,
+    "normal_share": 0.620287052874247,
+    "templates": 591,
+    "templates_per_class": {
+      "arrest_threat": 42,
+      "kyc": 42,
+      "task_job": 42,
+      "trading_tip": 42,
+      "refund": 42,
+      "other_scam": 52,
+      "normal": 329
     },
-    "today": {
-      "scam_caught_share": 0.5271453590192644,
-      "scam_right_tag_share": 0.51138353765324,
-      "normal_false_alarm_share": 0.0,
-      "by_language": {
-        "en": {
-          "scam_caught": 0.5238095238095238,
-          "normal_false_alarm": 0.0
-        },
-        "hi": {
-          "scam_caught": 0.45,
-          "normal_false_alarm": 0.0
-        },
-        "hinglish": {
-          "scam_caught": 0.6131386861313869,
-          "normal_false_alarm": 0.0
-        }
+    "by_language": {
+      "en": 12419,
+      "hi": 7070,
+      "hinglish": 7405
+    }
+  },
+  "calibration": {
+    "method": "one temperature, softmax(scores / T), fitted by log loss on out-of-fold scores of held-out templates",
+    "temperature_dev": 0.6995958464576043,
+    "temperature_shipped": 0.671615
+  },
+  "unclear_rule": "top class if its calibrated probability >= 0.6, else 'unclear' (keeps the top class and its probability)",
+  "c": 5.0,
+  "class_weight": "balanced",
+  "setting_search_dev_oof": {
+    "C=5,class_weight=balanced": {
+      "temperature": 0.6995958464576043,
+      "macro_f1": 0.748482106344245,
+      "scam_caught": 0.8997416020671835,
+      "normal_false_alarm": 0.02354648818643658,
+      "normal_unclear": 0.040319329086364,
+      "refund_f1": 0.7285974499089253,
+      "log_loss": 0.38609680033768756,
+      "targets_met": 2
+    },
+    "C=10,class_weight=balanced": {
+      "temperature": 0.7807272088320166,
+      "macro_f1": 0.746923401590589,
+      "scam_caught": 0.8990956072351421,
+      "normal_false_alarm": 0.02354648818643658,
+      "normal_unclear": 0.038625917264736714,
+      "refund_f1": 0.7261958997722096,
+      "log_loss": 0.3873422021286096,
+      "targets_met": 2
+    },
+    "C=20,class_weight=balanced": {
+      "temperature": 0.8924890502087497,
+      "macro_f1": 0.7326268529882638,
+      "scam_caught": 0.8934108527131783,
+      "normal_false_alarm": 0.024594790742682043,
+      "normal_unclear": 0.04209337956616402,
+      "refund_f1": 0.6942463147883975,
+      "log_loss": 0.4005236229758666,
+      "targets_met": 2
+    },
+    "C=50,class_weight=balanced": {
+      "temperature": 1.0766335418025192,
+      "macro_f1": 0.7353127920899969,
+      "scam_caught": 0.8657622739018088,
+      "normal_false_alarm": 0.02911055560035481,
+      "normal_unclear": 0.03814208531570035,
+      "refund_f1": 0.7602708803611739,
+      "log_loss": 0.40992638424990135,
+      "targets_met": 2
+    },
+    "C=100,class_weight=balanced": {
+      "temperature": 1.2458596357678382,
+      "macro_f1": 0.72407738068803,
+      "scam_caught": 0.851421188630491,
+      "normal_false_alarm": 0.025723731957100236,
+      "normal_unclear": 0.036851866784936696,
+      "refund_f1": 0.7386311437758383,
+      "log_loss": 0.4211527795657079,
+      "targets_met": 2
+    },
+    "C=5,class_weight=None": {
+      "temperature": 0.882137823389927,
+      "macro_f1": 0.6487038587471041,
+      "scam_caught": 0.8086563307493541,
+      "normal_false_alarm": 0.006370453995645512,
+      "normal_unclear": 0.015643899685509232,
+      "refund_f1": 0.6183783783783784,
+      "log_loss": 0.44532747171657994,
+      "targets_met": 2
+    },
+    "C=10,class_weight=None": {
+      "temperature": 0.9381554685165664,
+      "macro_f1": 0.6636206731263925,
+      "scam_caught": 0.8218346253229974,
+      "normal_false_alarm": 0.008789613740827353,
+      "normal_unclear": 0.023627126844609304,
+      "refund_f1": 0.6296490309062336,
+      "log_loss": 0.43252687291238856,
+      "targets_met": 2
+    },
+    "C=20,class_weight=None": {
+      "temperature": 0.9933121220307563,
+      "macro_f1": 0.6748108638950302,
+      "scam_caught": 0.8297157622739018,
+      "normal_false_alarm": 0.010805580195145553,
+      "normal_unclear": 0.021611160390291106,
+      "refund_f1": 0.6311433005690636,
+      "log_loss": 0.4187514989695233,
+      "targets_met": 2
+    },
+    "C=50,class_weight=None": {
+      "temperature": 1.047045641271772,
+      "macro_f1": 0.7252689266492529,
+      "scam_caught": 0.8571059431524548,
+      "normal_false_alarm": 0.01088621885331828,
+      "normal_unclear": 0.034513345697927585,
+      "refund_f1": 0.7658582089552238,
+      "log_loss": 0.3882629517873105,
+      "targets_met": 2
+    },
+    "C=100,class_weight=None": {
+      "temperature": 1.1498306506417255,
+      "macro_f1": 0.7281969473343591,
+      "scam_caught": 0.8777777777777778,
+      "normal_false_alarm": 0.01782114345617289,
+      "normal_unclear": 0.030481412789291187,
+      "refund_f1": 0.7107126002831524,
+      "log_loss": 0.39101985843713866,
+      "targets_met": 2
+    }
+  },
+  "held_out_templates": {
+    "messages": 6753,
+    "scam_caught": 0.8523462783171522,
+    "scam_sent": 0.6715210355987055,
+    "scam_right_tag": 0.6484627831715211,
+    "scam_unclear": 0.1808252427184466,
+    "scam_called_normal": 0.1476537216828479,
+    "normal_false_alarm": 0.03527213267928054,
+    "normal_unclear": 0.01051156271899089,
+    "macro_f1": 0.7845545811102068,
+    "per_class_f1": {
+      "arrest_threat": 0.7380073800738007,
+      "kyc": 0.879045996592845,
+      "task_job": 0.7915407854984894,
+      "trading_tip": 0.7903469079939668,
+      "refund": 0.8559782608695652,
+      "other_scam": 0.5012165450121655,
+      "normal": 0.935746191730615
+    },
+    "by_language": {
+      "en": {
+        "messages": 2920,
+        "scam_caught": 0.8721153846153846,
+        "scam_sent": 0.7067307692307693,
+        "scam_right_tag": 0.6673076923076923,
+        "scam_unclear": 0.16538461538461538,
+        "scam_called_normal": 0.12788461538461537,
+        "normal_false_alarm": 0.027127659574468086,
+        "normal_unclear": 0.01276595744680851
+      },
+      "hi": {
+        "messages": 1867,
+        "scam_caught": 0.729957805907173,
+        "scam_sent": 0.42616033755274263,
+        "scam_right_tag": 0.40365682137834036,
+        "scam_unclear": 0.3037974683544304,
+        "scam_called_normal": 0.270042194092827,
+        "normal_false_alarm": 0.06747404844290658,
+        "normal_unclear": 0.018166089965397925
+      },
+      "hinglish": {
+        "messages": 1966,
+        "scam_caught": 0.9445214979195562,
+        "scam_sent": 0.8626907073509015,
+        "scam_right_tag": 0.8626907073509015,
+        "scam_unclear": 0.08183079056865465,
+        "scam_called_normal": 0.05547850208044383,
+        "normal_false_alarm": 0.017670682730923693,
+        "normal_unclear": 0.0
       }
     },
-    "scam_conf": {
-      "scam_caught_share": 0.840630472854641,
-      "scam_right_tag_share": 0.658493870402802,
-      "normal_false_alarm_share": 0.0,
-      "by_language": {
-        "en": {
-          "scam_caught": 0.7108843537414966,
-          "normal_false_alarm": 0.0
-        },
-        "hi": {
-          "scam_caught": 0.9571428571428572,
-          "normal_false_alarm": 0.0
-        },
-        "hinglish": {
-          "scam_caught": 1.0,
-          "normal_false_alarm": 0.0
-        }
+    "precision_at_threshold": {
+      "arrest_threat": 0.7263922518159807,
+      "kyc": 1.0,
+      "task_job": 1.0,
+      "trading_tip": 0.9961977186311787,
+      "refund": 0.8923512747875354,
+      "other_scam": 0.7862595419847328,
+      "normal": 0.9179775280898876
+    },
+    "log_loss": 0.3520156595648822,
+    "ece": 0.03915062078641764,
+    "uncalibrated": {
+      "log_loss": 0.37443486945705484,
+      "ece": 0.05291772523555939,
+      "scam_caught": 0.8745954692556634,
+      "normal_false_alarm": 0.014482597523943003,
+      "normal_unclear": 0.03854239663629993,
+      "macro_f1": 0.7072480687179014,
+      "precision_at_threshold": {
+        "arrest_threat": 0.7959770114942529,
+        "kyc": 1.0,
+        "task_job": 1.0,
+        "trading_tip": 0.9953703703703703,
+        "refund": 0.9157088122605364,
+        "other_scam": 1.0,
+        "normal": 0.9289642529789184
+      }
+    },
+    "acceptance": {
+      "normal_false_alarm": {
+        "value": 0.03527213267928054,
+        "target": "<= 0.005",
+        "met": false
+      },
+      "scam_caught": {
+        "value": 0.8523462783171522,
+        "target": ">= 0.85",
+        "met": true
+      },
+      "normal_unclear": {
+        "value": 0.01051156271899089,
+        "target": "<= 0.03",
+        "met": true
+      },
+      "refund_f1": {
+        "value": 0.8559782608695652,
+        "target": ">= 0.6",
+        "met": true
       }
     }
   },
-  "max_prob_diff_json_vs_sklearn": 1.152583790631212e-07
+  "max_prob_diff_json_vs_sklearn": 4.0612851215371393e-07
 }
