@@ -12,7 +12,6 @@ import com.ruko.demo.signals.MessageCheck
 import com.ruko.demo.signals.MessageScan
 import com.ruko.demo.signals.MoneyTxn
 import com.ruko.demo.signals.Signals
-import com.ruko.demo.ui.scamTagRes
 
 /**
  * SMS_RECEIVED wakes the app even when it is not running (the broadcast is on Android's exempt
@@ -66,8 +65,7 @@ class SmsReceiver : BroadcastReceiver() {
                     val tag = m.scamTag ?: continue
                     WatchSender.report(context, Sighting.Lure(tag, m.scamConf ?: 0.0, "sms", m.aiWritten, m.handles))
                     ShieldNotifier.showScamSms(
-                        context, language, { c -> c.getString(scamTagRes(tag)) }, m.aiWritten == true,
-                        Math.floorMod(sender.orEmpty().hashCode(), 50),
+                        context, language, tag, m.aiWritten == true, Math.floorMod(sender.orEmpty().hashCode(), 50), "sms",
                     )
                 }
                 ShieldController.enqueue(context, txns)

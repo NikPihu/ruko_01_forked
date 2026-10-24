@@ -1,6 +1,5 @@
 package com.ruko.demo.ui
 
-import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import com.ruko.demo.data.Consents
 import com.ruko.demo.signals.Signals
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +30,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import com.ruko.demo.data.AlertLog
+import com.ruko.demo.shield.AlertRecorder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.Alignment
@@ -62,9 +67,13 @@ fun HomeScreen(
     onHistory: () -> Unit,
     onPayContact: () -> Unit,
     onMessageCheck: () -> Unit,
+    onAlerts: () -> Unit,
 ) {
     val context = LocalContext.current
-    val demoOnly = { Toast.makeText(context, R.string.demo_only, Toast.LENGTH_SHORT).show() }
+    val alertVersion by AlertRecorder.version.collectAsState()
+    val unseenAlerts by produceState(0, alertVersion) {
+        value = withContext(Dispatchers.IO) { AlertLog.unseen(AlertRecorder.load(context.applicationContext)) }
+    }
     // The background watcher may have changed the episode while the app was away.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { ShieldController.refresh(context.applicationContext, consents) }
     LaunchedEffect(consents) { ShieldController.refresh(context.applicationContext, consents) }
@@ -72,7 +81,7 @@ fun HomeScreen(
 
     Column(Modifier.fillMaxSize().background(CacheColors.Background)) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Hero(vm, firstName, onProfile = onProfile, onHelp = demoOnly, onDebug = onDebug)
+            Hero(vm, firstName, onProfile = onProfile, onDebug = onDebug)
             ShieldPermissionCard(consents, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
             EpisodeCard(shield, trustedName, trustedMobile, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
 
@@ -82,9 +91,8 @@ fun HomeScreen(
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TransferAction(CacheIcons.Phone, R.string.home_to_mobile, onPayContact, Modifier.weight(1f))
-                    TransferAction(CacheIcons.Bank, R.string.home_to_bank, onPay, Modifier.weight(1f))
-                    TransferAction(CacheIcons.ArrowDown, R.string.home_receive, demoOnly, Modifier.weight(1f))
-                    TransferAction(CacheIcons.Rupee, R.string.home_check_balance, demoOnly, Modifier.weight(1f))
+                    TransferAction(CacheIcons.Bank, R.string.home_to_upi, onPay, Modifier.weight(1f))
+                    TransferAction(CacheIcons.Message, R.string.home_message_check, onMessageCheck, Modifier.weight(1f))
                 }
             }
 
@@ -92,30 +100,19 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(CacheColors.Surface)
-                    .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                InfoChip(CacheIcons.Message, R.string.home_message_check, CacheColors.Info, onMessageCheck)
-                InfoChip(CacheIcons.Person, R.string.home_trusted, CacheColors.Gold, onProfile)
-                InfoChip(CacheIcons.Shield, R.string.home_how_shield, CacheColors.PrimaryLight, demoOnly)
+                InfoChip(CacheIcons.Alerts, R.string.nav_alerts, CacheColors.Warning, onAlerts, Modifier.weight(1f))
+                InfoChip(CacheIcons.Person, R.string.home_trusted_short, CacheColors.Gold, onProfile, Modifier.weight(1f))
             }
-
-            Section(title = stringResource(R.string.home_bills)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BillTile(CacheIcons.Smartphone, R.string.bill_mobile, CacheColors.Info, demoOnly, Modifier.weight(1f))
-                    BillTile(CacheIcons.House, R.string.bill_rent, CacheColors.Accent, demoOnly, Modifier.weight(1f))
-                    BillTile(CacheIcons.Bolt, R.string.bill_electricity, CacheColors.Gold, demoOnly, Modifier.weight(1f))
-                    BillTile(CacheIcons.Receipt, R.string.bill_loan, CacheColors.Success, demoOnly, Modifier.weight(1f))
-                }
-                PayAnyUpiRow(onPay)
-            }
+            Spacer(Modifier.height(20.dp))
 
             DemoBanner(Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(28.dp))
         }
 
-        BottomBar(onScan = onPay, onHistory = onHistory, onOther = demoOnly)
+        BottomBar(onScan = onPay, onAlerts = onAlerts, alertBadge = unseenAlerts, onHistory = onHistory, onProfile = onProfile)
     }
 }
 
@@ -124,7 +121,6 @@ private fun Hero(
     vm: PaymentViewModel,
     firstName: String,
     onProfile: () -> Unit,
-    onHelp: () -> Unit,
     onDebug: () -> Unit,
 ) {
     Box(
@@ -166,18 +162,6 @@ private fun Hero(
                 )
             }
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(36.dp)
-                .clip(CircleShape)
-                .border(2.dp, Color.White, CircleShape)
-                .clickable(onClick = onHelp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("?", color = Color.White, fontWeight = FontWeight.Bold)
-        }
-
         Column(
             modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -306,7 +290,7 @@ private fun ShieldEmblem() {
             modifier = Modifier
                 .size(88.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(Color.White, Color(0xFFDCD3F5)))),
+                .background(Brush.linearGradient(listOf(Color.White, Color(0xFFD6E4FF)))),
             contentAlignment = Alignment.Center,
         ) {
             Icon(CacheIcons.Shield, contentDescription = null, tint = CacheColors.Primary, modifier = Modifier.size(52.dp))
@@ -363,9 +347,9 @@ private fun TransferAction(icon: ImageVector, @StringRes label: Int, onClick: ()
 }
 
 @Composable
-private fun InfoChip(icon: ImageVector, @StringRes label: Int, tint: Color, onClick: () -> Unit) {
+private fun InfoChip(icon: ImageVector, @StringRes label: Int, tint: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .cacheCard(radius = 12.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -378,56 +362,17 @@ private fun InfoChip(icon: ImageVector, @StringRes label: Int, tint: Color, onCl
 }
 
 @Composable
-private fun BillTile(icon: ImageVector, @StringRes label: Int, tint: Color, onClick: () -> Unit, modifier: Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(64.dp).cacheCard(radius = 14.dp).clickable(onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(30.dp))
-        }
-        Text(
-            text = stringResource(label),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            minLines = 2,
-            maxLines = 2,
-        )
-    }
-}
-
-@Composable
-private fun PayAnyUpiRow(onPay: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cacheCard(radius = 14.dp)
-            .clickable(onClick = onPay)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(stringResource(R.string.home_pay_upi), style = MaterialTheme.typography.titleMedium)
-        Icon(CacheIcons.ArrowForward, contentDescription = null, tint = CacheColors.PrimaryLight)
-    }
-}
-
-@Composable
-private fun BottomBar(onScan: () -> Unit, onHistory: () -> Unit, onOther: () -> Unit) {
+private fun BottomBar(onScan: () -> Unit, onAlerts: () -> Unit, alertBadge: Int, onHistory: () -> Unit, onProfile: () -> Unit) {
     Box(Modifier.fillMaxWidth().background(CacheColors.Surface).navigationBarsPadding()) {
         Row(
             modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             NavItem(CacheIcons.Home, R.string.nav_home, selected = true, onClick = {}, modifier = Modifier.weight(1f))
-            NavItem(CacheIcons.Search, R.string.nav_search, selected = false, onClick = onOther, modifier = Modifier.weight(1f))
+            NavItem(CacheIcons.Alerts, R.string.nav_alerts, selected = false, onClick = onAlerts, modifier = Modifier.weight(1f), badge = alertBadge)
             Spacer(Modifier.weight(1f))
-            NavItem(CacheIcons.Alerts, R.string.nav_alerts, selected = false, onClick = onOther, modifier = Modifier.weight(1f))
             NavItem(CacheIcons.History, R.string.nav_history, selected = false, onClick = onHistory, modifier = Modifier.weight(1f))
+            NavItem(CacheIcons.Person, R.string.nav_profile, selected = false, onClick = onProfile, modifier = Modifier.weight(1f))
         }
         Box(
             modifier = Modifier
@@ -448,14 +393,29 @@ private fun BottomBar(onScan: () -> Unit, onHistory: () -> Unit, onOther: () -> 
 }
 
 @Composable
-private fun NavItem(icon: ImageVector, @StringRes label: Int, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun NavItem(icon: ImageVector, @StringRes label: Int, selected: Boolean, onClick: () -> Unit, modifier: Modifier, badge: Int = 0) {
     val color = if (selected) Color.White else CacheColors.TextSecondary
     Column(
         modifier = modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(26.dp))
+        Box {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(26.dp))
+            if (badge > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 8.dp, y = (-4).dp)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(CacheColors.Danger),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(if (badge > 9) "9+" else badge.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         Text(
             text = stringResource(label),
             style = MaterialTheme.typography.labelMedium,

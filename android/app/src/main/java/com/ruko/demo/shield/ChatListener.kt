@@ -9,7 +9,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.signals.MessageCheck
 import com.ruko.demo.signals.Signals
-import com.ruko.demo.ui.scamTagRes
 import java.util.concurrent.Executors
 
 /**
@@ -42,8 +41,7 @@ class ChatListener : NotificationListenerService() {
                 val tag = m.scamTag ?: return@execute
                 if (m.otp) return@execute
                 ShieldNotifier.showScamSms(
-                    app, store.loadProfile()?.language, { c -> c.getString(scamTagRes(tag)) }, m.aiWritten == true,
-                    Math.floorMod(pkg.hashCode(), 50),
+                    app, store.loadProfile()?.language, tag, m.aiWritten == true, Math.floorMod(pkg.hashCode(), 50), "chat",
                 )
                 WatchSender.report(app, Sighting.Lure(tag, m.scamConf ?: 0.0, "notification", m.aiWritten, m.handles))
             } catch (e: Exception) {
