@@ -110,7 +110,7 @@ Write-Host "mock intel up on $IntelPort"
 
 $api = Start-Process -FilePath $Py -PassThru -WindowStyle Hidden `
     -ArgumentList "-m", "api.main", "--data", "data", "--port", "$ApiPort", `
-                  "--intel", "http://127.0.0.1:$IntelPort", "--demo-clock" `
+                  "--intel", "http://127.0.0.1:$IntelPort", "--demo-clock", "--lab" `
     -RedirectStandardOutput "$Logs\api.log" -RedirectStandardError "$Logs\api.err.log"
 $api.Id | Out-File $PidFile -Append -Encoding ascii
 $health = Wait-Health "http://127.0.0.1:$ApiPort/health"

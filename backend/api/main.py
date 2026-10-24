@@ -81,8 +81,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                intel_budget_s: float = 0.150, intel_cache_ttl_s: float = 10.0,
                log_path: str | Path | None = "logs/decide.jsonl", evidence_async: bool = True,
                demo_clock: bool = False, discover_every_s: float | None = None,
-               db_path: str | Path = ":memory:", scorer_name: str = "rules") -> FastAPI:
-    """`scorer_name`: "rules" (api/rule_scorer.py) or "ml" (the trained LightGBM model in
+               db_path: str | Path = ":memory:", scorer_name: str = "rules", lab: bool = False) -> FastAPI:
+    """`lab`: add the scam lab (/v1/lab/*, demo/lab.py), where a judge plays the scammer against an
+    emulator; off unless asked for (`--lab`).
+    `scorer_name`: "rules" (api/rule_scorer.py) or "ml" (the trained LightGBM model in
     ml/model/predict.py). If the model cannot be loaded, the engine keeps the rules (never fails).
     `db_path`: the transaction database, in memory by default (store/db.py)."""
     client = intel_client or httpx.AsyncClient(base_url=intel_url)
@@ -643,6 +645,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             await sync_clock()
         return {"ok": True}
 
+    if lab:
+        from demo import lab as scam_lab
+        scam_lab.routes(app, data_dir=Path(data_dir), intel_url=intel_url, store=store,
+                        explain_fn=lambda p, d: explain(p, d, policy.cfg), reset_fn=reset)
+
     if CONSOLE_DIST.is_dir():
         app.mount("/console", StaticFiles(directory=CONSOLE_DIST, html=True), name="console")
     else:
@@ -691,9 +698,11 @@ def main() -> None:
                    help="transaction database: in memory (default) or a file to keep the run, e.g. logs/ruko.db")
     p.add_argument("--scorer", choices=("ml", "rules"), default="ml",
                    help="ml: the trained LightGBM model (falls back to rules if missing); rules: rules-only")
+    p.add_argument("--lab", action="store_true",
+                   help="scam lab: the console's 'AI scammer' page sends SMS and calls to an emulator over adb")
     a = p.parse_args()
     uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
-                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer),
+                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer, lab=a.lab),
                 host="0.0.0.0", port=a.port)
 
 
