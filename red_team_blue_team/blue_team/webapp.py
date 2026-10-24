@@ -93,6 +93,17 @@ def engine_status(card: dict) -> dict:
             "effect": None if problems else ("warns" if len(fam) >= 2 else "names only"), "notes": notes}
 
 
+def backtest_summary(draft: dict) -> dict:
+    """What a draft's rule did on past payments, and whether, approved, it would warn or only name."""
+    bt = draft.get("backtest") or {}
+    fam = bt.get("families")
+    if fam is None:                                  # runs from before backtests reported families
+        fam = sorted(engine_file.rule_families(draft["card"]["matcher"])) if draft.get("card", {}).get("matcher") else []
+    return {"gate_failures": draft.get("gate_failures") or [], "recall": bt.get("cluster_case_recall"),
+            "payment_recall": bt.get("cluster_payment_recall"), "legit_per_1000": bt.get("legit_payments_named_per_1000"),
+            "families": fam, "warns": len(fam) >= 2}
+
+
 def _summary(card: dict, state: str) -> dict:
     approvals = sorted({r["analyst"] for r in card.get("reviews", []) if r["decision"] == "approve"})
     return {"name": card["name"], "title": card.get("title"), "state": state,
@@ -112,7 +123,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     root, runs = root or config.PLAYBOOKS, runs or config.RUNS
     exports = exports or review.EXPORTS
     repo = repo or Path.cwd()
-    app = FastAPI(title="RUKO blue team console", docs_url=None, redoc_url=None)
+    app = FastAPI(title="RUKO Analyst Console", docs_url=None, redoc_url=None)
     running: dict = {"thread": None, "run_id": None}
     building: dict = {"thread": None, "state": "idle", "step": None, "params": None}
     runner: dict = {"thread": None, "state": "idle", "stop": False, "total": 0, "skipped": 0, "done": 0,
@@ -435,7 +446,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
                         "ruko_named": c["cluster"]["nearest_playbook"] if c["cluster"]["kind"] == "misnamed" else None,
                         "name": c["draft"]["card"]["name"], "title": c["draft"]["card"].get("title"),
                         "drafted_by": c["draft"]["drafted_by"], "verdict": c["analyst"].get("verdict"),
-                        "cases": len(c["cluster"]["case_ids"])})
+                        "cases": len(c["cluster"]["case_ids"]), **backtest_summary(c["draft"])})
         return out
 
     @app.get("/api/runs/{run_id}/candidates/{cluster_id}")
@@ -637,8 +648,8 @@ def main(port: int = 8765, scenario: bool = False) -> None:
     if scenario:   # the scenario's own playbook database, runs and exports (scenario.py)
         from blue_team import scenario as sc
         app = create_app(root=sc.DB, exports=sc.EXPORTS, runs=sc.RUNS, repo=config.REPO, scenario_mode=True)
-        print(f"blue team console (SCENARIO database {sc.DB}): http://127.0.0.1:{port}  (Ctrl+C to stop)")
+        print(f"RUKO Analyst Console (demo database {sc.DB}): http://127.0.0.1:{port}  (Ctrl+C to stop)")
     else:
         app = create_app()
-        print(f"blue team console: http://127.0.0.1:{port}  (Ctrl+C to stop)")
+        print(f"RUKO Analyst Console: http://127.0.0.1:{port}  (Ctrl+C to stop)")
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

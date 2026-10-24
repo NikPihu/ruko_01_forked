@@ -3,99 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blue Team Console</title>
+<title>RUKO Analyst Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Devanagari:wght@400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e1e4e9; --side: #eef0f3;
-    --accent: #2457c5; --accent-ink: #fff; --good: #1e7a46; --good-bg: #e5f4eb; --bad: #b42318; --bad-bg: #fdecea;
-    --warn: #8a5a00; --warn-bg: #fff3d6; --chip: #eef1f5; --code: #f1f3f6; --dec: #eaf0ff;
-    --k-new: #2a78d6; --k-known: #eb6834; --k-mis: #1baf7a; --k-none: #8b929c;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #111419; --panel: #191d24; --ink: #e6e9ed; --muted: #98a1ac; --line: #2a3039; --side: #151920;
-      --accent: #6b9bff; --accent-ink: #0c0f15; --good: #6fd39b; --good-bg: #17321f; --bad: #ff8a80; --bad-bg: #3a1c1a;
-      --warn: #f2c46b; --warn-bg: #3a2e14; --chip: #242a33; --code: #1f242c; --dec: #1c2740;
-      --k-new: #3987e5; --k-known: #d95926; --k-mis: #199e70; --k-none: #7d8590;
-    }
+    --bg: #0D0F12; --panel: #14171C; --raise: #1A1E24; --sunk: #101317; --line: #22262D; --line2: #2C313A; --rowline: #1D2127;
+    --ink: #E7E9EC; --ink2: #C9CED5; --muted: #8C939E; --dim: #3A404A;
+    --accent: #F2A93B; --accent-ink: #0D0F12; --good: #5CC9A0; --bad: #F0828C; --warn: #F2A93B; --info: #6CA6F5;
+    --good-bg: rgba(92,201,160,.10); --bad-bg: rgba(240,130,140,.10); --warn-bg: rgba(242,169,59,.10); --info-bg: rgba(108,166,245,.10);
+    --k-new: #6CA6F5; --k-known: #F2A93B; --k-mis: #5CC9A0; --k-none: #6B7380;
+    --sans: Inter, system-ui, "Segoe UI", Roboto, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
-  .app { display: grid; grid-template-columns: 236px 1fr; min-height: 100vh; }
-  @media (max-width: 820px) { .app { grid-template-columns: 1fr; } nav.side { position: static !important; height: auto !important; } }
-  nav.side { background: var(--side); border-right: 1px solid var(--line); padding: 14px 10px; position: sticky; top: 0; height: 100vh; overflow: auto; }
-  nav.side .brand { font-weight: 700; padding: 4px 8px 2px; } nav.side .tag { color: var(--muted); font-size: 12px; padding: 0 8px 12px; }
-  nav.side a { display: flex; gap: 10px; align-items: baseline; padding: 7px 8px; border-radius: 7px; color: var(--ink); text-decoration: none; }
-  nav.side a .num { color: var(--muted); font-size: 12px; width: 14px; } nav.side a .sub { display: block; color: var(--muted); font-size: 12px; }
-  nav.side a:hover { background: var(--chip); } nav.side a.on { background: var(--panel); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
-  nav.side .foot { border-top: 1px solid var(--line); margin-top: 12px; padding: 12px 8px 0; font-size: 12.5px; color: var(--muted); }
-  .top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 20px;
-         border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 3; }
-  .top .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
-  select, input, textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
-  textarea { width: 100%; min-height: 64px; }
-  .content { padding: 18px 22px 60px; max-width: 1250px; }
-  @media (max-width: 820px) { .content { padding: 14px 16px 60px; } }
-  h1 { font-size: 21px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 0 0 6px; }
-  .explain { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0 16px; color: var(--muted); }
-  .explain b { color: var(--ink); } .explain .refs { margin-top: 6px; font-size: 12.5px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+  @media (max-width: 860px) { .app { grid-template-columns: 1fr; } nav.side { position: static !important; height: auto !important; } }
+
+  nav.side { border-right: 1px solid var(--line); padding: 20px 14px; position: sticky; top: 0; height: 100vh; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+  nav.side .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 22px; }
+  nav.side .logo { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  nav.side .brand b { display: block; font-size: 14px; letter-spacing: .2px; } nav.side .brand span { display: block; font-size: 12px; color: var(--muted); }
+  nav.side a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 7px; color: #AEB4BD; text-decoration: none; }
+  nav.side a:hover { background: var(--raise); color: var(--ink); } nav.side a.on { background: var(--raise); color: var(--ink); font-weight: 500; }
+  nav.side a svg { flex: none; }
+  nav.side a .n { margin-left: auto; font: 12px var(--mono); color: var(--muted); }
+  nav.side a .n.hot { color: var(--accent-ink); background: var(--accent); border-radius: 10px; padding: 1px 7px; }
+  nav.side .group { font-size: 11px; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); padding: 18px 10px 6px; }
+  nav.side a.small { padding: 7px 10px; font-size: 13px; }
+  nav.side .foot { margin-top: auto; padding: 14px 10px 4px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+  nav.side .foot .mono { color: var(--ink2); font-size: 12px; }
+
+  .top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: flex-end; padding: 12px 36px; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3; background: var(--bg); }
+  .top .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  select, input, textarea { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; min-height: 36px; }
+  select:focus, input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { width: 100%; min-height: 64px; background: var(--sunk); }
+  .content { padding: 28px 36px 60px; max-width: 1320px; display: flex; flex-direction: column; gap: 18px; }
+  @media (max-width: 860px) { .content, .top { padding-left: 16px; padding-right: 16px; } }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; } h2 { font-size: 13px; font-weight: 600; margin: 0 0 12px; }
+  .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; } .head .acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .explain, .flow { display: none; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .card.flush { padding: 0; overflow: hidden; } .card.flush > h2 { padding: 16px 20px; margin: 0; border-bottom: 1px solid var(--line); }
+  .card.alert { background: #1C1416; border-color: #3A2A2E; } .card.okay { background: #121C18; border-color: #24392F; }
   .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
-  .chip { background: var(--chip); color: var(--muted); border-radius: 999px; padding: 1px 9px; font-size: 12.5px; white-space: nowrap; }
-  .chip.good { background: var(--good-bg); color: var(--good); } .chip.bad { background: var(--bad-bg); color: var(--bad); }
-  .chip.warn { background: var(--warn-bg); color: var(--warn); } .chip.acc { background: var(--dec); color: var(--accent); }
-  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .chip { background: var(--raise); color: var(--ink2); border: 1px solid var(--line2); border-radius: 6px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+  .chip.good { background: var(--good-bg); color: var(--good); border-color: transparent; } .chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; } .chip.acc { background: var(--info-bg); color: var(--info); border-color: transparent; }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+  .muted { color: var(--muted); } .good { color: var(--good); } .bad { color: var(--bad); } .accent { color: var(--accent); }
   a.ref { color: var(--accent); cursor: pointer; text-decoration: none; } a.ref:hover { text-decoration: underline; }
-  pre { background: var(--code); border-radius: 8px; padding: 9px 11px; overflow: auto; font-size: 12.5px; margin: 6px 0; white-space: pre-wrap; word-break: break-word; max-height: 420px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; } tr.click { cursor: pointer; } tr.click:hover td { background: var(--chip); }
+  pre { background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow: auto; font: 12px/1.5 var(--mono); margin: 8px 0; white-space: pre-wrap; word-break: break-word; max-height: 420px; color: var(--ink2); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 11px 12px; border-top: 1px solid var(--rowline); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; border-top: 0; } td.num, th.num { text-align: right; font-family: var(--mono); }
+  tr.click { cursor: pointer; } tr.click:hover td { background: var(--raise); }
+  .card.flush table th:first-child, .card.flush table td:first-child { padding-left: 20px; } .card.flush table th:last-child, .card.flush table td:last-child { padding-right: 20px; }
   .scroll { overflow-x: auto; }
   .tl { list-style: none; margin: 0; padding: 0; }
-  .tl li { display: grid; grid-template-columns: 34px 92px 1fr; gap: 8px; padding: 8px 6px; border-bottom: 1px solid var(--line); }
-  .tl li.decision { background: var(--dec); } .tl li.warning, .tl li.filtered { background: var(--warn-bg); } .tl li.error { background: var(--bad-bg); }
-  .tl .seq { color: var(--muted); font-size: 12px; } .tl .stage { font-size: 12px; color: var(--muted); }
-  .tl .body .refs { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-  details summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
-  .split { display: grid; grid-template-columns: 280px 1fr; gap: 14px; }
-  @media (max-width: 980px) { .split { grid-template-columns: 1fr; } }
-  .pick .it { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; } .pick .it:hover { background: var(--chip); }
-  .pick .it.on { background: var(--chip); box-shadow: inset 3px 0 0 var(--accent); } .pick .it .n { font-weight: 600; }
-  .turn { border-left: 3px solid var(--line); padding: 4px 0 6px 12px; margin: 10px 0; }
-  .turn .h { font-size: 12px; color: var(--muted); } .turn .thought { font-style: italic; }
-  .ev { list-style: none; padding: 0; margin: 6px 0; } .ev li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
-  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
-  .stat { background: var(--chip); border-radius: 8px; padding: 7px 12px; min-width: 120px; }
-  .stat b { display: block; font-size: 17px; } .stat span { font-size: 12px; color: var(--muted); }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
-  .advice { background: var(--chip); border-radius: 8px; padding: 9px 12px; } .advice .lang { font-size: 12px; color: var(--muted); }
-  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  button.danger { color: var(--bad); border-color: var(--bad); } button:disabled { opacity: .5; cursor: not-allowed; }
+  .tl li { display: grid; grid-template-columns: 34px 92px 1fr; gap: 10px; padding: 10px 6px; border-top: 1px solid var(--rowline); }
+  .tl li.decision .body { color: var(--ink); } .tl li.warning .stage, .tl li.filtered .stage { color: var(--warn); } .tl li.error .stage { color: var(--bad); }
+  .tl .seq { color: var(--muted); font: 12px var(--mono); } .tl .stage { font-size: 12px; color: var(--muted); }
+  .tl .body { color: var(--ink2); } .tl .body .refs { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; } details summary:hover { color: var(--ink); }
+  .split { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .split { grid-template-columns: 1fr; } }
+  .pick { padding: 0; overflow: hidden; } .pick .it { padding: 12px 16px; border-top: 1px solid var(--rowline); cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+  .pick .it:first-child { border-top: 0; } .pick .it:hover { background: var(--raise); } .pick .it.on { background: var(--raise); box-shadow: inset 2px 0 0 var(--accent); }
+  .pick .it .n { font: 12.5px var(--mono); }
+  .turn { border-left: 2px solid var(--line2); padding: 4px 0 6px 12px; margin: 10px 0; }
+  .turn .h { font-size: 12px; color: var(--muted); } .turn .thought { font-style: italic; color: var(--ink2); }
+  .ev { list-style: none; padding: 0; margin: 0; } .ev li { padding: 8px 0; border-top: 1px solid var(--rowline); color: var(--ink2); } .ev li:first-child { border-top: 0; }
+  .stats, .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; min-width: 0; }
+  .stat b { display: block; font: 500 24px/1.2 var(--mono); } .stat span { font-size: 12px; color: var(--muted); }
+  .stat small { font-size: 12px; color: var(--muted); order: -1; }
+  .card .stats .stat { background: var(--sunk); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .advice { background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; line-height: 1.55; } .advice .lang { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .advice.hi { font-family: "Noto Sans Devanagari", var(--sans); }
+  button { font: inherit; font-size: 13px; border: 1px solid var(--line2); background: transparent; color: var(--ink); padding: 0 16px; min-height: 36px; border-radius: 8px; cursor: pointer; }
+  button:hover { background: var(--raise); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; } button.primary:hover { filter: brightness(1.06); }
+  button.danger { color: var(--bad); border-color: #3A2A2E; } button:disabled { opacity: .45; cursor: not-allowed; }
   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .msg { padding: 9px 12px; border-radius: 8px; margin-top: 8px; } .msg.ok { background: var(--good-bg); color: var(--good); } .msg.err { background: var(--bad-bg); color: var(--bad); }
-  .empty { color: var(--muted); padding: 24px; text-align: center; }
-  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; margin-top: 6px; }
-  .flow span.s { background: var(--chip); padding: 3px 9px; border-radius: 6px; } .flow span.a { color: var(--muted); }
-  .viz { position: relative; } .viz svg { width: 100%; height: auto; display: block; background: var(--panel); border-radius: 8px; }
-  .viz .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-              padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.15); max-width: 300px; display: none; z-index: 2; }
+  .msg { padding: 10px 12px; border-radius: 8px; margin-top: 8px; font-size: 13px; } .msg.ok { background: var(--good-bg); color: var(--good); } .msg.err { background: var(--bad-bg); color: var(--bad); }
+  .empty { color: var(--muted); padding: 32px; text-align: center; }
+  .viz { position: relative; } .viz svg { width: 100%; height: auto; display: block; background: var(--sunk); border-radius: 8px; }
+  .viz .tip { position: absolute; pointer-events: none; background: var(--raise); border: 1px solid var(--line2); border-radius: 8px;
+              padding: 8px 10px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(0,0,0,.4); max-width: 300px; display: none; z-index: 2; }
   .viz .tip b { display: block; } .viz .tip .m { color: var(--muted); }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin: 4px 0 8px; align-items: center; }
-  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin: 0 0 10px; align-items: center; }
+  .legend .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
   .legend .sq { border-radius: 2px; } .legend .hollow { background: none !important; border: 1.5px solid var(--k-none); }
-  label.f { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 3px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  @media (max-width: 860px) { .pipe { grid-template-columns: 1fr 1fr; gap: 14px; } }
+  .pipe > div { display: flex; flex-direction: column; gap: 8px; padding-right: 12px; } .pipe .bar { height: 4px; border-radius: 2px; background: #5A6270; }
+  .pipe .bar.on { background: var(--accent); } .pipe span { font-size: 12px; color: var(--muted); } .pipe b { font: 400 14px var(--mono); }
+  .rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .rule .leaf { font: 12.5px var(--mono); background: var(--raise); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 10px; }
+  .rule .or { font-size: 12px; color: var(--muted); } .rule .grp { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px dashed var(--line2); border-radius: 8px; padding: 5px; }
+  .bars { display: grid; grid-template-columns: 130px 1fr 32px; gap: 10px; align-items: center; font-size: 12px; }
+  .bars .t { height: 6px; border-radius: 3px; background: var(--line2); } .bars .t > i { display: block; height: 6px; border-radius: 3px; background: #9AA1AB; }
+  .cols { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; } .cols > .main { flex: 999 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .cols > .side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .signer { display: flex; align-items: center; gap: 10px; font-size: 13px; } .signer .dot { width: 22px; height: 22px; border-radius: 11px; border: 1px dashed var(--dim); flex: none; }
+  .signer .dot.done { border: 0; background: var(--good-bg); }
 </style>
 </head>
 <body>
 <div class="app">
-  <nav class="side" id="side"></nav>
+  <nav class="side" id="side" aria-label="Main"></nav>
   <div>
     <div class="top">
       <div class="ctl"><label for="runsel">Run</label><select id="runsel"></select><span id="runstate" class="chip"></span></div>
       <div class="ctl"><label for="analyst">Analyst</label><input id="analyst" size="12" placeholder="your name" autocomplete="off"></div>
     </div>
-    <div class="content" id="content"></div>
+    <main class="content" id="content"></main>
   </div>
 </div>
 <script>
@@ -133,11 +160,8 @@ function caseLinks(ids, max) {
 const VERDICT = { new_scam: "new scam", variant_of_known: "known scam, new form", lookalike_not_scam: "look-alike, not a scam", insufficient_evidence: "not enough evidence" };
 const verdictChip = v => chip(VERDICT[v] || v || "–", v === "new_scam" ? "good" : v === "variant_of_known" ? "acc" : "");
 const kindChip = (k, was) => k === "misnamed" ? chip("misnamed? RUKO said " + (was || "?"), "warn") : k === "new" ? chip("new pattern", "good") : chip(k || "–");
-function explain(what, how, refs) {
-  return el("div", { class: "explain" }, el("div", {}, el("b", {}, "What happens here: "), what),
-    how ? el("div", {}, el("b", {}, "How it decides: "), how) : null,
-    refs ? el("div", { class: "refs" }, "Code / config: ", refs) : null);
-}
+// Pages used to open with long explanations; the console is for analysts now, so they are not shown.
+function explain() { return null; }
 function evidenceList(ev) {
   if (!ev || !ev.length) return el("p", { class: "muted" }, "No evidence listed.");
   return el("ul", { class: "ev" }, ev.map(e => el("li", {},
@@ -171,29 +195,65 @@ async function loadRuns(select) {
 document.getElementById("runsel").addEventListener("change", e => { run = e.target.value; lastSeq = 0; timeline = []; route(); loadRuns(run); });
 
 // ---------------------------------------------------------------- sidebar
+const ICONS = {
+  grid: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
+  list: ["M4 5h16", "M4 12h16", "M4 19h10"],
+  dots: ["M10 8a3 3 0 1 1-6 0a3 3 0 1 1 6 0", "M19 7a2 2 0 1 1-4 0a2 2 0 1 1 4 0", "M18.5 17a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0"],
+  check: ["M9 11l3 3 8-8", "M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"],
+  doc: ["M5 4h11l3 3v13H5z", "M9 12h6", "M9 16h6"],
+  pulse: ["M3 12h4l3-8 4 16 3-8h4"],
+  shield: ["M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"],
+};
+function icon(name) {
+  const s = svg("svg", { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.8,
+    "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" });
+  for (const d of ICONS[name] || []) s.append(svg("path", { d }));
+  return s;
+}
 const PAGES = [
-  ["demo", "Demo: the whole loop", "new scams → you approve → rerun"],
-  ["redteam", "Red team", "the attacks (Nikunj's 50)"],
-  ["run", "Run & timeline", "start, watch every step"],
-  ["complaints", "Complaints", "where the shield broke"],
-  ["hdbscan", "HDBSCAN", "grouping the breaches"],
-  ["generator", "Generator agent", "investigates, drafts"],
-  ["analyst", "Analyst agent", "second opinion"],
-  ["playbooks", "Playbooks", "final card · human review"],
-  ["database", "Playbook database", "what is stored"],
-  ["scorecard", "Scorecard", "red team vs blue team"],
+  ["overview", "Overview", "grid"],
+  ["complaints", "Complaints", "list"],
+  ["hdbscan", "Patterns", "dots"],
+  ["playbooks", "Review", "check"],
+  ["database", "Playbooks", "doc"],
+  ["demo", "Live check", "pulse"],
+  ["redteam", "Red team", "shield"],
 ];
+const DETAIL_PAGES = [["run", "Timeline"], ["generator", "Generator agent"], ["analyst", "Analyst agent"], ["scorecard", "Scorecard"]];
+const sideCounts = {};
+async function updateCounts() {
+  try {
+    const [cards, cl] = await Promise.all([api("/api/cards"), run ? data("clusters") : null]);
+    sideCounts.review = cards.review.filter(s => s.gates_pass && (!run || s.run_id === run)).length;
+    const sm = (cl && cl.summary) || {};
+    sideCounts.complaints = sm.cases ?? null;
+    sideCounts.hdbscan = sm.clusters ? sm.clusters.length : null;
+    sideCounts.database = cards.approved.length || null;
+  } catch (e) { /* counts are decoration */ }
+}
 function renderSide(page) {
   const s = document.getElementById("side");
-  put(s, el("div", { class: "brand" }, "RUKO blue team"), el("div", { class: "tag" }, "find the scams the shield missed"),
-    PAGES.map(([k, t, sub], i) => el("a", { href: "#/" + k, class: k === page ? "on" : "" }, el("span", { class: "num" }, i === 0 ? "◆" : i), el("span", {}, t, el("span", { class: "sub" }, sub)))),
-    el("div", { class: "foot" }, "Every decision links to its evidence: complaint ids, cluster ids, the agent's tool calls, and config keys in ", el("span", { class: "mono" }, "blue_team/config.yaml"), "."));
+  const r = runs.find(x => x.run_id === run) || {};
+  const count = k => {
+    const v = k === "playbooks" ? sideCounts.review : sideCounts[k];
+    if (v === null || v === undefined) return null;
+    return el("span", { class: "n" + (k === "playbooks" && v ? " hot" : "") }, String(v));
+  };
+  put(s,
+    el("div", { class: "brand" }, el("div", { class: "logo", "aria-hidden": "true" }, "R"), el("div", {}, el("b", {}, "RUKO"), el("span", {}, "Analyst Console"))),
+    PAGES.map(([k, t, ic]) => el("a", { href: "#/" + k, class: k === page ? "on" : "", "aria-current": k === page ? "page" : null }, icon(ic), t, count(k))),
+    el("div", { class: "group" }, "This run"),
+    DETAIL_PAGES.map(([k, t]) => el("a", { href: "#/" + k, class: "small" + (k === page ? " on" : ""), "aria-current": k === page ? "page" : null }, t)),
+    el("div", { class: "foot" },
+      el("span", {}, "Engine ", el("span", { class: "mono" }, "lgbm-0.2")),
+      el("span", {}, "Agents ", el("span", { class: "mono" }, r.agents || "–"))));
 }
 
 // ---------------------------------------------------------------- router
 async function route() {
-  const [p, q] = (location.hash.replace(/^#\//, "") || "run").split("?");
-  const page = PAGES.find(x => x[0] === p) ? p : "run";
+  const [p, q] = (location.hash.replace(/^#\//, "") || "overview").split("?");
+  const known = [...PAGES, ...DETAIL_PAGES].map(x => x[0]);
+  const page = known.includes(p) ? p : "overview";
   const params = Object.fromEntries(new URLSearchParams(q || ""));
   renderSide(page);
   if (pollTimer && page !== "run") { clearInterval(pollTimer); pollTimer = null; }
@@ -204,9 +264,13 @@ async function route() {
   try { put(c, ...await PAGE[page](params)); }
   catch (e) { put(c, el("div", { class: "msg err" }, e.message)); }
   window.scrollTo(0, 0);
+  updateCounts().then(() => renderSide(page));
 }
 window.addEventListener("hashchange", route);
-const noRun = () => [el("div", { class: "empty" }, "No run selected. Start one on ", ref("Run & timeline", "run"), ".")];
+const noRun = () => [el("div", { class: "empty" }, "No run yet. Start one on ", ref("Timeline", "run"), ".")];
+const pageHead = (title, sub, ...acts) => el("div", { class: "head" },
+  el("div", {}, el("h1", {}, title), sub ? el("div", { class: "sub" }, sub) : null),
+  acts.length ? el("div", { class: "acts" }, acts) : null);
 
 const PAGE = {};
 
@@ -288,7 +352,21 @@ PAGE.demo = async () => {
     }, 3000);
   }
 
-  return [el("h1", {}, "Demo: new scams, the blue team, your approval, the same payments again"),
+  let verdict = null;
+  if (sc.before && sc.after) {
+    const sum = (o, f) => sc.new.reduce((n, k) => n + ((o.types[k] || {})[f] || 0), 0);
+    const nb = sum(sc.before, "interrupted"), na = sum(sc.after, "interrupted"), np = sum(sc.before, "payments");
+    const hb = sc.before.honest_interrupted_per_1000, ha = sc.after.honest_interrupted_per_1000;
+    const better = na > nb, safe = ha <= hb + 0.5, ok = better && safe;
+    verdict = el("section", { class: "card " + (ok ? "okay" : "alert"), "aria-label": "Verdict" }, el("div", { class: "row", style: "gap:28px" },
+      el("div", { style: "flex:1 1 320px" }, el("div", { class: ok ? "good" : "bad", style: "font-weight:600;margin-bottom:2px" }, ok ? "Ready for the live engine" : "Not ready for the live engine"),
+        el("div", { style: "color:var(--ink2)" }, !better ? "The approved playbooks stopped no more payments of the new scams." : !safe ? "It stops more scam payments but flags too many honest ones." : "More scam payments stopped; honest false alarms stay within budget.")),
+      el("div", {}, el("div", { class: "muted", style: "font-size:12px" }, "New scams stopped"),
+        el("div", { class: "mono", style: "font-size:20px" }, `${nb} → ${na}`, el("span", { class: "muted", style: "font-size:13px" }, ` of ${np}`))),
+      el("div", {}, el("div", { class: "muted", style: "font-size:12px" }, "Honest flagged / 1,000"),
+        el("div", { class: "mono", style: "font-size:20px" }, `${hb} → `, el("span", { class: safe ? "" : "bad" }, ha)))));
+  }
+  return [pageHead("Live check", "The same payments through the real engine, before and after the approved playbooks"), verdict,
     explain(["Two scams RUKO has never seen get through; three known ones are caught. Victims complain; the blue team groups the complaints, the ",
              el("b", {}, "generator agent"), " drafts a playbook per group and the ", el("b", {}, "analyst agent"), " judges it. ",
              el("b", {}, "You"), " approve (two analysts). Then the very same payments go through the engine again."],
@@ -321,7 +399,7 @@ PAGE.run = async () => {
     catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
   } }, "Reset everything");
   const out = [
-    el("h1", {}, "Run & timeline"),
+    el("h1", {}, "Timeline"),
     explain(["A run reads victim complaints, finds the payments RUKO let through or named wrongly, groups them with HDBSCAN, lets a ",
              el("b", {}, "generator agent"), " draft a playbook for each new group and an ", el("b", {}, "analyst agent"),
              " judge it, then queues each playbook for two human analysts. Every step below is one line of the run's log, in order."],
@@ -408,7 +486,7 @@ PAGE.complaints = async (p) => {
     put(tableBox, rows.length ? t : el("div", { class: "empty" }, "No complaints match."));
   };
   draw();
-  return [el("h1", {}, "Complaints: where the shield broke"),
+  return [el("h1", {}, "Complaints"),
     explain(["Each complaint (1930 call or NCRP report) names the accounts a victim paid. It is joined to that victim's own payments to those accounts, and each payment is shown with the tier and scam name RUKO gave it ", el("b", {}, "at the time"), "."],
       ["A complaint is ", chip("missed", "bad"), " if no payment reached T2 (the shield broke), ", chip("unnamed", "warn"), " if it was interrupted but no playbook named the scam, ", chip("held", "acc"), " if it was interrupted and named, yet the victim still paid. Missed and unnamed go to HDBSCAN; held ones are checked for a wrong name. No simulator ground truth is used."],
       [el("span", { class: "mono" }, "breach.py"), " · ", el("span", { class: "mono" }, "config breach.interrupt_tiers")]),
@@ -433,7 +511,7 @@ PAGE.hdbscan = async (p) => {
       ref("analyst", "analyst", { c: g.cluster_id }), " · playbook ", ref(cand[g.cluster_id].name, "playbooks", { name: cand[g.cluster_id].name }))
       : el("div", { style: "margin-top:6px;color:var(--muted)" }, g.kind === "known" ? "Not sent to the agents: a known scam (a tuning issue, not a new playbook)." : ""));
   const br = d.clusters.filter(g => g.kind !== "misnamed"), mis = d.clusters.filter(g => g.kind === "misnamed");
-  const out = [el("h1", {}, "HDBSCAN: grouping the breaches"),
+  const out = [el("h1", {}, "Patterns"),
     explain(["Each missed or unnamed complaint becomes a sequence of signals (call, caller, remote control, what the payer said, amount, entry, gaps between payments). These are turned into TF-IDF n-grams, reduced with SVD, and grouped with ", el("b", {}, "HDBSCAN"), ", which needs no number of groups and leaves one-off complaints out as noise."],
       [`A group is `, chip("known"), ` if ≥ ${pct(cfg.known_named_share)} of it was already named by a playbook, or its centroid is ≥ ${cfg.known_similarity} similar to a playbook's cases; otherwise `, chip("new pattern", "good"),
        `. Separately, each playbook's held complaints (≥ ${m.min_cases}) are clustered on their own; a subgroup that fits the rest below ${m.fit_below} is `, chip("misnamed?", "warn"), "."],
@@ -597,7 +675,7 @@ async function agentPage(p, which) {
         (a.required_changes || []).length ? [el("h2", {}, "Changes it asks for"), el("ul", {}, a.required_changes.map(x => el("li", {}, x)))] : null,
         el("p", { style: "color:var(--muted)" }, "This is advice to the two human analysts; it approves nothing."))];
   }
-  return [el("h1", {}, which === "generator" ? "Generator agent: investigates and drafts" : "Analyst agent: an independent second opinion"),
+  return [el("h1", {}, which === "generator" ? "Generator agent" : "Analyst agent"),
     which === "generator"
       ? explain("An LLM agent (Amazon Bedrock) reads the group only through read-only tools: the group overview, single complaints, payees, the known playbooks, comparisons. It tries rules with test_matcher, which code runs over every past payment, then submits a card that must cite the facts it rests on.",
           "Code validates the card (name, Hindi warning, evidence) and backtests its rule against the gates; a card failing them goes back to the agent. Each cited source is checked against the calls the agent really made.",
@@ -611,71 +689,209 @@ PAGE.generator = p => agentPage(p, "generator");
 PAGE.analyst = p => agentPage(p, "analyst");
 
 // ---------------------------------------------------------------- 5 playbooks
+// ---------------------------------------------------------------- overview
+const TRICK = { non_typed_entry: "No typed payee", mule_cover: "Mule cover", notification_lure: "Chat-app lure", cool_off: "Pays after the call",
+                sub_threshold_sms: "Low-score SMS", anchor_then_drain: "Tiny first payment", single_bait: "One bait credit" };
+const effectText = c => c.warns === true ? el("span", { class: "good" }, "Warns · " + (c.families || []).join("+"))
+  : c.warns === false ? el("span", { class: "muted" }, "Names only · " + ((c.families || []).join("+") || "–")) : el("span", { class: "muted" }, "–");
+const kpi = (label, value, note, cls) => el("div", { class: "stat" }, el("b", { class: cls || null }, value), el("span", {}, label), note ? el("small", {}, note) : null);
+
+PAGE.overview = async () => {
+  if (!run) return [pageHead("Overview", "No runs yet"), ...noRun()];
+  const r = runs.find(x => x.run_id === run) || {};
+  const [cl, cards, cands, rr, rt] = await Promise.all([data("clusters"), api("/api/cards"), api(`/api/runs/${run}/candidates`),
+    api("/api/redteam/runner").catch(() => null), api("/api/redteam").catch(() => null)]);
+  const sm = cl.summary || {}, st = sm.status || {}, groups = sm.clusters || [];
+  const mine = s => s.run_id === run;
+  const ready = cards.review.filter(s => mine(s) && s.gates_pass), blocked = cards.review.filter(s => mine(s) && !s.gates_pass);
+  const approved = cards.approved;
+  const byName = Object.fromEntries(cands.map(c => [c.name, c]));
+  const verdicts = {}; for (const c of cands) verdicts[c.verdict] = (verdicts[c.verdict] || 0) + 1;
+  const pass = cands.filter(c => !(c.gate_failures || []).length).length;
+  const warnN = approved.filter(s => (byName[s.name] || {}).warns).length;
+
+  const queue = el("section", { class: "card flush", "aria-label": "Waiting for review" },
+    el("h2", { class: "row" }, "Waiting for review", el("a", { class: "ref", style: "margin-left:auto;font-weight:400", onclick: () => go("playbooks") }, "Open review")),
+    ready.length ? el("div", { class: "scroll" }, el("table", {},
+      el("tr", {}, el("th", {}, "Playbook"), el("th", { class: "num" }, "Complaints"), el("th", { class: "num" }, "Names"),
+        el("th", { class: "num" }, "Legit / 1k"), el("th", {}, "Effect"), el("th", { class: "num" }, "Sign-off")),
+      ready.map(s => { const c = byName[s.name] || {};
+        return el("tr", { class: "click", onclick: () => go("playbooks", { name: s.name }) },
+          el("td", { class: "mono" }, s.name), el("td", { class: "num" }, s.cases ?? "–"), el("td", { class: "num" }, pct(c.recall)),
+          el("td", { class: "num" }, c.legit_per_1000 ?? "–"), el("td", {}, effectText(c)),
+          el("td", { class: "num muted" }, `${s.approvals.length}/${s.needed}`)); })))
+      : el("div", { class: "empty" }, "Nothing waiting."));
+
+  let red = null;
+  if (rr && Object.keys(rr.verdicts || {}).length) {
+    const names = new Set((rt ? rt.playbooks : []).map(p => p.name));
+    const vs = Object.entries(rr.verdicts).filter(([k]) => !names.size || names.has(k)).map(([, v]) => v);
+    const bt = vs.filter(v => v.breakthrough);
+    const sj = vs.reduce((a, v) => a + v.scam_payments_judged, 0), sn = vs.reduce((a, v) => a + v.scam_called_normal, 0);
+    const nj = vs.reduce((a, v) => a + v.normal_payments_judged, 0), nf = vs.reduce((a, v) => a + v.normal_flagged, 0);
+    const tech = {}; const techOf = Object.fromEntries((rt ? rt.playbooks : []).map(p => [p.name, p.techniques]));
+    for (const v of bt) for (const t of techOf[v.playbook] || []) tech[t] = (tech[t] || 0) + 1;
+    const top = Object.entries(tech).sort((a, b) => b[1] - a[1]).slice(0, 5), max = top.length ? top[0][1] : 1;
+    red = el("section", { class: "card", "aria-label": "Red team", style: "flex: 1 1 300px" },
+      el("h2", { class: "row" }, "Red team", el("span", { class: "muted", style: "margin-left:auto;font-weight:400;font-size:12px" }, `${vs.length} playbooks`)),
+      el("div", { class: "row", style: "gap:24px;margin-bottom:16px" },
+        el("div", {}, el("div", { class: "mono bad", style: "font-size:22px" }, bt.length), el("div", { class: "muted", style: "font-size:12px" }, "broke through")),
+        el("div", {}, el("div", { class: "mono", style: "font-size:22px" }, pct(sj ? sn / sj : null)), el("div", { class: "muted", style: "font-size:12px" }, "scam called normal")),
+        el("div", {}, el("div", { class: "mono", style: "font-size:22px" }, nj ? (100 * nf / nj).toFixed(2) + "%" : "–"), el("div", { class: "muted", style: "font-size:12px" }, "false alarms"))),
+      top.length ? [el("div", { class: "muted", style: "font-size:12px;margin-bottom:10px" }, "How they get through"),
+        el("div", { class: "bars" }, top.flatMap(([t, n]) => [el("span", { style: "color:var(--ink2)" }, TRICK[t] || t),
+          el("div", { class: "t" }, el("i", { style: `width:${Math.round(100 * n / max)}%` })), el("span", { class: "mono", style: "text-align:right" }, n)]))] : null,
+      el("div", { style: "margin-top:14px" }, ref("Open red team", "redteam")));
+  }
+
+  return [
+    pageHead("Overview", [el("span", {}, "Run "), el("span", { class: "mono", style: "color:var(--ink2)" }, run), ` · ${(r.world || "").split(/[\\/]/).pop() || "world"} · ${(r.started || "").slice(0, 16).replace("T", " ")}`],
+      el("button", { class: "primary", onclick: () => go("run") }, "New run")),
+    el("section", { class: "kpis", "aria-label": "Key numbers" },
+      kpi("Complaints", sm.cases ?? "–", "1930 / NCRP reports"),
+      kpi("Missed by RUKO", st.missed ?? "–", `${st.unnamed || 0} unnamed · ${st.held || 0} held`, "bad"),
+      kpi("Patterns", groups.length, `${sm.noise ?? 0} one-off complaints`),
+      kpi("Ready for review", ready.length, blocked.length ? `${blocked.length} more fail the gates` : "none blocked", "accent"),
+      kpi("Approved", approved.length, `${warnN} from this run warn`, "good")),
+    el("section", { class: "card", "aria-label": "This run" }, el("h2", {}, "This run"),
+      el("div", { class: "pipe" },
+        el("div", {}, el("div", { class: "bar" }), el("span", {}, "Complaints"), el("b", {}, sm.cases ?? "–")),
+        el("div", {}, el("div", { class: "bar" }), el("span", {}, "Grouped"), el("b", {}, `${(sm.cases || 0) - (sm.noise || 0)} → ${groups.length} patterns`)),
+        el("div", {}, el("div", { class: "bar" }), el("span", {}, "Drafted · pass gates"), el("b", {}, `${cands.length} · ${pass}`)),
+        el("div", {}, el("div", { class: "bar" }), el("span", {}, "Analyst agent"),
+          el("b", {}, `${verdicts.new_scam || 0} new · ${verdicts.variant_of_known || 0} known · ${verdicts.lookalike_not_scam || 0} not scam`)),
+        el("div", {}, el("div", { class: "bar on" }), el("span", {}, "People"), el("b", {}, `${ready.length} waiting · ${approved.length} approved`)))),
+    el("div", { class: "cols" }, el("div", { class: "main" }, queue), red ? el("div", { class: "side" }, red) : null),
+  ];
+};
+
+// ---------------------------------------------------------------- a rule as chips
+function leafText(n) {
+  if (n.token) return n.token.toLowerCase().replaceAll("_", " ");
+  const f = String(n.feature || "").replaceAll("_", " "), v = n.value;
+  if (n.op === "is") return v === true ? f : v === false ? "not " + f : `${f} is ${v}`;
+  const sym = { ">=": "≥", "<=": "≤", ">": ">", "<": "<", eq: "=", ne: "≠", in: "in" }[n.op] || n.op;
+  return `${f} ${sym} ${Array.isArray(v) ? v.join(", ") : v}`;
+}
+function ruleView(n, top) {
+  if (!n) return el("span", { class: "muted" }, "–");
+  if (n.all) return el(top ? "div" : "span", { class: top ? "rule" : "grp" }, n.all.map(x => ruleView(x)));
+  if (n.any) return el(top ? "div" : "span", { class: top ? "rule" : "grp" },
+    n.any.flatMap((x, i) => i ? [el("span", { class: "or" }, "or"), ruleView(x)] : [ruleView(x)]));
+  if (n.not) return el("span", { class: "leaf" }, n.not.feature || n.not.token ? "not " + leafText(n.not) : "not (…)");
+  return el("span", { class: "leaf" }, leafText(n));
+}
+
+// ---------------------------------------------------------------- review
 PAGE.playbooks = async (p) => {
   const all = await api("/api/cards");
   const list = [...all.review, ...all.approved, ...all.rejected].filter(s => !run || s.run_id === run || p.name === s.name);
-  const head = [el("h1", {}, "Playbooks: the final card and the human decision"),
-    explain(["The minimal playbook a person needs to judge, with links back to the group, the generator's draft and the analyst's verdict. Below it is ", el("b", {}, "exactly what is stored"), " in the playbook database, and whether the engine's live list can take it yet."],
-      "Two different analysts must approve. A rejection needs a reason. Editing the text clears earlier approvals, so both approve the final words. A card whose rule fails the gates cannot be approved.",
-      [el("span", { class: "mono" }, "review.py · playbooks/review → approved/ · exports/<name>/")])];
-  if (!list.length) return head.concat(el("div", { class: "empty" }, run ? "No playbooks from this run." : "No playbooks yet."));
+  const waiting = list.filter(s => s.state === "review");
+  const head = pageHead("Review", `${waiting.filter(s => s.gates_pass).length} ready · ${waiting.filter(s => !s.gates_pass).length} fail the gates · ${list.filter(s => s.state === "approved").length} approved`);
+  if (!list.length) return [head, el("div", { class: "empty" }, run ? "No playbooks from this run." : "No playbooks yet.")];
+  const order = { review: 0, approved: 1, rejected: 2 };
+  list.sort((a, b) => (order[a.state] - order[b.state]) || (b.gates_pass - a.gates_pass) || ((b.cases || 0) - (a.cases || 0)));
   const cur = p.name && list.find(s => s.name === p.name) ? p.name : list[0].name;
-  const d = await api(`/api/cards/${encodeURIComponent(cur)}`);
-  const yamlText = await api(`/api/cards/${encodeURIComponent(cur)}/yaml`);
-  const c = d.card, s = d.summary, a = c.analyst || {}, msg = el("div");
-  const pick = el("div", { class: "card pick", style: "padding:0" }, list.map(x => el("div", { class: "it" + (x.name === cur ? " on" : ""), onclick: () => go("playbooks", { name: x.name }) },
-    el("div", { class: "n", style: "font-size:13px" }, x.name), el("div", { class: "chips" }, chip(x.state, x.state === "approved" ? "good" : x.state === "rejected" ? "bad" : "warn"), verdictChip(x.verdict),
-      x.state === "review" ? chip(`${x.approvals.length}/${x.needed}`) : null))));
-  const minimal = el("div", { class: "card" },
-    el("div", { class: "row" }, el("span", { class: "mono" }, c.name), kindChip(s.kind, c.misnamed_as), chip(d.state, d.state === "approved" ? "good" : d.state === "rejected" ? "bad" : "warn")),
-    el("h2", { style: "margin-top:6px" }, c.title),
-    el("ol", {}, (c.steps || []).slice(0, 5).map(x => el("li", {}, x))),
-    el("div", { class: "grid2" }, el("div", { class: "advice" }, el("div", { class: "lang" }, "Warning (English)"), c.advice_en), el("div", { class: "advice" }, el("div", { class: "lang" }, "चेतावनी (हिन्दी)"), c.advice_hi)),
-    el("p", {}, el("b", {}, "Rule: "), el("span", { class: "mono" }, c.rule_in_words)),
-    el("div", { class: "row" }, el("b", {}, "Analyst agent: "), verdictChip(a.verdict), a.nearest_playbook ? chip("nearest " + a.nearest_playbook) : null),
-    el("p", { style: "font-size:13px;color:var(--muted)" }, a.rationale || ""),
-    el("div", {}, el("b", {}, "References: "), `${s.cases} complaints in `, ref(s.cluster_id || "group", "hdbscan", { c: s.cluster_id }), " · ",
-      ref("generator's turns", "generator", { c: s.cluster_id }), " · ", ref("analyst's turns", "analyst", { c: s.cluster_id }),
-      " · backtest: ", `${pct((c.backtest || {}).cluster_case_recall)} of the complaints, ${(c.backtest || {}).legit_payments_named_per_1000} legit per 1,000`,
-      (c.gate_failures || []).length ? chip("gates fail", "bad") : chip("gates pass", "good")));
-  const eng = d.engine;
-  const stored = el("div", { class: "card" }, el("h2", {}, "Stored in the playbook database"),
-    el("p", { style: "color:var(--muted)" }, `playbooks/${d.state}/${c.name}.yaml — the full card, its rule at priority ${(c.match || [{}])[0].priority}${c.misnamed_as ? " (just before " + c.misnamed_as + ", which it corrects)" : " (after all known playbooks)"}, the evidence, the backtest, the analyst's verdict, the mule accounts and every review.`),
-    el("details", {}, el("summary", {}, "show the stored YAML"), el("pre", {}, yamlText)),
-    el("h2", { style: "margin-top:12px" }, "Into the engine's live list"),
-    eng.ready ? el("div", {}, el("p", {}, chip("ready", "good"), " ",
-        eng.effect === "warns" ? chip(`warns: raises its payments to T2+ (conditions span ${eng.families.join("+")})`, "good")
-          : chip(`names only: conditions are all family ${eng.families.join("") || "?"}; a warning needs two families (rule 5)`, "warn"),
-        " Paste this entry into data/playbooks/playbooks.yaml where the comment says."),
-        eng.notes.length ? el("ul", { style: "font-size:12.5px;color:var(--muted)" }, eng.notes.map(n => el("li", {}, n))) : null)
-      : el("div", {}, el("p", {}, chip("not yet", "warn"), " The engine needs:"), el("ul", {}, eng.blockers.map(b => el("li", {}, b)))),
-    el("details", {}, el("summary", {}, "entry for data/playbooks/playbooks.yaml"), el("pre", {}, eng.entry)));
-  const revs = (c.reviews || []).concat((c.edits || []).map(e => ({ analyst: e.analyst, decision: "edited " + e.fields.join(", "), at: e.at })));
-  const reviews = el("div", { class: "card" }, el("h2", {}, "Human decisions"),
-    revs.length ? el("ul", {}, revs.map(r => el("li", {}, `${(r.at || "").slice(0, 16)} · ${r.analyst}: ${r.decision}${r.note ? " — " + r.note : ""}`))) : el("p", {}, "No one has reviewed it yet."));
-  if (d.state === "review") {
-    const note = el("textarea", { placeholder: "Note (required to reject)" });
-    const act = async (decision) => {
-      try {
-        const r = await api(`/api/cards/${encodeURIComponent(c.name)}/decision`, { analyst: who.value, decision, note: note.value });
-        put(msg, el("div", { class: "msg ok" }, r.status === "approved" ? "Approved by two analysts: it is now in the playbook database." + (r.engine_entry ? " Engine: " + r.engine_entry : "")
-          : r.status === "rejected" ? "Rejected." : `Recorded (${r.approvals.length}/${r.needed}). It needs another analyst.`));
-        setTimeout(route, 900);
-      } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
-    };
-    const fields = {}, editBox = el("div", { style: "display:none" });
-    for (const k of d.editable) { fields[k] = k === "title" ? el("input", { style: "width:100%" }) : el("textarea", {}); fields[k].value = k === "steps" ? (c.steps || []).join("\n") : (c[k] || ""); editBox.append(el("label", { class: "f" }, k === "steps" ? "steps (one per line)" : k), fields[k]); }
-    editBox.append(el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "primary", onclick: async () => {
-      const body = {}; for (const k of d.editable) body[k] = k === "steps" ? fields[k].value.split("\n").map(x => x.trim()).filter(Boolean) : fields[k].value.trim();
-      try { const r = await api(`/api/cards/${encodeURIComponent(c.name)}/text`, { analyst: who.value, fields: body });
-        put(msg, el("div", { class: "msg ok" }, r.changed.length ? `Saved ${r.changed.join(", ")}.` + (r.approvals_cleared.length ? ` Approvals by ${r.approvals_cleared.join(", ")} were cleared.` : "") : "Nothing changed.")); setTimeout(route, 900);
-      } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); } } }, "Save text")));
-    reviews.append(el("p", {}, "Approve if this is a real scam pattern, the story and warning are right, and the rule is safe for naming it. Your name: ", el("b", {}, who.value || "(type it at the top right)")),
-      note, el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "primary", onclick: () => act("approve") }, "Approve"),
-        el("button", { class: "danger", onclick: () => act("reject") }, "Reject"), el("button", { onclick: () => { editBox.style.display = editBox.style.display === "none" ? "block" : "none"; } }, "Edit the text")), editBox, msg);
+  const [d, yamlText] = await Promise.all([api(`/api/cards/${encodeURIComponent(cur)}`), api(`/api/cards/${encodeURIComponent(cur)}/yaml`)]);
+  const c = d.card, s = d.summary, a = c.analyst || {}, bt = c.backtest || {}, eng = d.engine, msg = el("div");
+  const fails = c.gate_failures || [];
+  const statusOf = x => x.state === "approved" ? chip("approved", "good") : x.state === "rejected" ? chip("rejected", "bad")
+    : x.gates_pass ? chip(`${x.approvals.length}/${x.needed}`, "warn") : chip("fails gates", "bad");
+  const pick = el("div", { class: "card pick" }, list.map(x => el("div", { class: "it" + (x.name === cur ? " on" : ""), onclick: () => go("playbooks", { name: x.name }) },
+    el("span", { class: "n" }, x.name), el("span", { class: "row", style: "gap:6px" }, statusOf(x), el("span", { class: "muted", style: "font-size:12px" }, `${x.cases ?? "?"} complaints`)))));
+
+  // sign-off: the name lives next to the button (an empty name used to fail silently)
+  const name = el("input", { id: "signer", value: who.value, placeholder: "your name", autocomplete: "off", style: "width:100%" });
+  const note = el("textarea", { id: "note", rows: 2, placeholder: "Required to reject" });
+  const approveBtn = el("button", { class: "primary", onclick: () => act("approve") }, "Approve");
+  const rejectBtn = el("button", { class: "danger", onclick: () => act("reject") }, "Reject");
+  const already = new Set((c.reviews || []).map(r => r.analyst));
+  const sync = () => {
+    who.value = name.value; store.set("ruko.analyst", name.value);
+    const n = name.value.trim().toLowerCase();
+    approveBtn.disabled = !n || fails.length > 0 || already.has(n);
+    rejectBtn.disabled = !n || already.has(n);
+    approveBtn.title = !n ? "Type your name first" : already.has(n) ? `${n} already reviewed this` : fails.length ? "Fails the gates" : "";
+  };
+  name.addEventListener("input", sync);
+  const act = async (decision) => {
+    try {
+      const r = await api(`/api/cards/${encodeURIComponent(c.name)}/decision`, { analyst: name.value, decision, note: note.value });
+      put(msg, el("div", { class: "msg ok" }, r.status === "approved" ? "Approved by two analysts." : r.status === "rejected" ? "Rejected." : `Recorded (${r.approvals.length}/${r.needed}). It needs one more analyst.`));
+      setTimeout(route, 800);
+    } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  };
+  const fields = {}, editBox = el("div", { class: "card", style: "display:none" }, el("h2", {}, "Edit the text"));
+  for (const k of d.editable) {
+    fields[k] = k === "title" ? el("input", { style: "width:100%" }) : el("textarea", {});
+    fields[k].value = k === "steps" ? (c.steps || []).join("\n") : (c[k] || "");
+    editBox.append(el("label", { class: "f" }, k === "steps" ? "steps (one per line)" : k.replace("_", " ")), fields[k]);
   }
+  editBox.append(el("div", { class: "row", style: "margin-top:12px" }, el("button", { class: "primary", onclick: async () => {
+    const body = {}; for (const k of d.editable) body[k] = k === "steps" ? fields[k].value.split("\n").map(x => x.trim()).filter(Boolean) : fields[k].value.trim();
+    try { const r = await api(`/api/cards/${encodeURIComponent(c.name)}/text`, { analyst: name.value, fields: body });
+      put(msg, el("div", { class: "msg ok" }, r.changed.length ? `Saved ${r.changed.join(", ")}.` + (r.approvals_cleared.length ? ` Approvals by ${r.approvals_cleared.join(", ")} were cleared.` : "") : "Nothing changed."));
+      setTimeout(route, 800);
+    } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); } } }, "Save text")));
+  const editBtn = el("button", { onclick: () => { editBox.style.display = editBox.style.display === "none" ? "block" : "none"; } }, "Edit text");
+
+  const header = el("div", { class: "head" },
+    el("div", {}, el("div", { class: "sub", style: "margin:0 0 6px" }, ref("Review", "playbooks"), ` / ${s.cluster_id || "–"} · ${s.cases ?? "?"} complaints`),
+      el("h1", { class: "mono", style: "font-size:20px" }, c.name), el("div", { style: "color:var(--ink2);margin-top:4px" }, c.title)),
+    el("div", { class: "acts" },
+      d.state === "review" ? [el("span", { class: "muted", style: "font-size:12px" }, "Sign-off ", el("span", { class: "mono", style: "color:var(--ink)" }, `${s.approvals.length}/${s.needed}`)), editBtn, rejectBtn, approveBtn]
+        : statusOf({ ...s, state: d.state })));
+
+  const effect = !eng.ready ? el("div", { class: "stat" }, el("b", { style: "font:500 15px var(--sans);color:var(--bad)" }, "Not in the engine yet"), el("span", {}, "When approved"), el("small", {}, eng.blockers[0] || ""))
+    : eng.effect === "warns" ? el("div", { class: "stat" }, el("b", { style: "font:500 15px var(--sans);color:var(--good)" }, "Warns the user (T2)"), el("span", {}, "When approved"), el("small", {}, `${eng.families.join(" + ")} signals`))
+    : el("div", { class: "stat" }, el("b", { style: "font:500 15px var(--sans);color:var(--ink2)" }, "Names the scam only"), el("span", {}, "When approved"), el("small", {}, "One signal family (rule 5)"));
+  const kpis = el("section", { class: "kpis", "aria-label": "Effect" },
+    kpi("Complaints it names", pct(bt.cluster_case_recall)),
+    kpi("Scam payments it names", pct(bt.cluster_payment_recall)),
+    kpi("Honest payments flagged", [bt.legit_payments_named_per_1000 ?? "–", el("span", { style: "font-size:13px;color:var(--muted)" }, " / 1,000")]),
+    effect);
+
+  const main = el("div", { class: "main" },
+    fails.length ? el("section", { class: "card alert" }, el("div", { class: "bad", style: "font-weight:600;margin-bottom:4px" }, "Cannot be approved"),
+      el("div", { style: "color:var(--ink2)" }, fails.join("; "))) : null,
+    el("section", { class: "card" }, el("h2", {}, "How it works"),
+      el("ol", { style: "margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;color:var(--ink2)" }, (c.steps || []).slice(0, 6).map(x => el("li", {}, x)))),
+    el("section", { class: "card" }, el("h2", { class: "row" }, "Rule", el("span", { class: "muted", style: "margin-left:auto;font-weight:400;font-size:12px" },
+      (c.match || [{}])[0].rule && (c.match[0].rule.any ? "any group holds" : "all must hold"))), ruleView((c.match || [{}])[0].rule, true)),
+    el("section", { class: "card" }, el("h2", {}, "What the user sees"),
+      el("div", { class: "grid2" }, el("div", { class: "advice" }, el("div", { class: "lang" }, "English"), c.advice_en),
+        el("div", { class: "advice hi" }, el("div", { class: "lang" }, "हिन्दी"), c.advice_hi))),
+    editBox);
+
+  const cited = (c.evidence && c.evidence.cited) || [];
+  const revs = (c.reviews || []).concat((c.edits || []).map(e => ({ analyst: e.analyst, decision: "edited " + e.fields.join(", "), at: e.at })));
+  const signers = (s.approvals || []);
+  const side = el("div", { class: "side" },
+    el("section", { class: "card" }, el("h2", { class: "row" }, "Analyst agent", el("span", { style: "margin-left:auto" }, verdictChip(a.verdict))),
+      el("p", { style: "margin:0;color:var(--ink2);line-height:1.55" }, a.rationale || "–"),
+      el("div", { class: "row", style: "margin-top:12px;font-size:12px" }, ref("Generator's turns", "generator", { c: s.cluster_id }), el("span", { class: "muted" }, "·"),
+        ref("Analyst's turns", "analyst", { c: s.cluster_id }), el("span", { class: "muted" }, "·"), ref("Group", "hdbscan", { c: s.cluster_id }))),
+    el("section", { class: "card" }, el("h2", {}, "Evidence"),
+      cited.length ? el("ul", { class: "ev" }, cited.slice(0, 5).map(e => el("li", {}, el("div", { class: "mono muted" }, e.source), e.fact))) : el("div", { class: "muted" }, "None cited."),
+      (c.mule_accounts || []).length ? el("div", { class: "muted", style: "font-size:12px;border-top:1px solid var(--rowline);padding-top:10px;margin-top:8px" }, `${c.mule_accounts.length} mule accounts`) : null),
+    d.state === "review" ? el("section", { class: "card", "aria-label": "Sign-off" }, el("h2", {}, "Sign-off"),
+      el("div", { style: "display:flex;flex-direction:column;gap:8px;margin-bottom:6px" },
+        [0, 1].map(i => el("div", { class: "signer" }, el("span", { class: "dot" + (signers[i] ? " done" : "") }),
+          signers[i] ? el("span", {}, signers[i]) : el("span", { class: "muted" }, i ? "Second analyst" : "First analyst")))),
+      el("label", { class: "f", for: "signer" }, "Your name"), name,
+      el("label", { class: "f", for: "note" }, "Note"), note, msg)
+      : el("section", { class: "card" }, el("h2", {}, "Decisions"),
+        revs.length ? el("ul", { class: "ev" }, revs.map(r => el("li", {}, el("span", { class: "mono" }, r.analyst), ` ${r.decision}`, r.note ? el("div", { class: "muted", style: "font-size:12px" }, r.note) : null)))
+          : el("div", { class: "muted" }, "No decisions yet.")));
+
+  const more = el("section", { class: "card" }, el("h2", {}, "Stored record"),
+    el("details", {}, el("summary", {}, `playbooks/${d.state}/${c.name}.yaml`), el("pre", {}, yamlText)),
+    el("details", { style: "margin-top:8px" }, el("summary", {}, "Entry for the engine's playbook file"),
+      eng.notes.length ? el("ul", { style: "font-size:12.5px;color:var(--muted)" }, eng.notes.map(n => el("li", {}, n))) : null, el("pre", {}, eng.entry)));
+  sync();
   const checks = d.state === "approved" ? verifyCard(c.name) : null;
-  return head.concat(el("div", { class: "split" }, pick, el("div", {}, minimal, checks, stored, reviews)));
+  return [header, el("div", { class: "split" }, pick, el("div", { style: "display:flex;flex-direction:column;gap:16px;min-width:0" },
+    kpis, el("div", { class: "cols" }, main, side), checks, more))];
 };
 
 // Does RUKO now catch it: verify.py, three checks after two analysts approved.
@@ -729,7 +945,7 @@ const verifyCard = (name) => {
 // ---------------------------------------------------------------- 6 database
 PAGE.database = async () => {
   const d = await api("/api/database");
-  return [el("h1", {}, "Playbook database"),
+  return [el("h1", {}, "Playbooks"),
     explain(["Known playbooks are the engine's own list (", el("span", { class: "mono" }, d.engine_file), "): what RUKO names today, first match wins. Approved playbooks are the ones two analysts accepted from the blue team."],
       "An approved playbook runs after all known ones, except a fix for a misnamed group, which runs just before the playbook it corrects. It only names the scam and its warning; tiers still come from the scorer.",
       [el("span", { class: "mono" }, "engine_file.py · playbook_db.py")]),
@@ -852,7 +1068,7 @@ PAGE.redteam = async (p) => {
   };
   drawTable();
 
-  return [el("h1", {}, "Red team: the attacks"),
+  return [el("h1", {}, "Red team"),
     explain(["Nikunj's ", el("b", {}, "red-team runner"), " (", el("span", { class: "mono" }, "synthetic_playbook/interface_script"), ") plays each scam playbook against the ", el("b", {}, "real RUKO engine"),
              " in its own small world and judges every reply: a threat score of 70 or less is RUKO calling the payment normal. If 75% of a playbook's scam payments come back normal, it is a ",
              el("b", {}, "breakthrough"), ", and his blue-team sink drops it into this team's inbox."],
@@ -897,7 +1113,7 @@ PAGE.scorecard = async () => {
       el("td", {}, r.complaints ? `${r.complaints} (${r.status.missed || 0} / ${r.status.unnamed || 0} / ${r.status.held || 0})` : "0"),
       el("td", {}, outcome(r), r.groups.length ? el("div", { style: "font-size:12px" }, r.groups.slice(0, 3).map((g, i) => [i ? ", " : "", ref(g.group, "hdbscan", { c: g.group }), ` (${g.complaints})`])) : null),
       el("td", {}, r.drafted.length ? r.drafted.map(dd => el("div", {}, ref(dd.playbook, "playbooks", { name: dd.playbook }), " · ", verdictChip(dd.verdict))) : "–"))));
-  return [el("h1", {}, "Scorecard: red team vs blue team"),
+  return [el("h1", {}, "Scorecard"),
     explain(["For every scam playbook in run ", el("span", { class: "mono" }, run), "'s world: how many of its scam payments RUKO interrupted, how many victims complained and where those complaints went, and whether the blue team drafted a playbook for a group it dominates."],
       ["This page is the only one that uses the simulator's ", el("b", {}, "answer key"), " (which journey ran which playbook), to grade the run. The pipeline itself never sees it (CLAUDE.md rule 9). A red-team playbook counts as caught when it is the majority of a group the agents drafted a playbook for."],
       [el("span", { class: "mono" }, "redteam.scorecard() · runs/<id>/payment_tiers.parquet")]),
