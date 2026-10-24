@@ -1,0 +1,28 @@
+[
+  {
+    "user_id": "u_demo_meena",
+    "full_name": "Meena Kulkarni",
+    "mobile": "7423938499",
+    "email": "meena.kulkarni@example.com",
+    "date_of_birth": "1960-06-15",
+    "language": "hi",
+    "region": "Pune",
+    "bank_name": "IndusInd Bank",
+    "account_last4": "1133",
+    "ifsc": "INDB0001133",
+    "upi_id": "7423938499@ibl"
+  },
+  {
+    "user_id": "u_001435",
+    "full_name": "Rahul Yadav",
+    "mobile": "9273227532",
+    "email": "rahul.yadav@example.com",
+    "date_of_birth": "2002-06-15",
+    "language": "en",
+    "region": "Bengaluru",
+    "bank_name": "IndusInd Bank",
+    "account_last4": "1404",
+    "ifsc": "INDB0001404",
+    "upi_id": "rahul.yadav@ibl"
+  }
+]

@@ -120,6 +120,8 @@ def stream(world: Path, out: Path) -> None:
     rows = []
     try:
         for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0):
+            if rec["body"].get("ts"):
+                srv.clock(rec["body"]["ts"])         # the mock services answer as of this message's time
             if rec["kind"] == "episode":
                 srv.post("/v1/episode", rec["body"])
                 continue
@@ -173,8 +175,9 @@ def _watch_policy() -> dict:
 
 def why_missed(r) -> str:
     """Why a scam payment was not stopped, from the engine's own decision."""
-    steps = str(r.get("policy_steps") or "")
-    fam = str(r.get("approved_families") or "")
+    def text(v) -> str:                              # a CSV round trip turns empty cells into NaN
+        return v if isinstance(v, str) else ""
+    steps, fam = text(r.get("policy_steps")), text(r.get("approved_families"))
     if r.get("fail_open"):
         return "the engine failed open (no answer in time)"
     if fam and "+" not in fam:

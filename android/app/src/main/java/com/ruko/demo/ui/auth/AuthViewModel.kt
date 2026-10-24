@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import com.ruko.demo.DemoConfig
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.data.Consents
+import com.ruko.demo.data.DemoUser
+import com.ruko.demo.data.DemoUsers
 import com.ruko.demo.data.Passcode
 import com.ruko.demo.data.PaymentHistory
 import com.ruko.demo.data.PaymentRecord
@@ -98,6 +100,11 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var draftConsents by mutableStateOf(Consents())
     var passcodeFirst by mutableStateOf<String?>(null)
         private set
+
+    // Ready-made accounts from the simulated world; the chosen one fills the draft above.
+    val demoUsers: List<DemoUser> = DemoUsers.load(app)
+    var demoUser by mutableStateOf<DemoUser?>(null)
+        private set
     var busy by mutableStateOf(false)
         private set
 
@@ -109,7 +116,6 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     private var failedAttempts by mutableIntStateOf(0)
     var lockedUntil by mutableLongStateOf(0L)
         private set
-    private var backgroundAt = 0L
 
     init {
         viewModelScope.launch {
@@ -128,13 +134,36 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 if (history != loaded) withContext(historyIo) { store.saveHistory(history) }
                 reportOutcomes()
             }
-            state = if (p == null) AuthState.NeedsSignUp else AuthState.Locked
+            // Demo build: no passcode on every open. The passcode set at sign up stays on the phone.
+            state = if (p == null) AuthState.NeedsSignUp else AuthState.Unlocked
         }
     }
 
     // ---------------- Sign up ----------------
 
-    fun startSignUp() = goTo(SignUpStep.MOBILE)
+    fun startSignUp() {
+        demoUser = null
+        goTo(SignUpStep.MOBILE)
+    }
+
+    /**
+     * Sign up as a user of the simulated world: their details fill the form, and the server is told
+     * this user's id, so it knows their payment history. Only the privacy step and passcode remain.
+     */
+    fun useDemoUser(d: DemoUser) {
+        val (y, m, day) = d.dateOfBirth.split("-")
+        demoUser = d
+        mobile = d.mobile
+        fullName = d.fullName
+        email = d.email
+        dobDay = day; dobMonth = m; dobYear = y
+        language = d.language
+        bankName = d.bankName
+        accountLast4 = d.accountLast4
+        ifsc = d.ifsc
+        upiHandle = d.upiId.substringBefore('@')
+        goTo(SignUpStep.PRIVACY)
+    }
 
     fun sendOtp() {
         if (!Validators.isMobile(mobile)) return fail(AuthError.MOBILE)
@@ -227,7 +256,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             bankName = bankName,
             accountLast4 = accountLast4,
             ifsc = ifsc,
-            upiId = "$upiHandle@cachepay",
+            upiId = demoUser?.upiId ?: "$upiHandle@cachepay",
             pan = pan.ifEmpty { null },
             trustedName = trustedName.trim().ifEmpty { null },
             trustedMobile = trustedMobile.ifEmpty { null },
@@ -238,7 +267,9 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         val agreed = draftConsents.copy(agreedAt = now)
         busy = true
         viewModelScope.launch {
+            val serverUser = demoUser?.userId
             withContext(Dispatchers.IO) {
+                if (serverUser != null) DemoConfig.select(getApplication(), serverUser) else DemoConfig.reset(getApplication())
                 store.saveProfile(newProfile)
                 store.saveConsents(agreed)
                 if (agreed.moneyWatch) ShieldController.enable(getApplication())
@@ -256,7 +287,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         mobile = ""; otpInput = ""; otpSent = null; fullName = ""; email = ""
         dobDay = ""; dobMonth = ""; dobYear = ""; language = "en"; bankName = ""
         accountLast4 = ""; ifsc = ""; upiHandle = ""; pan = ""; trustedName = ""
-        trustedMobile = ""; draftConsents = Consents(); passcodeFirst = null
+        trustedMobile = ""; draftConsents = Consents(); passcodeFirst = null; demoUser = null
         step = SignUpStep.WELCOME; error = null
     }
 
@@ -291,20 +322,6 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
     fun lock() {
         if (profile != null) state = AuthState.Locked
-    }
-
-    fun onBackground() {
-        backgroundAt = SystemClock.elapsedRealtime()
-    }
-
-    /** Lock again if the app was away for longer than [AUTO_LOCK_MS]. */
-    fun onForeground() {
-        if (state == AuthState.Unlocked && backgroundAt > 0 &&
-            SystemClock.elapsedRealtime() - backgroundAt > AUTO_LOCK_MS
-        ) {
-            lock()
-        }
-        backgroundAt = 0
     }
 
     fun updateConsents(new: Consents) {
@@ -442,7 +459,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     /** Delete the account and every stored detail, then start again from sign up. */
     fun deleteAccount() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { store.deleteAll() }
+            withContext(Dispatchers.IO) {
+                store.deleteAll()
+                DemoConfig.reset(getApplication())
+            }
             profile = null
             consents = Consents()
             recentPayees = emptyList()
@@ -476,7 +496,6 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         private const val TAG = "CachePayAuth"
         const val MAX_ATTEMPTS = 5
         const val LOCKOUT_MS = 30_000L
-        const val AUTO_LOCK_MS = 60_000L
         const val MAX_RECENT_PAYEES = 5
         const val MAX_PAYMENTS = 200
         const val PAYMENT_HISTORY_MS = 30L * 24 * 60 * 60_000

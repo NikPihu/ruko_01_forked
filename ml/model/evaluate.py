@@ -74,23 +74,27 @@ def tier_metrics(df: pd.DataFrame, tier: np.ndarray) -> dict:
     }
 
 
-def score_both(df: pd.DataFrame, feats: list[dict]) -> dict[str, list[dict]]:
-    """The rules engine's and the trained model's scores for every row, keyed by model version."""
+def score_both(df: pd.DataFrame, feats: list[dict], guardrail: bool = True) -> dict[str, list[dict]]:
+    """The rules engine's and the trained model's scores for every row, keyed by model version.
+    `guardrail=False` scores the model without the payee guardrail (to compare)."""
     model = predict.load()
-    p_ml, fam_ml = model.score_frame(encode_frame(df))
+    floors = [predict.payee_floor(f) for f in feats] if guardrail else None
+    p_ml, fam_ml = model.score_frame(encode_frame(df), floors)
     playbooks = [rule_scorer._playbook(f) for f in feats]
     ml_scores = [{"p_scam": float(p_ml[i]), "family_scores": {k: float(v[i]) for k, v in fam_ml.items()},
                   "playbook": playbooks[i]} for i in range(len(df))]
     return {rule_scorer.MODEL_VERSION: [rule_scorer.score(f) for f in feats], model.version: ml_scores}
 
 
-def run(table: Path) -> dict:
+def run(table: Path, guardrail: bool = True) -> dict:
     df = pd.read_parquet(table).reset_index(drop=True)
     feats = raw_features(df)
-    both = score_both(df, feats)
+    both = score_both(df, feats, guardrail)
     rule_scores, ml_scores = both[rule_scorer.MODEL_VERSION], both[predict.load().version]
     model = predict.load()
-    out = {"table": str(table), "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum())}
+    out = {"table": str(table), "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum()),
+           "payee_guardrail": guardrail,
+           "guardrail_rows": int(sum(predict.hard_payee_evidence(f) for f in feats)) if guardrail else 0}
     for name, scores in ((rule_scorer.MODEL_VERSION, rule_scores), (model.version, ml_scores)):
         out[name] = {"scores": evaluate(df, np.array([s["p_scam"] for s in scores])),
                      "policy": tier_metrics(df, tiers(df, feats, scores))}
@@ -101,8 +105,9 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--table", type=Path, required=True)
     p.add_argument("--out", type=Path, default=None)
+    p.add_argument("--no-guardrail", action="store_true", help="score the model without the payee guardrail")
     a = p.parse_args()
-    res = run(a.table)
+    res = run(a.table, guardrail=not a.no_guardrail)
     for name in (rule_scorer.MODEL_VERSION, predict.load().version):
         s, t = res[name]["scores"], res[name]["policy"]
         print(f"{name:<12} PR-AUC {s['pr_auc']:.3f} | scam payments interrupted {100 * t['scam_payments_interrupted']:5.1f}% "

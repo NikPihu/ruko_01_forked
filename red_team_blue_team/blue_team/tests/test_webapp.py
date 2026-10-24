@@ -22,7 +22,7 @@ def client(tmp_db, tmp_path):
 def test_page_and_list(tmp_db, tmp_path):
     queued(tmp_db)
     c = client(tmp_db, tmp_path)
-    assert "Blue Team Console" in c.get("/").text
+    assert "RUKO Analyst Console" in c.get("/").text
     lst = c.get("/api/cards").json()
     assert [s["name"] for s in lst["review"]] == ["relative_voice_clone"] and lst["approved"] == []
 

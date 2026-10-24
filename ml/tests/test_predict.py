@@ -149,3 +149,67 @@ def test_kirana_purchase_is_silent(stack, world):
     user = users[(users.region == "Pune") & (users.user_id != DEMO_MEENA)].user_id.iloc[0]
     r = decide(stack[1], None, payee=DEMO_KIRANA_UPI, amount=180, entry="qr", says=None, user=user)
     assert r["tier"] == "T0" and r["reasons"] == []
+
+
+# ---- Payee guardrail (+pg1): hard payee evidence keeps the payee family at the rules' score ----
+
+# The demo mule as the engine saw it on 2026-10-24 (pumped: 66 payers in 7 days, money loop, crowd).
+# The payee model alone scores this 0.30: the training worlds' mules are all small.
+BUSY_MULE = dict(payee_holder_type="person", payee_verified_merchant=False, payee_account_age_days=4.0,
+                 payee_uniq_payers_6h=40, payee_uniq_payers_7d=66, payee_repeat_ratio=0.015,
+                 payee_pass_through_24h=0.943, payee_median_hold_min=6.8, payee_registry_listed=False,
+                 vpa_invalid=False, payee_crowd=True, payee_money_loop=True, payee_forwards_to_cashout=False,
+                 payee_approved_suspect=False)
+
+
+def _raw_payee(f: dict) -> float:
+    """The payee family score without the guardrail."""
+    m = predict.load()
+    x = predict.encode_features(f)
+    fam = m.families["P"]
+    row = [[x.get(c, float("nan")) for c in fam.features]]
+    import numpy as np
+    return m.strength(fam.calibrated(np.array(row, dtype=float)))
+
+
+def test_guardrail_lights_a_busy_mule_with_a_money_loop_and_crowd():
+    f = unknown_features(**BUSY_MULE)
+    assert _raw_payee(f) < predict.LIT              # the gap this guardrail closes
+    s = predict.score(f)
+    assert s["family_scores"]["P"] >= rule_scorer.score(f)["family_scores"]["P"] >= predict.LIT
+    assert {"R3_mule_like_payee", "R11_ring_link"} <= set(s["reasons"])
+    assert s["model_version"].endswith("+pg1")
+
+
+@pytest.mark.parametrize("hard", [{"payee_registry_listed": True}, {"payee_approved_suspect": True},
+                                  {"payee_money_loop": True, "payee_crowd": True}])
+def test_each_kind_of_hard_evidence_lights_the_payee(hard):
+    f = unknown_features(**hard)
+    assert predict.hard_payee_evidence(f)
+    assert predict.score(f)["family_scores"]["P"] >= rule_scorer.score(f)["family_scores"]["P"]
+    assert predict.score(f)["family_scores"]["P"] >= predict.LIT
+
+
+def test_soft_or_unknown_evidence_leaves_the_model_alone():
+    for f in (unknown_features(), unknown_features(payee_crowd=True), unknown_features(payee_money_loop=True),
+              unknown_features(**{**BUSY_MULE, "payee_money_loop": False})):
+        assert predict.payee_floor(f) is None
+        assert predict.score(f)["family_scores"]["P"] == round(_raw_payee(f), 3)
+
+
+def test_guardrail_never_lowers_the_model():
+    f = unknown_features(**{**BUSY_MULE, "payee_uniq_payers_7d": 20, "payee_crowd": True})
+    assert predict.score(f)["family_scores"]["P"] >= round(_raw_payee(f), 3)
+
+
+def test_batch_scoring_applies_the_same_guardrail():
+    import pandas as pd
+    from model.data import encode_frame
+    rows = [unknown_features(**BUSY_MULE), unknown_features(), unknown_features(payee_approved_suspect=True)]
+    df = pd.DataFrame(rows).assign(ts=pd.Timestamp("2026-10-24 12:00", tz="Asia/Kolkata"), amount=1000.0, payer_says=None)
+    m = predict.load()
+    p0, _ = m.score_frame(encode_frame(df))
+    p, fam = m.score_frame(encode_frame(df), [predict.payee_floor(f) for f in rows])
+    for i, f in enumerate(rows):
+        assert fam["P"][i] == pytest.approx(predict.score(f)["family_scores"]["P"], abs=1e-3)
+    assert p[0] > p0[0] and p[2] > p0[2] and p[1] == p0[1]

@@ -245,6 +245,7 @@ data class MoneyReceived(
     @SerialName("amount_inr") val amountInr: Double,
     val ts: String,
     val source: String = "bank_sms",
+    @SerialName("sender_name") val senderName: String? = null, // c2-0.12: the name the bank gave, if any
 )
 
 @Serializable

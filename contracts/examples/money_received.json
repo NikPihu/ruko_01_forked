@@ -1,8 +1,9 @@
 {
   "event_id": "3c9e1f7a-2b44-4d18-9a6e-7f0c2d5b8e31",
   "user_id": "u_demo_meena",
-  "sender_upi_id": "arjun.pandey@okicici",
-  "amount_inr": 500,
-  "ts": "2026-11-07T11:40:51+05:30",
-  "source": "bank_sms"
+  "sender_upi_id": "jag@upi",
+  "amount_inr": 30,
+  "ts": "2026-10-21T16:27:11+05:30",
+  "source": "bank_sms",
+  "sender_name": "JAGDEEP SINGH"
 }

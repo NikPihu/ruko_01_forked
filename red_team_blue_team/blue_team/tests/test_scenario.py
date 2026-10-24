@@ -52,3 +52,9 @@ def test_why_a_scam_payment_was_not_stopped():
     assert w({"inner_name": "refund_qr"}) == "named refund_qr, but the model scored it low"
     assert w({"inner_name": float("nan")}) == "no playbook matched and the model scored it low"
     assert w({"fail_open": True}) == "the engine failed open (no answer in time)"
+
+
+def test_empty_csv_cells_are_not_families():
+    nan = float("nan")
+    assert scenario.why_missed({"approved_families": nan, "policy_steps": nan, "inner_name": nan}) == \
+        "no playbook matched and the model scored it low"

@@ -63,6 +63,8 @@ def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
                                       warmup_days=cfg["world"]["warmup_days"],
                                       normal_sample=cfg["scenario"]["normal_sample"],
                                       only_users=who):
+                if rec["body"].get("ts"):
+                    srv.clock(rec["body"]["ts"])  # the mock services answer as of this message's time
                 if rec["kind"] == "episode":
                     srv.post("/v1/episode", rec["body"])
                     sent["episode"] += 1
