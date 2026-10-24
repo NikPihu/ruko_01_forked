@@ -35,15 +35,18 @@ def _request(row: dict) -> SimpleNamespace:
     return SimpleNamespace(context=ctx, entry_method=row.get("entry_method"))
 
 
-def row_steps(row: dict) -> dict[str, bool | None]:
+def row_steps(row: dict, with_phone: bool = True) -> dict[str, bool | None]:
+    """`with_phone=False`: the phone sent no verdict, so only the server's reading counts."""
     row = {k: _clean(v) for k, v in row.items()}
-    dev = {k: v for k, v in row.items() if k.startswith("dev_")}
+    dev = {k: v for k, v in row.items() if k.startswith("dev_")} if with_phone else {}
     phone = phone_steps(dev) if any(v is not None for v in dev.values()) else {}
     return merge(server_steps(row, _request(row)), phone)
 
 
-def table_steps(df: pd.DataFrame) -> pd.DataFrame:
-    """One row per payment, one column per step (the step id, e.g. `lure:kyc`)."""
+def table_steps(df: pd.DataFrame, with_phone: np.ndarray | None = None) -> pd.DataFrame:
+    """One row per payment, one column per step (the step id, e.g. `lure:kyc`). `with_phone`: per row,
+    whether the phone's verdict (and so its step reading) counts; default all."""
     val = {True: 1.0, False: 0.0, None: np.nan}
-    rows = [row_steps(r) for r in df.to_dict("records")]
+    keep = np.ones(len(df), bool) if with_phone is None else np.asarray(with_phone, bool)
+    rows = [row_steps(r, bool(k)) for r, k in zip(df.to_dict("records"), keep)]
     return pd.DataFrame([[val[r.get(s)] for s in STEP_IDS] for r in rows], columns=list(STEP_IDS), index=df.index)

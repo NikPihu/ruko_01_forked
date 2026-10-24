@@ -64,7 +64,10 @@ def live_features(data_dir, items, monkeypatch) -> list[dict]:
     app = api.main.create_app(data_dir, intel_client=client, intel_cache_ttl_s=0, log_path=None,
                               evidence_async=False, intel_budget_s=60.0)
     seen = []
-    app.state.score = lambda f: (seen.append(dict(f)), rule_scorer.score(f))[1]
+    # The engine features only: lgbm-0.3's extra inputs (steps, the verdict's level and class) are made
+    # from these, the request and the verdict by one function on both sides (features/steps.py).
+    app.state.score = lambda f: (seen.append({k: v for k, v in f.items() if k not in ("steps", "verdict")}),
+                                 rule_scorer.score(f))[1]
     engine = TestClient(app)
     for item in items:
         if item[0] == "episode":

@@ -219,7 +219,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
-        s = app.state.score(feats)
+        # The journey's scam steps, as the server and the phone saw them (contracts/steps.json): inputs
+        # of lgbm-0.3 (with the phone verdict's level and class) and of the playbook search below.
+        dv = req.context.device_verdict if req.context else None
+        steps = merge_steps(server_steps(feats, req), from_verdict(dv))
+        s = app.state.score({**feats, "steps": steps, "verdict": (dv.level, dv.fraud_class) if dv else None})
         if scorer.PLAYBOOK_USES_REQUEST:   # a playbook-0.2 rule reads the request's entry method / payer_says
             s = {**s, "playbook": scorer._playbook({**feats, "entry_method": req.entry_method,
                                                      "payer_says": req.payer_says})}
@@ -227,15 +231,13 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         s = {**s, "playbook_families": scorer.PLAYBOOK_APPROVED.get(s["playbook"])}
         # The phone's fraud class names the scam when the server's playbook matcher found none (c2-0.8),
         # e.g. a WhatsApp "digital arrest" call whose number the phone cannot see.
-        dv = req.context.device_verdict if req.context else None
         if s["playbook"] is None and dv is not None and dv.fraud_class is not None:
             s = {**s, "playbook": dv.fraud_class}
         # RUKO's own cross-user evidence (e.g. a new account many users are paying) counts with any
         # scorer, including the trained model that has not learned it yet (api/overlay.py).
         s = overlay.apply(s, feats, policy.cfg)
-        # Playbook search (plan v3 step 3): the journey's steps, as the server and the phone saw them,
-        # against every known scam written in steps. Recorded for the analyst; no effect on the tier yet.
-        steps = merge_steps(server_steps(feats, req), from_verdict(dv))
+        # Playbook search (plan v3 step 3): the journey's steps against every known scam written in
+        # steps. Recorded for the analyst; no effect on the tier yet.
         s = {**s, "playbook_search": playbook_search.search(steps, playbook_search.PLAYBOOKS)}
         ms["score"] = (time.perf_counter() - t) * 1000
 

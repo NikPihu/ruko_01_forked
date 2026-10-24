@@ -47,6 +47,9 @@ REASON = {
 # trusted_payee is a policy rule; device_* are the phone's own family scores (c2-0.8), whose reasons
 # the phone already chose: they add weight to their family but never name a reason here.
 NOT_A_REASON = {"trusted_payee", "device_c", "device_l", "device_b"}
+VERDICT_NOT_A_REASON = {"dv_level_low", "dv_level_medium", "dv_level_high", "dv_class_digital_arrest",
+                        "dv_class_fake_customer_care", "dv_class_fake_kyc_apk", "dv_class_trading_group",
+                        "dv_class_task_job", "dv_class_refund_qr"}
 
 # The on-device model's features (dataset/device_features.py), for the phone's own reasons.
 DEVICE_REASON = {
@@ -69,3 +72,36 @@ DEVICE_REASON = {
                                           "dev_sess_pay_screen_s", "dev_sess_abandoned_30m")},
 }
 DEVICE_NOT_A_REASON = {"dev_hist_n"}  # how much history the phone has: context, not evidence
+
+# lgbm-0.3: the journey's scam steps (contracts/steps.json), as model.data.step_col names. A step speaks
+# for the reason its kind of evidence already has; the verdict's level and class name none (the phone
+# chose its own reasons).
+_STEP_REASON = {
+    "unknown_call": "R1_live_unknown_call", "voip_call": "R1_live_unknown_call", "video_call": "R1_live_unknown_call",
+    "call_out_to_unknown": "R1_live_unknown_call", "long_call": "R1_live_unknown_call",
+    "foreign_call": "R1_live_unknown_call", "paid_after_call": "R1_live_unknown_call",
+    "caller_in_campaign": "R13_scam_campaign", "in_campaign": "R13_scam_campaign",
+    "bait_credit": "R10_bait_then_pay", "episode_watching": "R10_bait_then_pay", "episode_active": "R10_bait_then_pay",
+    "escalating_payments": "R10_bait_then_pay",
+    "remote_control": "R2_remote_control", "untrusted_accessibility": "R2_remote_control", "sideload_24h": "R2_remote_control",
+    "dictated_amount": "R12_coached_session", "paste_after_switch": "R12_coached_session",
+    "many_app_switches": "R12_coached_session", "long_hesitation": "R12_coached_session",
+    "abandoned_tries": "R12_coached_session",
+    "new_payee": "R6_new_payee_typed", "qr_entry": "R6_new_payee_typed", "contact_entry": "R6_new_payee_typed",
+    "typed_entry": "R6_new_payee_typed",
+    "amount_unusual": "R4_unusual_amount", "amount_small": "R4_unusual_amount", "amount_large": "R4_unusual_amount",
+    "repeat_attempts": "R7_tranche_pattern", "anchor_then_drain": "R7_tranche_pattern", "outflow_burst": "R7_tranche_pattern",
+    "young_account": "R3_mule_like_payee", "many_payers": "R3_mule_like_payee", "pass_through": "R3_mule_like_payee",
+    "mulehunter_high": "R3_mule_like_payee", "new_and_spreading": "R3_mule_like_payee",
+    "registry_listed": "R8_intel_hit", "ring_member": "R11_ring_link", "automated": "R11_ring_link",
+}
+
+
+def _step_reasons() -> dict[str, str]:
+    from features.steps import STAGE
+    from model.data import step_col
+    return {step_col(s): ("R5_lure_message" if STAGE[s] == "lure" else _STEP_REASON[s]) for s in STAGE}
+
+
+STEP_REASON = _step_reasons()
+REASON_V3 = {**REASON, **STEP_REASON}

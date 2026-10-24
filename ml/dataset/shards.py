@@ -12,7 +12,9 @@ Two simulators, so the model does not learn one generator's quirks:
 Sets: `train` (32 shards, the attack playbooks' train half), `calib` (4, train half: thresholds, fusion,
 calibration) and `test` (4: the known scams, and the attack playbooks' test half the model never sees).
 Every shard has its own seed, so no user, mule or journey is shared. Resumable: a shard whose table
-exists is skipped; one replay process per shard (about 15-20 minutes each for 5,000 users x 60 days).
+exists is skipped; one replay process per shard (about 12 minutes for a `sim` shard, more for `v2`).
+Memory: a `v2` replay holds about 5 GB, a `sim` one about 2 GB, so at most V2_AT_ONCE `v2` shards
+replay at the same time and the two kinds are interleaved.
 """
 from __future__ import annotations
 
@@ -21,6 +23,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,6 +36,8 @@ WORLDS = ML / "data" / "worlds" / "v3"
 TABLES = ML / "data" / "tables" / "v3"
 LOGS = ML / "runs" / "shards"
 USERS, DAYS = 5_000, 60
+V2_AT_ONCE = 2
+_V2_SLOTS = threading.BoundedSemaphore(V2_AT_ONCE)
 
 
 def _shards() -> dict[str, dict]:
@@ -92,6 +97,22 @@ def replay(name: str, log=print) -> Path:
     table = TABLES / f"{name}.parquet"
     if table.exists():
         return table
+    with _V2_SLOTS if SHARDS[name]["kind"] == "v2" else _NO_LIMIT:
+        return _replay(name, table, log)
+
+
+class _NoLimit:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+_NO_LIMIT = _NoLimit()
+
+
+def _replay(name: str, table: Path, log) -> Path:
     world = build_world(name, log)
     TABLES.mkdir(parents=True, exist_ok=True)
     LOGS.mkdir(parents=True, exist_ok=True)
@@ -132,9 +153,10 @@ def main() -> None:
         for k in ("table", "world", "-"):
             print(f"{k:6s} {sum(v == k for v in st.values())}")
         return
-    # test and calib first: the model can be evaluated as soon as any training shards are done
+    # test and calib first: the model can be evaluated as soon as any training shards are done;
+    # sim and v2 alternate, so the v2 limit does not leave workers idle
     order = sorted((n for n, s in SHARDS.items() if a.set in ("all", s["set"])),
-                   key=lambda n: ({"test": 0, "calib": 1, "train": 2}[SHARDS[n]["set"]], n))
+                   key=lambda n: ({"test": 0, "calib": 1, "train": 2}[SHARDS[n]["set"]], n[-2:], SHARDS[n]["kind"]))
     t0 = time.perf_counter()
 
     def one(n):

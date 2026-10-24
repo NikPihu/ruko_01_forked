@@ -1,6 +1,10 @@
 """Compare the trained model with the rules engine on a held-out replayed world, through the real policy.
 
     PYTHONPATH=backend;ml;data python -m model.evaluate --table ml/data/tables/dev_test.parquet
+    PYTHONPATH=backend;ml;data python -m model.evaluate --table ml/data/tables/v3/test_*.parquet --model <server_model.json>
+
+Several tables are evaluated as one (ids prefixed per table). `--model` scores another model file
+(default: the one the engine loads); lgbm-0.3 files also get the verdict and step inputs.
 
 Both scorers see the same rows, and both go through backend/api/policy.py (corroboration gate,
 amount caps, alert budget) in time order, so the comparison is in tiers, as the user would feel it.
@@ -74,25 +78,41 @@ def tier_metrics(df: pd.DataFrame, tier: np.ndarray) -> dict:
     }
 
 
-def score_both(df: pd.DataFrame, feats: list[dict], guardrail: bool = True) -> dict[str, list[dict]]:
+def score_both(df: pd.DataFrame, feats: list[dict], guardrail: bool = True,
+               model_path: Path | None = None) -> dict[str, list[dict]]:
     """The rules engine's and the trained model's scores for every row, keyed by model version.
     `guardrail=False` scores the model without the payee guardrail (to compare)."""
-    model = predict.load()
+    model = predict.load(model_path or predict.MODEL_PATH)
     floors = [predict.payee_floor(f) for f in feats] if guardrail else None
-    p_ml, fam_ml = model.score_frame(encode_frame(df), floors)
+    old = isinstance(model, predict.Model) and not model.extra       # lgbm-0.2 reads no steps
+    p_ml, fam_ml = model.score_frame(encode_frame(df, steps=not old), floors)
     playbooks = [rule_scorer._playbook(f) for f in feats]
     ml_scores = [{"p_scam": float(p_ml[i]), "family_scores": {k: float(v[i]) for k, v in fam_ml.items()},
                   "playbook": playbooks[i]} for i in range(len(df))]
     return {rule_scorer.MODEL_VERSION: [rule_scorer.score(f) for f in feats], model.version: ml_scores}
 
 
-def run(table: Path, guardrail: bool = True) -> dict:
-    df = pd.read_parquet(table).reset_index(drop=True)
+def read_tables(tables: list[Path]) -> pd.DataFrame:
+    if len(tables) == 1:
+        return pd.read_parquet(tables[0]).reset_index(drop=True)
+    parts = []
+    for i, t in enumerate(tables):
+        d = pd.read_parquet(t)
+        d["user_id"] = f"w{i}:" + d["user_id"].astype(str)
+        d["journey_id"] = d["journey_id"].map(lambda j, i=i: None if pd.isna(j) else f"w{i}:{j}")
+        parts.append(d)
+    return pd.concat(parts, ignore_index=True)
+
+
+def run(table: Path | list[Path], guardrail: bool = True, model_path: Path | None = None) -> dict:
+    tables = [table] if isinstance(table, (str, Path)) else list(table)
+    df = read_tables([Path(t) for t in tables])
     feats = raw_features(df)
-    both = score_both(df, feats, guardrail)
-    rule_scores, ml_scores = both[rule_scorer.MODEL_VERSION], both[predict.load().version]
-    model = predict.load()
-    out = {"table": str(table), "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum()),
+    model = predict.load(model_path or predict.MODEL_PATH)
+    both = score_both(df, feats, guardrail, model_path)
+    rule_scores, ml_scores = both[rule_scorer.MODEL_VERSION], both[model.version]
+    out = {"table": ";".join(str(t) for t in tables), "model": str(model_path or predict.MODEL_PATH),
+           "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum()),
            "payee_guardrail": guardrail,
            "guardrail_rows": int(sum(predict.hard_payee_evidence(f) for f in feats)) if guardrail else 0}
     for name, scores in ((rule_scorer.MODEL_VERSION, rule_scores), (model.version, ml_scores)):
@@ -103,19 +123,20 @@ def run(table: Path, guardrail: bool = True) -> dict:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--table", type=Path, required=True)
+    p.add_argument("--table", type=Path, nargs="+", required=True)
+    p.add_argument("--model", type=Path, default=None, help="server_model.json to score (default: the engine's)")
     p.add_argument("--out", type=Path, default=None)
     p.add_argument("--no-guardrail", action="store_true", help="score the model without the payee guardrail")
     a = p.parse_args()
-    res = run(a.table, guardrail=not a.no_guardrail)
-    for name in (rule_scorer.MODEL_VERSION, predict.load().version):
+    res = run(a.table, guardrail=not a.no_guardrail, model_path=a.model)
+    for name in (rule_scorer.MODEL_VERSION, predict.load(a.model or predict.MODEL_PATH).version):
         s, t = res[name]["scores"], res[name]["policy"]
         print(f"{name:<12} PR-AUC {s['pr_auc']:.3f} | scam payments interrupted {100 * t['scam_payments_interrupted']:5.1f}% "
               f"(rupees {100 * t['scam_rupees_interrupted']:5.1f}%), paused {100 * t['scam_payments_paused']:5.1f}% | "
               f"catch at 1st payment {100 * (t['pre_loss_catch_T2'] or 0):5.1f}% | "
               f"legit interruptions/1k {t['legit_interruptions_per_1000']:.2f} | "
               f"T3+ precision {100 * (t['T3_precision'] or 0):5.1f}% | tiers {t['tiers']}")
-    out = a.out or Path(__file__).resolve().parents[1] / "runs" / f"evaluate_{a.table.stem}.json"
+    out = a.out or Path(__file__).resolve().parents[1] / "runs" / f"evaluate_{a.table[0].stem}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, indent=2, default=lambda v: None if isinstance(v, float) and math.isnan(v) else v))
     print(f"-> {out}")
