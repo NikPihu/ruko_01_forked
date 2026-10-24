@@ -48,8 +48,21 @@ class ReceivedMoneyTest {
         assertEquals(listOf("arjun.pandey@okicici", null), events.map { it.senderUpiId })
         assertEquals("bank_sms", events[0].source)
         val wire = RukoJson.encodeToString(MoneyReceived.serializer(), events[0])
-        assertEquals(setOf("event_id", "user_id", "sender_upi_id", "amount_inr", "ts", "source"),
+        assertEquals(setOf("event_id", "user_id", "sender_upi_id", "amount_inr", "ts", "source", "sender_name"),
             RukoJson.parseToJsonElement(wire).let { (it as kotlinx.serialization.json.JsonObject).keys })
+    }
+
+    @Test
+    fun theBanksNameForTheSenderReachesHistoryAndTheServer() {
+        val pnb = MoneyTxn(m(1.0), 30.0, Flow.IN, "rahul@upi", fromSms = true, counterpartyName = "RAHUL SHARMA")
+        assertEquals("RAHUL SHARMA", ReceivedPayments.from(WatcherState(history = listOf(pnb))).single().senderName)
+        val event = ReceivedPolicy.events(listOf(pnb), "u_demo_meena") { "e" }.single()
+        assertEquals("RAHUL SHARMA", event.senderName)
+        assertEquals("rahul@upi", event.senderUpiId)
+        // A saved contact's own name wins over the bank's.
+        val contact = MoneyTxn(m(2.0), 30.0, Flow.IN, "9876543210@oksbi", fromSms = true, counterpartyName = "A PANDEY")
+        assertEquals("Arjun Pandey", ReceivedPayments.from(WatcherState(history = listOf(contact)),
+            listOf(SavedContact("Arjun Pandey", "+919876543210"))).single().senderName)
     }
 
     @Test

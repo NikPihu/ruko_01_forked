@@ -23,6 +23,11 @@ function fit(upi: string, w: number) {
   return upi.length > max ? upi.slice(0, max - 1) + "…" : upi;
 }
 
+/** The account as analysts know it: its holder's name (from a bank SMS) and its UPI ID. */
+function labelOf(n: StoryNode): string {
+  return n.marks.name ? `${n.marks.name} · ${n.id}` : n.id;
+}
+
 function warnOf(n: StoryNode): string | undefined {
   if (n.marks.listed) return "Reported";
   if (n.marks.flagged) return "Flagged";
@@ -38,7 +43,7 @@ export function FlowDiagram({ story, onSelect }: { story: Story; onSelect?: (upi
   story.senders.forEach((s) => {
     const l = baitInr.get(s.id);
     const each = l?.users ? `${inr(l.inr / l.users)} each to ` : "rewards to ";
-    add(0, s.id, fit(s.id, COLS[0].w), `${each}${s.users_baited ?? 0} users`, warnOf(s));
+    add(0, s.id, fit(labelOf(s), COLS[0].w), `${each}${s.users_baited ?? 0} users`, warnOf(s));
   });
   if (!story.senders.length) add(0, "_none_s", "None seen", "no “rewards” linked", undefined, true);
 
@@ -47,11 +52,11 @@ export function FlowDiagram({ story, onSelect }: { story: Story; onSelect?: (upi
     [u.baited ? `${u.baited} got rewards` : "", u.paid ? `${u.paid} paid on` : ""].filter(Boolean).join(" · ") || "—");
 
   story.payees.forEach((p) =>
-    add(2, p.id, fit(p.id, COLS[2].w), p.users ? `${p.users} users paid ${inrShort(p.inr ?? 0)}` : "no payments seen", warnOf(p)));
+    add(2, p.id, fit(labelOf(p), COLS[2].w), p.users ? `${p.users} users paid ${inrShort(p.inr ?? 0)}` : "no payments seen", warnOf(p)));
   if (!story.payees.length) add(2, "_none_p", "None seen", "no payee linked yet", undefined, true);
 
   story.cashouts.forEach((c) =>
-    add(3, c.id, fit(c.id, COLS[3].w), `${inrShort(c.inr ?? 0)}${c.hold_min != null ? ` · after ~${Math.round(c.hold_min)} min` : ""}`, warnOf(c)));
+    add(3, c.id, fit(labelOf(c), COLS[3].w), `${inrShort(c.inr ?? 0)}${c.hold_min != null ? ` · after ~${Math.round(c.hold_min)} min` : ""}`, warnOf(c)));
   if (!story.cashouts.length) {
     const hidden = story.flows_visible === null || story.flows_visible === undefined;
     add(3, "_none_c", hidden ? "Not visible" : "None seen", hidden ? "payee's bank doesn't share" : "no onward payments", undefined, true);

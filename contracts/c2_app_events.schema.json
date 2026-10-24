@@ -524,6 +524,19 @@
           "default": "bank_sms",
           "title": "Source",
           "type": "string"
+        },
+        "sender_name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender Name"
         }
       },
       "required": [

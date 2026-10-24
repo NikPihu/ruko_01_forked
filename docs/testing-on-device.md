@@ -3,6 +3,9 @@
 A checklist for trying every app feature end to end on an emulator or phone, with the server
 running on the same laptop. Each test says what to do and what you should see. Tick them off.
 
+To drive a scam from the console instead of typing `adb` commands (a judge plays the scammer, the
+victim uses Cache Pay on the emulator), see [features/scam-lab.md](features/scam-lab.md).
+
 ## 0. Set up (once)
 
 1. **Get the latest code and start the server.**

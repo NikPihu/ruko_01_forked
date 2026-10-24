@@ -93,6 +93,9 @@
     <string name="welcome_title">Welcome to Cache Pay</string>
     <string name="welcome_body">Pay any UPI ID with Scam Shield watching your back. Setting up takes about two minutes.</string>
     <string name="welcome_create">Create account</string>
+    <string name="welcome_demo">Use a demo account</string>
+    <string name="demo_pick_title">Demo accounts</string>
+    <string name="demo_pick_body">People from the simulated world. Scam Shield already knows their payment history.</string>
     <string name="welcome_privacy">Your details are encrypted and stay on this phone.</string>
     <string name="signup_step">Step %1$d of %2$d</string>
     <string name="next">Next</string>
@@ -147,7 +150,7 @@
 
     <string name="passcode_set_title">Set a 6 digit passcode</string>
     <string name="passcode_confirm_title">Enter it again to confirm</string>
-    <string name="passcode_set_body">You will use it to open Cache Pay. It is different from your UPI PIN.</string>
+    <string name="passcode_set_body">You will use it to unlock Cache Pay after you lock it from your profile. It is different from your UPI PIN.</string>
 
     <!-- Login -->
     <string name="login_title">Welcome back, %1$s</string>

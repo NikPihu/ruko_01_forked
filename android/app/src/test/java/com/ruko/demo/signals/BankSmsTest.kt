@@ -48,4 +48,31 @@ class BankSmsTest {
         assertTrue(BankSms.trustedSender("9812345670", allowNumbers = true))
         assertFalse(BankSms.trustedSender(null))
     }
+
+    @Test
+    fun readsTheSendersNameWhenTheAlertGivesIt() {
+        val pnb = BankSms.parse(
+            "A/c X3673 credited for INR 30.00 on 21-10-26 16:27:11 by RAHUL SHARMA (rahul@upi) thru UPI. (UPI:629441147556).-PNB", now,
+        )!!
+        assertEquals(Flow.IN, pnb.flow)
+        assertEquals(30.0, pnb.amount, 0.0)
+        assertEquals("rahul@upi", pnb.counterparty)
+        assertEquals("RAHUL SHARMA", pnb.counterpartyName)
+
+        val after = BankSms.parse("Rs.500.00 credited to A/c XX4821 from arjun.pandey@okicici (ARJUN  PANDEY). Ref 4312", now)!!
+        assertEquals("arjun.pandey@okicici", after.counterparty)
+        assertEquals("ARJUN PANDEY", after.counterpartyName)
+
+        val out = BankSms.parse("INR 1,500.00 debited from A/c XX3210 to PRIME TASKS (prime.task.rewards@ybl) on 06-11-26", now)!!
+        assertEquals(Flow.OUT, out.flow)
+        assertEquals("PRIME TASKS", out.counterpartyName)
+    }
+
+    @Test
+    fun noNameMeansUnknownNotMadeUp() {
+        assertNull(BankSms.parse("Rs.250.00 credited to A/c XX3210 on 06-11-26 by UPI from rahul.k22@ybl. Ref 6312", now)!!.counterpartyName)
+        // "(UPI)" sits where a name could, but is not one.
+        assertNull(BankSms.parse("Rs.250.00 credited to A/c XX3210 from rahul.k22@ybl (UPI). Ref 6312", now)!!.counterpartyName)
+        assertEquals("rahul.k22@ybl", BankSms.parse("Rs.250.00 credited to A/c XX3210 from rahul.k22@ybl (UPI). Ref 6312", now)!!.counterparty)
+    }
 }

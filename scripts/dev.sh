@@ -58,7 +58,7 @@ echo $! > "$PIDS"
 wait_health "http://127.0.0.1:$INTEL_PORT/health"
 echo "mock intel up on $INTEL_PORT"
 
-"$PY" -m api.main --data data --port "$API_PORT" --intel "http://127.0.0.1:$INTEL_PORT" --demo-clock > logs/api.log 2>&1 &
+"$PY" -m api.main --data data --port "$API_PORT" --intel "http://127.0.0.1:$INTEL_PORT" --demo-clock --lab > logs/api.log 2>&1 &
 echo $! >> "$PIDS"
 wait_health "http://127.0.0.1:$API_PORT/health"
 echo "risk API up on $API_PORT"

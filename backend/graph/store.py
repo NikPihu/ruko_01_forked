@@ -4,6 +4,7 @@ Sources (never the simulator's full ledger or its labels):
     /v1/decide      user -> payee, every payment check (one Payment record per request_id)
     /v1/payment/outcome   whether that payment was completed or cancelled (c2-0.6)
     /v1/episode     bait sender -> user, user -> payee (other apps too, through bank SMS)
+    /v1/payment/received  sender -> user, every credit the phone read from a bank SMS (c2-0.12, opt-in)
     payee's bank    payee -> where it forwards money (only when that bank shares)
 RUKO users are pseudonymised; other accounts stay plain because they must be looked up.
 In memory for the demo; a Postgres `edges` table later. Edges older than 30 days are dropped unless
@@ -20,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
+import json
 import statistics
 from pathlib import Path
 
@@ -39,11 +41,16 @@ _CROWD_DEFAULTS = {"bait_users": 5, "episode_users": 3, "fanin_6h": 10, "new_use
                    "new_account_hours": 48, "new_account_min_users": 3, "new_account_max_age_days": 30}
 CROWD = {**_CROWD_DEFAULTS, **(_CFG.get("crowd") or {})}
 
+# The phone's watcher and this graph agree on what a "bait" credit is (rule 6).
+_EPISODE_RULES = Path(__file__).resolve().parents[2] / "contracts" / "episode_rules.json"
+BAIT_MAX_INR = float(json.loads(_EPISODE_RULES.read_text(encoding="utf-8"))["bait_max_inr"])
+
 KEEP = timedelta(days=30)
 CROWD_BAIT_USERS = CROWD["bait_users"]          # distinct users with a bait credit from one account in 7 days
 CROWD_EPISODE_USERS = CROWD["episode_users"]    # distinct users' episodes in which one account was a payee
 CROWD_FANIN_6H = CROWD["fanin_6h"]              # distinct RUKO users paying one account in 6 hours
 MAX_EVENTS_PER_USER_DAY = 20
+MAX_CREDITS_PER_USER_DAY = 50   # received credits one phone may add to the graph per day
 MAX_UNCHECKED_OUTCOMES_PER_USER_DAY = 20   # outcomes for payments the server never checked
 NEW_USER_WEIGHT = CROWD["new_user_weight"]      # crowd votes from users first seen in the last 24 h count for less
 
@@ -181,11 +188,40 @@ class GraphStore:
             seen_at = now - timedelta(minutes=a.first_seen_min_ago)
             self._seen(upi, seen_at)
             if a.role == "bait_sender":
-                self._edge(upi, u, a.inr, seen_at, "episode")
+                e = self.edges.get((upi, u))
+                if e is not None and "received" in e.sources:
+                    # The phone already reported each credit (POST /v1/payment/received): the episode's
+                    # summary of the same money must not count it again.
+                    e.sources.add("episode")
+                else:
+                    self._edge(upi, u, a.inr, seen_at, "episode")
                 self.bait[upi][u] = now
             else:
                 self._edge(u, upi, a.inr, seen_at, "episode")
                 self.episode_payee[upi][u] = now
+        return True
+
+    def add_credit(self, sender: str, user_id: str, inr: float, ts: datetime, name: Optional[str] = None) -> bool:
+        """Money a RUKO user received (POST /v1/payment/received): a sender -> user edge, the sender's
+        name as a mark, and, for a small credit, a bait vote for the crowd signal. False past the
+        daily cap."""
+        u = user_node(user_id)
+        key = (u, "received:" + ts.date().isoformat())
+        self._events_today[key] += 1
+        if self._events_today[key] > MAX_CREDITS_PER_USER_DAY:
+            return False
+        sender = sender.strip().lower()
+        self._seen(u, ts)
+        e = self.edges.get((sender, u))
+        if e is not None and "received" not in e.sources and e.sources <= {"episode"}:
+            # Episode reports are summaries re-sent on each state change; from the first credit the
+            # phone reports, this edge counts the credits themselves, once each.
+            e.n, e.inr = 0, 0.0
+        self._edge(sender, u, inr, ts, "received")
+        if name:
+            self.mark(sender, name=" ".join(name.split()))
+        if inr <= BAIT_MAX_INR:
+            self.bait[sender][u] = max(self.bait[sender].get(u, ts), ts)
         return True
 
     def add_bank_flows(self, account: str, flows: Optional[dict]) -> None:

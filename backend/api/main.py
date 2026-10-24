@@ -81,8 +81,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                intel_budget_s: float = 0.150, intel_cache_ttl_s: float = 10.0,
                log_path: str | Path | None = "logs/decide.jsonl", evidence_async: bool = True,
                demo_clock: bool = False, discover_every_s: float | None = None,
-               db_path: str | Path = ":memory:", scorer_name: str = "rules") -> FastAPI:
-    """`scorer_name`: "rules" (api/rule_scorer.py) or "ml" (the trained LightGBM model in
+               db_path: str | Path = ":memory:", scorer_name: str = "rules", lab: bool = False) -> FastAPI:
+    """`lab`: add the scam lab (/v1/lab/*, demo/lab.py), where a judge plays the scammer against an
+    emulator; off unless asked for (`--lab`).
+    `scorer_name`: "rules" (api/rule_scorer.py) or "ml" (the trained LightGBM model in
     ml/model/predict.py). If the model cannot be loaded, the engine keeps the rules (never fails).
     `db_path`: the transaction database, in memory by default (store/db.py)."""
     client = intel_client or httpx.AsyncClient(base_url=intel_url)
@@ -329,13 +331,16 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     @app.post("/v1/payment/received", response_model=MoneyReceivedResponse)
     def payment_received(m: MoneyReceived) -> MoneyReceivedResponse:
-        """Money the user received, read from a bank SMS on the phone (c2-0.11, opt-in). Stored for the
-        console only: it does not feed /v1/decide or the payment graph. A repeated event_id is not
-        recorded twice."""
+        """Money the user received, read from a bank SMS on the phone (c2-0.11, opt-in). Stored with
+        the sender's name and UPI ID (c2-0.12), and added to the payment graph as a sender -> user edge,
+        so ring detection sees who pays RUKO users. A repeated event_id is not recorded twice."""
         ts = m.ts
         if clock["offset"] is not None:
             ts = datetime.now(m.ts.tzinfo) + clock["offset"]
-        recorded = store.record_received(m.event_id, m.user_id, m.sender_upi_id, m.amount_inr, ts, m.source)
+        recorded = store.record_received(m.event_id, m.user_id, m.sender_upi_id, m.amount_inr, ts, m.source,
+                                         m.sender_name)
+        if recorded and m.sender_upi_id:   # no sender named: nothing to link (rule 1)
+            graph.add_credit(m.sender_upi_id, m.user_id, m.amount_inr, ts, m.sender_name)
         return MoneyReceivedResponse(event_id=m.event_id, recorded=recorded)
 
     @app.post("/v1/episode", response_model=EpisodeEventResponse)
@@ -640,6 +645,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             await sync_clock()
         return {"ok": True}
 
+    if lab:
+        from demo import lab as scam_lab
+        scam_lab.routes(app, data_dir=Path(data_dir), intel_url=intel_url, store=store,
+                        explain_fn=lambda p, d: explain(p, d, policy.cfg), reset_fn=reset)
+
     if CONSOLE_DIST.is_dir():
         app.mount("/console", StaticFiles(directory=CONSOLE_DIST, html=True), name="console")
     else:
@@ -688,9 +698,11 @@ def main() -> None:
                    help="transaction database: in memory (default) or a file to keep the run, e.g. logs/ruko.db")
     p.add_argument("--scorer", choices=("ml", "rules"), default="ml",
                    help="ml: the trained LightGBM model (falls back to rules if missing); rules: rules-only")
+    p.add_argument("--lab", action="store_true",
+                   help="scam lab: the console's 'AI scammer' page sends SMS and calls to an emulator over adb")
     a = p.parse_args()
     uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
-                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer),
+                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer, lab=a.lab),
                 host="0.0.0.0", port=a.port)
 
 

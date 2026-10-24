@@ -58,8 +58,8 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    `ContractTest.kt`, all in the same PR. Unknown fields get HTTP 422 (`extra="forbid"`).
 9. **The engine only sees what RUKO could really see.** It never reads the simulator's ground
    truth (`is_mule`, `label_*`, journeys, full ledger) at decision time. The payment graph is built
-   only from `/v1/decide`, `/v1/episode` and bank flows the visibility setting allows. Ground truth
-   is for scoring in `data/eval/` only. User baselines (`features/user_baseline.py`,
+   only from `/v1/decide`, `/v1/episode`, `/v1/payment/received` and bank flows the visibility
+   setting allows. Ground truth is for scoring in `data/eval/` only. User baselines (`features/user_baseline.py`,
    `Baselines.get(user, at=ts)`) use only payments before the one being judged; keep it that way.
    `eval/session_eval.py` still hides scam payments from the engine's ledger (an old workaround)
    until it is re-run without it.
@@ -70,7 +70,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2`) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2+pg1`) decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -125,10 +125,12 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   counted for the console). The payment graph's `payee_automated` (bot-scale ring: same amount to or
   from many people at a steady rhythm, `policy.yaml` `automation:`) is payee-family evidence (R11).
 - `POST /v1/payment/received` (c2-0.11): a credit the phone's money watch read from a bank SMS (amount,
-  sender UPI ID or null, time; never the text), only with "Share money I receive" on (off by default).
-  Stored in the transaction database's `received` table for the console (`GET /v1/received`, Transactions
-  → Received); it does not feed `/v1/decide` or the payment graph. The app's History shows received
-  money from the phone's own watcher. A message that reads like a scam is never counted as a credit.
+  sender UPI ID or null, time, and from c2-0.12 `sender_name`, e.g. PNB's `by NAME (vpa) thru UPI`;
+  never the text), only with "Share money I receive" on (off by default). Stored in the `received`
+  table (sender plain, receiver pseudonymised) for the console (`GET /v1/received`, Transactions →
+  Received) and, from c2-0.12, in the payment graph as a sender → user edge (credits of
+  `bait_max_inr` or less are bait votes for the crowd signal, payee family). The app's History shows
+  received money from the phone's own watcher. A message that reads like a scam is never a credit.
 - c2-0.13 (same scam, many phones): `WatchEvent.handles` — money handles from a flagged scam
   message (UPI ID plain; link host and call-back number as salted SHA-256, `watch_rules.json
   handle_salt`, `examples/handle_vectors.json` shared with the phone's `signals/Handles.kt`). The
@@ -160,22 +162,24 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
   Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
   bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
-  dismiss), Evaluation (episode, graph, AI-written messages), Explore.
+  dismiss), Evaluation (episode, graph, AI-written messages), Explore, AI scammer (scam lab, `--lab`).
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs
 `api/main.py` scores with the trained model by default (`--scorer ml`): `ml/model/predict.py`
-(`lgbm-0.2`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
+(`lgbm-0.2+pg1`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
 family's `build_features` inputs, including the phone's verdict scores `device_c/l/b`; isotonic
 calibration; a logistic combiner; reasons taken in turns from the lit families; the rules engine's
-playbook matcher). If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
+playbook matcher). Payee guardrail (`+pg1`): with hard payee evidence (registry listed, an approved
+suspect, or a money loop plus a crowd signal) the payee family is at least the rules engine's payee
+score, because the simulated worlds' mules are all small and the model reads 35+ payers a week as a shop. If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
 `api/rule_scorer.py` (`rules-0.7`); `--scorer rules` forces the rules. `GET /health` and evidence
 records report the active scorer's version. `scripts/dev.ps1` / `dev.sh` install LightGBM from
 `ml/requirements.txt`, so the demo runs the trained model. `python -m serve` (`ml/serve.py`) still
 works and does the same.
 
-Held-out world (`dev_test`) through the real policy: 93.7% of scam payments interrupted vs 85.1%
-for `rules-0.7`, 0 vs 6.1 legit interruptions per 1,000 (inflated: the simulated world is too easy,
+Held-out world (`dev_test`) through the real policy: 96.8% of scam payments interrupted (93.7%
+without the guardrail) vs 85.3% for `rules-0.7`, 0 vs 6.3 legit interruptions per 1,000 (inflated: the simulated world is too easy,
 see `data/eval/realism/FINDINGS.md`). Details in `ml/PLAN.md` §0.
 
 ## Run it (Windows)
@@ -187,7 +191,7 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
 
 The script makes `.venv`, generates `data/*.parquet` if missing (`-Regenerate` to rebuild), builds
 the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Node 18+), starts mock
-intel on 8001 and the API with `--demo-clock`, pumps the demo mule (and with `-BaitPump` the bait
+intel on 8001 and the API with `--demo-clock --lab`, pumps the demo mule (and with `-BaitPump` the bait
 account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
 Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
 (8002 on one teammate's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
@@ -239,6 +243,7 @@ mind. Offline episode features for training:
   `/v1/graph/*` (incl. `suspects`, `rings`, `rings/{id}`), `/v1/transactions*`,
   `/v1/payments/{id}/explain`, `/v1/users/{hash}/timeline`, `/v1/metrics/alerts`,
   `/v1/patterns/emerging` + `/v1/patterns/{id}/review`, `/v1/demo/run` + `/v1/demo/results`,
+  `/v1/lab/*` (only with `--lab`, scam lab),
   `/v1/store/stats`, `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
 - Scorer: `python -m api.main --scorer ml` (default) runs the trained model `ml/model/predict.py`
   (`lgbm-*`, needs LightGBM from `ml/requirements.txt`; the dev scripts install it) and falls back
@@ -271,7 +276,9 @@ mind. Offline episode features for training:
   family is lit (rule 5).
 - `store/` (transaction database, export), `api/explain.py`, `api/feedback.py` (feedback, alert
   health), `patterns/emerging.py` (A4, thresholds in `policy.yaml` `emerging:`), `demo/agents.py`
-  (scripted victims for every scam type), `evalsuite/ai_lures.py` (A3, AI-written scam messages
+  (scripted victims for every scam type), `demo/lab.py` (scam lab, `--lab`: a judge sends SMS and
+  calls to the emulator over adb from the console's "AI scammer" page and sees whether the scam
+  worked; four workflows, flagged and quiet), `evalsuite/ai_lures.py` (A3, AI-written scam messages
   test). Each has a page in `docs/features/`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
@@ -306,7 +313,7 @@ mind. Offline episode features for training:
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
   would have seen them (`phone_view.py` sends the c2-0.8 context, including the phone's
   `device_verdict`, and replays the payment graph).
-- `model/train.py`, `predict.py` (`lgbm-0.2`), `reasons.py`, `evaluate.py`, `experiments.py`,
+- `model/train.py`, `predict.py` (`lgbm-0.2+pg1`, payee guardrail), `reasons.py`, `evaluate.py`, `experiments.py`,
   `metrics.py`, `tune.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier;
   `model/device/` trains, scores and names the verdict of the on-device model.
 - Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/device_model.json`

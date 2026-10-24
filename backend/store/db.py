@@ -119,7 +119,8 @@ CREATE TABLE IF NOT EXISTS received (
     sender_upi  TEXT,                  -- null when the bank SMS named no UPI ID
     amount_inr  REAL NOT NULL,
     ts          TEXT NOT NULL,         -- when the bank SMS arrived
-    source      TEXT NOT NULL          -- bank_sms
+    source      TEXT NOT NULL,         -- bank_sms
+    sender_name TEXT                   -- c2-0.12: the account holder's name the bank gave, if any
 );
 CREATE INDEX IF NOT EXISTS received_user ON received(user_hash, ts);
 CREATE INDEX IF NOT EXISTS received_sender ON received(sender_upi, ts);
@@ -156,6 +157,10 @@ class TxnStore:
         self.lock = threading.Lock()
         with self.lock:
             self.db.executescript(SCHEMA)
+            # A database file from c2-0.11 has no sender_name column yet.
+            cols = {r["name"] for r in self.db.execute("PRAGMA table_info(received)")}
+            if "sender_name" not in cols:
+                self.db.execute("ALTER TABLE received ADD COLUMN sender_name TEXT")
 
     # ---------- writes ----------
 
@@ -213,12 +218,15 @@ class TxnStore:
                              _iso(ts)])
 
     def record_received(self, event_id: str, user_id: str, sender_upi: str | None, amount_inr: float,
-                        ts: datetime | str, source: str) -> bool:
-        """Money a user received (c2-0.11). False for a repeated event_id."""
+                        ts: datetime | str, source: str, sender_name: str | None = None) -> bool:
+        """Money a user received (c2-0.11). The sender stays plain (name and UPI ID, it must be looked
+        up); the receiver is pseudonymised (rule 7). False for a repeated event_id."""
         with self.lock, self.db:
-            cur = self.db.execute("INSERT OR IGNORE INTO received VALUES (?,?,?,?,?,?)",
-                                  [event_id, pseudonym(user_id), sender_upi.strip().lower() if sender_upi else None,
-                                   amount_inr, _iso(ts), source])
+            cur = self.db.execute(
+                "INSERT OR IGNORE INTO received (event_id, user_hash, sender_upi, amount_inr, ts, source, sender_name) "
+                "VALUES (?,?,?,?,?,?,?)",
+                [event_id, pseudonym(user_id), sender_upi.strip().lower() if sender_upi else None, amount_inr,
+                 _iso(ts), source, " ".join(sender_name.split()) if sender_name else None])
             return cur.rowcount == 1
 
     def record_case(self, case: dict) -> None:

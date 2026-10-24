@@ -250,12 +250,16 @@ Plain words only, never a score (rule 4). The phone shows them next to its own h
 
 Money the user **received**, as the phone's money watch read it from a bank SMS alert: `event_id`
 (a UUID, one per credit), `user_id`, `sender_upi_id` (the UPI ID the alert named; `null` when it
-named none, rule 1), `amount_inr`, `ts` (when the SMS arrived) and `source` (`bank_sms`). Never the
-SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
+named none, rule 1), `amount_inr`, `ts` (when the SMS arrived), `source` (`bank_sms`) and, from
+c2-0.12, `sender_name` (the account holder's name when the alert gives it, e.g. PNB's
+`... by RAHUL SHARMA (rahul@upi) thru UPI`; `null` otherwise). Never the SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
 "Watch my money alerts" on; a message that reads like a scam script is never counted as a credit.
 Events wait encrypted on the phone until there is a network. Reply: `recorded` (`false` for a
-repeated `event_id`). The server stores it in the transaction database (`received` table, receiver
-pseudonymised) for the console; it does not feed `/v1/decide` or the payment graph.
+repeated `event_id`). The server stores it in the transaction database (`received` table: sender
+name and UPI ID plain, receiver pseudonymised, rule 7) and, from c2-0.12, in the payment graph as a
+sender → user edge with the sender's name as a mark. A credit of `bait_max_inr` or less
+(`episode_rules.json`) also counts as a bait credit, so a sender paying many RUKO users small sums
+becomes crowd evidence (payee family) at payment time. A credit with no sender UPI ID adds no edge.
 
 ## Demo identities (from `data/sim/accounts.py`)
 | Who | ID |
@@ -273,6 +277,7 @@ pseudonymised) for the console; it does not feed `/v1/decide` or the payment gra
 ## Changelog
 - **c2-0.14**: scam steps and lure-0.2. `context.device_verdict` gains `steps_seen` (`[{step, min_ago}]`) and `steps_unmeasured` (`[step]`): the steps of a scam the phone saw, in the shared vocabulary `steps.json` (definitions in `backend/features/steps.py` `phone_steps`, port in `android/.../signals/Steps.kt`, cases in `examples/steps_vectors.json`). A phone step in neither list was measured and not seen; an unmeasured step is never "not seen" (rule 1). `LureTag` gains `other_scam` (a scam outside the five kinds) and `unclear` (no class reached the 0.6 bar; never treated as normal). Example `examples/decide_request_steps.json`. Additive: c2-0.13 and older requests still validate.
 - **c2-0.13**: `WatchEvent.handles` (`Handle {kind: upi|link|phone, value}`): money handles from a flagged scam message, UPI plain and link/number as salted SHA-256 (`watch_rules.json handle_salt`, `examples/handle_vectors.json`). New reason `R13_scam_campaign`: the payee UPI ID, or the caller's number, is being pushed in scam messages to many different users. Additive: c2-0.12 and older requests still validate.
+- **c2-0.12**: `MoneyReceived.sender_name` (optional): the account holder's name from the bank SMS. Received credits now feed the payment graph (sender → user; small ones count as bait credits). Additive: c2-0.11 requests still validate.
 - **c2-0.11**: `POST /v1/payment/received` (`MoneyReceived`, `MoneyReceivedResponse`, in `c2_app_events.schema.json`): credits the phone read from bank SMS, opt-in, stored for the console. Additive: c2-0.10 requests still validate.
 - **c2-0.10**: `call.video` (a VoIP call with the camera in use by another app while paying: a video call, e.g. a deepfake "officer" watching; only that the camera is busy, never images) and `WatchEvent.ai_written` (the scam message looked AI-written; the phone's model, text never leaves). Engine: a video call from an unknown caller strengthens R1 and counts for the digital-arrest playbook; `payee_automated` (bot-scale ring) is payee-family evidence (R11). Additive: c2-0.9 requests still validate.
 - **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.
