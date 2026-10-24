@@ -6,6 +6,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
@@ -16,6 +18,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ruko.demo.MainActivity
 import com.ruko.demo.data.PaymentState
+import com.ruko.demo.shield.ReceivedPayments
+import com.ruko.demo.shield.ShieldController
+import com.ruko.demo.signals.ContactBook
 import com.ruko.demo.signals.Signals
 import com.ruko.demo.ui.alerts.AlertScreen
 import com.ruko.demo.ui.alerts.AlertUser
@@ -197,7 +202,17 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
             MessageCheckScreen(auth.consents, onProfile = { nav.navigate(Routes.PROFILE) }, onBack = { nav.popBackStack() })
         }
         composable(Routes.HISTORY) {
-            HistoryScreen(auth.history, onOpen = { auth.reportOutcomes(); auth.syncHistoryFromServer() }, onBack = { nav.popBackStack() })
+            // Money received: the credits the watcher read from bank SMS (none while it is off).
+            val context = LocalContext.current.applicationContext
+            LaunchedEffect(auth.consents) { ShieldController.refresh(context, auth.consents) }
+            val contacts = remember { ContactBook(context).all().orEmpty() }
+            HistoryScreen(
+                history = auth.history,
+                received = ReceivedPayments.from(ShieldController.live.value?.watcher, contacts),
+                watcherOn = ShieldController.isOn(auth.consents),
+                onOpen = { auth.reportOutcomes(); auth.syncHistoryFromServer() },
+                onBack = { nav.popBackStack() },
+            )
         }
         composable(Routes.DEBUG) {
             DebugPanel(vm, auth.consents, onBack = { nav.popBackStack() }, onPreviewAlert = { tier ->

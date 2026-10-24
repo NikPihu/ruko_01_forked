@@ -172,6 +172,7 @@ object ShieldController {
         val language = accounts.loadProfile()?.language
         r.alerts.forEach { ShieldNotifier.show(context, it, language) }
         if (r.transitions.isNotEmpty()) EventSender.schedule(context)
+        ReceivedSender.report(context, r.fresh)
         Log.i(TAG, "processed ${txns.size} txns, state ${r.data.watcher.episode.state}")
     }
 

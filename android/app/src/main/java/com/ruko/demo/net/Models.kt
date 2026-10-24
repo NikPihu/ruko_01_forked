@@ -4,12 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Mirrors contract c2-0.10: backend/schema/events.py, published in contracts/.
+// Mirrors contract c2-0.11: backend/schema/events.py, published in contracts/.
 // The server rejects unknown fields with HTTP 422, so keys must match exactly; ContractTest
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.10"
+const val CONTRACT_VERSION = "c2-0.11"
 
 @Serializable
 enum class CallKind {
@@ -229,6 +229,27 @@ data class PaymentOutcome(
 data class PaymentOutcomeResponse(
     @SerialName("request_id") val requestId: String,
     val status: PaymentStatus,
+    val recorded: Boolean,
+    @SerialName("contract_version") val contractVersion: String? = null,
+)
+
+// ---------- c2-0.11: money received, read from a bank SMS on this phone ----------
+
+/** POST /v1/payment/received: one credit the money watch read from a bank SMS (never the text). Only
+ * with "Share money received" on. Safe to retry: the server records an event_id once. */
+@Serializable
+data class MoneyReceived(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("sender_upi_id") val senderUpiId: String?, // null: the alert named no UPI ID (unknown)
+    @SerialName("amount_inr") val amountInr: Double,
+    val ts: String,
+    val source: String = "bank_sms",
+)
+
+@Serializable
+data class MoneyReceivedResponse(
+    @SerialName("event_id") val eventId: String,
     val recorded: Boolean,
     @SerialName("contract_version") val contractVersion: String? = null,
 )

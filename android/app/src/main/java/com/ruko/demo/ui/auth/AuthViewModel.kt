@@ -23,6 +23,7 @@ import com.ruko.demo.net.ApiClient
 import com.ruko.demo.net.PaymentOutcome
 import com.ruko.demo.net.PaymentStatus
 import com.ruko.demo.net.RequestBuilder
+import com.ruko.demo.shield.ReceivedSender
 import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.shield.WatchSender
 import com.ruko.demo.signals.Flow
@@ -319,6 +320,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             if (!new.earlyWarnings && old.earlyWarnings) WatchSender.clear(getApplication())
             // Switching sharing off deletes anything still waiting to be sent.
             if (!new.shareAccounts && old.shareAccounts) ShieldController.clearQueue(getApplication())
+            if (!new.shareReceived && old.shareReceived) ReceivedSender.clear(getApplication())
         }
     }
 

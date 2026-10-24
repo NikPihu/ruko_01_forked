@@ -50,6 +50,9 @@ data class Consents(
     @SerialName("money_watch") val moneyWatch: Boolean = false,
     // Send the accounts in a suspicious episode to the server (c2-0.4). Off by default.
     @SerialName("share_accounts") val shareAccounts: Boolean = false,
+    // Send each credit the money watch read from a bank SMS (amount, sender UPI ID, time; never the
+    // text) to the server, for the analyst console (POST /v1/payment/received, c2-0.11). Off by default.
+    @SerialName("share_received") val shareReceived: Boolean = false,
     // How the Pay screen is used (typing rhythm, paste, app switches), counts only (c2-0.5). On by default.
     @SerialName("session_signals") val sessionSignals: Boolean = true,
     // Early warnings to the server before any payment (POST /v1/watch, c2-0.9): scam-message tags,

@@ -345,13 +345,14 @@ private fun ColumnScope.PrivacyStep(vm: AuthViewModel) {
     ConsentRow(R.string.consent_apps, R.string.consent_apps_desc, c.appChecks) { vm.draftConsents = c.copy(appChecks = it) }
     ConsentRow(R.string.consent_session, R.string.consent_session_desc, c.sessionSignals) { vm.draftConsents = c.copy(sessionSignals = it) }
     ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) {
-        vm.draftConsents = c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it)
+        vm.draftConsents = c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it, shareReceived = c.shareReceived && it)
     }
     ConsentRow(R.string.consent_watch, R.string.consent_watch_desc, c.moneyWatch) {
-        vm.draftConsents = c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it)
+        vm.draftConsents = c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it, shareReceived = c.shareReceived && it)
     }
     if (c.moneyWatch) {
         ConsentRow(R.string.consent_share, R.string.consent_share_desc, c.shareAccounts) { vm.draftConsents = c.copy(shareAccounts = it) }
+        ConsentRow(R.string.consent_share_received, R.string.consent_share_received_desc, c.shareReceived) { vm.draftConsents = c.copy(shareReceived = it) }
     }
     // Notification access is granted later, from the profile (it needs Android's Settings screen).
     ConsentRow(R.string.consent_chat, R.string.consent_chat_desc, c.chatLure) { vm.draftConsents = c.copy(chatLure = it) }

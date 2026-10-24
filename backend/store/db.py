@@ -113,6 +113,17 @@ CREATE TABLE IF NOT EXISTS pattern_reviews (
     ts         TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS received (
+    event_id    TEXT PRIMARY KEY,      -- POST /v1/payment/received (c2-0.11), one per credit
+    user_hash   TEXT NOT NULL,         -- the receiver
+    sender_upi  TEXT,                  -- null when the bank SMS named no UPI ID
+    amount_inr  REAL NOT NULL,
+    ts          TEXT NOT NULL,         -- when the bank SMS arrived
+    source      TEXT NOT NULL          -- bank_sms
+);
+CREATE INDEX IF NOT EXISTS received_user ON received(user_hash, ts);
+CREATE INDEX IF NOT EXISTS received_sender ON received(sender_upi, ts);
+
 CREATE TABLE IF NOT EXISTS reviews (
     payee_upi  TEXT NOT NULL,
     reviewer   TEXT NOT NULL,
@@ -201,6 +212,15 @@ class TxnStore:
                             [event_id, pseudonym(user_id), episode_id, trigger, risk, _dumps(accounts), case_id,
                              _iso(ts)])
 
+    def record_received(self, event_id: str, user_id: str, sender_upi: str | None, amount_inr: float,
+                        ts: datetime | str, source: str) -> bool:
+        """Money a user received (c2-0.11). False for a repeated event_id."""
+        with self.lock, self.db:
+            cur = self.db.execute("INSERT OR IGNORE INTO received VALUES (?,?,?,?,?,?)",
+                                  [event_id, pseudonym(user_id), sender_upi.strip().lower() if sender_upi else None,
+                                   amount_inr, _iso(ts), source])
+            return cur.rowcount == 1
+
     def record_case(self, case: dict) -> None:
         with self.lock, self.db:
             self.db.execute("INSERT OR IGNORE INTO cases VALUES (?,?,?,?)",
@@ -235,7 +255,7 @@ class TxnStore:
     def reset(self) -> None:
         with self.lock, self.db:
             for t in ("payments", "decision_details", "feedback", "watch_events", "episode_events", "cases",
-                      "trusted_payees", "reviews", "pattern_reviews"):
+                      "trusted_payees", "reviews", "pattern_reviews", "received"):
                 self.db.execute(f"DELETE FROM {t}")
 
     # ---------- reads ----------
@@ -288,6 +308,23 @@ class TxnStore:
             rows = self.db.execute(sql, [*args, max(1, min(limit, 1000))]).fetchall()
         return [self._payment(r) for r in rows]
 
+    def received(self, user_hash: str | None = None, sender: str | None = None, since: str | None = None,
+                 until: str | None = None, limit: int = 200) -> list[dict]:
+        """Money users received (c2-0.11), newest first, filtered like transactions()."""
+        where, args = ["1=1"], []
+        if user_hash:
+            where.append("user_hash = ?"), args.append(user_hash)
+        if sender:
+            where.append("sender_upi = ?"), args.append(sender.strip().lower())
+        if since:
+            where.append("ts >= ?"), args.append(since)
+        if until:
+            where.append("ts <= ?"), args.append(until)
+        sql = f"SELECT * FROM received WHERE {' AND '.join(where)} ORDER BY ts DESC LIMIT ?"
+        with self.lock:
+            rows = self.db.execute(sql, [*args, max(1, min(limit, 1000))]).fetchall()
+        return [dict(r) for r in rows]
+
     def payments_of(self, user_id: str, limit: int = 100) -> list[dict]:
         """One user's own payments (for the app): plain words only, no scores."""
         keep = ("payment_id", "payee_upi", "amount_inr", "ts", "tier", "reasons", "message_key", "playbook",
@@ -295,7 +332,8 @@ class TxnStore:
         return [{k: p[k] for k in keep} for p in self.transactions(user_hash=pseudonym(user_id), limit=limit)]
 
     def timeline(self, user_hash: str, limit: int = 200) -> list[dict]:
-        """Everything about one (pseudonymous) user in time order: payments, outcomes, feedback, phone events."""
+        """Everything about one (pseudonymous) user in time order: payments, outcomes, money received,
+        feedback, phone events."""
         items: list[dict] = []
         for p in self.transactions(user_hash=user_hash, limit=limit):
             items.append({"ts": p["ts"], "kind": "payment", **p})
@@ -310,6 +348,7 @@ class TxnStore:
         items += [{**dict(r), "watch_kind": r["kind"], "kind": "watch", "detail": json.loads(r["detail"] or "null")}
                   for r in we]
         items += [{"kind": "episode", **{**dict(r), "accounts": json.loads(r["accounts"] or "[]")}} for r in ee]
+        items += [{"kind": "received", **r} for r in self.received(user_hash=user_hash, limit=limit)]
         return sorted(items, key=lambda i: i["ts"])[-limit:]
 
     def lure_counts(self) -> dict:
@@ -335,7 +374,7 @@ class TxnStore:
         with self.lock:
             return {t: self.db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
                     for t in ("payments", "decision_details", "feedback", "watch_events", "episode_events", "cases",
-                              "trusted_payees", "reviews")}
+                              "trusted_payees", "reviews", "received")}
 
     def rows_for_export(self) -> list[dict]:
         """Payments joined with their details, one flat row each (for training data, later)."""

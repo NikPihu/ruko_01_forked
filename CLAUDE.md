@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.10)
+## Contract (current: c2-0.11)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -124,8 +124,13 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   that the camera is busy) and `WatchEvent.ai_written` (a scam message that looked AI-written;
   counted for the console). The payment graph's `payee_automated` (bot-scale ring: same amount to or
   from many people at a steady rhythm, `policy.yaml` `automation:`) is payee-family evidence (R11).
+- `POST /v1/payment/received` (c2-0.11): a credit the phone's money watch read from a bank SMS (amount,
+  sender UPI ID or null, time; never the text), only with "Share money I receive" on (off by default).
+  Stored in the transaction database's `received` table for the console (`GET /v1/received`, Transactions
+  → Received); it does not feed `/v1/decide` or the payment graph. The app's History shows received
+  money from the phone's own watcher. A message that reads like a scam is never counted as a credit.
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.9
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.10
   requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
