@@ -97,7 +97,8 @@ def cases_json(ws: Workspace) -> list[dict]:
 def clusters_json(ws: Workspace) -> list[dict]:
     return [{"cluster_id": c.cluster_id, "kind": c.kind, "cases": c.case_ids, "nearest_playbook": c.nearest_playbook,
              "similarity": c.similarity, "named_share": c.named_share, "top_tokens": c.top_tokens,
-             "baseline_cases": len(c.baseline_ids or []), "reason": c.reason} for c in ws.clusters.clusters]
+             "baseline_cases": len(c.baseline_ids or []), "reason": c.reason, "nearest_top": c.nearest_top}
+            for c in ws.clusters.clusters]
 
 
 def run(table: Path, world: Path, scorer: str = "ml", provider: str | None = None, as_of: pd.Timestamp | None = None,
@@ -200,6 +201,7 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
            refs={"cluster": cid, "card": card["name"], "evidence": rev.get("evidence", [])})
 
         cand = {"run_id": run_id, "cluster": c.__dict__, "overview": ws.overview(cid), "draft": draft, "analyst": rev,
+                "nearest": ws.nearest_signals(cid),
                 "examples": [ws.case(i) for i in c.case_ids[:3]], "mules": ws.mules(cid), "labels": ws.labels(cid)}
         (out / "candidates" / f"{cid}_{card['name']}.json").write_text(
             json.dumps(cand, indent=1, default=str, ensure_ascii=False), encoding="utf-8")
@@ -242,7 +244,11 @@ def queue_card(cand: dict, scorer: str) -> dict:
         "evidence": {"run_id": cand["run_id"], "cluster_id": cand["cluster"]["cluster_id"],
                      "cases": len(cand["cluster"]["case_ids"]), "scorer": scorer,
                      "nearest_known": cand["cluster"]["nearest_playbook"], "similarity": cand["cluster"]["similarity"],
-                     "cited": card.get("evidence", [])},
+                     "cited": card.get("evidence", []),
+                     # for the playbook page's "why it was chosen" trail (console.html)
+                     "status": cand["overview"]["status"], "lost_inr": cand["overview"]["amount_inr"]["total"],
+                     "shared_signals": cand["overview"]["distinctive_tokens"][:5],
+                     "nearest": cand.get("nearest"), "generator_usage": d.get("usage")},
         "backtest": {k: v for k, v in (d["backtest"] or {}).items() if k != "rule_in_words"},
         "rule_in_words": (d["backtest"] or {}).get("rule_in_words"),
         "gate_failures": d["gate_failures"],

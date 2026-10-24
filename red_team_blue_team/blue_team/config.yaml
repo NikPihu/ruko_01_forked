@@ -108,6 +108,9 @@ console:                             # python -m blue_team app: worlds a run can
     sets:
       red_team: red_team_blue_team/red_team/playbooks
       sim_v2: data/sim_v2/config/playbooks
+      generated: red_team_blue_team/red_team/playbook_v2   # the red team's generator writes here
+  red_team_generate:                 # "Generate new playbooks" on the Attack tab (red_team/cli.py, Bedrock)
+    log: ml/runs/redteam_generate.log
   red_team_build:                    # defaults for "Build the red-team world"
     users: 4000
     days: 30
