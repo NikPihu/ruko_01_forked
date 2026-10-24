@@ -172,6 +172,28 @@ score by 10 to 30 points: read these as "works, with errors", and keep the two-a
 
 The agent loop itself is tested with a scripted fake Bedrock client (`tests/`).
 
+## After approval: does RUKO now catch it? (`verify.py`)
+
+Two analysts approving says the story and rule look right; **Verify** (Playbooks page, on an approved
+card, or `python -m blue_team verify <name> [--offline-only] [--retrain]`) measures what approving it
+changes. A playbook only **names** a scam (the warning's words and `threat.fraud_type`); **interrupting**
+(T2+) comes from the model, so the checks keep the two apart:
+
+| Check | Time | What it answers |
+|---|---|---|
+| 1 named, offline | seconds | The engine's playbook file plus this entry (checked by the engine's own parser) over the card's world: share of the scam's payments named, on its own complaints and on payments **nobody complained about** (answer key, evaluation only), legit payments named per 1,000, payments taken from a known playbook. A rule the file format cannot express is measured with the blue-team matcher and flagged |
+| 2 live | ~5 min | Nikunj's runner on the scam's playbooks in a fresh world (`verify.seed`), judged by the engine as it is, with the entry pasted into its file (`RUKO_PLAYBOOKS`), and a **preview** with the rule in the engine's namer and the contract open to new names (`verify_engine.py`). Named, interrupted, called-normal, fail-open, before vs after |
+| 3 retrain | +~10 min | LightGBM retrained on its own training table plus the card's complaint-labelled payments into `exports/<name>/model/` (v0 untouched), then check 2's world again with `RUKO_MODEL` |
+
+Verify runs never write the red-team inbox (the runner's blue-team sink is dropped) or anything in
+`backend/`, `data/` or `ml/model/artifacts/`. Results: `exports/<name>/verify.json`.
+
+What it found on the first cards: only 3 of 39 queued cards can be written in the engine's file
+format today (no `>=` / `<`, no entry method), and a new name fails the contract, which makes the
+engine **fail open** on those payments. So pasting an approved entry before backend asks 1 and 2 would
+weaken RUKO. And `qr_dictated_payment_scam` (LLM run) named 75% of its own complaints but 0% of the
+same scam's payments nobody complained about: an overfitted rule two readers would not have spotted.
+
 ## What other folders need (not done here)
 
 How an approved playbook goes live: `approve` (two analysts) writes
@@ -184,7 +206,9 @@ The blue team reads the engine's file for the known playbooks, so it never judge
 1. **Blocker: open the scam-name list in the contract.** `Threat.fraud_type` and
    `DeviceVerdict.fraud_class` are `FraudType`, a fixed list of six names (c2-0.10), and `threat.fraud_type`
    is the playbook. So *any* new name in `playbooks.yaml` (from the blue team, or from naming an A4
-   emerging pattern) fails validation when the `/v1/decide` response is built. Make it a string
+   emerging pattern) fails validation when the `/v1/decide` response is built, and `decide` then
+   **fails open** (T0, no check) on every payment it names at T1 or above (`verify` measures it,
+   arm `engine_file`). Pasting a new entry before this change makes RUKO weaker. Make it a string
    (snake_case), or keep the list but map unknown names to `null` plus a new `scam_name` field.
    Rule 8: version bump, examples, Models.kt, ContractTest.
 2. **Extend the playbooks-0.1 format** so blue-team rules fit. Of the 24 cards gpt-oss drafted in the

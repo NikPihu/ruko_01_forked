@@ -64,6 +64,11 @@ class RunnerStart(BaseModel):
     rerun: bool = False              # judge again playbooks the inbox already has a verdict for
 
 
+class VerifyStart(BaseModel):
+    live: bool = True                # check 2: Nikunj's runner before / after on a fresh world
+    retrain: bool = False            # check 3: LightGBM retrained with the card's labels
+
+
 class RedBuild(BaseModel):
     source: str = "breakthroughs"    # breakthroughs (the inbox) | all (every red-team playbook)
     users: int | None = None
@@ -105,6 +110,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     building: dict = {"thread": None, "state": "idle", "step": None, "params": None}
     runner: dict = {"thread": None, "state": "idle", "stop": False, "total": 0, "skipped": 0, "done": 0,
                     "running": [], "set": None}
+    verifying: dict = {"thread": None, "state": "idle", "name": None, "log": [], "stop": False}
 
     def load(name: str) -> tuple[dict, str]:
         try:
@@ -304,7 +310,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         from blue_team import inbox as inbox_mod
         rc = config.load()["console"]["red_team_runner"]
         for job, what in ((runner, "the red-team runner is already going"), (building, "the attack world is being built"),
-                          (running, "a blue-team run is going")):
+                          (running, "a blue-team run is going"), (verifying, "a playbook is being verified")):
             if job["thread"] is not None and job["thread"].is_alive():
                 raise HTTPException(409, what)
         if body.playbooks not in rc["sets"]:
@@ -488,6 +494,48 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
             return review.edit_text(name, body.analyst, body.fields, root=root)
         except review.ReviewError as e:
             raise HTTPException(400, str(e)) from None
+
+    def verify_status(name: str) -> dict:
+        from blue_team import verify
+        alive = verifying["thread"] is not None and verifying["thread"].is_alive()
+        mine = verifying["name"] == name
+        return {"state": verifying["state"] if mine else "idle", "running": alive and mine,
+                "busy_with": verifying["name"] if alive and not mine else None,
+                "log": verifying["log"][-60:] if mine else [], "result": verify.load_result(name, exports)}
+
+    @app.get("/api/cards/{name}/verify")
+    def card_verify_status(name: str) -> dict:
+        load(name)
+        return verify_status(name)
+
+    @app.post("/api/cards/{name}/verify")
+    def card_verify(name: str, body: VerifyStart) -> dict:
+        """Does RUKO now catch the scam this approved playbook describes (verify.py)."""
+        from blue_team import verify
+        _, state = load(name)
+        if state != "approved":
+            raise HTTPException(400, f"{name} is {state}: only approved playbooks are verified")
+        for job, what in ((verifying, "a playbook is already being verified"), (runner, "the red-team runner is going"),
+                          (building, "the attack world is being built"), (running, "a blue-team run is going")):
+            if job["thread"] is not None and job["thread"].is_alive():
+                raise HTTPException(409, what)
+
+        def say(line: str):
+            verifying["log"].append(f"{datetime.now().strftime('%H:%M:%S')}  {line}")
+
+        def go():
+            try:
+                verify.verify(name, live_check=body.live, retrain_check=body.retrain, root=root, exports=exports,
+                              runs=runs, repo=repo, log=say, stop=lambda: verifying["stop"])
+                verifying["state"] = "done"
+            except Exception as e:  # noqa: BLE001 (shown on the page)
+                say(f"FAILED: {e}")
+                verifying["state"] = "failed"
+
+        t = threading.Thread(target=go, daemon=True, name=f"verify-{name}")
+        verifying.update(thread=t, state="running", name=name, log=[], stop=False)
+        t.start()
+        return verify_status(name)
 
     @app.post("/api/reset")
     def reset(body: Reset) -> dict:

@@ -81,6 +81,13 @@ analyst_offline:                     # the no-LLM analyst's fixed rules (a basel
 review:
   approvals_needed: 2                # two different analysts (same rule as graph/discover.py)
 
+verify:                              # python -m blue_team verify <name>: does RUKO now catch it (verify.py)
+  seed: 77                           # a fresh world for the live check (the red-team runs used the runner's default)
+  workers: 4                         # runner processes at once
+  users: null                        # runner's own default (300) when null
+  max_targets: 3                     # scam types behind the card's complaints to replay live
+  min_target_share: 0.2              # ... each at least this share of its complaints (else the top one)
+
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
   red_team_runner:                   # Nikunj's interface_script, run from the console over a playbook set
     workers: 4                       # playbooks judged at once (each ~4 min on its own small world)

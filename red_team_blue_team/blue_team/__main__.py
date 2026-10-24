@@ -9,6 +9,7 @@
     python -m blue_team reject  <name> --analyst <you> --note "why"
     python -m blue_team retest  <name> --table ... --data ...   # after editing a queued matcher
     python -m blue_team evaluate --run <runs/run_id> --data <world>   # ground truth, scoring only
+    python -m blue_team verify <name> [--offline-only] [--retrain]    # approved: does RUKO now catch it?
 """
 from __future__ import annotations
 
@@ -53,6 +54,10 @@ def main() -> None:
     e = sub.add_parser("evaluate")
     e.add_argument("--run", type=Path, required=True)
     e.add_argument("--data", type=Path, required=True)
+    v = sub.add_parser("verify", help="an approved playbook: does RUKO now name / interrupt the scam (verify.py)")
+    v.add_argument("name")
+    v.add_argument("--offline-only", action="store_true", help="check 1 only (seconds), no runner")
+    v.add_argument("--retrain", action="store_true", help="also retrain LightGBM with the card's labels (check 3)")
     a = p.parse_args()
 
     if a.cmd == "probe":
@@ -104,6 +109,12 @@ def main() -> None:
         card["gate_failures"] = bt.get("gate_failures", bt.get("errors", []))
         playbook_db.write(card, "review")
         print(json.dumps(bt, indent=1))
+    elif a.cmd == "verify":
+        from blue_team import review, verify
+        try:
+            verify.verify(a.name, live_check=not a.offline_only, retrain_check=a.retrain)
+        except review.ReviewError as err:
+            sys.exit(f"error: {err}")
     elif a.cmd == "evaluate":
         from blue_team import evaluate
         print(json.dumps(evaluate.evaluate(a.run, a.data), indent=1))

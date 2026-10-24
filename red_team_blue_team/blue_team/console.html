@@ -576,7 +576,57 @@ PAGE.playbooks = async (p) => {
       note, el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "primary", onclick: () => act("approve") }, "Approve"),
         el("button", { class: "danger", onclick: () => act("reject") }, "Reject"), el("button", { onclick: () => { editBox.style.display = editBox.style.display === "none" ? "block" : "none"; } }, "Edit the text")), editBox, msg);
   }
-  return head.concat(el("div", { class: "split" }, pick, el("div", {}, minimal, stored, reviews)));
+  const checks = d.state === "approved" ? verifyCard(c.name) : null;
+  return head.concat(el("div", { class: "split" }, pick, el("div", {}, minimal, checks, stored, reviews)));
+};
+
+// Does RUKO now catch it: verify.py, three checks after two analysts approved.
+const verifyCard = (name) => {
+  const box = el("div", { class: "card" }), live = el("input", { type: "checkbox", checked: "checked" }), rt = el("input", { type: "checkbox" });
+  const msg = el("div"), body = el("div"), log = el("pre", { style: "max-height:200px" });
+  const metric = (label, v, title) => el("div", { class: "stat", title: title || "" }, el("b", {}, v), el("span", {}, label));
+  const draw = (s) => {
+    const r = s.result, n = (r || {}).named;
+    put(body,
+      s.running ? el("p", {}, chip("verifying", "warn"), " the log below updates every few seconds") : s.state === "failed" ? el("p", {}, chip("failed", "bad")) : null,
+      s.busy_with ? el("p", {}, chip(`busy verifying ${s.busy_with}`, "warn")) : null,
+      r ? [el("p", { style: "color:var(--muted);font-size:12.5px" }, `last verified ${(r.finished || "").slice(0, 16)} · live world seed ${r.seed}`),
+        el("ul", {}, r.verdict.map(x => el("li", { style: x.includes("BLOCKED") ? "color:var(--bad)" : "" }, x))),
+        n ? el("div", { class: "stats" },
+          metric("of this scam's payments nobody complained about, named", pct(n.named_same_scam_never_complained), "the answer key, evaluation only"),
+          metric("of its own complaints, named", pct(n.named_own_complaints)),
+          metric("legit payments named per 1,000", n.legit_named_per_1000),
+          metric("of this scam interrupted today (T2+)", pct(n.interrupted_today_same_scam), "naming alone does not interrupt; the model does"),
+          metric("engine file", n.format_problems.length ? "not yet" : "ok", n.format_problems.join("; ")),
+          metric("contract names it", n.contract_names_it ? "yes" : "no", "schema FraudType")) : null,
+        r.live ? el("table", {}, el("tr", {}, ["scam type", "engine set-up", "named (engine's decision)", "name shown (T1+ only)", "interrupted (T2+)", "called normal", "false alarms", "fail-open"].map(h => el("th", {}, h))),
+          Object.entries(r.live).flatMap(([t, arms]) => Object.entries(arms).map(([arm, x]) => el("tr", {}, el("td", { class: "mono" }, t), el("td", { title: (r.arms || {})[arm] || "" }, arm.replaceAll("_", " ")),
+            x.error ? el("td", { colspan: 6 }, x.error) : [el("td", {}, pct(x.named)), el("td", {}, pct(x.named_shown)), el("td", {}, pct(x.interrupted)), el("td", {}, pct(x.called_normal)),
+              el("td", {}, (100 * x.false_alarms).toFixed(1) + "%"), el("td", {}, x.fail_open)])))))
+          : null]
+        : el("p", {}, "Not verified yet."));
+    log.textContent = (s.log || []).join("
+");
+    log.style.display = s.log && s.log.length ? "" : "none";
+  };
+  const poll = async () => {
+    if (!document.body.contains(box)) return;
+    try { const s = await api(`/api/cards/${encodeURIComponent(name)}/verify`); draw(s); if (s.running) setTimeout(poll, 3000); }
+    catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  };
+  const start = el("button", { class: "primary", onclick: async () => {
+    try { draw(await api(`/api/cards/${encodeURIComponent(name)}/verify`, { live: live.checked, retrain: rt.checked })); put(msg); setTimeout(poll, 1500); }
+    catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  } }, "Verify");
+  box.append(el("h2", {}, "Does RUKO now catch it?"),
+    explain(["Two analysts said the story and rule are right; this measures what approving it changes. A playbook only ", el("b", {}, "names"), " a scam; ", el("b", {}, "interrupting"), " it is the model's job."],
+            ["1 · named, offline: the engine's playbook file plus this entry over the card's world, including payments nobody complained about. ",
+             "2 · live: Nikunj's runner on the scam's playbooks in a fresh world, the real engine before and with this entry. ",
+             "3 · retrain: LightGBM with this card's complaint labels (a copy; the live model is untouched), then the same live world."],
+      [el("span", { class: "mono" }, "verify.py · exports/<name>/verify.json · python -m blue_team verify <name>")]),
+    el("div", { class: "row" }, el("label", {}, live, " live check (about 5 min)"), el("label", {}, rt, " retrain (adds about 10 min)"), start), msg, body, log);
+  poll();
+  return box;
 };
 
 // ---------------------------------------------------------------- 6 database
