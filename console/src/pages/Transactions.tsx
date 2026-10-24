@@ -10,8 +10,9 @@ const SOURCE_NAME: Record<string, string> = {
   caller_registry: "I4C registry (caller)", payee_fri: "DoT FRI (payee number)", caller_fri: "DoT FRI (caller)",
 };
 
-/** Every payment check RUKO recorded, newest first (the transaction database). */
+/** Every payment check RUKO recorded, or the money users received, newest first (the transaction database). */
 export function Transactions() {
+  const [direction, setDirection] = useState<"sent" | "received">("sent");
   const [minTier, setMinTier] = useState<Tier | "T0">("T0");
   const [status, setStatus] = useState("");
   const { data, error, loading } = useLoad(() => api.transactions({ min_tier: minTier, status, limit: 300 }), [minTier, status]);
@@ -20,9 +21,16 @@ export function Transactions() {
       <div className="page-head">
         <div>
           <h1>Transactions</h1>
-          <p>Every payment check RUKO made, with its decision and what the user did. Open one to see exactly why.</p>
+          <p>{direction === "sent"
+            ? "Every payment check RUKO made, with its decision and what the user did. Open one to see exactly why."
+            : "Money users received, as their phone read it from a bank SMS (only with “Share money I receive” on in the app)."}</p>
         </div>
         <div className="row">
+          <select className="input" value={direction} onChange={(e) => setDirection(e.target.value as "sent" | "received")}>
+            <option value="sent">Sent (payment checks)</option>
+            <option value="received">Received</option>
+          </select>
+          {direction === "sent" && <>
           <select className="input" value={minTier} onChange={(e) => setMinTier(e.target.value as Tier)}>
             {["T0", "T1", "T2", "T3", "T4"].map((t) => <option key={t} value={t}>{t === "T0" ? "All tiers" : `${t} and above`}</option>)}
           </select>
@@ -30,9 +38,10 @@ export function Transactions() {
             <option value="">Any outcome</option>
             {Object.entries(PAYMENT_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+          </>}
         </div>
       </div>
-      {!data ? <Loading error={error} loading={loading} /> : data.count === 0 ? (
+      {direction === "received" ? <ReceivedList /> : !data ? <Loading error={error} loading={loading} /> : data.count === 0 ? (
         <Empty title="No payments yet">Make a payment in the app or run the demo agents.</Empty>
       ) : (
         <Card pad={false}>
@@ -57,6 +66,35 @@ export function Transactions() {
         </Card>
       )}
     </div>
+  );
+}
+
+/** Money users received (c2-0.11): who sent it, to whom, how much. Not a payment check: no decision. */
+function ReceivedList() {
+  const { data, error, loading } = useLoad(() => api.received({ limit: 300 }), []);
+  if (!data) return <Loading error={error} loading={loading} />;
+  if (data.count === 0) {
+    return <Empty title="No money received yet">Turn on “Watch my money alerts” and “Share money I receive” in the app, then receive money (a bank SMS alert).</Empty>;
+  }
+  return (
+    <Card pad={false}>
+      <div className="table-wrap">
+        <table className="list">
+          <thead><tr><th>When</th><th>From</th><th>Received by</th><th className="num">Amount</th><th>Source</th></tr></thead>
+          <tbody>
+            {data.received.map((r) => (
+              <tr key={r.event_id}>
+                <td>{when(r.ts)}</td>
+                <td>{r.sender_upi ? <span className="mono">{r.sender_upi}</span> : <span className="muted">not named in the SMS</span>}</td>
+                <td>{userLabel(r.user_hash)}</td>
+                <td className="num">{inr(r.amount_inr)}</td>
+                <td className="muted">{r.source === "bank_sms" ? "Bank SMS on the phone" : r.source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

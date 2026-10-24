@@ -77,6 +77,19 @@ class ContractTest {
     }
 
     @Test
+    fun moneyReceivedMatchesItsSchema() {
+        val app = Json.parseToJsonElement(File(contracts, "c2_app_events.schema.json").readText()).jsonObject
+        val req = app.getValue("money_received").jsonObject.getValue("request").jsonObject
+        val built = MoneyReceived("e", "u_demo_meena", null, 500.0, RequestBuilder.nowIst())
+        assertFieldsAllowed(RukoJson.encodeToJsonElement(MoneyReceived.serializer(), built).jsonObject, req)
+        val example = Json.parseToJsonElement(example("money_received.json"))
+        val decoded = RukoJson.decodeFromString(MoneyReceived.serializer(), example.toString())
+        assertEquals(normalise(example), normalise(RukoJson.encodeToJsonElement(MoneyReceived.serializer(), decoded)))
+        val resp = strict.decodeFromString(MoneyReceivedResponse.serializer(), example("money_received_response.json"))
+        assertEquals(CONTRACT_VERSION, resp.contractVersion)
+    }
+
+    @Test
     fun myPaymentsNeverCarryAScore() {
         val body = example("me_payments.json")
         val mine = strict.decodeFromString(MyPayments.serializer(), body)

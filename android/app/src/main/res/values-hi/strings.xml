@@ -225,4 +225,14 @@
     <string name="home_server_down_title">स्कैम शील्ड से संपर्क नहीं हो पा रहा</string>
     <string name="home_server_down_body">पेमेंट फिर भी हो जाएँगे, लेकिन सुरक्षा जाँच के बिना। थोड़ी देर में फिर कोशिश करें।</string>
     <string name="home_server_model">सर्वर मॉडल: %1$s</string>
+    <!-- Money received, read by the watcher from bank SMS alerts (History) -->
+    <string name="history_received">मिले</string>
+    <string name="history_received_source">आपके बैंक के SMS से</string>
+    <string name="history_received_note">आपको मिला पैसा भी यहाँ दिखता है: स्कैम शील्ड इसे आपके बैंक के SMS अलर्ट से पढ़ता है और सिर्फ़ रकम, भेजने वाले की UPI आईडी और समय 30 दिन तक रखता है।</string>
+    <string name="history_received_off">मिला पैसा भी यहाँ देखने के लिए प्रोफ़ाइल में \"मेरे पैसों के अलर्ट पर नज़र रखें\" चालू करें।</string>
+    <string name="history_received_unknown_sender">SMS में भेजने वाले का नाम नहीं है</string>
+    <string name="history_from">किससे</string>
+    <string name="history_received_detail">इस फ़ोन पर आपके बैंक के SMS अलर्ट से पढ़ा गया। SMS का टेक्स्ट न रखा जाता है, न भेजा जाता है।</string>
+    <string name="consent_share_received">मुझे मिला पैसा स्कैम शील्ड के साथ साझा करें</string>
+    <string name="consent_share_received_desc">आपके पैसों के अलर्ट में दिखा हर जमा (रकम, भेजने वाले की UPI आईडी और समय) भेजता है, ताकि स्कैम शील्ड के विश्लेषक आने वाला पैसा देख सकें। आपके SMS का टेक्स्ट कभी नहीं।</string>
 </resources>

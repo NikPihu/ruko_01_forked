@@ -29,6 +29,10 @@ interface RukoApi {
     @POST("v1/payment/outcome")
     suspend fun paymentOutcome(@Body outcome: PaymentOutcome): PaymentOutcomeResponse
 
+    /** Money received, read from a bank SMS (c2-0.11), only with "Share money received" on. */
+    @POST("v1/payment/received")
+    suspend fun moneyReceived(@Body received: MoneyReceived): MoneyReceivedResponse
+
     /** What the user did on an alert screen (c2-0.8), sent in the background. */
     @POST("v1/feedback")
     suspend fun feedback(@Body feedback: Feedback): FeedbackResponse

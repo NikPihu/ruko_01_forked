@@ -209,6 +209,16 @@ export interface Transaction {
   outcome_ts: string | null;
 }
 
+/** Money a user received, read from a bank SMS on their phone (c2-0.11, opt-in). */
+export interface Received {
+  event_id: string;
+  user_hash: string;
+  sender_upi: string | null;
+  amount_inr: number;
+  ts: string;
+  source: string;
+}
+
 export interface ExplainReason {
   code: string;
   text: string;
@@ -329,6 +339,10 @@ export const api = {
   transactions: (params: { min_tier?: Tier | "T0"; status?: string; payee?: string; user_hash?: string; limit?: number } = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
     return get<{ count: number; transactions: Transaction[] }>(`/v1/transactions?${q}`);
+  },
+  received: (params: { sender?: string; user_hash?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+    return get<{ count: number; received: Received[] }>(`/v1/received?${q}`);
   },
   explain: (id: string) => get<Explanation>(`/v1/payments/${encodeURIComponent(id)}/explain`),
   alertHealth: () => get<AlertHealth>("/v1/metrics/alerts"),

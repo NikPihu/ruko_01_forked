@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 
 from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
-                           Feedback, FeedbackResponse, MyPayments, PaymentOutcome, PaymentOutcomeResponse,
-                           WatchEvent, WatchEventResponse)
+                           Feedback, FeedbackResponse, MoneyReceived, MoneyReceivedResponse, MyPayments, PaymentOutcome,
+                           PaymentOutcomeResponse, WatchEvent, WatchEventResponse)
 
 OUT = Path(__file__).resolve().parents[2] / "contracts" / "c2_decide.schema.json"
 OUT_EPISODE = OUT.with_name("c2_episode.schema.json")
@@ -48,13 +48,15 @@ def build_outcome_schema() -> dict:
 
 
 def build_app_schema() -> dict:
-    """c2-0.8: alert feedback, watch events and the app's own payment list."""
+    """c2-0.9: alert feedback, watch events and the app's own payment list; c2-0.11: money received."""
     return {
-        "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments",
+        "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments, POST /v1/payment/received",
         "contract_version": CONTRACT_VERSION,
         "feedback": {"request": Feedback.model_json_schema(), "response": FeedbackResponse.model_json_schema()},
         "watch": {"request": WatchEvent.model_json_schema(), "response": WatchEventResponse.model_json_schema()},
         "me_payments": {"response": MyPayments.model_json_schema()},
+        "money_received": {"request": MoneyReceived.model_json_schema(),
+                           "response": MoneyReceivedResponse.model_json_schema()},
     }
 
 

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.ruko.demo.R
 import com.ruko.demo.data.PaymentRecord
 import com.ruko.demo.data.PaymentState
+import com.ruko.demo.shield.ReceivedPayment
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -50,30 +51,102 @@ private val WHEN = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.forL
 private fun whenText(ms: Long): String = WHEN.format(Instant.ofEpochMilli(ms))
 
 /**
- * Every payment started in this app, newest first, each with its payment ID (the request_id the
- * server knows it by), Scam Shield's decision and what the user did. The phone's own record,
- * merged with the server's (GET /v1/me/payments) when the server can be reached.
+ * Every payment started in this app, each with its payment ID (the request_id the server knows it
+ * by), Scam Shield's decision and what the user did; the phone's own record, merged with the
+ * server's (GET /v1/me/payments) when the server can be reached. And, while the money watch is on,
+ * the money received that the watcher read from bank SMS alerts. One list, newest first.
  */
 @Composable
-fun HistoryScreen(history: List<PaymentRecord>, onOpen: () -> Unit, onBack: () -> Unit) {
+fun HistoryScreen(
+    history: List<PaymentRecord>,
+    received: List<ReceivedPayment>,
+    watcherOn: Boolean,
+    onOpen: () -> Unit,
+    onBack: () -> Unit,
+) {
     var open by remember { mutableStateOf<PaymentRecord?>(null) }
+    var openReceived by remember { mutableStateOf<ReceivedPayment?>(null) }
     // Opening the list is a good moment to send any outcome that could not be sent before.
     LaunchedEffect(Unit) { onOpen() }
 
     Screen {
         CacheTopBar(stringResource(R.string.history_title), onBack)
         Text(stringResource(R.string.history_note), style = MaterialTheme.typography.bodyMedium, color = CacheColors.TextSecondary)
-        if (history.isEmpty()) {
+        Text(
+            stringResource(if (watcherOn) R.string.history_received_note else R.string.history_received_off),
+            style = MaterialTheme.typography.bodySmall,
+            color = CacheColors.TextSecondary,
+        )
+        if (history.isEmpty() && received.isEmpty()) {
             Text(
                 stringResource(R.string.history_empty),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.fillMaxWidth().cacheCard().padding(18.dp),
             )
         }
-        history.asReversed().forEach { p -> HistoryRow(p, onClick = { open = p }) }
+        val rows: List<Pair<Long, @Composable () -> Unit>> =
+            history.map { p -> p.ts to @Composable { HistoryRow(p, onClick = { open = p }) } } +
+                received.map { r -> r.ts to @Composable { ReceivedRow(r, onClick = { openReceived = r }) } }
+        rows.sortedByDescending { it.first }.forEach { it.second() }
     }
 
     open?.let { p -> PaymentDetail(p, onClose = { open = null }) }
+    openReceived?.let { r -> ReceivedDetail(r, onClose = { openReceived = null }) }
+}
+
+@Composable
+private fun senderText(r: ReceivedPayment): String =
+    r.senderName ?: r.sender ?: stringResource(R.string.history_received_unknown_sender)
+
+@Composable
+private fun ReceivedRow(r: ReceivedPayment, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().cacheCard().clickable(onClick = onClick).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(Modifier.size(10.dp).clip(CircleShape).background(CacheColors.Success))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(senderText(r), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (r.senderName != null && r.sender != null) {
+                Text(r.sender, style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary, maxLines = 1)
+            }
+            Text(
+                "${whenText(r.ts)} · ${stringResource(R.string.history_received_source)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = CacheColors.TextSecondary,
+            )
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("+" + formatInr(r.amountInr), style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold, color = CacheColors.Success)
+            Text(stringResource(R.string.history_received), style = MaterialTheme.typography.bodySmall, color = CacheColors.Success)
+        }
+    }
+}
+
+@Composable
+private fun ReceivedDetail(r: ReceivedPayment, onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        containerColor = CacheColors.Card,
+        title = { Text("+" + formatInr(r.amountInr), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Field(stringResource(R.string.history_from)) {
+                    Text(listOfNotNull(r.senderName, r.sender).joinToString(" · ")
+                        .ifEmpty { stringResource(R.string.history_received_unknown_sender) })
+                }
+                Field(stringResource(R.string.history_when)) { Text(whenText(r.ts)) }
+                Field(stringResource(R.string.history_status)) {
+                    Text(stringResource(R.string.history_received), color = CacheColors.Success)
+                }
+                Text(stringResource(R.string.history_received_detail), style = MaterialTheme.typography.bodySmall,
+                    color = CacheColors.TextSecondary)
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.history_close)) } },
+    )
 }
 
 @Composable
