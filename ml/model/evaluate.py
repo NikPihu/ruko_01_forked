@@ -125,9 +125,16 @@ def run(table: Path | list[Path], guardrail: bool = True, model_path: Path | Non
            "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum()),
            "payee_guardrail": guardrail,
            "guardrail_rows": int(sum(predict.hard_payee_evidence(f) for f in feats)) if guardrail else 0}
+    # A fusion file's tuned tier bars (model.fusion) replace policy.yaml's until they are copied there.
+    cfg = None
+    fp = Path(fusion_path) if fusion_path else None
+    if fp and fp.exists() and json.loads(fp.read_text()).get("proposed_tiers"):
+        cfg = Policy().cfg
+        cfg["fused"] = {**cfg["fused"], "tiers": json.loads(fp.read_text())["proposed_tiers"]}
+        out["fused_tiers"] = cfg["fused"]["tiers"]
     for name, scores in ((rule_scorer.MODEL_VERSION, rule_scores), (model.version, ml_scores)):
         out[name] = {"scores": evaluate(df, np.array([s["p_scam"] for s in scores])),
-                     "policy": tier_metrics(df, tiers(df, feats, scores))}
+                     "policy": tier_metrics(df, tiers(df, feats, scores, cfg))}
     return out
 
 
