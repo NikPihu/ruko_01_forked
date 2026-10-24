@@ -1,0 +1,95 @@
+{
+  "salt": "ruko-handles-v1",
+  "vectors": [
+    {
+      "kind": "upi",
+      "raw": "Secure.Settlement.Desk@OKAXIS",
+      "normalised": "secure.settlement.desk@okaxis",
+      "wire": "secure.settlement.desk@okaxis"
+    },
+    {
+      "kind": "upi",
+      "raw": " refund.help24@ybl ",
+      "normalised": "refund.help24@ybl",
+      "wire": "refund.help24@ybl"
+    },
+    {
+      "kind": "upi",
+      "raw": "not a upi id",
+      "normalised": null,
+      "wire": null
+    },
+    {
+      "kind": "upi",
+      "raw": "a@b",
+      "normalised": null,
+      "wire": null
+    },
+    {
+      "kind": "link",
+      "raw": "https://WWW.Kyc-Update-Now.example/verify?id=9",
+      "normalised": "kyc-update-now.example",
+      "wire": "sha256:bc7bad2cab68bd87de8eef7473c3d40737c3e34c4335da4f1ed976862d9592fd"
+    },
+    {
+      "kind": "link",
+      "raw": "http://pay.refund-desk.example:8080/claim#x",
+      "normalised": "pay.refund-desk.example",
+      "wire": "sha256:6a1b9e53bda105e312e46e7d270d2afa08d9828ea9878105760bc043c6769eca"
+    },
+    {
+      "kind": "link",
+      "raw": "short.link.invalid/3abcXYZ",
+      "normalised": "short.link.invalid",
+      "wire": "sha256:1b34be45778345ec36c8d8b9c95a3a8eeed057fab6d0829353341e5f73c707b7"
+    },
+    {
+      "kind": "link",
+      "raw": "www.example.invalid",
+      "normalised": "example.invalid",
+      "wire": "sha256:5cceed747d737d78d13387f3eb8f900bc7b169d499bd9237fff0504e3752d5b1"
+    },
+    {
+      "kind": "link",
+      "raw": "localhost",
+      "normalised": null,
+      "wire": null
+    },
+    {
+      "kind": "phone",
+      "raw": "+91 98123 45670",
+      "normalised": "+919812345670",
+      "wire": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+    },
+    {
+      "kind": "phone",
+      "raw": "098123-45670",
+      "normalised": "+919812345670",
+      "wire": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+    },
+    {
+      "kind": "phone",
+      "raw": "919812345670",
+      "normalised": "+919812345670",
+      "wire": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+    },
+    {
+      "kind": "phone",
+      "raw": "9812345670",
+      "normalised": "+919812345670",
+      "wire": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+    },
+    {
+      "kind": "phone",
+      "raw": "+1 (415) 555-0100",
+      "normalised": "+14155550100",
+      "wire": "sha256:115ceeb05b2caacd73f2b32026e30449f00873ed84d6e0614288e1ac370b12af"
+    },
+    {
+      "kind": "phone",
+      "raw": "12345",
+      "normalised": null,
+      "wire": null
+    }
+  ]
+}

@@ -107,6 +107,14 @@ crowd:
   new_account_min_users: 3
   new_account_max_age_days: 30
 
+# Same scam, many phones (graph/campaigns.py): money handles (UPI ID, link host, call-back number)
+# found in scam messages on different phones (c2-0.13 lure_seen handles). A handle that reached
+# min_users different users within window_minutes is "spreading"; entries are kept keep_hours.
+campaign:
+  window_minutes: 60
+  min_users: 3
+  keep_hours: 24
+
 # RUKO's own cross-user evidence, applied after any scorer (also the trained model, which has not
 # learned these features yet): each feature lifts its family to family_floor and adds its reason.
 # The tier is raised to min_tier only when at least corroboration_min_families families are lit,
