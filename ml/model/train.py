@@ -212,8 +212,8 @@ def train_family(tables: list[Path], calib: list[Path] | None = None, seed: int 
     p_cal = 1 / (1 + np.exp(-(intercept + z @ coef)))
     lit = {f: strength(calp[f], prior) >= 0.5 for f in FAMILIES}
     model = {
-        "version": VERSION, "kind": "family", "trained_on": ";".join(str(t) for t in tables),
-        "calibrated_on": ";".join(str(t) for t in calib) if calib else "held-out users",
+        "version": VERSION, "kind": "family", "trained_on": ";".join(Path(t).stem for t in tables),
+        "calibrated_on": ";".join(Path(t).stem for t in calib) if calib else "held-out users",
         "rows": int(len(df)), "scam_payments": int(y.sum()), "scam_journeys": int(df.loc[y, "journey_id"].nunique()),
         "calib_rows": int(len(cal)), "calib_scam_payments": int(yc.sum()),
         "prior": prior, "family_k": FAMILY_K, "verdict_dropout": VERDICT_DROPOUT, "params": PARAMS,
@@ -252,8 +252,8 @@ def train(tables: Path | list[Path], calib: list[Path] | None = None, seed: int 
     prior = float(w[y].sum() / w.sum())
     gain = dict(zip(final.feature_name(), final.feature_importance("gain")))
     model = {
-        "version": VERSION, "kind": "single", "trained_on": ";".join(str(t) for t in tables),
-        "calibrated_on": ";".join(str(t) for t in calib) if calib else "held-out users",
+        "version": VERSION, "kind": "single", "trained_on": ";".join(Path(t).stem for t in tables),
+        "calibrated_on": ";".join(Path(t).stem for t in calib) if calib else "held-out users",
         "rows": int(len(df)), "scam_payments": int(y.sum()), "scam_journeys": int(df.loc[y, "journey_id"].nunique()),
         "calib_rows": int(len(cal)), "calib_scam_payments": int(yc.sum()),
         "prior": prior, "family_k": FAMILY_K, "verdict_dropout": VERDICT_DROPOUT,

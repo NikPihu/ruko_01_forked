@@ -26,7 +26,7 @@ tiers:
 # tuned on the calibration shards for at most 2 honest interruptions (T2+) per 1,000 payments
 # (`python -m model.fusion`); everything below still applies after the tier.
 fused:
-  tiers: {T4: 0.92, T3: 0.80, T2: 0.55, T1: 0.30}
+  tiers: {T4: 0.4478, T3: 0.4478, T2: 0.1088, T1: 0.0121}   # lgbm-0.3+pg1, tuned on the calib shards (ml/model/fusion.py)
   t4_requires_intel_hit: true
   name_min_similarity: 0.6       # the best playbook names the scam (threat.fraud_type) from this similarity
 

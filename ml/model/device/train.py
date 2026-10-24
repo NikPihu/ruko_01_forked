@@ -1,6 +1,6 @@
 """Train the on-device model and ship it: device_model.json + device_vectors.json
 
-    PYTHONPATH=backend;ml;data python -m model.device.train --table ml/data/tables/dev.parquet --test ml/data/tables/dev_test.parquet
+    PYTHONPATH=backend;ml;data python -m model.device.train --table ml/data/tables/v3/train_*.parquet ml/data/tables/v3/calib_*.parquet --test ml/data/tables/v3/test_*.parquet
 
 Three small LightGBM models, one per phone-side family (C calls and remote control, L lures and the
 task-scam episode, B own spending and the Pay screen; dataset/device_features.py), calibrated and
@@ -11,6 +11,10 @@ DeviceModel.kt walk without LightGBM; the export is checked against LightGBM bef
 The local warning (a gentle notice on the phone, never a block; CLAUDE.md rule 10) fires when two
 device families are lit and p_device is at least `min_p`, chosen out of fold so that at most
 1 in 1,000 legit payments would see it.
+
+device-0.2 (plan v3 step 4) trains on the same 36 shards as lgbm-0.3 (about 200,000 users, both
+simulators), and its combiner weights are all >= 0 like the server's (model.train.fit_combiner): more
+evidence from a family never lowers p_device.
 """
 from __future__ import annotations
 
@@ -25,16 +29,15 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.isotonic import IsotonicRegression
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score
 from sklearn.model_selection import GroupKFold
 
 from dataset.device_features import FAMILIES as DEVICE_FAMILIES
 from model.device import score as json_scorer
 from model.reasons import DEVICE_REASON
-from model.train import FAMILY_K, logit, strength
+from model.train import FAMILY_K, fit_combiner, logit, strength
 
-VERSION = "device-0.1"
+VERSION = "device-0.2"
 FAMILIES = ("C", "L", "B")
 PARAMS = dict(objective="binary", learning_rate=0.1, num_leaves=8, max_depth=4, min_data_in_leaf=30,
               feature_fraction=0.9, bagging_fraction=0.8, bagging_freq=1, lambda_l2=1.0, verbose=-1)
@@ -49,6 +52,18 @@ ARTIFACTS = Path(__file__).resolve().parents[1] / "artifacts" / "v0"
 def device_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Rows where the device model runs (dev_amount_log10 is set whenever any group is on)."""
     return df[df["dev_amount_log10"].notna()].reset_index(drop=True)
+
+
+def read(tables: list[Path]) -> pd.DataFrame:
+    """Device rows of one or more replayed tables, only the columns the device model needs; user ids
+    are prefixed per table (two worlds reuse ids)."""
+    cols = sorted({c for f in FAMILIES for c in DEVICE_FAMILIES[f]} | {"dev_amount_log10"})
+    parts = []
+    for i, t in enumerate(tables):
+        d = device_rows(pd.read_parquet(t, columns=[*cols, "label_is_scam", "weight", "user_id", "journey_pay_index", "playbook"]))
+        d["user_id"] = f"w{i}:" + d["user_id"].astype(str)
+        parts.append(d)
+    return pd.concat(parts, ignore_index=True) if len(parts) > 1 else parts[0]
 
 
 def matrix(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
@@ -98,8 +113,8 @@ def fit(df: pd.DataFrame, folds: int = 5, seed: int = 0) -> tuple[dict, dict]:
             for f in FAMILIES}
     cal = {f: isos[f].predict(oof[f]) for f in FAMILIES}
     z = np.column_stack([logit(cal[f]) for f in FAMILIES])
-    comb = LogisticRegression(C=1.0, max_iter=2000).fit(z, y, sample_weight=w)
-    p_oof = comb.predict_proba(z)[:, 1]
+    coef, intercept = fit_combiner(z, y.astype(float), w)
+    p_oof = 1 / (1 + np.exp(-(intercept + z @ coef)))
     lit_count = sum((strength(cal[f], prior) >= LIT).astype(int) for f in FAMILIES)
 
     # Local warning: the lowest min_p that keeps warnings on legit payments within budget.
@@ -119,7 +134,7 @@ def fit(df: pd.DataFrame, folds: int = 5, seed: int = 0) -> tuple[dict, dict]:
                        "_booster": b}
     model = {"version": VERSION, "family_order": list(FAMILIES), "families": families, "prior": prior,
              "family_k": FAMILY_K, "lit": LIT,
-             "combiner": {"coef": comb.coef_[0].tolist(), "intercept": float(comb.intercept_[0])},
+             "combiner": {"coef": coef.tolist(), "intercept": intercept},
              "reasons": {k: v for k, v in DEVICE_REASON.items() if any(k in feats[f] for f in FAMILIES)},
              "max_reasons": MAX_REASONS, "local_warning": {"min_families": 2, "min_p": min_p}}
     warn = (lit_count >= 2) & (p_oof >= min_p)
@@ -206,23 +221,23 @@ def vectors(model: dict, df: pd.DataFrame, seed: int = 0) -> list[dict]:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--table", type=Path, required=True)
-    p.add_argument("--test", type=Path, default=None, help="a held-out world, for the report only")
+    p.add_argument("--table", type=Path, nargs="+", required=True)
+    p.add_argument("--test", type=Path, nargs="*", default=None, help="held-out worlds, for the report only")
     p.add_argument("--out", type=Path, default=ARTIFACTS)
     a = p.parse_args()
     t0 = time.perf_counter()
-    df = device_rows(pd.read_parquet(a.table))
+    df = read(a.table)
     model, report = fit(df)
     worst = check_export(model, df)
     if worst > 1e-9:
         raise SystemExit(f"export check failed: JSON scorer differs from LightGBM by {worst}")
     report["export_max_raw_diff"] = worst
-    if a.test is not None:
-        te = device_rows(pd.read_parquet(a.test))
+    if a.test:
+        te = read(a.test)
         s = booster_scores(model, te)
         y, w = te.label_is_scam.to_numpy(bool), te.weight.to_numpy(float)
         first = y & (te.journey_pay_index == 0).to_numpy()
-        report["held_out"] = {"table": str(a.test), "rows": int(len(te)), "scam_payments": int(y.sum()),
+        report["held_out"] = {"table": ";".join(map(str, a.test)), "rows": int(len(te)), "scam_payments": int(y.sum()),
                               "pr_auc": float(average_precision_score(y, s["p"], sample_weight=w)),
                               "warn_legit_per_1000": float(1000 * w[~y & s["warn"]].sum() / w[~y].sum()),
                               "warn_scam_payments": float(s["warn"][y].mean()),

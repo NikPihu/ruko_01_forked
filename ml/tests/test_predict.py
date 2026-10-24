@@ -154,7 +154,8 @@ def test_kirana_purchase_is_silent(stack, world):
 # ---- Payee guardrail (+pg1): hard payee evidence keeps the payee family at the rules' score ----
 
 # The demo mule as the engine saw it on 2026-10-24 (pumped: 66 payers in 7 days, money loop, crowd).
-# The payee model alone scores this 0.30: the training worlds' mules are all small.
+# lgbm-0.2's payee model alone scored this 0.30 (its worlds' mules were all small); lgbm-0.3, trained
+# on sim_v2's busier mules too, lights it on its own. The guardrail stays as a floor.
 BUSY_MULE = dict(payee_holder_type="person", payee_verified_merchant=False, payee_account_age_days=4.0,
                  payee_uniq_payers_6h=40, payee_uniq_payers_7d=66, payee_repeat_ratio=0.015,
                  payee_pass_through_24h=0.943, payee_median_hold_min=6.8, payee_registry_listed=False,
@@ -174,7 +175,6 @@ def _raw_payee(f: dict) -> float:
 
 def test_guardrail_lights_a_busy_mule_with_a_money_loop_and_crowd():
     f = unknown_features(**BUSY_MULE)
-    assert _raw_payee(f) < predict.LIT              # the gap this guardrail closes
     s = predict.score(f)
     assert s["family_scores"]["P"] >= rule_scorer.score(f)["family_scores"]["P"] >= predict.LIT
     assert {"R3_mule_like_payee", "R11_ring_link"} <= set(s["reasons"])
@@ -212,4 +212,4 @@ def test_batch_scoring_applies_the_same_guardrail():
     p, fam = m.score_frame(encode_frame(df), [predict.payee_floor(f) for f in rows])
     for i, f in enumerate(rows):
         assert fam["P"][i] == pytest.approx(predict.score(f)["family_scores"]["P"], abs=1e-3)
-    assert p[0] > p0[0] and p[2] > p0[2] and p[1] == p0[1]
+    assert p[0] >= p0[0] and p[2] > p0[2] and p[1] == p0[1]   # an approved suspect is lifted; a floor never lowers

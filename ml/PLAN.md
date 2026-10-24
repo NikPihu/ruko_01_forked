@@ -3,7 +3,7 @@
 Owner: ML. Everything here lives in `ml/`. Changes other folders need are in §12.
 
 ## 0. Status
-Branch `feature/threat-analysis` on top of `main` 5fc81a7: contract c2-0.8, engine rules-0.7, server model lgbm-0.2, device model device-0.1.
+Plan v3 (`docs/plan-v3.md`), 25 Oct 2026: contract c2-0.14, server model **lgbm-0.3+pg1** with the fused threat (`fusion.json`), device model **device-0.2**, lure-0.2, both models trained on 40 world shards (`dataset/shards.py`). Results: `docs/plan-v3.md` § Results. The tables below are lgbm-0.2's history.
 
 | | Done | Check |
 |---|---|---|

@@ -289,7 +289,7 @@ def load(path: str | Path = MODEL_PATH) -> Model | SingleModel:
     return SingleModel(spec) if spec.get("kind") == "single" else Model(spec)
 
 
-MODEL_VERSION = "lgbm-0.2+pg1"
+MODEL_VERSION = "lgbm-0.3+pg1"
 
 
 def score(features: dict) -> dict:
