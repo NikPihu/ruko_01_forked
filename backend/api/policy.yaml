@@ -20,6 +20,16 @@ tiers:
   T2: {min_p: 0.50, min_families: 2}                             # explain card, slide to pay
   T1: {min_p: 0.30, min_families: 2}                             # inline tip
 
+# Plan v3 step 5: with the trained model and its fusion file (ml/model/artifacts/v0/fusion.json), the
+# tier comes from the fused threat (model p_scam + the step-based playbook search, api/threat.py) and the
+# two-families gate above does not apply. The rules fallback still uses `tiers:` above. Thresholds are
+# tuned on the calibration shards for at most 2 honest interruptions (T2+) per 1,000 payments
+# (`python -m model.fusion`); everything below still applies after the tier.
+fused:
+  tiers: {T4: 0.92, T3: 0.80, T2: 0.55, T1: 0.30}
+  t4_requires_intel_hit: true
+  name_min_similarity: 0.6       # the best playbook names the scam (threat.fraud_type) from this similarity
+
 # A playbook two analysts approved (blue team: red_team_blue_team/blue_team, `approved_by` in
 # data/playbooks/playbooks.yaml) labels the payment as that scam and raises it to at least this tier,
 # even when the model scored it low: the model cannot learn a scam it has never seen. Rule 5 holds

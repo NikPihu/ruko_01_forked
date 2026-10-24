@@ -79,16 +79,25 @@ def tier_metrics(df: pd.DataFrame, tier: np.ndarray) -> dict:
 
 
 def score_both(df: pd.DataFrame, feats: list[dict], guardrail: bool = True,
-               model_path: Path | None = None) -> dict[str, list[dict]]:
+               model_path: Path | None = None, fusion_path: Path | None = None) -> dict[str, list[dict]]:
     """The rules engine's and the trained model's scores for every row, keyed by model version.
-    `guardrail=False` scores the model without the payee guardrail (to compare)."""
+    `guardrail=False` scores the model without the payee guardrail (to compare). A model with a fusion
+    file (api/threat.py) also gets the fused `threat`, so the policy decides in fused mode, as live."""
+    from api import threat as threat_mod
     model = predict.load(model_path or predict.MODEL_PATH)
     floors = [predict.payee_floor(f) for f in feats] if guardrail else None
     old = isinstance(model, predict.Model) and not model.extra       # lgbm-0.2 reads no steps
-    p_ml, fam_ml = model.score_frame(encode_frame(df, steps=not old), floors)
+    x = encode_frame(df, steps=not old)
+    p_ml, fam_ml = model.score_frame(x, floors)
     playbooks = [rule_scorer._playbook(f) for f in feats]
     ml_scores = [{"p_scam": float(p_ml[i]), "family_scores": {k: float(v[i]) for k, v in fam_ml.items()},
                   "playbook": playbooks[i]} for i in range(len(df))]
+    fz = None if old else threat_mod.load(model.version, fusion_path or threat_mod.PATH)
+    if fz is not None:
+        from model.fusion import best_matches
+        sims, _ = best_matches(x)
+        for i, s in enumerate(ml_scores):
+            s["threat"] = fz.threat(s["p_scam"], float(sims[i]))[0]
     return {rule_scorer.MODEL_VERSION: [rule_scorer.score(f) for f in feats], model.version: ml_scores}
 
 
@@ -104,12 +113,13 @@ def read_tables(tables: list[Path]) -> pd.DataFrame:
     return pd.concat(parts, ignore_index=True)
 
 
-def run(table: Path | list[Path], guardrail: bool = True, model_path: Path | None = None) -> dict:
+def run(table: Path | list[Path], guardrail: bool = True, model_path: Path | None = None,
+        fusion_path: Path | None = None) -> dict:
     tables = [table] if isinstance(table, (str, Path)) else list(table)
     df = read_tables([Path(t) for t in tables])
     feats = raw_features(df)
     model = predict.load(model_path or predict.MODEL_PATH)
-    both = score_both(df, feats, guardrail, model_path)
+    both = score_both(df, feats, guardrail, model_path, fusion_path)
     rule_scores, ml_scores = both[rule_scorer.MODEL_VERSION], both[model.version]
     out = {"table": ";".join(str(t) for t in tables), "model": str(model_path or predict.MODEL_PATH),
            "rows": int(len(df)), "scam_payments": int(df.label_is_scam.sum()),
@@ -125,10 +135,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--table", type=Path, nargs="+", required=True)
     p.add_argument("--model", type=Path, default=None, help="server_model.json to score (default: the engine's)")
+    p.add_argument("--fusion", type=Path, default=None, help="fusion.json for that model (default: the engine's)")
     p.add_argument("--out", type=Path, default=None)
     p.add_argument("--no-guardrail", action="store_true", help="score the model without the payee guardrail")
     a = p.parse_args()
-    res = run(a.table, guardrail=not a.no_guardrail, model_path=a.model)
+    res = run(a.table, guardrail=not a.no_guardrail, model_path=a.model, fusion_path=a.fusion)
     for name in (rule_scorer.MODEL_VERSION, predict.load(a.model or predict.MODEL_PATH).version):
         s, t = res[name]["scores"], res[name]["policy"]
         print(f"{name:<12} PR-AUC {s['pr_auc']:.3f} | scam payments interrupted {100 * t['scam_payments_interrupted']:5.1f}% "
