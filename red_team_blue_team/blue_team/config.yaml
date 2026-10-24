@@ -18,6 +18,7 @@ cluster:
   min_cluster_size: 4
   min_samples: 3
   selection: leaf                    # leaf: many small, pure groups; eom merged unrelated scams
+  allow_single_cluster: false        # true lets a small run's breaches form one group (HDBSCAN refuses by default)
   # A cluster is a known scam if its centroid is this close (cosine) to the centroid of the cases a
   # known or approved playbook named; below it, the cluster is a candidate new scam.
   known_similarity: 0.80
@@ -87,6 +88,17 @@ verify:                              # python -m blue_team verify <name>: does R
   users: null                        # runner's own default (300) when null
   max_targets: 3                     # scam types behind the card's complaints to replay live
   min_target_share: 0.2              # ... each at least this share of its complaints (else the top one)
+
+scenario:                            # python -m blue_team scenario start / rerun (scenario.py)
+  new: [whatsapp_society_maintenance_clone, whatsapp_grocery_flash_sale]   # red-team scams RUKO misses
+  known: [digital_arrest, fake_customer_care, refund_qr]                   # scams RUKO already catches
+  users: 400
+  days: 21
+  seed: 51
+  victim_rate: 1.0
+  new_boost: 15.0                    # red-team weights x this: enough victims complain to form a group (8 each was too few)
+  known_boost: 1.0
+  warmup_days: 7
 
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
   red_team_runner:                   # Nikunj's interface_script, run from the console over a playbook set

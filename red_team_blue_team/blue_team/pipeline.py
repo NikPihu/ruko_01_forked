@@ -42,8 +42,9 @@ class EventLog:
             self.echo(("    " if stage in ("generator", "analyst", "database") else "") + text)
 
 
-def workspace(table: Path, world: Path, scorer: str = "ml", as_of: pd.Timestamp | None = None) -> Workspace:
-    pbs = playbook_db.load(("known", "approved"))
+def workspace(table: Path, world: Path, scorer: str = "ml", as_of: pd.Timestamp | None = None,
+              playbook_root: Path | None = None) -> Workspace:
+    pbs = playbook_db.load(("known", "approved"), playbook_root)
     scored = breach.score(breach.load_table(table), scorer, pbs)
     comp = breach.complaints(world, as_of)
     cases = breach.cases(scored, comp)
@@ -130,7 +131,7 @@ def _run(ev: EventLog, out: Path, run_id: str, table: Path, world: Path, scorer:
     ev("setup", f"Run {run_id}: world {world}, replayed payments {table}, scorer '{scorer}'",
        refs={"config": "red_team_blue_team/blue_team/config.yaml", "world": str(world), "table": str(table)})
 
-    ws = workspace(table, world, scorer, as_of)
+    ws = workspace(table, world, scorer, as_of, playbook_root)
     if ws.scored.missing_features:
         ev("setup", f"The replayed table predates {', '.join(ws.scored.missing_features)}: treated as unknown for every "
            "payment (re-run the replay to measure them)", kind="warning", refs={"rule": "CLAUDE.md rule 1"})

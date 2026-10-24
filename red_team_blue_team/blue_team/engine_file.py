@@ -110,6 +110,12 @@ def to_match(node: dict, problems: list[str]) -> dict | None:
             if m is None:
                 continue
             for k, v in m.items():
+                if k == "any" and "any" in out:        # (A1 or A2) and (B1 or B2): fold B into each A
+                    if any("any" in a for a in out["any"]):
+                        problems.append("three ORs inside one AND")
+                        continue
+                    out["any"] = [{**a, "any": v} for a in out["any"]]
+                    continue
                 if k in out and isinstance(out[k], dict) and isinstance(v, dict) and not set(out[k]) & set(v):
                     out[k] = {**out[k], **v}           # amount >= 1000 AND amount < 10000 -> one range
                     continue
@@ -121,6 +127,16 @@ def to_match(node: dict, problems: list[str]) -> dict | None:
         opts = [to_match(c, problems) for c in node["any"]]
         return {"any": opts} if not problems else None
     return _leaf_map(node, problems)
+
+
+def rule_families(rule: dict) -> set[str]:
+    """The evidence families the engine counts for this rule (api.playbooks.families on its export);
+    empty when the format cannot express it. Policy raises an approved playbook's payments to a
+    warning only with two (rule 5); with one it only names the scam."""
+    from api.playbooks import families
+    problems: list[str] = []
+    m = to_match(matcher.normalize(rule), problems)
+    return families(m) if m is not None and not problems else set()
 
 
 def export_entry(card: dict) -> tuple[str, list[str]]:

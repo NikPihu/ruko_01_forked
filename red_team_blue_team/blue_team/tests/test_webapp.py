@@ -97,3 +97,19 @@ def test_cited_sources_are_checked_against_real_tool_calls():
     out = check_sources([{"source": "get_case rep_7", "fact": "a"}, {"source": "get_case rep_9", "fact": "b"},
                          {"source": "get_cluster_overview", "fact": "c"}, {"source": "test_matcher", "fact": "d"}], tr)
     assert [e["seen"] for e in out] == [True, False, True, False]
+
+
+def test_the_console_script_parses(tmp_path):
+    """A syntax error blanks every page; node checks the page's script when it is installed."""
+    import shutil
+    import subprocess
+
+    import pytest
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed")
+    page = webapp.PAGE.read_text(encoding="utf-8")
+    js = tmp_path / "console.js"
+    js.write_text(page[page.index("<script>") + 8:page.rindex("</script>")], encoding="utf-8")
+    r = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-800:]

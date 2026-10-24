@@ -4,3 +4,5 @@ inbox/
 exports/
 playbooks/review/*.yaml
 playbooks/rejected/*.yaml
+scenario/
+scenario.lock

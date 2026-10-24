@@ -148,6 +148,7 @@ function evidenceList(ev) {
 // ---------------------------------------------------------------- state
 const who = document.getElementById("analyst");
 who.value = store.get("ruko.analyst"); who.addEventListener("input", () => store.set("ruko.analyst", who.value));
+let demoTimer = null;
 let runs = [], run = null, pollTimer = null, buildTimer = null, lastSeq = 0, timeline = [];
 const cache = {};
 async function data(kind) {
@@ -171,6 +172,7 @@ document.getElementById("runsel").addEventListener("change", e => { run = e.targ
 
 // ---------------------------------------------------------------- sidebar
 const PAGES = [
+  ["demo", "Demo: the whole loop", "new scams → you approve → rerun"],
   ["redteam", "Red team", "the attacks (Nikunj's 50)"],
   ["run", "Run & timeline", "start, watch every step"],
   ["complaints", "Complaints", "where the shield broke"],
@@ -196,6 +198,7 @@ async function route() {
   renderSide(page);
   if (pollTimer && page !== "run") { clearInterval(pollTimer); pollTimer = null; }
   if (buildTimer && page !== "redteam") { clearInterval(buildTimer); buildTimer = null; }
+  if (demoTimer && page !== "demo") { clearInterval(demoTimer); demoTimer = null; }
   const c = document.getElementById("content");
   put(c, el("div", { class: "empty" }, "Loading…"));
   try { put(c, ...await PAGE[page](params)); }
@@ -206,6 +209,97 @@ window.addEventListener("hashchange", route);
 const noRun = () => [el("div", { class: "empty" }, "No run selected. Start one on ", ref("Run & timeline", "run"), ".")];
 
 const PAGE = {};
+
+// ---------------------------------------------------------------- demo: the whole loop (scenario.py)
+PAGE.demo = async () => {
+  const d = await api("/api/scenario");
+  const sc = d.scenario || {}, set = d.settings, step = sc.step || "none";
+  const order = ["world", "round1", "review", "round2", "done"];
+  const at = order.indexOf(step);
+  const stepChip = (i, now) => (d.running && order[i] === step) ? chip("running", "warn")
+    : (step === "done" || at > i) ? chip("done", "good") : at === i ? chip(now || "now", "warn") : chip("waiting");
+  const msg = el("div");
+  const act = async (path, body) => {
+    try { await api(path, body || {}); put(msg); route(); } catch (e) { put(msg, el("div", { class: "msg err" }, e.message)); }
+  };
+  const llm = el("select", {}, el("option", { value: "auto" }, "agents: Bedrock if available, else offline"),
+    el("option", { value: "bedrock" }, "agents: Bedrock only"), el("option", { value: "offline" }, "agents: offline"));
+  const startBtn = el("button", { class: "primary", disabled: (!d.mode || d.running) ? "disabled" : null, onclick: () => {
+    if (sc.step && !confirm("Start a new demo? The current demo world, its drafts and approvals are deleted (your real playbook database is not touched).")) return;
+    act("/api/scenario/start", { llm: llm.value });
+  } }, sc.step ? "Start a new demo" : "Start the demo");
+  const rerunBtn = el("button", { class: "primary", disabled: (!d.mode || d.running || !d.approved.length) ? "disabled" : null,
+    onclick: () => act("/api/scenario/rerun") }, "Rerun the same payments with the approved playbooks");
+  const redraftBtn = el("button", { disabled: (!d.mode || d.running || !sc.before) ? "disabled" : null,
+    onclick: () => act("/api/scenario/redraft", { llm: llm.value }) }, "Redraft (blue team again on the same complaints)");
+
+  let table = el("p", { style: "color:var(--muted)" }, "No payments yet.");
+  if (sc.before) {
+    const types = Object.keys(sc.before.types).sort((a, b) => (sc.new.includes(b) - sc.new.includes(a)) || a.localeCompare(b));
+    const cell = x => x ? `${x.interrupted}/${x.payments}` : "–";
+    const result = x => x.interrupted === 0 ? chip("got through", "bad")
+      : x.interrupted === x.payments ? chip("all stopped", "good") : chip(`${pct(x.interrupted / x.payments)} stopped`, "warn");
+    table = el("table", {},
+      el("tr", {}, ["scam type", "", "scam payments", "stopped (T2+) in round 1", "after your approval", "named as", "result"].map(h => el("th", {}, h))),
+      types.map(k => {
+        const b = sc.before.types[k], a = sc.after ? sc.after.types[k] : null;
+        return [el("tr", {}, el("td", { class: "mono" }, k), el("td", {}, sc.new.includes(k) ? chip("new to RUKO", "acc") : chip("known")),
+          el("td", {}, b.payments), el("td", {}, cell(b)), el("td", {}, a ? cell(a) : "–"),
+          el("td", {}, Object.entries((a || b).named_as).map(([n, c]) => `${n} ${c}`).join(", ") || "–"), el("td", {}, result(a || b))),
+          Object.keys((a || b).missed_because || {}).length ? el("tr", {}, el("td", {}), el("td", { colspan: 6, style: "font-size:12.5px;color:var(--muted)" },
+            "not stopped: ", Object.entries((a || b).missed_because).map(([w, n]) => `${n} × ${w}`).join(" · "))) : null];
+      }),
+      el("tr", {}, el("td", { colspan: 3 }, el("b", {}, "honest payments interrupted per 1,000")),
+        el("td", {}, sc.before.honest_interrupted_per_1000), el("td", {}, sc.after ? sc.after.honest_interrupted_per_1000 : "–"),
+        el("td", { colspan: 2 }, `${sc.before.honest_payments.toLocaleString()} honest payments`)));
+  }
+
+  const steps = el("ol", {},
+    el("li", {}, stepChip(0), " ", el("b", {}, "A world where two new scams and three known ones attack"),
+      ` — ${set.users} users × ${set.days} days. New to RUKO (Nikunj's red team): ${set.new.join(", ")}. Known: ${set.known.join(", ")}.`),
+    el("li", {}, stepChip(1), " ", el("b", {}, "Round 1: every payment through the real engine"),
+      ", as the phone sends it (Nikunj's record stream). The table shows what got through."),
+    el("li", {}, stepChip(2, "your turn"), " ", el("b", {}, "The blue team learns from the victims' complaints: "),
+      sc.run_id ? [ref("timeline", "run"), " → ", ref("HDBSCAN groups", "hdbscan"), " → ", ref("generator agent", "generator"), " → ",
+                   ref("analyst agent", "analyst"), ` (agents: ${sc.agents || "?"})`] : "not yet",
+      el("div", { style: "margin-top:6px" }, el("b", {}, "You authorise: "), "open ", ref("Playbooks", "playbooks"),
+        " and approve each playbook with two different analyst names (type a name at the top right, Approve, change the name, Approve again). ",
+        `${d.queued.length} waiting · ${d.approved.length} approved · ${d.rejected.length} rejected.`),
+      d.drafts.length ? el("ul", { style: "font-size:13px;margin:6px 0" }, d.drafts.map(x => el("li", {}, el("span", { class: "mono" }, x.name), " ",
+        x.gate_failures.length ? [chip("cannot be approved", "bad"), " ", x.gate_failures.join("; "),
+          " — no rule over what RUKO measures separates these payments from honest ones; it needs a new signal"]
+          : [chip("ready for your approval", "good"), " ", x.warns ? chip(`warns (${x.families.join("+")})`, "good") : chip("names only (one family)", "warn"),
+             ` names ${pct(x.recall)} of its complaints`]))) : null,
+      d.approved.length ? el("div", { class: "mono", style: "font-size:12.5px" }, "approved: " + d.approved.join(", ")) : null,
+      el("div", { style: "margin-top:6px" }, redraftBtn)),
+    el("li", {}, stepChip(3), " ", el("b", {}, "Round 2: the same payments again"),
+      ", the engine's playbook file now holding your approved playbooks. One whose conditions span two signal families lifts its payments to a warning (T2), even when the model scored them low. ",
+      rerunBtn));
+
+  const logBox = el("pre", { style: "max-height:260px" }, d.log.join("\n") || "no log yet");
+  if (d.running) {
+    if (demoTimer) clearInterval(demoTimer);
+    demoTimer = setInterval(async () => {
+      try {
+        const s = await api("/api/scenario");
+        if (s.scenario.run_id && !runs.some(r => r.run_id === s.scenario.run_id)) await loadRuns(s.scenario.run_id);
+        if (!s.running) { clearInterval(demoTimer); demoTimer = null; route(); } else { logBox.textContent = s.log.join("\n"); }
+      } catch (e) { /* server restarting */ }
+    }, 3000);
+  }
+
+  return [el("h1", {}, "Demo: new scams, the blue team, your approval, the same payments again"),
+    explain(["Two scams RUKO has never seen get through; three known ones are caught. Victims complain; the blue team groups the complaints, the ",
+             el("b", {}, "generator agent"), " drafts a playbook per group and the ", el("b", {}, "analyst agent"), " judges it. ",
+             el("b", {}, "You"), " approve (two analysts). Then the very same payments go through the engine again."],
+      "A playbook is a rule over what RUKO already measures: no LLM decides at payment time (rule 13). Approved by two people and spanning two signal families (rule 5), it lifts its payments to a warning (policy.yaml approved_playbooks).",
+      [el("span", { class: "mono" }, "scenario.py · python -m blue_team scenario start | rerun · backend/api/policy.py")]),
+    d.mode ? null : el("div", { class: "msg err" }, "This console uses your real playbook database. For the demo start it with: python -m blue_team app --scenario"),
+    el("div", { class: "card" }, el("div", { class: "row" }, llm, startBtn, d.running ? chip("running…", "warn") : null, d.error ? chip("failed", "bad") : null),
+      msg, d.error ? el("div", { class: "msg err" }, d.error) : null, steps),
+    el("div", { class: "card" }, el("h2", {}, sc.after ? "Before and after your approval" : "What got through (round 1)"), table),
+    el("div", { class: "card" }, el("h2", {}, "Log"), logBox)];
+};
 
 // ---------------------------------------------------------------- 0 run
 PAGE.run = async () => {
@@ -606,11 +700,10 @@ const verifyCard = (name) => {
         r.live ? el("table", {}, el("tr", {}, ["scam type", "engine set-up", "named (engine's decision)", "name shown (T1+ only)", "interrupted (T2+)", "called normal", "false alarms", "fail-open"].map(h => el("th", {}, h))),
           Object.entries(r.live).flatMap(([t, arms]) => Object.entries(arms).map(([arm, x]) => el("tr", {}, el("td", { class: "mono" }, t), el("td", { title: (r.arms || {})[arm] || "" }, arm.replaceAll("_", " ")),
             x.error ? el("td", { colspan: 6 }, x.error) : [el("td", {}, pct(x.named)), el("td", {}, pct(x.named_shown)), el("td", {}, pct(x.interrupted)), el("td", {}, pct(x.called_normal)),
-              el("td", {}, (100 * x.false_alarms).toFixed(1) + "%"), el("td", {}, x.fail_open)])))))
+              el("td", {}, (100 * x.false_alarms).toFixed(1) + "%"), el("td", {}, x.fail_open)]))))
           : null]
         : el("p", {}, "Not verified yet."));
-    log.textContent = (s.log || []).join("
-");
+    log.textContent = (s.log || []).join("\n");
     log.style.display = s.log && s.log.length ? "" : "none";
   };
   const poll = async () => {

@@ -170,6 +170,9 @@ class Workspace:
                "legit_payments_named_per_1000": round(legit, 3),
                "known_playbook_payments_also_matched": round(overlap, 3),
                "other_clusters_case_recall": {k: v for k, v in others.items() if v > 0}}
+        from blue_team import engine_file
+        fam = sorted(engine_file.rule_families(rule))
+        res["families"], res["warns"] = fam, len(fam) >= 2   # two families: approved, it raises payments to T2
         res["gate_failures"] = gate_failures(res, gates)
         return res
 

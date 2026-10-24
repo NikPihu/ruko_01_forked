@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from blue_team import config, llm, matcher, playbook_db, tokens
+from blue_team import config, engine_file, llm, matcher, playbook_db, tokens
 from blue_team.evidence import Workspace
 from schema.events import ReasonCode
 
@@ -250,27 +250,48 @@ def offline_card(ws: Workspace, cluster_id: str, taken: set[str]) -> tuple[dict,
 
 
 def greedy_rule(ws: Workspace, cluster_id: str, candidates: list[str], max_terms: int = 3) -> tuple[dict, dict]:
-    """The AND of 1 to `max_terms` of the cluster's distinctive tokens with the best case recall among
-    those that pass the legit and known-overlap gates (fewer terms on a tie). Exhaustive: at most
-    12 candidates, so a few hundred combinations of precomputed masks."""
+    """A rule from the cluster's distinctive tokens: the AND of 1 to `max_terms` of them, or, when the
+    best AND names fewer than gates.min_cluster_recall of the cases, an OR of two such ANDs (the
+    second chosen over the cases the first missed). Ranked by: passes the legit and known-overlap
+    gates, then reaches the recall gate with two families (so policy can raise it to a warning),
+    then recall, two families, fewer terms, fewer legit payments. Exhaustive over at most 16
+    candidates: a few thousand ANDs of precomputed masks."""
     from itertools import combinations
     g = config.load()["gates"]
-    cands = [t for t in candidates if t in tokens.TOKENS][:12] or ["NEW_PAYEE"]
+    cands = [t for t in candidates if t in tokens.TOKENS][:16] or ["NEW_PAYEE"]
     hits = {t: np.array([matcher.matches(tokens.TOKENS[t], f) for f in ws.scored.feats]) for t in cands}
     case_rows = [ws.case_by_id.at[cid, "rows"] for cid in ws.cluster_by_id[cluster_id].case_ids]
     legit_w = ws.weight * ws.legit
-    best, best_key = None, None
-    for k in range(1, max_terms + 1):
-        for combo in combinations(cands, k):
-            mask = np.logical_and.reduce([hits[t] for t in combo])
-            recall = float(np.mean([mask[r].any() for r in case_rows]))
-            legit = 1000 * legit_w[mask].sum() / max(legit_w.sum(), 1e-9)
-            overlap = float(mask[ws.known_named].mean()) if ws.known_named.any() else 0.0
-            excess = max(0.0, legit / g["max_legit_per_1000"] - 1) + max(0.0, overlap / g["max_known_overlap"] - 1)
-            key = (excess == 0, recall - excess, -k, -legit)
-            if best_key is None or key > best_key:
-                best, best_key = combo, key
-    rule = {"all": [tokens.TOKENS[t] for t in best]} if len(best) > 1 else tokens.TOKENS[best[0]]
+    fam_of: dict[tuple, int] = {}
+
+    def as_rule(combo: tuple) -> dict:
+        return {"all": [tokens.TOKENS[t] for t in combo]} if len(combo) > 1 else tokens.TOKENS[combo[0]]
+
+    def fams(combo: tuple) -> int:
+        if combo not in fam_of:
+            fam_of[combo] = len(engine_file.rule_families(as_rule(combo)))
+        return fam_of[combo]
+
+    def score(mask: np.ndarray, two_families: bool, terms: int) -> tuple:
+        covered = np.array([mask[r].any() for r in case_rows])
+        recall = float(covered.mean())
+        legit = 1000 * legit_w[mask].sum() / max(legit_w.sum(), 1e-9)
+        overlap = float(mask[ws.known_named].mean()) if ws.known_named.any() else 0.0
+        excess = max(0.0, legit / g["max_legit_per_1000"] - 1) + max(0.0, overlap / g["max_known_overlap"] - 1)
+        ok = recall >= g["min_cluster_recall"]
+        return (excess == 0, ok and two_families, ok, two_families, recall - excess, -terms, -legit), covered
+
+    combos = [c for k in range(1, max_terms + 1) for c in combinations(cands, k)]
+    masks = {c: np.logical_and.reduce([hits[t] for t in c]) for c in combos}
+    best = max(combos, key=lambda c: score(masks[c], fams(c) >= 2, len(c))[0])
+    key, covered = score(masks[best], fams(best) >= 2, len(best))
+    rule = as_rule(best)
+    if not key[2] and not covered.all():           # below the recall gate: add a second branch
+        def union_key(c: tuple) -> tuple:
+            return score(masks[best] | masks[c], fams(best) >= 2 and fams(c) >= 2, len(best) + len(c))[0]
+        second = max((c for c in combos if c != best), key=union_key, default=None)
+        if second is not None and union_key(second) > key:
+            rule = {"any": [as_rule(best), as_rule(second)]}
     return rule, ws.test_matcher(rule, cluster_id)
 
 

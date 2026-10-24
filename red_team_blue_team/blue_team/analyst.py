@@ -164,6 +164,9 @@ def review_offline(ws: Workspace, cluster_id: str, draft: dict) -> dict:
         evidence.append({"source": "test_matcher", "fact": f"case recall {bt['cluster_case_recall']:.0%}, "
                          f"{bt['legit_payments_named_per_1000']} legit per 1,000, "
                          f"{bt['known_playbook_payments_also_matched']:.0%} of other known-scam payments", "seen": True})
+    if bt and "warns" in bt:
+        why += ("; approved, it would raise these payments to a warning (conditions span " + "+".join(bt["families"]) + ")"
+                if bt["warns"] else "; approved, it would only name the scam: its conditions come from one family (rule 5)")
     return {"verdict": verdict, "nearest_playbook": nearest, "rationale": f"Offline rules: {why}.", "evidence": evidence,
             "required_changes": ["write the scam's story (no LLM draft)"] if draft["drafted_by"] == "offline" else [],
             "confidence": "low", "reviewed_by": "offline", "profile_similarity": {k: round(v, 2) for k, v in sims.items()}}

@@ -103,8 +103,12 @@ def _summary(card: dict, state: str) -> dict:
             "needed": config.load()["review"]["approvals_needed"]}
 
 
+class ScenarioStart(BaseModel):
+    llm: str | None = None           # bedrock | offline | auto (config agents.provider when None)
+
+
 def create_app(root: Path | None = None, exports: Path | None = None, runs: Path | None = None,
-               repo: Path | None = None) -> FastAPI:
+               repo: Path | None = None, scenario_mode: bool = False) -> FastAPI:
     root, runs = root or config.PLAYBOOKS, runs or config.RUNS
     exports = exports or review.EXPORTS
     repo = repo or Path.cwd()
@@ -114,6 +118,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     runner: dict = {"thread": None, "state": "idle", "stop": False, "total": 0, "skipped": 0, "done": 0,
                     "running": [], "set": None}
     verifying: dict = {"thread": None, "state": "idle", "name": None, "log": [], "stop": False}
+    demo: dict = {"thread": None, "state": "idle", "error": None}
 
     def load(name: str) -> tuple[dict, str]:
         try:
@@ -540,6 +545,73 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         t.start()
         return verify_status(name)
 
+    # ---- the demo: the whole loop on one small world (scenario.py) ------------------------------
+    def scenario_status() -> dict:
+        from blue_team import scenario as sc
+        st = sc.load_state()
+        alive = (demo["thread"] is not None and demo["thread"].is_alive()) or sc.busy()   # also one started elsewhere
+        names = lambda s: sorted(p.stem for p in (sc.DB / s).glob("*.yaml")) if (sc.DB / s).exists() else []
+        return {"mode": scenario_mode, "running": alive, "state": demo["state"] if alive or demo["state"] == "failed" else
+                ("done" if st.get("step") == "done" else st.get("step") or "none"),
+                "error": demo["error"], "scenario": st, "log": sc.log_tail(),
+                "drafts": [{"name": c["name"], "gate_failures": c.get("gate_failures") or [],
+                            "warns": (c.get("backtest") or {}).get("warns"), "families": (c.get("backtest") or {}).get("families", []),
+                            "recall": (c.get("backtest") or {}).get("cluster_case_recall")}
+                           for c in (yaml.safe_load(f.read_text(encoding="utf-8"))
+                                     for f in sorted((sc.DB / "review").glob("*.yaml")) if (sc.DB / "review").exists())],
+                "queued": names("review"), "approved": names("approved"), "rejected": names("rejected"),
+                "settings": sc.settings(), "report": sc.report(st["before"], st.get("after"), st["new"]) if st.get("before") else None}
+
+    @app.get("/api/scenario")
+    def scenario_get() -> dict:
+        return scenario_status()
+
+    def scenario_job(fn) -> dict:
+        if not scenario_mode:
+            raise HTTPException(400, "start the console with --scenario: python -m blue_team app --scenario")
+        from blue_team import scenario as sc
+        if sc.busy():
+            raise HTTPException(409, "a demo step is already running (console or command line)")
+        for job, what in ((demo, "the demo is already running"), (running, "a blue-team run is going"),
+                          (runner, "the red-team runner is going"), (building, "the attack world is being built"),
+                          (verifying, "a playbook is being verified")):
+            if job["thread"] is not None and job["thread"].is_alive():
+                raise HTTPException(409, what)
+
+        def go():
+            try:
+                fn()
+                demo.update(state="done", error=None)
+            except Exception as e:  # noqa: BLE001 (shown on the page)
+                demo.update(state="failed", error=f"{type(e).__name__}: {e}")
+
+        t = threading.Thread(target=go, daemon=True, name="scenario")
+        demo.update(thread=t, state="running", error=None)
+        t.start()
+        return scenario_status()
+
+    @app.post("/api/scenario/start")
+    def scenario_start(body: ScenarioStart) -> dict:
+        from blue_team import scenario as sc
+        s = sc.settings()
+        return scenario_job(lambda: sc.start(s["new"], s["known"], body.llm, log=lambda *_: None))
+
+    @app.post("/api/scenario/redraft")
+    def scenario_redraft(body: ScenarioStart) -> dict:
+        from blue_team import scenario as sc
+        if not sc.load_state().get("before"):
+            raise HTTPException(400, "no demo yet: start one")
+        return scenario_job(lambda: sc.redraft(body.llm, log=lambda *_: None))
+
+    @app.post("/api/scenario/rerun")
+    def scenario_rerun() -> dict:
+        from blue_team import scenario as sc
+        if not sc.load_state().get("before"):
+            raise HTTPException(400, "no scenario yet: start one")
+        if not scenario_status()["approved"]:
+            raise HTTPException(400, "no approved playbook yet: two analysts approve on the Playbooks page")
+        return scenario_job(lambda: sc.rerun(log=lambda *_: None))
+
     @app.post("/api/reset")
     def reset(body: Reset) -> dict:
         """Start from nothing: drafts, approvals, rejections, exports and runs are deleted."""
@@ -560,7 +632,13 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     return app
 
 
-def main(port: int = 8765) -> None:
+def main(port: int = 8765, scenario: bool = False) -> None:
     import uvicorn
-    print(f"blue team console: http://127.0.0.1:{port}  (Ctrl+C to stop)")
-    uvicorn.run(create_app(), host="127.0.0.1", port=port, log_level="warning")
+    if scenario:   # the scenario's own playbook database, runs and exports (scenario.py)
+        from blue_team import scenario as sc
+        app = create_app(root=sc.DB, exports=sc.EXPORTS, runs=sc.RUNS, repo=config.REPO, scenario_mode=True)
+        print(f"blue team console (SCENARIO database {sc.DB}): http://127.0.0.1:{port}  (Ctrl+C to stop)")
+    else:
+        app = create_app()
+        print(f"blue team console: http://127.0.0.1:{port}  (Ctrl+C to stop)")
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

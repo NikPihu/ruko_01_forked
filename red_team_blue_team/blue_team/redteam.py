@@ -117,8 +117,10 @@ def load(red_dir: Path = RED_DIR) -> list[dict]:
 
 
 def build_world(out: Path, users: int, days: int, seed: int, victim_rate: float, red_boost: float,
-                red_dir: Path = RED_DIR, keep_sim_emerging: bool = False, log=print) -> dict:
-    """A sim_v2 world where the red team's playbooks attack alongside RUKO's six known scams."""
+                red_dir: Path = RED_DIR, keep_sim_emerging: bool = False, log=print,
+                known: list[str] | None = None, known_boost: float = 1.0) -> dict:
+    """A sim_v2 world where the red team's playbooks attack alongside RUKO's six known scams
+    (or only the `known` ones, their weights x known_boost)."""
     from sim_v2.core.config import load as load_cfg
     from sim_v2.export import write
     from sim_v2.run import build as run_build
@@ -126,8 +128,14 @@ def build_world(out: Path, users: int, days: int, seed: int, victim_rate: float,
     cfg = load_cfg(users=users, days=days, seed=seed, world="train", victim_rate={"train": victim_rate, "eval": 0.01})
     if not keep_sim_emerging:   # keep only the scams RUKO already knows: the red team is the only unknown
         from blue_team import engine_file
-        known = {name for name, *_ in engine_file.known()}
-        cfg.playbooks = {k: v for k, v in cfg.playbooks.items() if k in known}
+        engine_known = {name for name, *_ in engine_file.known()}
+        cfg.playbooks = {k: v for k, v in cfg.playbooks.items() if k in engine_known}
+    if known is not None:
+        missing = set(known) - set(cfg.playbooks)
+        if missing:
+            raise ValueError(f"not known sim_v2 playbooks: {sorted(missing)}")
+        cfg.playbooks = {k: {**v, "weight": float(v.get("weight", 0.07)) * known_boost}
+                         for k, v in cfg.playbooks.items() if k in known}
     red = {}
     for p in sorted(Path(red_dir).glob("*.yaml")):
         pb = yaml.safe_load(p.read_text(encoding="utf-8"))
