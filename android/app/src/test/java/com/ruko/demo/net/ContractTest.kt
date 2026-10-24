@@ -147,6 +147,22 @@ class ContractTest {
     }
 
     @Test
+    fun stepsVerdictRoundTripsExactly() {
+        val original = Json.parseToJsonElement(example("decide_request_steps.json"))
+        val decoded = RukoJson.decodeFromString(DecideRequest.serializer(), original.toString())
+        val encoded = RukoJson.parseToJsonElement(RukoJson.encodeToString(DecideRequest.serializer(), decoded))
+        assertEquals(normalise(original), normalise(encoded))
+        val verdict = decoded.context!!.deviceVerdict!!
+        assertEquals("unknown_call", verdict.stepsSeen!!.first().step)
+        // The schema's step names are the shared vocabulary, in order (c2-0.14).
+        val vocab = com.ruko.demo.signals.StepVocab.parse(File(contracts, "steps.json").readText())
+        val stepDef = defs.getValue("StepSeen").jsonObject.getValue("properties").jsonObject.getValue("step")
+        assertEquals(vocab.ids, enumValues(stepDef).toList())
+        val tags = enumValues(defs.getValue("LureSignal").jsonObject.getValue("properties").jsonObject.getValue("tag"))
+        assertTrue("other_scam" in tags && "unclear" in tags)
+    }
+
+    @Test
     fun threatAnalysisMatchesTheResponseSchema() {
         val response = schema.getValue("response").jsonObject
         val threatDef = response.getValue("\$defs").jsonObject.getValue("Threat").jsonObject

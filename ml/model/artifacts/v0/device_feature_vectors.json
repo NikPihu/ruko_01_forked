@@ -116,6 +116,32 @@
      "R4_unusual_amount",
      "R2_remote_control",
      "R5_lure_message"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:kyc",
+      "min_ago": 296.5
+     },
+     {
+      "step": "untrusted_accessibility",
+      "min_ago": null
+     },
+     {
+      "step": "sideload_24h",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -239,6 +265,28 @@
      "R2_remote_control",
      "R4_unusual_amount",
      "R5_lure_message"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:kyc",
+      "min_ago": 307.6
+     },
+     {
+      "step": "untrusted_accessibility",
+      "min_ago": null
+     },
+     {
+      "step": "sideload_24h",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -367,6 +415,28 @@
      "R2_remote_control",
      "R5_lure_message",
      "R10_bait_then_pay"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:kyc",
+      "min_ago": 314.5
+     },
+     {
+      "step": "untrusted_accessibility",
+      "min_ago": null
+     },
+     {
+      "step": "sideload_24h",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -469,6 +539,51 @@
      "R12_coached_session",
      "R6_new_payee_typed",
      "R4_unusual_amount"
+    ],
+    "steps_seen": [
+     {
+      "step": "dictated_amount",
+      "min_ago": 0.0
+     },
+     {
+      "step": "paste_after_switch",
+      "min_ago": 0.0
+     },
+     {
+      "step": "many_app_switches",
+      "min_ago": 0.0
+     },
+     {
+      "step": "long_hesitation",
+      "min_ago": 0.0
+     },
+     {
+      "step": "abandoned_tries",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -577,6 +692,39 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "dictated_amount",
+      "min_ago": 0.0
+     },
+     {
+      "step": "paste_after_switch",
+      "min_ago": 0.0
+     },
+     {
+      "step": "many_app_switches",
+      "min_ago": 0.0
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -690,6 +838,26 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R7_tranche_pattern"
+    ],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -806,6 +974,33 @@
      "R12_coached_session",
      "R6_new_payee_typed",
      "R4_unusual_amount"
+    ],
+    "steps_seen": [
+     {
+      "step": "paste_after_switch",
+      "min_ago": 0.0
+     },
+     {
+      "step": "many_app_switches",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "amount_unusual"
     ]
    }
   },
@@ -924,6 +1119,26 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R7_tranche_pattern"
+    ],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -1043,7 +1258,16 @@
     "c": 0.0,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1162,7 +1386,20 @@
     "c": 0.03,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1281,7 +1518,20 @@
     "c": 0.03,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1406,7 +1656,20 @@
     "c": 0.03,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1525,7 +1788,20 @@
     "c": 0.03,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1631,7 +1907,35 @@
     "c": 0.06,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "unknown_call",
+      "min_ago": 21.9
+     },
+     {
+      "step": "paid_after_call",
+      "min_ago": 21.9
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "long_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1738,7 +2042,30 @@
     "c": 0.08,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "unknown_call",
+      "min_ago": 7.3
+     },
+     {
+      "step": "paid_after_call",
+      "min_ago": 7.3
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "long_call",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1863,7 +2190,18 @@
     "c": 0.03,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "long_call",
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -1976,7 +2314,21 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2095,7 +2447,16 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2226,7 +2587,12 @@
     "c": 0.04,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2343,7 +2709,26 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "lure:kyc",
+      "min_ago": 507.8
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "paid_after_call",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2467,7 +2852,21 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2584,7 +2983,27 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "lure:task_job",
+      "min_ago": 740.8
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "remote_control",
+     "paid_after_call",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2713,7 +3132,21 @@
     "c": 0.06,
     "l": 0.08,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2844,7 +3277,17 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "lure:refund",
+      "min_ago": 576.1
+     }
+    ],
+    "steps_unmeasured": [
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -2982,7 +3425,25 @@
     "c": 0.06,
     "l": 0.06,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -3147,7 +3608,21 @@
     "c": 0.04,
     "l": 0.06,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -3315,7 +3790,24 @@
     "c": 0.06,
     "l": 0.06,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries"
+    ]
    }
   },
   {
@@ -3479,7 +3971,28 @@
     "c": 0.06,
     "l": 0.16,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "lure:task_job",
+      "min_ago": 4107.2
+     },
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries"
+    ]
    }
   },
   {
@@ -3622,7 +4135,33 @@
     "c": 0.03,
     "l": 0.06,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -3766,6 +4305,34 @@
     "reasons": [
      "R5_lure_message",
      "R10_bait_then_pay"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:task_job",
+      "min_ago": 81.7
+     },
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -3929,7 +4496,28 @@
     "c": 0.06,
     "l": 0.06,
     "b": 0.21,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries"
+    ]
    }
   },
   {
@@ -4109,7 +4697,28 @@
     "c": 0.04,
     "l": 0.06,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_watching",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     },
+     {
+      "step": "amount_unusual",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "remote_control"
+    ]
    }
   },
   {
@@ -4279,7 +4888,11 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "remote_control"
+    ]
    }
   },
   {
@@ -4436,7 +5049,20 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control"
+    ]
    }
   },
   {
@@ -4611,7 +5237,11 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "remote_control"
+    ]
    }
   },
   {
@@ -4768,7 +5398,20 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control"
+    ]
    }
   },
   {
@@ -4930,7 +5573,25 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control"
+    ]
    }
   },
   {
@@ -5092,7 +5753,20 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control"
+    ]
    }
   },
   {
@@ -5272,7 +5946,11 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "remote_control"
+    ]
    }
   },
   {
@@ -5430,7 +6108,15 @@
     "c": 0.06,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [],
+    "steps_unmeasured": [
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries"
+    ]
    }
   },
   {
@@ -6123,7 +6809,27 @@
     "c": 0.06,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6242,7 +6948,16 @@
     "c": 0.06,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6348,7 +7063,26 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6467,7 +7201,17 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6586,7 +7330,17 @@
     "c": 0.04,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6705,7 +7459,16 @@
     "c": 0.06,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6824,7 +7587,16 @@
     "c": 0.06,
     "l": 0.07,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "amount_unusual"
+    ]
    }
   },
   {
@@ -6930,7 +7702,26 @@
     "c": 0.04,
     "l": null,
     "b": 0.0,
-    "reasons": []
+    "reasons": [],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "amount_unusual"
+    ]
    }
   }
  ],
@@ -7002,6 +7793,49 @@
      "R1_live_unknown_call",
      "R4_unusual_amount",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "unknown_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "voip_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "remote_control",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "call_out_to_unknown",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -7072,6 +7906,44 @@
      "R1_live_unknown_call",
      "R4_unusual_amount",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "unknown_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "remote_control",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -7142,6 +8014,42 @@
      "R1_live_unknown_call",
      "R4_unusual_amount",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "long_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "remote_control",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "call_out_to_unknown",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -7212,6 +8120,41 @@
      "R4_unusual_amount",
      "R5_lure_message",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:arrest_threat",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7282,6 +8225,41 @@
      "R4_unusual_amount",
      "R5_lure_message",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:trading_tip",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7352,6 +8330,41 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:task_job",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7422,6 +8435,43 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "bait_credit",
+      "min_ago": null
+     },
+     {
+      "step": "episode_active",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7492,6 +8542,44 @@
      "R4_unusual_amount",
      "R2_remote_control",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "untrusted_accessibility",
+      "min_ago": null
+     },
+     {
+      "step": "sideload_24h",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7561,6 +8649,43 @@
     "reasons": [
      "R1_live_unknown_call",
      "R2_remote_control"
+    ],
+    "steps_seen": [
+     {
+      "step": "unknown_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "voip_call",
+      "min_ago": 0.0
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "amount_unusual"
     ]
    }
   },
@@ -7631,6 +8756,41 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:refund",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7701,6 +8861,41 @@
      "R4_unusual_amount",
      "R5_lure_message",
      "R6_new_payee_typed"
+    ],
+    "steps_seen": [
+     {
+      "step": "lure:kyc",
+      "min_ago": null
+     },
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7771,6 +8966,37 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   },
@@ -7841,6 +9067,38 @@
      "R4_unusual_amount",
      "R6_new_payee_typed",
      "R12_coached_session"
+    ],
+    "steps_seen": [
+     {
+      "step": "new_payee",
+      "min_ago": null
+     }
+    ],
+    "steps_unmeasured": [
+     "unknown_call",
+     "voip_call",
+     "call_out_to_unknown",
+     "long_call",
+     "foreign_call",
+     "lure:arrest_threat",
+     "lure:kyc",
+     "lure:task_job",
+     "lure:trading_tip",
+     "lure:refund",
+     "bait_credit",
+     "episode_watching",
+     "episode_active",
+     "escalating_payments",
+     "remote_control",
+     "untrusted_accessibility",
+     "sideload_24h",
+     "dictated_amount",
+     "paste_after_switch",
+     "many_app_switches",
+     "long_hesitation",
+     "abandoned_tries",
+     "paid_after_call",
+     "amount_unusual"
     ]
    }
   }

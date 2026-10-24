@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments, POST /v1/payment/received",
-  "contract_version": "c2-0.13",
+  "contract_version": "c2-0.14",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.13",
+          "default": "c2-0.14",
           "title": "Contract Version",
           "type": "string"
         }
@@ -197,6 +197,8 @@
                 "task_job",
                 "trading_tip",
                 "refund",
+                "other_scam",
+                "unclear",
                 "normal"
               ],
               "type": "string"
@@ -329,7 +331,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.13",
+          "default": "c2-0.14",
           "title": "Contract Version",
           "type": "string"
         }
@@ -470,7 +472,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.13",
+          "default": "c2-0.14",
           "title": "Contract Version",
           "type": "string"
         }
@@ -545,7 +547,7 @@
           "type": "boolean"
         },
         "contract_version": {
-          "default": "c2-0.13",
+          "default": "c2-0.14",
           "title": "Contract Version",
           "type": "string"
         }

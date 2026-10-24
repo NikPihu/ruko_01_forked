@@ -31,8 +31,8 @@ Status: proposal. Contract target: c2-0.14. Nothing here is built yet.
 ## Step 0: groundwork (½ day)
 - **Names.** Remove people's names from code, comments, console text, READMEs and file names:
   - "<name>'s runner" → **attack runner**;
-  - `red_team/NIKUNJ_README.md` → `red_team/ATTACK_PLAYBOOKS.md`;
-  - `nikunj_manifest_and_scores.csv` → `attack_manifest.csv`;
+  - the attack playbooks' notes → `red_team/ATTACK_PLAYBOOKS.md`;
+  - their claimed scores → `attack_manifest.csv`;
   - `redteam.py` `CLAIMS` path, console strings, `config.yaml` comments;
   - `ml/PLAN.md` header ("Owner: …" → "Owner: ML").
 

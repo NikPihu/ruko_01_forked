@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.13)
+## Contract (current: c2-0.14)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -136,9 +136,13 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   payee UPI (`payee_in_campaign`, P) or caller number (`caller_in_campaign`, C) gives reason
   `R13_scam_campaign` — one campaign lights at most one family (rule 5). Console: Overview "Spreading
   now" (`GET /v1/campaigns/spreading`). See `docs/features/campaigns.md`.
+- c2-0.14 (scam steps, lure-0.2): `device_verdict.steps_seen` / `steps_unmeasured` in the shared step vocabulary
+  `contracts/steps.json` (contact, lure, hook, control, coaching, payment, payee; definitions
+  `backend/features/steps.py`, phone port `signals/Steps.kt`, cases `examples/steps_vectors.json`); `LureTag`
+  gains `other_scam` and `unclear` (no class reached 0.6; never normal). Plan: `docs/plan-v3.md`.
 - Reason codes R1 to R13 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
   `R13_scam_campaign`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
-  c2-0.3 to c2-0.12 requests still validate.
+  c2-0.3 to c2-0.13 requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).

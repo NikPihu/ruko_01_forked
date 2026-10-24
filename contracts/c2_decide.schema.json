@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.13",
+  "contract_version": "c2-0.14",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -367,6 +367,86 @@
             "maxItems": 3,
             "title": "Reasons",
             "type": "array"
+          },
+          "steps_seen": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/StepSeen"
+                },
+                "maxItems": 46,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Steps Seen"
+          },
+          "steps_unmeasured": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "unknown_call",
+                    "voip_call",
+                    "video_call",
+                    "call_out_to_unknown",
+                    "long_call",
+                    "foreign_call",
+                    "caller_in_campaign",
+                    "lure:arrest_threat",
+                    "lure:kyc",
+                    "lure:task_job",
+                    "lure:trading_tip",
+                    "lure:refund",
+                    "lure:other_scam",
+                    "lure:unclear",
+                    "bait_credit",
+                    "episode_watching",
+                    "episode_active",
+                    "escalating_payments",
+                    "remote_control",
+                    "untrusted_accessibility",
+                    "sideload_24h",
+                    "dictated_amount",
+                    "paste_after_switch",
+                    "many_app_switches",
+                    "long_hesitation",
+                    "abandoned_tries",
+                    "paid_after_call",
+                    "new_payee",
+                    "qr_entry",
+                    "contact_entry",
+                    "typed_entry",
+                    "amount_unusual",
+                    "amount_small",
+                    "amount_large",
+                    "repeat_attempts",
+                    "anchor_then_drain",
+                    "outflow_burst",
+                    "young_account",
+                    "many_payers",
+                    "pass_through",
+                    "mulehunter_high",
+                    "registry_listed",
+                    "new_and_spreading",
+                    "in_campaign",
+                    "ring_member",
+                    "automated"
+                  ],
+                  "type": "string"
+                },
+                "maxItems": 46,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Steps Unmeasured"
           }
         },
         "required": [
@@ -548,6 +628,8 @@
               "task_job",
               "trading_tip",
               "refund",
+              "other_scam",
+              "unclear",
               "normal"
             ],
             "title": "Tag",
@@ -721,6 +803,82 @@
           }
         },
         "title": "SessionSignal",
+        "type": "object"
+      },
+      "StepSeen": {
+        "additionalProperties": false,
+        "description": "One step the phone saw in this journey (c2-0.14), with how long ago when it has a time.",
+        "properties": {
+          "step": {
+            "enum": [
+              "unknown_call",
+              "voip_call",
+              "video_call",
+              "call_out_to_unknown",
+              "long_call",
+              "foreign_call",
+              "caller_in_campaign",
+              "lure:arrest_threat",
+              "lure:kyc",
+              "lure:task_job",
+              "lure:trading_tip",
+              "lure:refund",
+              "lure:other_scam",
+              "lure:unclear",
+              "bait_credit",
+              "episode_watching",
+              "episode_active",
+              "escalating_payments",
+              "remote_control",
+              "untrusted_accessibility",
+              "sideload_24h",
+              "dictated_amount",
+              "paste_after_switch",
+              "many_app_switches",
+              "long_hesitation",
+              "abandoned_tries",
+              "paid_after_call",
+              "new_payee",
+              "qr_entry",
+              "contact_entry",
+              "typed_entry",
+              "amount_unusual",
+              "amount_small",
+              "amount_large",
+              "repeat_attempts",
+              "anchor_then_drain",
+              "outflow_burst",
+              "young_account",
+              "many_payers",
+              "pass_through",
+              "mulehunter_high",
+              "registry_listed",
+              "new_and_spreading",
+              "in_campaign",
+              "ring_member",
+              "automated"
+            ],
+            "title": "Step",
+            "type": "string"
+          },
+          "min_ago": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Min Ago"
+          }
+        },
+        "required": [
+          "step"
+        ],
+        "title": "StepSeen",
         "type": "object"
       }
     },
@@ -965,7 +1123,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.13",
+        "default": "c2-0.14",
         "title": "Contract Version",
         "type": "string"
       },

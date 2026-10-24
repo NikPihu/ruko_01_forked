@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/episode",
-  "contract_version": "c2-0.13",
+  "contract_version": "c2-0.14",
   "request": {
     "$defs": {
       "EpisodeAccount": {
@@ -361,7 +361,7 @@
         "title": "Case Id"
       },
       "contract_version": {
-        "default": "c2-0.13",
+        "default": "c2-0.14",
         "title": "Contract Version",
         "type": "string"
       }
