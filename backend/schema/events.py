@@ -309,6 +309,7 @@ class MoneyReceived(_M):
     amount_inr: float = Field(gt=0)
     ts: AwareDatetime                             # when the bank SMS arrived
     source: Literal["bank_sms"] = "bank_sms"
+    sender_name: Optional[str] = Field(None, max_length=80)  # c2-0.12: the account holder's name the bank gave
 
 
 class MoneyReceivedResponse(_M):

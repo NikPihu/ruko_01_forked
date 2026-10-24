@@ -73,6 +73,7 @@ export interface Marks {
   role?: string;
   verified_merchant?: boolean;
   holder_type?: string;
+  name?: string;          // the account holder's name a bank SMS gave (c2-0.12)
 }
 
 export interface StoryNode {
@@ -217,6 +218,7 @@ export interface Received {
   amount_inr: number;
   ts: string;
   source: string;
+  sender_name: string | null;   // c2-0.12: the name the bank SMS gave
 }
 
 export interface ExplainReason {

@@ -39,7 +39,7 @@ object ReceivedPolicy {
      */
     fun events(txns: List<MoneyTxn>, userId: String, newId: () -> String = { UUID.randomUUID().toString() }): List<MoneyReceived> =
         txns.filter { it.flow == Flow.IN && it.fromSms }
-            .map { MoneyReceived(newId(), userId, it.counterparty, it.amount, RequestBuilder.istIso(it.ts)) }
+            .map { MoneyReceived(newId(), userId, it.counterparty, it.amount, RequestBuilder.istIso(it.ts), senderName = it.counterpartyName) }
 }
 
 /** Encrypted queue of credits waiting to be sent. */

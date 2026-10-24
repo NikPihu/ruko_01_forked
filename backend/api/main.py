@@ -329,13 +329,16 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     @app.post("/v1/payment/received", response_model=MoneyReceivedResponse)
     def payment_received(m: MoneyReceived) -> MoneyReceivedResponse:
-        """Money the user received, read from a bank SMS on the phone (c2-0.11, opt-in). Stored for the
-        console only: it does not feed /v1/decide or the payment graph. A repeated event_id is not
-        recorded twice."""
+        """Money the user received, read from a bank SMS on the phone (c2-0.11, opt-in). Stored with
+        the sender's name and UPI ID (c2-0.12), and added to the payment graph as a sender -> user edge,
+        so ring detection sees who pays RUKO users. A repeated event_id is not recorded twice."""
         ts = m.ts
         if clock["offset"] is not None:
             ts = datetime.now(m.ts.tzinfo) + clock["offset"]
-        recorded = store.record_received(m.event_id, m.user_id, m.sender_upi_id, m.amount_inr, ts, m.source)
+        recorded = store.record_received(m.event_id, m.user_id, m.sender_upi_id, m.amount_inr, ts, m.source,
+                                         m.sender_name)
+        if recorded and m.sender_upi_id:   # no sender named: nothing to link (rule 1)
+            graph.add_credit(m.sender_upi_id, m.user_id, m.amount_inr, ts, m.sender_name)
         return MoneyReceivedResponse(event_id=m.event_id, recorded=recorded)
 
     @app.post("/v1/episode", response_model=EpisodeEventResponse)

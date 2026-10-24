@@ -9,7 +9,7 @@ data class ReceivedPayment(
     val ts: Long,
     val amountInr: Double,
     val sender: String?, // the UPI ID the alert named; null when it named none
-    val senderName: String?, // a saved contact whose number is inside the sender's UPI ID
+    val senderName: String?, // a saved contact whose number is inside the sender's UPI ID, else the name the bank gave
 )
 
 /** The rules of the History screen's "received" rows, without Android, so ReceivedPaymentsTest can run them. */
@@ -31,7 +31,7 @@ object ReceivedPayments {
                     ts = t.ts,
                     amountInr = t.amount,
                     sender = t.counterparty,
-                    senderName = t.counterparty?.let(ContactMatch::mobileOfUpi)?.let(names::get),
+                    senderName = t.counterparty?.let(ContactMatch::mobileOfUpi)?.let(names::get) ?: t.counterpartyName,
                 )
             }
     }
