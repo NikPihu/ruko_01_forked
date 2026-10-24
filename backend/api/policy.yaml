@@ -29,6 +29,15 @@ approved_playbooks:
   min_tier: T2                   # explain card, slide to pay: a warning, never a block
   min_condition_families: 2
 
+# Strong corroboration: when at least min_families independent families are each near certain, the
+# payment pauses even if the scorer's p_scam is lower (lgbm-0.2's combiner can score a scam with a
+# strong lure lower than one without; docs/security-hardening.md). Rule 5 holds with room to spare.
+# Amount caps, trusted payees and the alert budget below still apply.
+strong_corroboration:
+  min_families: 3
+  min_family_score: 0.9
+  min_tier: T3                   # pause + trusted contact
+
 # A payee two analysts approved as a mule (rule 11) always warrants a pause, even if it is the only
 # lit family — it is human-verified, so it cannot be a false registry entry (audit §2.6).
 approved_mule_min_tier: T3

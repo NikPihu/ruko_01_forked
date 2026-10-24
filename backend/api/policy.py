@@ -7,6 +7,8 @@ Rules, in order:
   3b. A playbook two analysts approved (blue team, `approved_by` in the playbooks file) raises the
      tier to approved_playbooks.min_tier when its own conditions span min_condition_families
      families (rule 5: the evidence is still two independent families, checked by people).
+  3b'. Strong corroboration: >= strong_corroboration.min_families families each near certain
+     raises to its min_tier, whatever p_scam says.
   3c. RUKO's own cross-user evidence (evidence_overlay) raises to its min_tier when >= 2 families are lit.
   4. Amount caps (small payments are never interrupted).
   5. Trusted payee -> T0, unless an override holds (intel hit, or the journey reached S3 control).
@@ -74,6 +76,13 @@ class Policy:
         if ap and fams is not None and len(fams) >= ap["min_condition_families"] and _rank(tier) < _rank(ap["min_tier"]):
             tier = ap["min_tier"]
             applied.append("approved_playbook")
+
+        sc = c.get("strong_corroboration")
+        if sc and _rank(tier) < _rank(sc["min_tier"]):
+            strong = [k for k, v in s["family_scores"].items() if v >= sc["min_family_score"]]
+            if len(strong) >= max(sc["min_families"], c["corroboration_min_families"]):
+                tier = sc["min_tier"]
+                applied.append("strong_corroboration")
 
         # RUKO's own cross-user evidence (api/overlay.py) raises the tier only when it corroborates
         # with another lit family: on its own it never interrupts (rule 5).
