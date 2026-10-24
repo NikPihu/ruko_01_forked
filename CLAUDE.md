@@ -158,7 +158,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
   Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
   bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
-  dismiss), Evaluation (episode, graph, AI-written messages), Explore.
+  dismiss), Evaluation (episode, graph, AI-written messages), Explore, AI scammer (scam lab, `--lab`).
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs
@@ -187,7 +187,7 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
 
 The script makes `.venv`, generates `data/*.parquet` if missing (`-Regenerate` to rebuild), builds
 the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Node 18+), starts mock
-intel on 8001 and the API with `--demo-clock`, pumps the demo mule (and with `-BaitPump` the bait
+intel on 8001 and the API with `--demo-clock --lab`, pumps the demo mule (and with `-BaitPump` the bait
 account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
 Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
 (8002 on Manjeet's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
@@ -239,6 +239,7 @@ mind. Offline episode features for training:
   `/v1/graph/*` (incl. `suspects`, `rings`, `rings/{id}`), `/v1/transactions*`,
   `/v1/payments/{id}/explain`, `/v1/users/{hash}/timeline`, `/v1/metrics/alerts`,
   `/v1/patterns/emerging` + `/v1/patterns/{id}/review`, `/v1/demo/run` + `/v1/demo/results`,
+  `/v1/lab/*` (only with `--lab`, scam lab),
   `/v1/store/stats`, `/v1/trusted`, `/v1/evidence/*`, `/sim/reset`, and the console mount.
 - Scorer: `python -m api.main --scorer ml` (default) runs the trained model `ml/model/predict.py`
   (`lgbm-*`, needs LightGBM from `ml/requirements.txt`; the dev scripts install it) and falls back
@@ -271,7 +272,9 @@ mind. Offline episode features for training:
   family is lit (rule 5).
 - `store/` (transaction database, export), `api/explain.py`, `api/feedback.py` (feedback, alert
   health), `patterns/emerging.py` (A4, thresholds in `policy.yaml` `emerging:`), `demo/agents.py`
-  (scripted victims for every scam type), `evalsuite/ai_lures.py` (A3, AI-written scam messages
+  (scripted victims for every scam type), `demo/lab.py` (scam lab, `--lab`: a judge sends SMS and
+  calls to the emulator over adb from the console's "AI scammer" page and sees whether the scam
+  worked; four workflows, flagged and quiet), `evalsuite/ai_lures.py` (A3, AI-written scam messages
   test). Each has a page in `docs/features/`.
 - `intel_mock/`: NPCI, banks (`payee-risk`, `payee-flows`, visibility none / partner / dpip),
   DoT FRI, I4C registry, with real lags and blind spots.
