@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RUKO console: playbook relative_emergency_v1</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+Devanagari:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5;font-family:Inter,system-ui,sans-serif;color:#0f141a;-webkit-font-smoothing:antialiased}
+a{color:#0972d3;text-decoration:none}a:hover{color:#065ba9;text-decoration:underline}
+</style>
+</helmet>
+<div style="min-height: 2140px; background: #eef1f5; font-family: Inter, system-ui, sans-serif; color: #0f141a">
+
+  <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 0 28px; min-height: 56px; background: rgba(15,22,32,0.88); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid rgba(255,255,255,0.08)">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; color: #ffffff; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5.5v6c0 5 3.4 9.4 8 10.5 4.6-1.1 8-5.5 8-10.5v-6z" fill="none" stroke="#ff9900" stroke-width="2" stroke-linejoin="round"></path></svg>
+      <span style="font-weight: 700; letter-spacing: 0.02em">RUKO</span>
+      <span style="color: #9aa6b4; font-size: 13px">Red / Blue console</span>
+    </a>
+    <nav aria-label="Main" style="display: flex; align-self: stretch; gap: 2px; flex-wrap: wrap">
+      <a href="Main.dc.html" style="display: flex; align-items: center; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none">Overview</a>
+      <a href="Attack.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">1</span>Attack</a>
+      <a href="Investigate.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">2</span>Investigate</a>
+      <a href="Playbooks.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: inset 0 -2px 0 #ff9900"><span style="font-size: 11px; color: #ffb84d">3</span>Playbooks<span style="background: #ff9900; color: #0f141a; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 7px">3</span></a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <button type="button" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: #e6ebf0; font: 500 13px Inter, sans-serif">Run <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff">rt-1024</span><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+      <a href="LiveCheck.dc.html" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); color: #e6ebf0; font-size: 13px; font-weight: 500; text-decoration: none"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="#ff9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Live check</a>
+      <button type="button" aria-label="Legend" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #e6ebf0; font: 600 14px Inter, sans-serif">?</button>
+    </div>
+  </header>
+
+  <section style="background: #0f1620; padding: 24px 32px 104px">
+    <div style="max-width: 1376px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px">
+      <nav aria-label="Breadcrumb" style="font-size: 13px; color: #9aa6b4"><a href="Playbooks.dc.html" style="color: #9cc8f5">Playbooks</a> / Emergency for someone you know</nav>
+      <div style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap">
+        <div style="flex: 1 1 520px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; color: #ffffff; font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 500">relative_emergency_v1</h1>
+            <span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 4px 10px; background: rgba(255,153,0,0.18); color: #ffc266">Waiting · 1 of 2</span>
+            <span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 4px 10px; background: rgba(176,140,240,0.2); color: #d4c0fb">New scam</span>
+          </div>
+          <p style="margin: 8px 0 0; color: #c3ccd6; font-size: 15px">An unknown caller says a relative is in trouble; the victim pastes a payee from a message and pays a fresh account that many others are paying.</p>
+        </div>
+        <button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #ffffff; font: 500 14px Inter, sans-serif">Reject</button>
+        <button type="button" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #ff9900; color: #0f141a; font: 600 14px Inter, sans-serif">Approve</button>
+      </div>
+    </div>
+  </section>
+
+  <main style="max-width: 1376px; margin: -76px auto 0; padding: 0 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+    <section aria-label="Key numbers" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: rgba(255,255,255,0.82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 14px; box-shadow: 0 12px 32px rgba(15,23,42,0.08)">
+          <div style="font-size: 12.5px; color: #5f6b7a">{{k.label}}</div>
+          <div style="font-size: 26px; font-weight: 650; letter-spacing: -0.02em; color: {{k.color}}">{{k.value}}</div>
+          <div style="font-size: 12px; color: #5f6b7a">{{k.sub}}</div>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      <div style="flex: 999 1 720px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+        <section aria-label="Why this playbook" style="padding: 22px 24px; background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06)">
+          <h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600">Why this playbook</h2>
+          <p style="margin: 0 0 18px; font-size: 13px; color: #5f6b7a">Every step from the first complaint to your sign-off. Each one links to its evidence.</p>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+            <sc-for list="{{trail}}" as="t" hint-placeholder-count="7">
+              <li style="display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px">
+                <div style="display: flex; flex-direction: column; align-items: center">
+                  <span style="{{t.dot}}">{{t.mark}}</span>
+                  <span style="{{t.line}}"></span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 20px">
+                  <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+                    <span style="font-weight: 600; font-size: 14.5px">{{t.title}}</span>
+                    <span style="font-size: 12px; color: #5f6b7a">{{t.who}}</span>
+                  </div>
+                  <div style="font-size: 13.5px; color: #414d5c; line-height: 1.5">{{t.fact}}</div>
+                  <sc-if value="{{t.hasChips}}" hint-placeholder-val="{{false}}">
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                      <sc-for list="{{t.chips}}" as="c" hint-placeholder-count="3"><span style="font-size: 12px; border-radius: 6px; padding: 3px 9px; background: #f2f4f7; color: #414d5c">{{c}}</span></sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{t.hasQuote}}" hint-placeholder-val="{{false}}">
+                    <blockquote style="margin: 2px 0 0; padding: 10px 14px; border-radius: 10px; background: #f6f1fd; color: #3b2370; font-size: 13.5px; line-height: 1.5">{{t.quote}}</blockquote>
+                  </sc-if>
+                  <a href="{{t.href}}" style="font-size: 12.5px">{{t.link}}</a>
+                </div>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <section aria-label="The rule" style="background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06); overflow: hidden">
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px 24px 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">The rule, condition by condition</h2>
+            <span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 9px; background: #eef1f5; color: #414d5c">All must hold</span>
+            <div aria-label="Legend" style="margin-left: auto; display: flex; gap: 12px; font-size: 12px; color: #5f6b7a; flex-wrap: wrap">
+              <span><b style="color: #0f141a">C</b> context</span><span><b style="color: #0f141a">L</b> lure</span><span><b style="color: #0f141a">P</b> payee</span><span><b style="color: #0f141a">B</b> behaviour</span>
+            </div>
+          </div>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13.5px">
+              <thead>
+                <tr style="text-align: left; color: #5f6b7a; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em">
+                  <th style="padding: 10px 24px; font-weight: 600">Condition</th>
+                  <th style="padding: 10px 12px; font-weight: 600">In its complaints</th>
+                  <th style="padding: 10px 12px; font-weight: 600">In honest payments</th>
+                  <th style="padding: 10px 24px; font-weight: 600">Why it is there</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{rule}}" as="r" hint-placeholder-count="4">
+                  <tr style="border-top: 1px solid rgba(15,23,42,0.06)">
+                    <td style="padding: 13px 24px">
+                      <span style="display: flex; align-items: center; gap: 10px">
+                        <span style="display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: #0f1620; color: #ffffff; font-size: 11px; font-weight: 700">{{r.fam}}</span>
+                        <span>{{r.cond}}</span>
+                      </span>
+                    </td>
+                    <td style="padding: 13px 12px">
+                      <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: flex; width: 70px; height: 6px; border-radius: 999px; background: #e3e8ee; overflow: hidden"><span style="{{r.bar}}"></span></span><b>{{r.inC}}</b></span>
+                    </td>
+                    <td style="padding: 13px 12px"><b>{{r.inH}}</b> <span style="color: #5f6b7a">/ 1k</span></td>
+                    <td style="padding: 13px 24px; color: #414d5c">{{r.why}}</td>
+                  </tr>
+                </sc-for>
+                <tr style="border-top: 1px solid rgba(15,23,42,0.12); background: #f5f7fa">
+                  <td style="padding: 13px 24px; font-weight: 600">All four together</td>
+                  <td style="padding: 13px 12px; font-weight: 700">84%</td>
+                  <td style="padding: 13px 12px"><b>0.3</b> <span style="color: #5f6b7a">/ 1k</span></td>
+                  <td style="padding: 13px 24px; color: #414d5c">Each condition alone is common; together they are rare in honest payments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-label="Why not a known playbook" style="background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06); overflow: hidden">
+          <div style="padding: 18px 24px 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Why not a playbook we already have</h2>
+          </div>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13.5px">
+              <thead>
+                <tr style="text-align: left; color: #5f6b7a; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em">
+                  <th style="padding: 10px 24px; font-weight: 600">Signal</th>
+                  <th style="padding: 10px 12px; font-weight: 600; color: #0f141a">This group</th>
+                  <th style="padding: 10px 12px; font-weight: 600">digital_arrest · 0.41</th>
+                  <th style="padding: 10px 12px; font-weight: 600">refund_qr · 0.22</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{compare}}" as="c" hint-placeholder-count="5">
+                  <tr style="border-top: 1px solid rgba(15,23,42,0.06)">
+                    <td style="padding: 12px 24px">{{c.signal}}</td>
+                    <td style="padding: 12px; font-weight: 600">{{c.here}}</td>
+                    <td style="padding: 12px; color: #414d5c">{{c.da}}</td>
+                    <td style="padding: 12px; color: #414d5c">{{c.rq}}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding: 12px 24px 16px; font-size: 12.5px; color: #5f6b7a; border-top: 1px solid rgba(15,23,42,0.06)">Similarity: how alike two groups' signals are (0 to 1). 0.60 or more counts as a known scam.</div>
+        </section>
+
+        <section aria-label="What the user sees" style="padding: 20px 24px; background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06); display: flex; flex-direction: column; gap: 14px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">What the user sees on the warning</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <div style="padding: 14px 16px; border-radius: 12px; background: #f5f7fa">
+              <div style="font-size: 11.5px; font-weight: 600; color: #5f6b7a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px">English</div>
+              <p style="margin: 0; font-size: 14px; line-height: 1.55">Someone on this call may be pretending a relative is in trouble. Call your relative yourself, on a number you know, before you pay.</p>
+            </div>
+            <div style="padding: 14px 16px; border-radius: 12px; background: #f5f7fa">
+              <div style="font-size: 11.5px; font-weight: 600; color: #5f6b7a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px">हिन्दी</div>
+              <p lang="hi" style="margin: 0; font-family: 'Noto Sans Devanagari', Inter, sans-serif; font-size: 14px; line-height: 1.7">इस कॉल पर कोई आपके रिश्तेदार के मुसीबत में होने का बहाना कर सकता है। पैसे भेजने से पहले अपने रिश्तेदार को खुद, जाने-पहचाने नंबर पर कॉल करें।</p>
+            </div>
+          </div>
+          <details style="font-size: 13px">
+            <summary style="cursor: pointer; color: #0972d3">Stored record · playbooks/review/relative_emergency_v1.yaml</summary>
+            <pre style="margin: 10px 0 0; padding: 12px; border-radius: 10px; background: #0f1620; color: #dfe6ee; font-family: 'JetBrains Mono', monospace; font-size: 12px; overflow-x: auto">[the YAML card, shown when opened]</pre>
+          </details>
+        </section>
+      </div>
+
+      <aside aria-label="Sign-off" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section style="padding: 18px 20px; background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 12px 32px rgba(15,23,42,0.06); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Sign-off</h2>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px">
+            <span style="display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: #0f1620; color: #ffffff; font-size: 11px; font-weight: 700">AS</span>
+            <span style="flex: 1">Asha S. approved</span><span style="font-size: 12px; color: #5f6b7a">21 Oct</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #5f6b7a">
+            <span style="width: 28px; height: 28px; border-radius: 999px; border: 1.5px dashed #b6bfca; box-sizing: border-box"></span>Second analyst
+          </div>
+          <label for="who" style="font-size: 12px; color: #5f6b7a; margin-top: 4px">Your name</label>
+          <input id="who" placeholder="Name" style="height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.16); font: 400 13.5px Inter, sans-serif">
+          <label for="note" style="font-size: 12px; color: #5f6b7a">Note (needed to reject)</label>
+          <textarea id="note" rows="2" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.16); font: 400 13.5px Inter, sans-serif; resize: vertical"></textarea>
+          <div style="display: flex; gap: 8px">
+            <button type="button" style="flex: 1; height: 40px; border-radius: 10px; border: 1px solid rgba(15,23,42,0.16); background: #ffffff; font: 500 14px Inter, sans-serif; color: #0f141a">Reject</button>
+            <button type="button" style="flex: 1; height: 40px; border-radius: 10px; border: 0; background: #ff9900; font: 600 14px Inter, sans-serif; color: #0f141a">Approve</button>
+          </div>
+        </section>
+
+        <section style="padding: 18px 20px; background: rgba(255,255,255,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 12px 32px rgba(15,23,42,0.06); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">After approval</h2>
+          <sc-for list="{{after}}" as="a" hint-placeholder-count="3">
+            <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px">
+              <span style="margin-top: 3px; width: 10px; height: 10px; border-radius: 999px; border: 2px solid #b6bfca; box-sizing: border-box; flex: none"></span>
+              <span>{{a}}</span>
+            </div>
+          </sc-for>
+          <a href="LiveCheck.dc.html" style="font-size: 13px; margin-top: 2px">Prove it in a live check</a>
+        </section>
+
+        <section style="padding: 18px 20px; background: rgba(255,255,255,0.6); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Mule accounts found</h2>
+          <div style="font-size: 13px; color: #414d5c">3 accounts go to the graph's suspect review (two analysts again).</div>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px">
+            <span>anil.joshi@axl</span><span>meera.k88@ybl</span><span>rk.medicals@okicici</span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const step = (mark, title, who, fact, link, href, extra, last) => ({ mark, title, who, fact, link, href,
+      chips: (extra && extra.chips) || [], hasChips: !!(extra && extra.chips),
+      quote: (extra && extra.quote) || '', hasQuote: !!(extra && extra.quote),
+      dot: `display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; font-size: 12px; font-weight: 700; flex: none; ${mark === '…' ? 'background: rgba(255,153,0,0.16); color: #7a4a00; border: 1.5px solid #ff9900' : 'background: #0f1620; color: #ffffff'}`,
+      line: last ? 'flex: 1; width: 2px' : 'flex: 1; width: 2px; background: #dfe4ea; margin: 4px 0' });
+    const rr = (fam, cond, inC, inH, why) => ({ fam, cond, inC: inC + '%', inH, why, bar: `width: ${inC}%; background: #0972d3` });
+    return {
+      kpis: [
+        { label: 'Catches', value: '84%', sub: '32 of its 38 complaints', color: '#0f141a' },
+        { label: 'Scam payments it names', value: '81%', sub: 'in the attack world', color: '#0f141a' },
+        { label: 'Honest payments it names', value: '0.3', sub: 'per 1,000 · limit 1.0', color: '#0f141a' },
+        { label: 'When approved', value: 'Warns', sub: 'T2 · families C + B agree', color: '#036b0a' },
+      ],
+      trail: [
+        step('1', '38 victims complained after RUKO let them through', 'Complaints · 1930 / NCRP',
+          '31 payments got no warning at all; 7 got a warning but no scam name. ₹9.4 lakh lost.', 'Open the complaints', 'Investigate.dc.html'),
+        step('2', 'Their payments look alike', 'HDBSCAN grouping',
+          'Grouped as G2 because five signals keep showing up together:', 'See the group on the map', 'Investigate.dc.html',
+          { chips: ['call from unknown number · 95%', 'payee pasted after app switch · 88%', 'amount far above usual · 76%', 'same payee, many people · 71%', 'no scam SMS first · 64%'] }),
+        step('3', 'It is not a scam RUKO already knows', 'Compared with every live playbook',
+          'Closest is digital_arrest at 0.41 similarity. A group needs 0.60 to count as a known scam.', 'See the comparison below', '#compare'),
+        step('4', 'The generator agent drafted this rule', 'Bedrock · 3 turns',
+          'It read 12 example complaints and wrote four conditions in the fixed rule format. Code then tested the rule on 41,200 past payments.', 'Read its turns', '#generator'),
+        step('5', 'The analyst agent judged it a new scam', 'Bedrock · second model, told to doubt',
+          '', 'Read its turns', '#analyst',
+          { quote: 'No remote access and no "government" claim, so not digital arrest. The money goes to fresh accounts paid by many people within hours: a new scam, not a look-alike.' }),
+        step('6', 'Code checks passed', 'Gates',
+          'Catches 84% (needs 60%). Honest 0.3 per 1,000 (limit 1.0). Lights two families, so it can warn. Rule format valid.', 'Gate details', '#gates'),
+        step('…', 'Two people approve', 'You are next',
+          'Asha S. approved on 21 Oct. One more analyst, a different person, is needed before RUKO uses it.', 'Sign-off', '#signoff', null, true),
+      ],
+      rule: [
+        rr('C', 'On a call with an unknown number', 95, '12', 'Most victims were still on the call when they paid'),
+        rr('B', 'Payee pasted right after switching apps', 88, '3.1', 'They copied the UPI ID from a chat the caller sent'),
+        rr('B', 'Amount at least 5× their usual', 76, '1.4', 'An emergency sum, far above daily spending'),
+        rr('P', 'Same payee paid by 3+ RUKO users in 6 h', 71, '0.2', 'The crew reuses one fresh account for every victim'),
+      ],
+      compare: [
+        { signal: 'Unknown caller on the line', here: 'Yes · 95%', da: 'Yes', rq: 'Sometimes' },
+        { signal: 'Remote access app open', here: 'No · 4%', da: 'Yes, required', rq: 'No' },
+        { signal: 'Says "government" or "police"', here: 'No · 2%', da: 'Yes', rq: 'No' },
+        { signal: 'Paid by QR', here: 'No · 9%', da: 'Sometimes', rq: 'Yes, required' },
+        { signal: 'Fresh payee, many payers', here: 'Yes · 71%', da: 'Rare', rq: 'Rare' },
+      ],
+      after: [
+        'RUKO names this scam and can warn (T2) on new payments',
+        'Verify in a fresh world: names it, no new false alarms',
+        'Its 38 labelled payments join the next model retrain',
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

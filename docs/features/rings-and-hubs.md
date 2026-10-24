@@ -8,6 +8,16 @@ chatbots at machine scale.
 `/v1/decide` payments, `/v1/episode` accounts and the bank flows the visibility setting allows.
 Never the simulator's ground truth.
 
+**Where discovery starts** (seeds): an account on a fraud list, an account flagged in a high-risk
+task-scam episode, an analyst-approved suspect, or (since the scam lab) **the payee of a payment
+RUKO stopped (T2+) with the payee family lit**. For such a payee, `/v1/decide` fetches where its
+bank says the money went, in the background after answering, so rings grow from real payments.
+
+**Every ring explains itself** (`explain_ring`, console ring page "Why this is a ring"): where
+discovery started and why, how each account is tied in ("received ₹1,12,622 from X, passed on
+within 13 min (its bank's flow data)", or "N RUKO users paid both it and X"), the hubs, the money
+from RUKO users, and that suspects count only after two analysts approve them.
+
 **Suspects** (`graph/discover.py`): accounts ranked by crowd signal (many unrelated people paying),
 money loops, fast pass-through and links to known mules.
 - **Rule 11:** a discovered suspect affects live payments only after **two different analysts**

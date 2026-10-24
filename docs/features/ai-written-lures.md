@@ -13,7 +13,7 @@ Does the lure model, trained on known scam templates, still catch them?
 - **Same scoring as the phone:** it uses the model's own Python scorer (`ml/model/lure_train.py`)
   and the phone's 0.6 send threshold, so it measures exactly what the app would flag.
 - **Output:** `backend/evalsuite/ai_lures_results.json`, served by `GET /v1/eval` (`ai_lures`) and
-  shown as a card on the console's **Evaluation** page.
+  (the console's Evaluation page was removed).
 
 **Latest result** (`lure-0.1`):
 

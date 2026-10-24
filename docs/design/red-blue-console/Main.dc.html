@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RUKO console: Overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5;font-family:Inter,system-ui,sans-serif;color:#0f141a;-webkit-font-smoothing:antialiased}
+a{color:#0972d3;text-decoration:none}a:hover{color:#065ba9;text-decoration:underline}
+</style>
+</helmet>
+<div style="min-height: 1320px; background: #eef1f5; font-family: Inter, system-ui, sans-serif; color: #0f141a">
+
+  <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 0 28px; min-height: 56px; background: rgba(15,22,32,0.88); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid rgba(255,255,255,0.08)">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; color: #ffffff; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5.5v6c0 5 3.4 9.4 8 10.5 4.6-1.1 8-5.5 8-10.5v-6z" fill="none" stroke="#ff9900" stroke-width="2" stroke-linejoin="round"></path></svg>
+      <span style="font-weight: 700; letter-spacing: 0.02em">RUKO</span>
+      <span style="color: #9aa6b4; font-size: 13px">Red / Blue console</span>
+    </a>
+    <nav aria-label="Main" style="display: flex; align-self: stretch; gap: 2px; flex-wrap: wrap">
+      <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; padding: 0 14px; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: inset 0 -2px 0 #ff9900">Overview</a>
+      <a href="Attack.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">1</span>Attack</a>
+      <a href="Investigate.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">2</span>Investigate</a>
+      <a href="Playbooks.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">3</span>Playbooks<span style="background: #ff9900; color: #0f141a; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 7px">3</span></a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <button type="button" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: #e6ebf0; font: 500 13px Inter, sans-serif">Run <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff">rt-1024</span><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+      <a href="LiveCheck.dc.html" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); color: #e6ebf0; font-size: 13px; font-weight: 500; text-decoration: none"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="#ff9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Live check</a>
+      <button type="button" aria-label="Legend" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #e6ebf0; font: 600 14px Inter, sans-serif">?</button>
+    </div>
+  </header>
+
+  <section style="background: #0f1620; padding: 32px 32px 104px">
+    <div style="max-width: 1376px; margin: 0 auto; display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap">
+      <div style="flex: 1 1 480px">
+        <div style="color: #9aa6b4; font-size: 13px">Run rt-1024 · red-team world · engine lgbm-0.2+pg1</div>
+        <h1 style="margin: 6px 0 0; color: #ffffff; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">How is the shield holding?</h1>
+      </div>
+      <a href="Attack.dc.html" style="display: flex; align-items: center; height: 40px; padding: 0 18px; border-radius: 10px; background: #ff9900; color: #0f141a; font-weight: 600; font-size: 14px; text-decoration: none">Run the loop again</a>
+    </div>
+  </section>
+
+  <main style="max-width: 1376px; margin: -76px auto 0; padding: 0 32px 56px; display: flex; flex-direction: column; gap: 20px">
+
+    <nav aria-label="The loop" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <a href="{{s.href}}" style="{{s.box}}">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span style="{{s.dot}}">{{s.n}}</span>
+            <span style="font-weight: 600; font-size: 15px; color: #0f141a">{{s.title}}</span>
+            <span style="{{s.chip}}">{{s.state}}</span>
+          </div>
+          <div style="font-size: 22px; font-weight: 600; color: #0f141a; letter-spacing: -0.01em">{{s.big}}</div>
+          <div style="font-size: 13px; color: #414d5c">{{s.sub}}</div>
+        </a>
+      </sc-for>
+    </nav>
+
+    <section aria-label="Scam groups" style="background: rgba(255,255,255,0.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06)">
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 22px; border-bottom: 1px solid rgba(15,23,42,0.07)">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600">Scam groups</h2>
+        <span style="color: #5f6b7a; font-size: 13px">8 groups · 50 attacks · 35 got through</span>
+        <div role="group" aria-label="Show" style="margin-left: auto; display: flex; padding: 3px; border-radius: 10px; background: #eef1f5">
+          <button type="button" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: #ffffff; box-shadow: 0 1px 2px rgba(15,23,42,0.1); font: 600 13px Inter, sans-serif; color: #0f141a">All</button>
+          <button type="button" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 500 13px Inter, sans-serif; color: #414d5c">Leaking</button>
+          <button type="button" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 500 13px Inter, sans-serif; color: #414d5c">New</button>
+        </div>
+      </div>
+
+      <div aria-label="Legend" style="display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 22px; font-size: 12px; color: #5f6b7a; border-bottom: 1px solid rgba(15,23,42,0.07)">
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #d91515"></span>Got through: RUKO called most of its scam payments normal</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #0972d3"></span>Caught</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #7a3fd0"></span>New group: a scam RUKO had no playbook for</span>
+        <span>Called normal: threat score 70 or less</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 18px 22px 22px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="8">
+          <a href="Attack.dc.html" style="{{g.box}}">
+            <div style="display: flex; align-items: flex-start; gap: 8px">
+              <div style="flex: 1; font-weight: 600; font-size: 14.5px; line-height: 1.3; color: #0f141a">{{g.name}}</div>
+              <span style="{{g.chip}}">{{g.status}}</span>
+            </div>
+            <div style="font-size: 12px; color: #5f6b7a">{{g.kind}}</div>
+            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px">
+              <span style="font-size: 28px; font-weight: 650; letter-spacing: -0.02em; color: #0f141a">{{g.through}}</span>
+              <span style="font-size: 13px; color: #414d5c">of {{g.attacks}} attacks got through</span>
+            </div>
+            <div aria-hidden="true" style="display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: #0972d3">
+              <span style="{{g.bar}}"></span>
+            </div>
+            <div style="display: flex; gap: 14px; font-size: 12.5px; color: #414d5c">
+              <span><b style="color: #0f141a">{{g.normal}}</b> called normal</span>
+              <span><b style="color: #0f141a">{{g.complaints}}</b> complaints</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid rgba(15,23,42,0.07); font-size: 12.5px">
+              <span style="font-family: 'JetBrains Mono', monospace; color: #0f141a">{{g.playbook}}</span>
+              <span style="{{g.pbChip}}">{{g.pbState}}</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Waiting for you" style="background: rgba(255,255,255,0.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06)">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid rgba(15,23,42,0.07)">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600">Waiting for you</h2>
+        <a href="Playbooks.dc.html" style="margin-left: auto; font-size: 13px">All playbooks</a>
+      </div>
+      <sc-for list="{{waiting}}" as="w" hint-placeholder-count="3">
+        <a href="PlaybookDetail.dc.html" style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) 120px 120px 90px; align-items: center; gap: 16px; padding: 14px 22px; border-bottom: 1px solid rgba(15,23,42,0.06); color: #0f141a; text-decoration: none">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px">{{w.name}}</span>
+          <span style="font-size: 13px; color: #414d5c">{{w.group}}</span>
+          <span style="font-size: 13px"><b>{{w.names}}</b> <span style="color: #5f6b7a">of complaints</span></span>
+          <span style="font-size: 13px"><b>{{w.legit}}</b> <span style="color: #5f6b7a">honest / 1k</span></span>
+          <span style="justify-self: end; font-size: 12px; font-weight: 600; color: #7a5300; background: #fff4d6; border-radius: 999px; padding: 3px 10px">{{w.sign}}</span>
+        </a>
+      </sc-for>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (bg, fg) => `font-size: 11.5px; font-weight: 600; white-space: nowrap; border-radius: 999px; padding: 3px 9px; background: ${bg}; color: ${fg}`;
+    const C = {
+      leak: chip('#fdecea', '#b0120d'), caught: chip('#e8f2fd', '#0758a8'), mixed: chip('#fff4d6', '#7a5300'),
+      newg: chip('#f1ebfb', '#5b2ca0'), ok: chip('#e7f5e9', '#036b0a'), wait: chip('#fff4d6', '#7a5300'), plain: chip('#eef1f5', '#414d5c'),
+    };
+    const box = (isNew) => 'display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; text-decoration: none; color: #0f141a; ' +
+      'background: ' + (isNew ? 'rgba(246,241,253,0.92)' : 'rgba(255,255,255,0.9)') + '; ' +
+      'border: 1px solid ' + (isNew ? 'rgba(122,63,208,0.28)' : 'rgba(15,23,42,0.08)');
+    const g = (name, kind, isNew, attacks, through, normal, complaints, playbook, pbState, pbChip) => {
+      const share = through / attacks;
+      const status = share >= 0.75 ? 'Leaking' : share >= 0.34 ? 'Partly caught' : 'Mostly caught';
+      return { name, kind, attacks, through, normal, complaints, playbook, pbState, pbChip: C[pbChip],
+        status: isNew ? 'New group' : status, chip: isNew ? C.newg : share >= 0.75 ? C.leak : share >= 0.34 ? C.mixed : C.caught,
+        box: box(isNew), bar: `width: ${Math.round(share * 100)}%; background: #d91515` };
+    };
+    const step = (n, title, href, big, sub, state, chipKey, active) => ({ n, title, href, big, sub, state, chip: C[chipKey],
+      dot: `display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; font-size: 12px; font-weight: 700; ${active ? 'background: #ff9900; color: #0f141a' : 'background: #eef1f5; color: #414d5c'}`,
+      box: 'display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 14px; text-decoration: none; ' +
+        'background: rgba(255,255,255,0.82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); ' +
+        `border: 1px solid ${active ? 'rgba(255,153,0,0.7)' : 'rgba(15,23,42,0.08)'}; box-shadow: ${active ? '0 0 0 3px rgba(255,153,0,0.18), ' : ''}0 12px 32px rgba(15,23,42,0.08)` });
+    return {
+      steps: [
+        step('1', 'Attack', 'Attack.dc.html', '35 of 50 got through', 'Red-team playbooks against the real engine', 'Done', 'ok', false),
+        step('2', 'Investigate', 'Investigate.dc.html', '9 groups', 'from 312 victim complaints', 'Done', 'ok', false),
+        step('3', 'Playbooks', 'Playbooks.dc.html', '3 waiting', 'Two analysts must approve each', 'Your turn', 'wait', true),
+        step('4', 'Live check', 'LiveCheck.dc.html', '31% → 89%', 'scam payments interrupted, before → after', 'Last run', 'plain', false),
+      ],
+      groups: [
+        g('Digital arrest & fake officer', 'Known type · digital_arrest', false, 8, 7, '91%', 64, 'digital_arrest', 'Names only', 'plain'),
+        g('Government & bank SMS', 'Known type · fake_kyc_apk', false, 9, 8, '97%', 52, 'fake_kyc_apk', 'Names only', 'plain'),
+        g('Online shop, pay first', 'New · found by the blue team', true, 7, 7, '98%', 40, 'shop_prepay_v1', '0 of 2', 'wait'),
+        g('Emergency for someone you know', 'New · found by the blue team', true, 6, 6, '94%', 38, 'relative_emergency_v1', '1 of 2', 'wait'),
+        g('Task & job', 'Known type · task_job', false, 6, 3, '58%', 22, 'task_job', 'Warns', 'ok'),
+        g('Trading & investment', 'Known type · trading_group', false, 4, 2, '49%', 11, 'trading_group', 'Warns', 'ok'),
+        g('Refund & wrong transfer', 'Known type · refund_qr', false, 2, 1, '50%', 6, 'refund_qr', 'Warns', 'ok'),
+        g('Tiny first payment, then drain', 'New · found by the blue team', true, 8, 1, '22%', 9, 'anchor_then_drain_v1', 'Approved', 'ok'),
+      ],
+      waiting: [
+        { name: 'relative_emergency_v1', group: 'Emergency for someone you know', names: '84%', legit: '0.3', sign: '1 of 2' },
+        { name: 'shop_prepay_v1', group: 'Online shop, pay first', names: '79%', legit: '0.6', sign: '0 of 2' },
+        { name: 'govt_sms_fee_v2', group: 'Government & bank SMS', names: '71%', legit: '0.9', sign: '0 of 2' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

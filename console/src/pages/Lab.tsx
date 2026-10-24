@@ -39,8 +39,12 @@ function Head() {
 function LabOn({ status }: { status: LabStatus }) {
   const [workflow, setWorkflow] = useState<string | undefined>(undefined);
   const [tick, setTick] = useState(0);
-  const flows = useLoad(() => api.labWorkflows(), []);
-  const presets = useLoad(() => api.labPresets(), []);
+  // undefined = follow the phone: whichever demo account (Meena, Rahul, ...) paid last.
+  const [picked, setPicked] = useState<string | undefined>(undefined);
+  const victim = picked ?? status.victim;
+  const flows = useLoad(() => api.labWorkflows(victim), [victim]);
+  const presets = useLoad(() => api.labPresets(victim), [victim]);
+  const nameOf = (id: string) => status.victims.find((v) => v.user_id === id)?.name ?? id;
   const bump = () => setTick((t) => t + 1);
   const reset = async () => {
     await api.labReset();
@@ -54,7 +58,12 @@ function LabOn({ status }: { status: LabStatus }) {
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div className="row">
             <Check ok={!!status.emulator} label={status.emulator ? `Emulator ${status.emulator}` : "No emulator found"} />
-            <span className="chip">Victim: {status.victim}</span>
+            <label className="muted" htmlFor="lab-victim">Victim</label>
+            <select id="lab-victim" className="input" value={picked ?? ""}
+              onChange={(e) => setPicked(e.target.value || undefined)}>
+              <option value="">Follow the phone ({nameOf(status.victim)})</option>
+              {status.victims.map((v) => <option key={v.user_id} value={v.user_id}>{v.name}</option>)}
+            </select>
             {!status.adb && <span className="muted">adb not found: install the Android SDK platform-tools</span>}
           </div>
           <button className="btn" onClick={reset}>Reset everything</button>
@@ -72,15 +81,15 @@ function LabOn({ status }: { status: LabStatus }) {
             {!flows.data ? <Loading error={flows.error} loading={flows.loading} /> : (
               <div className="stack">
                 {flows.data.workflows.map((f) => (
-                  <FlowCard key={f.id} f={f} active={workflow === f.id} onPick={() => setWorkflow(f.id)} onSent={bump} />
+                  <FlowCard key={f.id} f={f} victim={picked} active={workflow === f.id} onPick={() => setWorkflow(f.id)} onSent={bump} />
                 ))}
               </div>
             )}
           </Card>
-          {presets.data && <Composer presets={presets.data} onSent={bump} />}
+          {presets.data && <Composer key={victim} presets={presets.data} onSent={bump} />}
         </div>
         <div className="stack">
-          <Result workflow={workflow} />
+          <Result workflow={workflow} victim={picked} />
           <SentLog tick={tick} />
         </div>
       </div>
@@ -109,7 +118,9 @@ function Note({ msg }: { msg: { ok: boolean; text: string } | null }) {
   return <span className={msg.ok ? "muted" : "error"}>{msg.text}</span>;
 }
 
-function FlowCard({ f, active, onPick, onSent }: { f: LabWorkflow; active: boolean; onPick: () => void; onSent: () => void }) {
+function FlowCard({ f, victim, active, onPick, onSent }: {
+  f: LabWorkflow; victim?: string; active: boolean; onPick: () => void; onSent: () => void;
+}) {
   const { busy, msg, run } = useAction();
   return (
     <section className="card" style={{ borderColor: active ? "var(--accent)" : undefined }}>
@@ -129,22 +140,43 @@ function FlowCard({ f, active, onPick, onSent }: { f: LabWorkflow; active: boole
           {f.victim_steps.map((s) => <li key={s}>{s}</li>)}
         </ol>
         <p className="muted" style={{ margin: "8px 0" }}>Expected: {f.expect}</p>
+        {f.on_phone_only && (
+          <p className="muted" style={{ margin: "0 0 8px" }}>Watch the phone: this warning comes from the phone itself
+            ("SMS scam check" and "Call signals" on), so "Did your scam work?" stays unchanged.</p>
+        )}
         <div className="row">
           {f.prepare && (
             <button className="btn" disabled={busy} title={f.prepare}
-              onClick={() => run("Set up done: " + f.prepare, async () => { onPick(); await api.labPrepare(f.id); onSent(); })}>
+              onClick={() => run("Set up done: " + f.prepare, async () => { onPick(); await api.labPrepare(f.id, victim); onSent(); })}>
               1. Set up
             </button>
           )}
-          <button className="btn primary" disabled={busy}
-            onClick={() => run(f.call ? "Message sent and the phone is ringing" : "Message sent",
-              async () => { onPick(); await api.labSend(f.id); onSent(); })}>
-            {f.prepare ? "2. " : ""}Send to the victim
-          </button>
-          {f.call && (
+          {f.sms_after_call ? (
             <>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run("The phone is ringing: answer it", async () => { onPick(); await api.labSend(f.id, victim, "call"); onSent(); })}>
+                1. Ring the phone
+              </button>
               <button className="btn" disabled={busy} onClick={() => run("Call answered", () => api.labCall(f.call!, "answer"))}>Answer call</button>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run("Code sent during the call", async () => { await api.labSend(f.id, victim, "sms"); onSent(); })}>
+                2. Send the code
+              </button>
               <button className="btn" disabled={busy} onClick={() => run("Call ended", () => api.labCall(f.call!, "hangup"))}>Hang up</button>
+            </>
+          ) : (
+            <>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run(f.call ? "Message sent and the phone is ringing" : "Message sent",
+                  async () => { onPick(); await api.labSend(f.id, victim); onSent(); })}>
+                {f.prepare ? "2. " : ""}Send to the victim
+              </button>
+              {f.call && (
+                <>
+                  <button className="btn" disabled={busy} onClick={() => run("Call answered", () => api.labCall(f.call!, "answer"))}>Answer call</button>
+                  <button className="btn" disabled={busy} onClick={() => run("Call ended", () => api.labCall(f.call!, "hangup"))}>Hang up</button>
+                </>
+              )}
             </>
           )}
           <Note msg={msg} />
@@ -211,15 +243,15 @@ const RESULT_CHIP: Record<string, string> = {
   stopped: "good", interrupted: "good", paid_anyway: "bad", paid: "bad", not_flagged: "", cancelled: "",
 };
 
-function Result({ workflow }: { workflow?: string }) {
+function Result({ workflow, victim }: { workflow?: string; victim?: string }) {
   const [r, setR] = useState<LabLatest | null>(null);
   useEffect(() => {
     let live = true;
-    const load = () => api.labLatest(workflow).then((x) => { if (live) setR(x); }).catch(() => undefined);
+    const load = () => api.labLatest(workflow, victim).then((x) => { if (live) setR(x); }).catch(() => undefined);
     load();
     const t = setInterval(load, 2000);
     return () => { live = false; clearInterval(t); };
-  }, [workflow]);
+  }, [workflow, victim]);
   const p = r?.payment;
   return (
     <Card title="Did your scam work?">

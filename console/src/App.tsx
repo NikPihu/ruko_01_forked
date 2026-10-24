@@ -2,7 +2,6 @@ import { api } from "./api";
 import { useLoad, useRoute } from "./components/ui";
 import { Alerts } from "./pages/Alerts";
 import { EpisodeCaseView, PaymentCase } from "./pages/CaseDetail";
-import { Evaluation } from "./pages/Evaluation";
 import { Explore } from "./pages/Explore";
 import { Overview } from "./pages/Overview";
 import { Suspects } from "./pages/Suspects";
@@ -10,6 +9,7 @@ import { PaymentExplain, Transactions } from "./pages/Transactions";
 import { Emerging } from "./pages/Emerging";
 import { RingDetail, Rings } from "./pages/Rings";
 import { Lab } from "./pages/Lab";
+import { Accuracy } from "./pages/Accuracy";
 
 const NAV = [
   { key: "", label: "Overview", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
@@ -19,8 +19,8 @@ const NAV = [
   { key: "rings", label: "Scam rings", icon: "M12 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM5 14a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm14 0a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM11 8h2v3l4.5 3.3-1.2 1.6L12 12.8l-4.3 3.1-1.2-1.6L11 11z" },
   { key: "suspects", label: "Mule suspects", icon: "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" },
   { key: "explore", label: "Account explorer", icon: "M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" },
+  { key: "accuracy", label: "Accuracy", icon: "M4 20h16v2H4zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z" },
   { key: "lab", label: "AI scammer", icon: "M12 2a7 7 0 0 0-7 7v3l-2 4h18l-2-4V9a7 7 0 0 0-7-7zm-3 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM9 18h6v2a3 3 0 0 1-6 0z" },
-  { key: "evaluation", label: "Evaluation", icon: "M4 20h16v2H4zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z" },
 ];
 
 function Icon({ d }: { d: string }) {
@@ -46,8 +46,8 @@ export function App() {
   else if (section === "rings") page = <Rings />;
   else if (section === "suspects") page = <Suspects />;
   else if (section === "explore") page = <Explore upi={query.get("upi") ?? ""} payment={query.get("payment") ?? ""} />;
-  else if (section === "evaluation") page = <Evaluation />;
   else if (section === "lab") page = <Lab />;
+  else if (section === "accuracy") page = <Accuracy />;
   else page = <Overview />;
 
   const active = section === "case" ? "alerts" : section;

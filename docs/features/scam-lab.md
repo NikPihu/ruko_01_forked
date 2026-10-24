@@ -23,6 +23,8 @@ analyst "Why".
 3. In Cache Pay, switch on SMS scam check, Call signals and Session checks (Early warnings is
    optional).
 4. Open the console → **AI scammer**. The status strip must say "Emulator emulator-5554".
+   **Victim** follows the phone: whichever demo account (Meena Kulkarni, Rahul Yadav) paid last;
+   pick one by hand before the first payment. Contacts in the workflows are that user's.
 
 **Ready-made scams** (`backend/demo/lab.py` `workflows()`):
 
@@ -32,6 +34,7 @@ analyst "Why".
 | Not flagged: everyday payment | — | an everyday SMS from a saved contact | pay ₹150 to `shreeganesh.kirana@okaxis` | T0/T1, straight to the PIN |
 | Same scam, many phones | 3 other phones report the same UPI ID in scam messages (`/v1/watch`) | a KYC SMS carrying `kyc.refund.desk@ybl` | pay that UPI ₹4,000 | T2+ with R13 first; Overview "Spreading now" lists it |
 | New scam, behaviour only | 9 other people pay a fresh mule ₹25,000 in a burst | an SMS with that UPI + a call | answer, copy the UPI from Messages, paste it in Cache Pay, pay ₹25,000 | interrupted with no scam name; **Emerging patterns** shows it |
+| OTP while on a call | — | ring from an unknown number; once answered, an OTP SMS (`482915 is your OTP…`) | answer and stay on the call | the phone's own full warning "someone on the call may ask for this code" (needs SMS scam check + Call signals); nothing is sent to the server |
 
 Checked here against the live `lgbm-0.2` server, with the phone's requests replayed: flagged T2,
 everyday T0, campaign T2 (R13 first), new scam T4.

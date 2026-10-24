@@ -199,7 +199,8 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
         serverStatus = ServerStatus.Checking
         viewModelScope.launch {
             serverStatus = try {
-                val body = withContext(Dispatchers.IO) { api.health().string() }
+                val probe = if (api === ApiClient.api) ApiClient.status else api
+                val body = withContext(Dispatchers.IO) { probe.health().string() }
                 ServerStatus.fromHealth(body)
             } catch (e: CancellationException) {
                 throw e

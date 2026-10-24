@@ -166,7 +166,9 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
   Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
   bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
-  dismiss), Evaluation (episode, graph, AI-written messages), Explore, AI scammer (scam lab, `--lab`).
+  dismiss), Explore, AI scammer (scam lab, `--lab`), Accuracy (held-out confusion table, false alarms,
+  misses, red-team results, named failure cases; `GET /v1/accuracy` from `python -m evalsuite.accuracy`,
+  see `docs/features/accuracy.md`). Older eval results stay in `data/eval/*_results.json` and `GET /v1/eval`.
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs
@@ -202,9 +204,11 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
 
 The script makes `.venv`, generates `data/*.parquet` if missing (`-Regenerate` to rebuild), builds
 the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Node 18+), starts mock
-intel on 8001 and the API with `--demo-clock --lab`, pumps the demo mule (and with `-BaitPump` the bait
-account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
-Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
+intel on 8001 and the API with `--demo-clock --lab --seed-demo` (the demo agents fill the console once
+at startup), pumps the demo mule and the bait account (`-NoBait` skips it), rebuilds the console when
+its source is newer than `console/dist` (so run it after every pull), runs `adb reverse` (8000, and
+8001 for the mock NPCI's UPI number mapper) and, on an emulator, seeds Meena's and Rahul's contacts
+into the address book (`python -m sim.contacts --data data --user <id> --adb`). If laptop port 8000 is taken, the API moves to the next free port
 (8002 on one teammate's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
 
 - Analyst console: `http://127.0.0.1:<api port>/console/` (dev server: `cd console && npm run dev`,

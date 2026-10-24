@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 # Start the whole RUKO demo stack (macOS / Linux / Git Bash) and connect the phone to it.
 #
-#   sh scripts/dev.sh              start everything
+#   sh scripts/dev.sh              start everything (after every git pull too)
+#   NO_BAIT=1 sh scripts/dev.sh    skip the task-scam bait account
 #   REGENERATE=1 sh scripts/dev.sh rebuild data first
 #   BUILD_CONSOLE=1 sh scripts/dev.sh  rebuild the analyst console
 #   sh scripts/dev.sh stop         stop the services
@@ -28,7 +29,7 @@ else
 fi
 # The API scores with the trained model (ml/model/predict.py), which needs LightGBM; without it the
 # API falls back to the rules. ml/requirements.txt includes backend/requirements.txt.
-"$PY" -c "import lightgbm" 2>/dev/null || "$PY" -m pip install -q -r ml/requirements.txt
+"$PY" -m pip install -q --disable-pip-version-check -r ml/requirements.txt   # quick when nothing changed
 export PYTHONPATH="backend${SEP}ml${SEP}data" PYTHONIOENCODING=utf-8
 
 if [ "${REGENERATE:-0}" = 1 ] || [ ! -f data/ledger.parquet ]; then
@@ -36,7 +37,8 @@ if [ "${REGENERATE:-0}" = 1 ] || [ ! -f data/ledger.parquet ]; then
 fi
 
 # Analyst console (console/dist is git ignored; the API serves it at /console/)
-if [ "${BUILD_CONSOLE:-0}" = 1 ] || [ ! -f console/dist/index.html ]; then
+# console/dist is not in git: rebuild when any console source is newer than the last build.
+if [ "${BUILD_CONSOLE:-0}" = 1 ] || [ ! -f console/dist/index.html ] || \n   [ -n "$(find console/src console/index.html console/package.json -newer console/dist/index.html 2>/dev/null | head -1)" ]; then
   if command -v npm >/dev/null 2>&1; then
     echo "building the analyst console"
     (cd console && { [ -d node_modules ] || npm install --no-audit --no-fund >/dev/null; } && npm run build >/dev/null)       || echo "console build failed; the API still runs without it"
@@ -58,20 +60,24 @@ echo $! > "$PIDS"
 wait_health "http://127.0.0.1:$INTEL_PORT/health"
 echo "mock intel up on $INTEL_PORT"
 
-"$PY" -m api.main --data data --port "$API_PORT" --intel "http://127.0.0.1:$INTEL_PORT" --demo-clock --lab > logs/api.log 2>&1 &
+"$PY" -m api.main --data data --port "$API_PORT" --intel "http://127.0.0.1:$INTEL_PORT" --demo-clock --lab --seed-demo > logs/api.log 2>&1 &
 echo $! >> "$PIDS"
 wait_health "http://127.0.0.1:$API_PORT/health"
 echo "risk API up on $API_PORT"
 
 [ "${NO_PUMP:-0}" = 1 ] || "$PY" -m sim.mule_pump --url "http://127.0.0.1:$INTEL_PORT" --payers "$PAYERS"
+[ "${NO_BAIT:-0}" = 1 ] || "$PY" -m sim.bait_pump --api "http://127.0.0.1:$API_PORT" --intel "http://127.0.0.1:$INTEL_PORT"
 
 if command -v adb >/dev/null 2>&1 && adb devices | grep -q "	device$"; then
   adb reverse tcp:8000 "tcp:$API_PORT" >/dev/null
   echo "phone: adb reverse tcp:8000 -> laptop tcp:$API_PORT"
   adb reverse tcp:8001 tcp:8001 >/dev/null   # mock NPCI's UPI number mapper
-  "$PY" -m sim.contacts --data data --adb >/dev/null && echo "phone: Meena's contacts are in the phone's Contacts"
+  if adb devices | grep -q "^emulator-"; then   # never write into a real phone's contacts
+    for u in u_demo_meena u_001435; do "$PY" -m sim.contacts --data data --user "$u" --adb >/dev/null; done
+    echo "phone: Meena's and Rahul's contacts are in the emulator's Contacts"
+  fi
 else
   echo "no phone found; run later: adb reverse tcp:8000 tcp:$API_PORT"
 fi
-[ -f console/dist/index.html ] && echo "Analyst console: http://127.0.0.1:$API_PORT/console/"
+[ -f console/dist/index.html ] && echo "Analyst console: http://127.0.0.1:$API_PORT/console/ (demo data fills it within ~30 s); AI scammer: /console/#/lab"
 echo "Ready. Logs in logs/. Stop: sh scripts/dev.sh stop"

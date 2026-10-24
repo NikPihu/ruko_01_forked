@@ -75,7 +75,11 @@ fun HomeScreen(
         value = withContext(Dispatchers.IO) { AlertLog.unseen(AlertRecorder.load(context.applicationContext)) }
     }
     // The background watcher may have changed the episode while the app was away.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { ShieldController.refresh(context.applicationContext, consents) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        ShieldController.refresh(context.applicationContext, consents)
+        // Shows whether Scam Shield is reachable and opens the connection before the first payment.
+        if (vm.serverStatus !is ServerStatus.Connected) vm.checkServer()
+    }
     LaunchedEffect(consents) { ShieldController.refresh(context.applicationContext, consents) }
     val shield = ShieldController.live.value
 

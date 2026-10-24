@@ -73,20 +73,30 @@ object Signals {
         private set
     lateinit var contacts: ContactBook
         private set
-    var classifier: LureClassifier = KeywordLureClassifier
-        private set
+    /**
+     * The phone's models, parsed from assets once, off the main thread: lure.json alone is ~2 MB and
+     * parsing it on the UI thread froze the app at start. [init] starts loading in the background;
+     * the first reader waits for it (readers are background threads, except the debug panel).
+     */
+    private class Models(
+        val classifier: LureClassifier,
+        val aiText: AiTextScorer?,
+        val deviceModel: DeviceModel?,
+        val stepVocab: StepVocab?,
+    )
+
+    private val models: Models by lazy { loadModels(app) }
+
+    val classifier: LureClassifier get() = models.classifier
 
     /** "Looks AI-written" (assets/ai_text.json, A5); null until the ML model is in the app. */
-    var aiText: AiTextScorer? = null
-        private set
+    val aiText: AiTextScorer? get() = models.aiText
 
     /** The on-device model (assets/device_model.json); null when missing, and then no verdict is sent. */
-    var deviceModel: DeviceModel? = null
-        private set
+    val deviceModel: DeviceModel? get() = models.deviceModel
 
     /** The scam steps vocabulary (assets/steps.json, c2-0.14); null when missing, and then the verdict has no steps. */
-    var stepVocab: StepVocab? = null
-        private set
+    val stepVocab: StepVocab? get() = models.stepVocab
 
     var overrides by mutableStateOf(SignalOverrides())
 
@@ -117,22 +127,9 @@ object Signals {
         app = context.applicationContext
         sensor = ContextSensor(app)
         contacts = ContactBook(app)
-        classifier = loadLureModel(app)
-        aiText = MessageScan.loadAiText(app)
         // Early warnings (Step 7): a long call with someone unknown is reported once it ends.
         sensor.onCallEnded = { kind, minutes, known -> background.execute { WatchSender.report(app, Sighting.LongCall(kind, minutes, known)) } }
-        deviceModel = try {
-            DeviceModel.parse(app.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
-        } catch (e: Exception) {
-            Log.w("Signals", "no $DEVICE_MODEL_ASSET, sending no device verdict", e)
-            null
-        }
-        stepVocab = try {
-            StepVocab.parse(app.assets.open(STEPS_ASSET).bufferedReader().use { it.readText() })
-        } catch (e: Exception) {
-            Log.w("Signals", "no $STEPS_ASSET, the verdict carries no steps", e)
-            null
-        }
+        background.execute { models }
     }
 
     /**
@@ -234,6 +231,23 @@ object Signals {
         "amount_gap_vs_usual" to amountGapVsUsual, "amount_edits" to amountEdits, "payee_pasted" to payeePasted,
         "pasted_within_s_of_return" to pastedWithinSOfReturn, "app_switches" to appSwitches, "away_s" to awayS,
         "pay_screen_s" to payScreenS, "abandoned_flows_30m" to abandonedFlows30m,
+    )
+
+    private fun loadModels(context: Context) = Models(
+        classifier = loadLureModel(context),
+        aiText = MessageScan.loadAiText(context),
+        deviceModel = try {
+            DeviceModel.parse(context.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
+        } catch (e: Exception) {
+            Log.w("Signals", "no $DEVICE_MODEL_ASSET, sending no device verdict", e)
+            null
+        },
+        stepVocab = try {
+            StepVocab.parse(context.assets.open(STEPS_ASSET).bufferedReader().use { it.readText() })
+        } catch (e: Exception) {
+            Log.w("Signals", "no $STEPS_ASSET, the verdict carries no steps", e)
+            null
+        },
     )
 
     private fun loadLureModel(context: Context): LureClassifier = try {

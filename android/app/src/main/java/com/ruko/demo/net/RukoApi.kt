@@ -74,6 +74,11 @@ object ApiClient {
 
     val api: RukoApi = retrofit(http)
 
+    // "Check Scam Shield" and the warm-up on Home: same connection pool as payments, so the first
+    // payment reuses an open connection, but a slow first connection (adb reverse, a cold server)
+    // is not reported as "unreachable" after 1 s.
+    val status: RukoApi = retrofit(http.newBuilder().callTimeout(5, TimeUnit.SECONDS).build())
+
     // Episode events are off the payment path: the server looks every account up, so allow longer.
     val events: RukoApi = retrofit(OkHttpClient.Builder().callTimeout(15, TimeUnit.SECONDS).build())
 

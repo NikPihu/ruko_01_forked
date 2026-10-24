@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RUKO console: Live check</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5;font-family:Inter,system-ui,sans-serif;color:#0f141a;-webkit-font-smoothing:antialiased}
+a{color:#0972d3;text-decoration:none}a:hover{color:#065ba9;text-decoration:underline}
+</style>
+</helmet>
+<div style="position: relative; min-height: 1100px; background: #eef1f5; font-family: Inter, system-ui, sans-serif; color: #0f141a; overflow: hidden">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column">
+    <div style="height: 56px; background: #0f1620"></div>
+    <div style="height: 210px; background: #0f1620"></div>
+    <div style="max-width: 1376px; width: calc(100% - 64px); margin: -76px auto 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <div style="height: 120px; border-radius: 14px; background: #ffffff"></div>
+      <div style="height: 120px; border-radius: 14px; background: #ffffff"></div>
+      <div style="height: 120px; border-radius: 14px; background: #ffffff"></div>
+      <div style="height: 120px; border-radius: 14px; background: #ffffff"></div>
+    </div>
+    <div style="max-width: 1376px; width: calc(100% - 64px); margin: 20px auto 0; height: 560px; border-radius: 16px; background: #ffffff; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 70px 22px 22px; box-sizing: border-box">
+      <div style="border-radius: 14px; background: #fdecea"></div><div style="border-radius: 14px; background: #f1ebfb"></div><div style="border-radius: 14px; background: #e8f2fd"></div><div style="border-radius: 14px; background: #fff4d6"></div>
+      <div style="border-radius: 14px; background: #e8f2fd"></div><div style="border-radius: 14px; background: #fdecea"></div><div style="border-radius: 14px; background: #f1ebfb"></div><div style="border-radius: 14px; background: #e8f2fd"></div>
+    </div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(15,22,32,0.38); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px)"></div>
+
+  <aside role="dialog" aria-label="Live check" style="position: absolute; top: 16px; right: 16px; bottom: 16px; width: min(600px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 18px; padding: 24px; box-sizing: border-box; overflow-y: auto; border-radius: 20px; background: rgba(255,255,255,0.80); backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 24px 64px rgba(15,22,32,0.35)">
+
+    <div style="display: flex; align-items: flex-start; gap: 12px">
+      <div style="flex: 1">
+        <div style="font-size: 12.5px; color: #5f6b7a">Same payments, before and after the new playbooks</div>
+        <h1 style="margin: 4px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em">Live check</h1>
+      </div>
+      <a href="Main.dc.html" aria-label="Close" style="display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(15,23,42,0.06); color: #0f141a; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
+    </div>
+
+    <ol aria-label="Steps" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <li style="display: flex; flex-direction: column; gap: 6px">
+          <span style="{{s.bar}}"></span>
+          <span style="font-size: 12.5px; font-weight: 600">{{s.label}}</span>
+          <span style="font-size: 11.5px; color: #5f6b7a">{{s.sub}}</span>
+        </li>
+      </sc-for>
+    </ol>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{compare}}" as="c" hint-placeholder-count="3">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.75); border: 1px solid rgba(15,23,42,0.06)">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 13px; color: #414d5c">{{c.label}}</span>
+            <span aria-hidden="true" style="position: relative; height: 8px; border-radius: 999px; background: #e3e8ee">
+              <span style="{{c.after}}"></span>
+              <span style="{{c.before}}"></span>
+            </span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <span style="font-size: 15px; color: #5f6b7a">{{c.from}}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="#8a96a3" stroke-width="2" stroke-linecap="round"></path></svg>
+            <span style="font-size: 26px; font-weight: 650; letter-spacing: -0.02em">{{c.to}}</span>
+          </div>
+        </div>
+      </sc-for>
+      <div aria-label="Legend" style="display: flex; gap: 16px; font-size: 12px; color: #5f6b7a">
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #9aa6b4"></span>Round 1, before</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #0972d3"></span>Round 2, after</span>
+      </div>
+    </div>
+
+    <div style="border-radius: 14px; background: rgba(255,255,255,0.75); border: 1px solid rgba(15,23,42,0.06); overflow: hidden">
+      <div style="padding: 12px 16px; font-size: 14px; font-weight: 600; border-bottom: 1px solid rgba(15,23,42,0.06)">By group: scam payments interrupted</div>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 56px 20px 56px; align-items: center; gap: 8px; padding: 10px 16px; font-size: 13px; border-bottom: 1px solid rgba(15,23,42,0.05)">
+          <span>{{g.name}}</span>
+          <span style="text-align: right; color: #5f6b7a">{{g.before}}</span>
+          <span aria-hidden="true" style="color: #8a96a3; text-align: center">→</span>
+          <span style="text-align: right; font-weight: 600">{{g.after}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="agents" style="font-size: 12px; color: #5f6b7a">Agents</label>
+        <select id="agents" style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.16); background: #ffffff; font: 500 13px Inter, sans-serif"><option>Bedrock if available, else offline</option></select>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button type="button" style="flex: 1 1 200px; height: 42px; border-radius: 10px; border: 1px solid rgba(15,23,42,0.16); background: #ffffff; font: 500 14px Inter, sans-serif; color: #0f141a">Start a new demo</button>
+        <button type="button" style="flex: 1 1 240px; height: 42px; border-radius: 10px; border: 0; background: #ff9900; font: 600 14px Inter, sans-serif; color: #0f141a">Rerun with approved playbooks</button>
+      </div>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = (label, sub, done) => ({ label, sub, bar: `display: block; height: 4px; border-radius: 999px; background: ${done ? '#0972d3' : '#dfe4ea'}` });
+    const cmp = (label, from, to, b, a) => ({ label, from, to,
+      before: `position: absolute; left: 0; top: 0; bottom: 0; width: ${b}%; border-radius: 999px; background: #9aa6b4`,
+      after: `position: absolute; left: 0; top: 0; bottom: 0; width: ${a}%; border-radius: 999px; background: #0972d3` });
+    return {
+      steps: [
+        st('Build world', '300 users · 7 days', true),
+        st('Round 1', 'RUKO without them', true),
+        st('Review', '3 approved', true),
+        st('Round 2', 'same payments again', true),
+      ],
+      compare: [
+        cmp('Scam payments interrupted', '31%', '89%', 31, 89),
+        cmp('Scam named correctly', '12%', '84%', 12, 84),
+        cmp('Honest payments interrupted, per 1,000', '0.4', '0.5', 4, 5),
+      ],
+      groups: [
+        { name: 'Emergency for someone you know', before: '6%', after: '91%' },
+        { name: 'Online shop, pay first', before: '2%', after: '86%' },
+        { name: 'Government & bank SMS', before: '9%', after: '72%' },
+        { name: 'Digital arrest & fake officer', before: '64%', after: '93%' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
