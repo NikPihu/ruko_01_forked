@@ -33,3 +33,7 @@ synthetic_playbook/interface_script_out/
 synthetic_playbook/run_all.log
 synthetic_playbook/.venv/
 synthetic_playbook/.env
+red_team_blue_team/red_team/.venv/
+red_team_blue_team/red_team/playbook_v2/
+red_team_blue_team/red_team/playbooks_initial_build/
+red_team_blue_team/red_team/version.txt

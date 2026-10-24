@@ -1,5 +1,46 @@
 # Red team
 
+Two ways to attack RUKO, both producing sim_v2 playbook YAML (the format in
+`data/sim_v2/config/playbooks/README.md`):
+
+| Part | What it is |
+|---|---|
+| `playbooks/` | the 50 hand-written playbooks (below) |
+| `generator.py`, `cli.py` | writes variants of existing playbooks into `playbook_v2/`, using AWS Bedrock when it is configured and built-in rules when it is not |
+| `ui.py` | the dashboard: generate, run, and see what got through |
+
+## The dashboard
+
+```bash
+export PYTHONPATH="backend;ml;data;synthetic_playbook" PYTHONIOENCODING=utf-8
+.venv/Scripts/python -m streamlit run red_team_blue_team/red_team/ui.py
+```
+
+Four tabs:
+- **Run** - every playbook in a folder against the real engine, with two live progress bars (the
+  set, and payments inside the current playbook) and a Stop button.
+- **Results** - how much of each playbook the server called normal, against the breakthrough bar;
+  how much evidence each number rests on; and the false alarms each one cost. Table and CSV.
+- **One playbook** - its threat scores, which step of the scam the server lost it at, and the
+  reason codes behind the payments it did catch.
+- **Generate** - new playbooks into `playbook_v2/`. Needs `BEDROCK_MODEL_ID` and
+  `AWS_DEFAULT_REGION`; without them the generator falls back to its own rules, so it never stalls.
+
+Everything the dashboard does, the command line does too (below); it only starts those tools and
+reads their output.
+
+## Generating playbooks
+
+```bash
+.venv/Scripts/python -m pip install -r red_team_blue_team/red_team/requirements.txt
+.venv/Scripts/python -m red_team --target-count 30      # -> playbook_v2/
+```
+
+Every generated playbook carries `emerging: true`, and `interface_script run-all --playbooks <dir>`
+picks up any folder of them with no code change.
+
+## The 50 hand-written playbooks
+
 **Nikunj's 50 breakthrough playbooks** (`playbooks/`, his notes in `NIKUNJ_README.md`, his own scores
 in `nikunj_manifest_and_scores.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
 (YAML in the `data/sim_v2/config/playbooks/` format), never executed: the simulator plays them out

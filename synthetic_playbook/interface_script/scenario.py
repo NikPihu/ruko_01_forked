@@ -98,6 +98,9 @@ def build(playbook_ref: str | Path, cfg: dict, out: Path | None = None, log=prin
     demo["demo_journeys"] = {**demo["demo_journeys"], "playbook": name, "count": 0}
     (config_dir / "scenarios" / "demo.yaml").write_text(yaml.safe_dump(demo, sort_keys=False), encoding="utf-8")
 
+    if s["victims"] > w["users"]:
+        raise SystemExit(f"--victims {s['victims']} is more than the world's {w['users']} users. "
+                         f"Raise --users or lower --victims.")
     rate = _victim_rate(s["victims"], w["users"], w["days"])
     world_yaml = yaml.safe_load((SIM_V2_CONFIG / "world.yaml").read_text(encoding="utf-8"))
     world_yaml.update({"seed": w["seed"], "users": w["users"], "days": w["days"], "world": "train",
