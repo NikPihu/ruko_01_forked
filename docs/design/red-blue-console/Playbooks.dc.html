@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RUKO console: Playbooks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5;font-family:Inter,system-ui,sans-serif;color:#0f141a;-webkit-font-smoothing:antialiased}
+a{color:#0972d3;text-decoration:none}a:hover{color:#065ba9;text-decoration:underline}
+</style>
+</helmet>
+<div style="min-height: 1100px; background: #eef1f5; font-family: Inter, system-ui, sans-serif; color: #0f141a">
+
+  <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 0 28px; min-height: 56px; background: rgba(15,22,32,0.88); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid rgba(255,255,255,0.08)">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; color: #ffffff; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5.5v6c0 5 3.4 9.4 8 10.5 4.6-1.1 8-5.5 8-10.5v-6z" fill="none" stroke="#ff9900" stroke-width="2" stroke-linejoin="round"></path></svg>
+      <span style="font-weight: 700; letter-spacing: 0.02em">RUKO</span>
+      <span style="color: #9aa6b4; font-size: 13px">Red / Blue console</span>
+    </a>
+    <nav aria-label="Main" style="display: flex; align-self: stretch; gap: 2px; flex-wrap: wrap">
+      <a href="Main.dc.html" style="display: flex; align-items: center; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none">Overview</a>
+      <a href="Attack.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">1</span>Attack</a>
+      <a href="Investigate.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #c3ccd6; font-size: 14px; text-decoration: none"><span style="font-size: 11px; color: #8a96a3">2</span>Investigate</a>
+      <a href="Playbooks.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: inset 0 -2px 0 #ff9900"><span style="font-size: 11px; color: #ffb84d">3</span>Playbooks<span style="background: #ff9900; color: #0f141a; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 7px">3</span></a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <button type="button" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: #e6ebf0; font: 500 13px Inter, sans-serif">Run <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff">rt-1024</span><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+      <a href="LiveCheck.dc.html" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); color: #e6ebf0; font-size: 13px; font-weight: 500; text-decoration: none"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="#ff9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Live check</a>
+      <button type="button" aria-label="Legend" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #e6ebf0; font: 600 14px Inter, sans-serif">?</button>
+    </div>
+  </header>
+
+  <section style="background: #0f1620; padding: 32px 32px 104px">
+    <div style="max-width: 1376px; margin: 0 auto; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap">
+      <div style="flex: 1 1 480px">
+        <div style="color: #9aa6b4; font-size: 13px">Step 3 of the loop · two different analysts approve each new playbook</div>
+        <h1 style="margin: 6px 0 0; color: #ffffff; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Playbooks</h1>
+      </div>
+    </div>
+  </section>
+
+  <main style="max-width: 1376px; margin: -76px auto 0; padding: 0 32px 56px; display: flex; flex-direction: column; gap: 20px">
+    <section aria-label="Playbooks" style="background: rgba(255,255,255,0.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 12px 32px rgba(15,23,42,0.06); overflow: hidden">
+
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid rgba(15,23,42,0.07)">
+        <div role="group" aria-label="Status" style="display: flex; padding: 3px; border-radius: 10px; background: #eef1f5; flex-wrap: wrap">
+          <button type="button" aria-pressed="true" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: #ffffff; box-shadow: 0 1px 2px rgba(15,23,42,0.1); font: 600 13px Inter, sans-serif; color: #0f141a">Waiting · 3</button>
+          <button type="button" aria-pressed="false" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 500 13px Inter, sans-serif; color: #414d5c">Live · 7</button>
+          <button type="button" aria-pressed="false" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 500 13px Inter, sans-serif; color: #414d5c">Rejected · 2</button>
+          <button type="button" aria-pressed="false" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: 500 13px Inter, sans-serif; color: #414d5c">All</button>
+        </div>
+        <select aria-label="Group" style="height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.16); background: #ffffff; font: 500 13px Inter, sans-serif; color: #0f141a"><option>All groups</option></select>
+        <input aria-label="Search playbooks" placeholder="Search" style="margin-left: auto; width: 200px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.14); background: #ffffff; font: 400 13px Inter, sans-serif">
+      </div>
+
+      <div aria-label="Legend" style="display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 20px; font-size: 12px; color: #5f6b7a; border-bottom: 1px solid rgba(15,23,42,0.07)">
+        <span><b style="color: #414d5c">Catches</b> share of its group's complaints the rule matches</span>
+        <span><b style="color: #414d5c">Honest / 1k</b> honest payments it would match per 1,000</span>
+        <span><b style="color: #414d5c">Warns</b> can raise a warning · <b style="color: #414d5c">Names</b> only labels the scam</span>
+      </div>
+
+      <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13.5px">
+          <thead>
+            <tr style="text-align: left; color: #5f6b7a; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em">
+              <th style="padding: 12px 20px; font-weight: 600">Playbook</th>
+              <th style="padding: 12px; font-weight: 600">Group</th>
+              <th style="padding: 12px; font-weight: 600">Agent's verdict</th>
+              <th style="padding: 12px; font-weight: 600">Catches</th>
+              <th style="padding: 12px; font-weight: 600">Honest / 1k</th>
+              <th style="padding: 12px; font-weight: 600">Effect</th>
+              <th style="padding: 12px 20px; font-weight: 600; text-align: right">Sign-off</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+              <tr style="border-top: 1px solid rgba(15,23,42,0.06)">
+                <td style="padding: 14px 20px">
+                  <a href="PlaybookDetail.dc.html" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #0972d3">{{r.name}}</span>
+                    <span style="font-size: 12.5px; color: #5f6b7a">{{r.title}}</span>
+                  </a>
+                </td>
+                <td style="padding: 14px 12px; color: #414d5c">{{r.group}}</td>
+                <td style="padding: 14px 12px"><span style="{{r.vChip}}">{{r.verdict}}</span></td>
+                <td style="padding: 14px 12px">
+                  <span style="display: flex; align-items: center; gap: 8px">
+                    <span aria-hidden="true" style="display: flex; width: 64px; height: 6px; border-radius: 999px; background: #e3e8ee; overflow: hidden"><span style="{{r.bar}}"></span></span>
+                    <b>{{r.catches}}</b>
+                  </span>
+                </td>
+                <td style="padding: 14px 12px; font-weight: 600">{{r.legit}}</td>
+                <td style="padding: 14px 12px; color: #414d5c">{{r.effect}}</td>
+                <td style="padding: 14px 20px; text-align: right">
+                  <span style="display: inline-flex; align-items: center; gap: 6px">
+                    <sc-for list="{{r.signers}}" as="s" hint-placeholder-count="2"><span style="{{s.style}}">{{s.initials}}</span></sc-for>
+                    <span style="font-size: 12.5px; color: #414d5c; margin-left: 4px">{{r.sign}}</span>
+                  </span>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-label="Live playbooks" style="background: rgba(255,255,255,0.6); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(15,23,42,0.08); border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Live in the engine</h2>
+        <span style="font-size: 12.5px; color: #5f6b7a">playbooks-0.3 · checked in order, first match names the scam</span>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <sc-for list="{{live}}" as="l" hint-placeholder-count="7">
+          <a href="PlaybookDetail.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #ffffff; border: 1px solid rgba(15,23,42,0.08); text-decoration: none">
+            <span style="font-size: 11px; color: #5f6b7a">{{l.n}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #0f141a">{{l.name}}</span>
+            <span style="{{l.chip}}">{{l.from}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (bg, fg) => `font-size: 11.5px; font-weight: 600; white-space: nowrap; border-radius: 999px; padding: 3px 9px; background: ${bg}; color: ${fg}`;
+    const av = (initials, done) => ({ initials, style: `display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; font-size: 11px; font-weight: 700; ${done ? 'background: #0f1620; color: #ffffff' : 'background: #ffffff; color: #8a96a3; border: 1.5px dashed #b6bfca'}` });
+    const r = (name, title, group, verdict, catches, legit, effect, signers, sign) => ({ name, title, group, verdict, catches: catches + '%', legit, effect, signers, sign,
+      vChip: verdict === 'New scam' ? chip('#f1ebfb', '#5b2ca0') : chip('#eef1f5', '#414d5c'),
+      bar: `width: ${catches}%; background: #0972d3` });
+    return {
+      rows: [
+        r('relative_emergency_v1', 'Unknown caller, a relative in trouble, pasted payee, many payers', 'Emergency for someone you know', 'New scam', 84, '0.3', 'Warns · C + B', [av('AS', true), av('', false)], '1 of 2'),
+        r('shop_prepay_v1', 'Chat-app shop asks to pay first, payee new and spreading', 'Online shop, pay first', 'New scam', 79, '0.6', 'Warns · L + P', [av('', false), av('', false)], '0 of 2'),
+        r('govt_sms_fee_v2', 'Low-score government SMS, fee paid later by QR', 'Government & bank SMS', 'Variant of known', 71, '0.9', 'Names only · L', [av('', false), av('', false)], '0 of 2'),
+      ],
+      live: [
+        { n: '1', name: 'digital_arrest', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '2', name: 'fake_kyc_apk', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '3', name: 'task_job', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '4', name: 'trading_group', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '5', name: 'refund_qr', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '6', name: 'fake_customer_care', from: 'built-in', chip: chip('#eef1f5', '#414d5c') },
+        { n: '7', name: 'anchor_then_drain_v1', from: 'blue team', chip: chip('#f1ebfb', '#5b2ca0') },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
