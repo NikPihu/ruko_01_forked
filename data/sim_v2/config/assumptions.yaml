@@ -68,7 +68,7 @@ device:
   senior_accessibility: {v: 0.05, src: seniors using an accessibility helper app, conf: guess}
 
 crews:
-  mule_slots: {v: 4, src: "mules a crew uses at once; chosen so mules are about 2% of accounts (Nikunj, 2026-10-23)", conf: guess}
+  mule_slots: {v: 4, src: "mules a crew uses at once; chosen so mules are about 2% of accounts (data, 2026-10-23)", conf: guess}
   mule_lifetime_days: {v: {int: [2, 10]}, src: "ml/PLAN.md §12: mules used a few days then dropped", conf: guess}
   mule_kinds:
     v: {plain: 0.35, rented: 0.30, merchant_disguised: 0.15, warm_up: 0.10, slow_forward: 0.10}

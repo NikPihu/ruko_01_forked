@@ -1,7 +1,7 @@
 # How real fraud systems work inside, and how to mimic them in RUKO
 
 ## Context
-- **Who and what:** Jagdeep owns the risk engine for RUKO. Before the competition starts, he wants to understand how real Indian and global anti-fraud systems work inside, and how to copy or simulate each one in his experimental repo (`raksham_1`, only his part).
+- **Who and what:** The backend owns the risk engine for RUKO. Before the competition starts, it wants to understand how real Indian and global anti-fraud systems work inside, and how to copy or simulate each one in his experimental repo (`raksham_1`, only his part).
 - **Scope:** no endpoints and no code yet. This note covers mechanisms, data, signals, blind spots, and how to mimic each one.
 - **Inputs:** his PDF guide, `.claude/SPEC.md` and `.claude/CLAUDE.md` (from his earlier Claude chat), and web research.
 
@@ -59,7 +59,7 @@ Nobody combines **phone context at the moment of payment** with **payee risk**. 
 **Blind spot for APP scams:** the victim's own device, PIN and behaviour all look legitimate. A large payment to a new payee also looks like buying a bike or paying a hospital, so either alerts flood or the scam gets through.
 
 **Mimic in RUKO**
-- This is the **baseline** Diwansu trains: transaction-only features such as amount ratio, new payee, hour and velocity.
+- This is the **baseline** ML trains: transaction-only features such as amount ratio, new payee, hour and velocity.
 - RUKO's claim is to beat it **at the same alert budget**.
 - From this layer you take two ideas:
   - **per-user baselines in Redis**, which is the "feature store"
@@ -181,7 +181,7 @@ This mimics what **Mastercard Consumer Fraud Risk** and network-level systems do
 - Signals are assessed **together**, not one at a time.
 
 **Mimic in RUKO**
-- The phone SDK (Manjeet) sends *derived flags only*. These map to RUKO's families:
+- The phone SDK (android/) sends *derived flags only*. These map to RUKO's families:
 
 | Family | Flags |
 |---|---|
@@ -238,7 +238,7 @@ This mimics what **Mastercard Consumer Fraud Risk** and network-level systems do
 | **Customer profiling** | Running statistics per customer | User baselines in Redis: largest payment in 90 days, median, usual payees |
 | **Sliding-window velocity** | Counts and sums over time windows | Sorted sets with trimming; tranche sum over 72 h |
 | **Rules + ML hybrid** | Hard rules set minimums; ML ranks the rest | Intel hits as hard rules, LightGBM for p_scam, YAML policy on top |
-| **Calibration** | Turning a model score into a true probability, so thresholds mean something | Diwansu's isotonic calibration. A threshold like p ≥ 0.75 is only meaningful if calibrated. |
+| **Calibration** | Turning a model score into a true probability, so thresholds mean something | ML's isotonic calibration. A threshold like p ≥ 0.75 is only meaningful if calibrated. |
 | **Reason codes** | Regulators and users need *why*, not a number | SHAP top contributors mapped to R1–R8, shown as plain words. Never show the score. |
 | **Step-up friction tiers** | Escalating response instead of block/allow | T0 nothing, T1 tip, T2 explain card, T3 pause plus trusted contact, T4 analyst hold |
 | **Alert budget / fatigue control** | Limiting how often a user is interrupted | At most 2 interruptive alerts per 30 days unless p ≥ 0.9 |
@@ -247,7 +247,7 @@ This mimics what **Mastercard Consumer Fraud Risk** and network-level systems do
 | **Label delay and feedback** | Fraud labels arrive days later | Simulated report lag; feedback endpoint updates labels |
 | **Fail-open SLA** | Fraud checks can't break payments | 200 ms budget, then T0 |
 | **Audit trail** | Regulators require explainable, unaltered records | SHA-256 hash chain plus a verify step |
-| **Champion/challenger and ablation** | Prove each signal earns its place | Nikunj's evaluation: drop one family at a time; compare with and without RUKO at the same alert budget |
+| **Champion/challenger and ablation** | Prove each signal earns its place | the evaluation: drop one family at a time; compare with and without RUKO at the same alert budget |
 
 ---
 
@@ -266,8 +266,8 @@ The judges' first question will be "why doesn't MuleHunter or FRI already catch 
 
 ## 5. What to do with this before the competition (no code yet)
 1. Read the competition rules on how much pre-written code is allowed.
-2. With Nikunj, agree how the simulator produces the blind spots: report rate, report lag, partner-bank coverage, false entries, mule types.
-3. With Diwansu, agree the two models (transaction-only baseline vs RUKO), the family thresholds, and the feature list.
+2. With data/, agree how the simulator produces the blind spots: report rate, report lag, partner-bank coverage, false entries, mule types.
+3. With ML, agree the two models (transaction-only baseline vs RUKO), the family thresholds, and the feature list.
 4. At P1, settle the PDF-vs-SPEC differences:
 
 | Topic | PDF guide | SPEC.md |

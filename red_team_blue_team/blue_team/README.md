@@ -1,6 +1,6 @@
 # Blue team: find and name the scams RUKO missed
 
-Owner: Diwansu Pilania. Everything lives in this folder; it only *reads* `backend/` (features,
+Owner: ML. Everything lives in this folder; it only *reads* `backend/` (features,
 policy, rule scorer), `ml/` (replay, trained scorer) and `data/sim_v2/` (worlds).
 
 ## The console (start here)
@@ -15,7 +15,7 @@ One page with a sidebar, every decision with its reason and its references:
 
 | Page | What you see |
 |---|---|
-| Red team | **1** run Nikunj's runner (`synthetic_playbook/interface_script`) over his 50 playbooks against the real engine, several at a time (resumable); **2** the blue-team inbox (`inbox.py`), filled by his `blue_team` sink with every verdict and each breakthrough (75% of scam payments called normal); **3** build the attack world from the breakthroughs (sim_v2 + replay, live log). Also each playbook's evasion tricks, read from its script |
+| Red team | **1** run the attack runner (`synthetic_playbook/interface_script`) over the 50 attack playbooks against the real engine, several at a time (resumable); **2** the blue-team inbox (`inbox.py`), filled by his `blue_team` sink with every verdict and each breakthrough (75% of scam payments called normal); **3** build the attack world from the breakthroughs (sim_v2 + replay, live log). Also each playbook's evasion tricks, read from its script |
 | Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
 | Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
 | HDBSCAN | a **map** of the complaints (t-SNE of the same vectors HDBSCAN grouped; colour = new / known / misnamed?, an outline per group, its id at the centre, shape = missed / unnamed; hover for the complaint, click to open it), a second map per playbook for the misnamed check, then every group with the reason for its kind (numbers and thresholds) and the one-offs |
@@ -182,7 +182,7 @@ changes. A playbook only **names** a scam (the warning's words and `threat.fraud
 | Check | Time | What it answers |
 |---|---|---|
 | 1 named, offline | seconds | The engine's playbook file plus this entry (checked by the engine's own parser) over the card's world: share of the scam's payments named, on its own complaints and on payments **nobody complained about** (answer key, evaluation only), legit payments named per 1,000, payments taken from a known playbook. A rule the file format cannot express is measured with the blue-team matcher and flagged |
-| 2 live | ~5 min | Nikunj's runner on the scam's playbooks in a fresh world (`verify.seed`), judged by the engine as it is, with the entry pasted into its file (`RUKO_PLAYBOOKS`), and a **preview** with the rule in the engine's namer and the contract open to new names (`verify_engine.py`). Named, interrupted, called-normal, fail-open, before vs after |
+| 2 live | ~5 min | the attack runner on the scam's playbooks in a fresh world (`verify.seed`), judged by the engine as it is, with the entry pasted into its file (`RUKO_PLAYBOOKS`), and a **preview** with the rule in the engine's namer and the contract open to new names (`verify_engine.py`). Named, interrupted, called-normal, fail-open, before vs after |
 | 3 retrain | +~10 min | LightGBM retrained on its own training table plus the card's complaint-labelled payments into `exports/<name>/model/` (v0 untouched), then check 2's world again with `RUKO_MODEL` |
 
 Verify runs never write the red-team inbox (the runner's blue-team sink is dropped) or anything in
@@ -202,7 +202,7 @@ How an approved playbook goes live: `approve` (two analysts) writes
 playbook it corrects. Someone pastes it into the file and the engine names that scam from then on.
 The blue team reads the engine's file for the known playbooks, so it never judges against a stale copy.
 
-**Jagdeep (backend): done on this branch, please review** (`backend/api/playbooks.py`, `policy.py`,
+**Backend: done on this branch, please review** (`backend/api/playbooks.py`, `policy.py`,
 `policy.yaml`, `main.py`, `rule_scorer.py`, `tests/test_approved_playbooks.py`):
 1. **Approved playbooks warn.** An entry with `approved_by` (two different analysts) makes policy raise
    its payments to at least T2 (`policy.yaml` `approved_playbooks`), even when LightGBM scored them
@@ -227,16 +227,16 @@ The blue team reads the engine's file for the known playbooks, so it never judge
    for a story and a backtested rule.
 6. Optional: a console page for `playbooks/review/` instead of the CLI.
 
-**Manjeet (android):** after item 1, show a scam name the app has no strings for, using the advice
+**Android:** after item 1, show a scam name the app has no strings for, using the advice
 text from the response.
 
-**Diwansu (ml):** read `exports/*/labels.csv` in `model/train.py` as extra labels for the next retrain.
+**ML:** read `exports/*/labels.csv` in `model/train.py` as extra labels for the next retrain.
 
-**Nikunj (`synthetic_playbook/interface_script/sinks.py`):** this branch adds one sink, `blue_team`, to
+**Attack runner (`synthetic_playbook/interface_script/sinks.py`):** this branch adds one sink, `blue_team`, to
 his `SINKS` list. It does nothing when `red_team_blue_team` is not on the path, so his runner works as
 before without the blue team.
 
-**Nikunj or the red team:** AI-powered scam variants as `emerging` sim_v2 playbooks (`../red_team/README.md`).
+**The red team:** AI-powered scam variants as `emerging` sim_v2 playbooks (`../red_team/README.md`).
 
-**CLAUDE.md:** add `red_team_blue_team/` to "Who owns what" (owner: Diwansu), and say the blue team
+**CLAUDE.md:** add `red_team_blue_team/` to "Who owns what" (owner: ML), and say the blue team
 needs `PYTHONPATH=backend;ml;data;red_team_blue_team` and `requirements.txt` (boto3).

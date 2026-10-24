@@ -1,7 +1,7 @@
-# What RUKO needs from ML (Diwansu)
+# What RUKO needs from ML
 
-Owner of `ml/`: Diwansu Pilania. Everything else around the models (the app, the server, the
-console, the contract, evaluation plumbing) is built by Jagdeep. This page says exactly what each
+Owner of `ml/`: ML. Everything else around the models (the app, the server, the
+console, the contract, evaluation plumbing) is built by the backend. This page says exactly what each
 model must take in, give back, and pass, so it plugs in without changes on either side.
 
 Rules that apply to every model (root `CLAUDE.md`):
@@ -61,7 +61,7 @@ Inputs are `f_*` columns, family scores are `family_*`, and outcomes / feedback 
 
 - **Exists:** `ml/model/artifacts/lure.json` + `lure_vectors.json`. The app loads `lure.json` from
   its assets.
-- **Next:** Jagdeep is adding an **AI-written messages test**: scam and normal messages rewritten in
+- **Next:** The backend is adding an **AI-written messages test**: scam and normal messages rewritten in
   new words, in English, Hindi and Hinglish (`backend/evalsuite/ai_lures.jsonl`, run with
   `python -m evalsuite.ai_lures`). It reports "caught" and "false alarms" against today's 84%.
 - **Ask:** if that number is clearly lower, retrain so paraphrased (AI-written) scam messages are
@@ -94,8 +94,8 @@ The label is a hint shown to the user. It never changes a payment's tier.
 ## 4. Later: device model (`ml/PLAN.md` M4b)
 
 - `device_model.json` + `DeviceModel.kt` reference + vectors.
-- The contract then gets `context.device_model = {version, c, l, b, p, reasons}`. Jagdeep adds it
-  (rule 8), and Manjeet / Jagdeep wire it in the app.
+- The contract then gets `context.device_model = {version, c, l, b, p, reasons}`. The backend adds it
+  (rule 8), and the app and the backend wire it in.
 
 ## 5. Policy numbers
 

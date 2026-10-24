@@ -1,6 +1,6 @@
 """The red-team runner's live engine must see what the training replay sees, payment for payment.
 
-Nikunj's runner (synthetic_playbook/interface_script) sends a sim_v2 world to the real engine and
+The attack runner (synthetic_playbook/interface_script) sends a sim_v2 world to the real engine and
 its mock services. Those services answer as of their clock; until the runner moved it to each
 message's time they answered as of the world's last day, so payee signals (account age, payers,
 MuleHunter, pass-through, registry listings from the future) differed on most payments and every

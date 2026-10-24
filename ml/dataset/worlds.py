@@ -1,4 +1,4 @@
-"""Named synthetic worlds, built with data/sim (Nikunj's simulator). Output: ml/data/worlds/<name>/
+"""Named synthetic worlds, built with data/sim (the data simulator). Output: ml/data/worlds/<name>/
 
     PYTHONPATH=backend;ml;data python -m dataset.worlds tiny dev
 

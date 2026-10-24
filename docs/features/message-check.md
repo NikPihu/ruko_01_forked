@@ -30,7 +30,7 @@ server. These labels are hints and never change a payment's tier (rules 2, 5, 10
   - `check`.
 - **Reading the phone:** `MessageScan` reads the SMS inbox and the call log.
 - **Live checks:** `SmsReceiver` and `ChatListener` run the same checks on new messages.
-- **The AI-written model** is Diwansu's `ai_text.json`, in the same format as `lure.json` (see
+- **The AI-written model** is the ML `ai_text.json`, in the same format as `lure.json` (see
   `docs/ml-asks.md` §3). Until the file is in the app's assets, the label is unknown and hidden.
   AI-text detection is unreliable on short texts, which is why it says "looks", never "is".
 - **Switch:** "SMS scam check" (off by default). It asks for permission to read and receive SMS,

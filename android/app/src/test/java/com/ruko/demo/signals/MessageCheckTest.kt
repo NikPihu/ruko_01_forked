@@ -90,7 +90,7 @@ class MessageCheckTest {
         assertNull(MessageCheck.check("+919876543210", "Mom, I reached the hostel safely. Will call after dinner.", 0, lure, null, emptyList()).scamTag)
     }
 
-    /** Diwansu's ai_text.json must score the same here as in Python (skipped until it exists). */
+    /** The ML ai_text.json must score the same here as in Python (skipped until it exists). */
     @Test
     fun aiTextModelMatchesPythonVectors() {
         val model = File(artifacts, "ai_text.json")

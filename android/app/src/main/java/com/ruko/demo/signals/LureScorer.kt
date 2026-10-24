@@ -14,7 +14,7 @@ interface LureClassifier {
     fun classify(text: String): LureHit
 }
 
-/** Diwansu's model/artifacts/lure.json (guide format). */
+/** ml/model/artifacts/lure.json (guide format). */
 @Serializable
 data class LureModel(
     val version: String,

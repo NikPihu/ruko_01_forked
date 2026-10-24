@@ -7,7 +7,7 @@
 with phrasings the model never saw, plus honest look-alikes (real OTPs, real bank and RBI notices,
 real refunds, family and work messages). Scoring reuses the model's own Python scorer
 (ml/model/lure_train.py: score_json + scam_hit, the phone's rule) and the phone's send threshold,
-so this measures exactly what the app would send. The model itself is Diwansu's (ml/).
+so this measures exactly what the app would send. The model itself is in ml/.
 """
 from __future__ import annotations
 

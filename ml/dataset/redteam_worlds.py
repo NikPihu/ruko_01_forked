@@ -1,4 +1,4 @@
-"""Red-team worlds for lgbm-0.3, built with data/sim_v2: Nikunj's 50 red-team playbooks split in two
+"""Red-team worlds for lgbm-0.3, built with data/sim_v2: the 50 attack playbooks split in two
 halves BY PLAYBOOK, so the model is judged on scams it never trained on. Output: ml/data/worlds/<name>/
 
     PYTHONPATH=backend;ml;data python -m dataset.redteam_worlds rt_train rt_test

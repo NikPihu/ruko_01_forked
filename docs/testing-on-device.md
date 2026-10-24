@@ -91,7 +91,7 @@ than T3, check the server with the rules scorer before calling it a bug in the a
 | 3.6 | Profile language Hindi, repeat 3.1 | Notification in Hindi |
 | 3.7 | Switch **SMS scam check** off and repeat 3.1 | Nothing happens; Message check asks you to turn the switch on |
 
-The "Looks AI-written" label stays hidden until Diwansu's `ai_text.json` is in the app's assets.
+The "Looks AI-written" label stays hidden until the ML `ai_text.json` is in the app's assets.
 That is expected.
 
 ## 4. Early warnings (sent before any payment)

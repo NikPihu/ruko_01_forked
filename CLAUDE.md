@@ -186,7 +186,7 @@ the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Nod
 intel on 8001 and the API with `--demo-clock`, pumps the demo mule (and with `-BaitPump` the bait
 account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
 Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
-(8002 on Manjeet's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
+(8002 on one teammate's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
 
 - Analyst console: `http://127.0.0.1:<api port>/console/` (dev server: `cd console && npm run dev`,
   port 5173). `/console/graph` redirects there.
@@ -331,7 +331,7 @@ mind. Offline episode features for training:
 ## Not built yet
 Pause enforcement and `pause_until` (the app
 counts `pause_minutes` from the answer), T4 review polling (no review endpoint), the app's
-the "looks AI-written" model (`ai_text.json`, Diwansu), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
+the "looks AI-written" model (`ai_text.json`, ml/), red-team tests (`data/eval/redteam/` is empty), `docker-compose.yml` / `Makefile`,
 Redis / Postgres, signed release APK. SMS permissions are a demo-build feature only (Play Store
 does not allow them for a payment app). `ml/PLAN.md` tracks what is done in `ml/` and what it needs
 from other folders (its §12).

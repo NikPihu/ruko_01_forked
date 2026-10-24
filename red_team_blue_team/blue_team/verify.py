@@ -9,7 +9,7 @@ in three checks, cheapest first. Results go to exports/<name>/verify.json.
    simulator's answer key, evaluation only: CLAUDE.md rule 9), legit payments named per 1,000, and
    payments it takes from a known playbook. A rule the file format cannot express is measured with
    the blue-team matcher instead and flagged.
-2. live (minutes): Nikunj's runner (synthetic_playbook/interface_script) on the scam's playbooks in a
+2. live (minutes): the attack runner (synthetic_playbook/interface_script) on the scam's playbooks in a
    fresh world (a new seed), the same world judged by several engine set-ups (ARMS): as it is; with
    the entry pasted into its playbook file (RUKO_PLAYBOOKS, only if the format can express it); and a
    PREVIEW with the card's rule in the engine's namer and the contract open to new names
@@ -167,7 +167,7 @@ def _pct(x) -> str:
     return "–" if x is None else f"{x:.0%}"
 
 
-# ---- check 2 / 3: live, Nikunj's runner -------------------------------------------------------
+# ---- check 2 / 3: live, the attack runner -------------------------------------------------------
 
 def _playbook_ref(name: str, repo: Path) -> str:
     from blue_team import redteam

@@ -320,9 +320,9 @@ PAGE.demo = async () => {
 
   const steps = el("ol", {},
     el("li", {}, stepChip(0), " ", el("b", {}, "A world where two new scams and three known ones attack"),
-      ` — ${set.users} users × ${set.days} days. New to RUKO (Nikunj's red team): ${set.new.join(", ")}. Known: ${set.known.join(", ")}.`),
+      ` — ${set.users} users × ${set.days} days. New to RUKO (the attack playbooks): ${set.new.join(", ")}. Known: ${set.known.join(", ")}.`),
     el("li", {}, stepChip(1), " ", el("b", {}, "Round 1: every payment through the real engine"),
-      ", as the phone sends it (Nikunj's record stream). The table shows what got through."),
+      ", as the phone sends it (the attack runner's record stream). The table shows what got through."),
     el("li", {}, stepChip(2, "your turn"), " ", el("b", {}, "The blue team learns from the victims' complaints: "),
       sc.run_id ? [ref("timeline", "run"), " → ", ref("HDBSCAN groups", "hdbscan"), " → ", ref("generator agent", "generator"), " → ",
                    ref("analyst agent", "analyst"), ` (agents: ${sc.agents || "?"})`] : "not yet",
@@ -934,7 +934,7 @@ const verifyCard = (name) => {
   box.append(el("h2", {}, "Does RUKO now catch it?"),
     explain(["Two analysts said the story and rule are right; this measures what approving it changes. A playbook only ", el("b", {}, "names"), " a scam; ", el("b", {}, "interrupting"), " it is the model's job."],
             ["1 · named, offline: the engine's playbook file plus this entry over the card's world, including payments nobody complained about. ",
-             "2 · live: Nikunj's runner on the scam's playbooks in a fresh world, the real engine before and with this entry. ",
+             "2 · live: the attack runner on the scam's playbooks in a fresh world, the real engine before and with this entry. ",
              "3 · retrain: LightGBM with this card's complaint labels (a copy; the live model is untouched), then the same live world."],
       [el("span", { class: "mono" }, "verify.py · exports/<name>/verify.json · python -m blue_team verify <name>")]),
     el("div", { class: "row" }, el("label", {}, live, " live check (about 5 min)"), el("label", {}, rt, " retrain (adds about 10 min)"), start), msg, body, log);
@@ -987,8 +987,8 @@ PAGE.redteam = async (p) => {
   const w = d.world || {}, df = d.defaults;
   const techCount = {}; for (const pb of d.playbooks) for (const t of pb.techniques) techCount[t] = (techCount[t] || 0) + 1;
 
-  // ---- step 1: Nikunj's runner
-  const setSel = el("select", {}, r.sets.map(s => el("option", { value: s }, s === "red_team" ? "Nikunj's 50 red-team playbooks" : "sim_v2's own playbook library")));
+  // ---- step 1: the attack runner
+  const setSel = el("select", {}, r.sets.map(s => el("option", { value: s }, s === "red_team" ? "the 50 attack playbooks" : "sim_v2's own playbook library")));
   const workers = el("input", { size: 3, value: r.workers }), users = el("input", { size: 5, placeholder: "300" }), victims = el("input", { size: 4, placeholder: "20" });
   const rerun = el("input", { type: "checkbox" });
   const rState = el("div", { class: "row" }), rLog = el("pre", { style: "max-height:220px" }), rMsg = el("div");
@@ -1057,7 +1057,7 @@ PAGE.redteam = async (p) => {
   let open = p.pb || null;
   const table = el("table", {});
   const drawTable = () => {
-    put(table, el("tr", {}, ["playbook", "what it pretends to be", "evasion tricks (read from its script)", "runner: called normal", "Nikunj's claim"].map(h => el("th", {}, h))),
+    put(table, el("tr", {}, ["playbook", "what it pretends to be", "evasion tricks (read from its script)", "runner: called normal", "Claimed miss rate"].map(h => el("th", {}, h))),
       d.playbooks.map(pb => { const v = r.verdicts[pb.name]; return [el("tr", { class: "click", onclick: () => { open = open === pb.name ? null : pb.name; drawTable(); } },
         el("td", { class: "mono" }, pb.name), el("td", {}, pb.title), el("td", {}, el("span", { class: "chips" }, pb.techniques.map(x => chip(TECH_SHORT[x] || x)))),
         el("td", {}, v ? [pct(v.miss_rate), " ", v.breakthrough ? chip("breakthrough", "bad") : chip("caught", "good")] : "not run yet"),
@@ -1069,14 +1069,14 @@ PAGE.redteam = async (p) => {
   drawTable();
 
   return [el("h1", {}, "Red team"),
-    explain(["Nikunj's ", el("b", {}, "red-team runner"), " (", el("span", { class: "mono" }, "synthetic_playbook/interface_script"), ") plays each scam playbook against the ", el("b", {}, "real RUKO engine"),
+    explain(["The ", el("b", {}, "attack runner"), " (", el("span", { class: "mono" }, "synthetic_playbook/interface_script"), ") plays each scam playbook against the ", el("b", {}, "real RUKO engine"),
              " in its own small world and judges every reply: a threat score of 70 or less is RUKO calling the payment normal. If 75% of a playbook's scam payments come back normal, it is a ",
              el("b", {}, "breakthrough"), ", and his blue-team sink drops it into this team's inbox."],
       ["Then the blue team builds ", el("b", {}, "one attack world"), " where all the breakthroughs run at once (as in real life), replays it through RUKO, and works only from the victims' complaints: Complaints → HDBSCAN → agents → humans. The playbooks are data, never executed; the tricks below are read from each script."],
       [el("span", { class: "mono" }, "interface_script (judge.py, sinks.py) · blue_team/inbox.py · redteam.py")]),
-    el("div", { class: "flow" }, ["Red-team playbooks", "Nikunj's runner vs RUKO", "Breakthroughs → inbox", "Attack world + replay", "Blue-team run", "Scorecard"]
+    el("div", { class: "flow" }, ["Red-team playbooks", "the attack runner vs RUKO", "Breakthroughs → inbox", "Attack world + replay", "Blue-team run", "Scorecard"]
       .flatMap((s, i) => i ? [el("span", { class: "a" }, "→"), el("span", { class: "s" }, s)] : [el("span", { class: "s" }, s)])),
-    el("div", { class: "card" }, el("h2", {}, "1 · Run the red team (Nikunj's runner against the real engine)"),
+    el("div", { class: "card" }, el("h2", {}, "1 · Run the red team (the attack runner against the real engine)"),
       el("p", { style: "color:var(--muted);font-size:13px" }, "Each playbook takes about 4 minutes in its own 300-user world; several run at once. Playbooks already in the inbox are skipped unless you tick re-run, so you can stop and continue later."),
       el("div", { class: "row" }, setSel, "at a time", workers, "users", users, "victims", victims, el("label", {}, rerun, " re-run judged ones"), startRunner, stopRunner),
       rMsg, rState, rLog),

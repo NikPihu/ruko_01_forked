@@ -21,7 +21,7 @@ import kotlinx.serialization.json.Json
  * sent anywhere; the labels are hints and never change a payment's tier (rules 2, 5, 10).
  *
  * - Scam script: the lure model (`lure.json`), same send threshold as the payment check.
- * - Looks AI-written: Diwansu's `ai_text.json`, only for personal or unregistered senders and long
+ * - Looks AI-written: the ML `ai_text.json`, only for personal or unregistered senders and long
  *   enough texts. Until the model file exists the label is unknown (null) and hidden.
  * - OTP: every one-time code gets "never share this"; one that arrives during a call with someone
  *   not known to be a contact gets the full warning.
@@ -112,7 +112,7 @@ data class AiTextMeta(
     @SerialName("positive_class") val positiveClass: String = "ai",
 )
 
-/** Diwansu's "looks AI-written" model: the same TF-IDF + logistic regression format as `lure.json`. */
+/** The "looks AI-written" model (ml/): the same TF-IDF + logistic regression format as `lure.json`. */
 class AiTextScorer(private val model: LureModel, meta: AiTextMeta) {
     val version: String = meta.version
     val threshold: Double = meta.threshold

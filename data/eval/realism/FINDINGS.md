@@ -10,7 +10,7 @@ PYTHONPATH=backend:ml:data python -m eval.realism.compare --team data/ [--old-si
 | Dataset | What it is | Size used |
 |---|---|---|
 | **Team sim** | `ruko_01/data/sim` (current main), `--users 2000 --days 30 --seed 7`, the repo's default | 63,958 user payments, 23 journeys, 77 scam payments |
-| **Old sim** | Nikunj's Oct-17 prototype `ruko_sim` (4,000 users × 60 days) | 344,469 payments, 240 journeys, 487 scam payments |
+| **Old sim** | the Oct-17 prototype `ruko_sim` (4,000 users × 60 days) | 344,469 payments, 240 journeys, 487 scam payments |
 | **PaySim** | Public synthetic mobile money (Kaggle) | 6.36 M rows |
 | **Xente** | Real e-payments, Uganda, Nov 2018–Mar 2019 | 95,662 rows |
 

@@ -7,7 +7,7 @@ approve, and the same payments go through the engine again.
     python -m blue_team scenario status
 
 1. A sim_v2 world where two red-team playbooks (new to RUKO) and three known scams attack.
-2. Round 1: every payment of that world through the real engine (Nikunj's record stream,
+2. Round 1: every payment of that world through the real engine (the attack runner's record stream,
    synthetic_playbook/interface_script/records.py), as a phone would send it.
 3. The blue team on the victims' complaints: HDBSCAN -> generator agent -> analyst agent -> queue.
 4. People approve (two analysts) in the console started with --scenario.

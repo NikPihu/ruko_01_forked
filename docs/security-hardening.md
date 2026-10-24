@@ -23,7 +23,7 @@ known-payee logic so training rows match production (parity test green).
 
 ## Handed to teammates
 
-### Diwansu (ml) — the biggest single fix
+### ML — the biggest single fix
 - **Non-negative combiner weights.** `server_model.json` learned `L = -0.3412` (and `C ≈ 0.030`), so
   raising a lure score *lowers* `p_scam`. Retrain the meta-combiner with non-negative weights
   (`LogisticRegression(positive=True)` or a bounded solver) in `ml/model/train.py`. (Audit §2.6.)
@@ -34,7 +34,7 @@ known-payee logic so training rows match production (parity test green).
   (needs the app's `LureScorer.LURE_SEND_THRESHOLD` and `contracts/watch_rules.json lure_min_conf`
   changed together — config-only change was skipped because the phone gates at 0.60 upstream).
 
-### Nikunj (data) — so the red team actually exercises the fixes
+### Data — so the red team actually exercises the fixes
 - `data/sim_v2/agents/session.py` hardcodes `COACHED_CALL`/`CHAT` playbook-name sets, so a new
   playbook falls into calm "mixed" behaviour (§2.5). Drive the session profile from the scenario, not
   the name.
@@ -43,5 +43,5 @@ known-payee logic so training rows match production (parity test green).
 
 ## Verify
 - Backend + ML + Android unit tests are green with each fix (a test per change).
-- **Miss-rate before/after:** run Nikunj's harness `python -m interface_script run-all` to measure
+- **Miss-rate before/after:** run the attack runner `python -m interface_script run-all` to measure
   the real drop. Not run yet — do it on request.

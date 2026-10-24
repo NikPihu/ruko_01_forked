@@ -101,7 +101,7 @@ scenario:                            # python -m blue_team scenario start / reru
   warmup_days: 7
 
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
-  red_team_runner:                   # Nikunj's interface_script, run from the console over a playbook set
+  red_team_runner:                   # the attack runner (interface_script), run from the console over a playbook set
     workers: 4                       # playbooks judged at once (each ~4 min on its own small world)
     out: synthetic_playbook/interface_script_out
     log: ml/runs/redteam_runner.log
@@ -116,7 +116,7 @@ console:                             # python -m blue_team app: worlds a run can
     seed: 41
     log: ml/runs/redteam_build.log
   worlds:
-    - name: "red team: Nikunj's 50 playbooks attack (build it on the Red team page)"
+    - name: "attack world: the 50 attack playbooks (build it on the Red team page)"
       table: ml/data/tables/redteam.parquet
       data: data/sim_v2_out/redteam
       red_team: true

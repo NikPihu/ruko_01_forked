@@ -75,7 +75,7 @@ object Signals {
     var classifier: LureClassifier = KeywordLureClassifier
         private set
 
-    /** "Looks AI-written" (assets/ai_text.json, A5); null until Diwansu's model is in the app. */
+    /** "Looks AI-written" (assets/ai_text.json, A5); null until the ML model is in the app. */
     var aiText: AiTextScorer? = null
         private set
 
@@ -232,7 +232,7 @@ object Signals {
         KeywordLureClassifier
     }
 
-    /** Diwansu's ml/model/artifacts/lure.json; the keyword fallback is used when it is missing. */
+    /** ml/model/artifacts/lure.json; the keyword fallback is used when it is missing. */
     const val LURE_ASSET = "lure.json"
 
     /** ml/model/artifacts/v0/device_model.json (c2-0.8 device verdict). */

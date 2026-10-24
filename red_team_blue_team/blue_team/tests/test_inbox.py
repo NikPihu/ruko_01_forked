@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from blue_team import inbox, webapp
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "synthetic_playbook"))
-from interface_script.judge import Verdict  # noqa: E402  (Nikunj's judge, the real thing)
+from interface_script.judge import Verdict  # noqa: E402  (the attack runner's judge, the real thing)
 
 
 def verdict(name, missed, judged):
@@ -31,7 +31,7 @@ def test_breakthroughs_reach_the_inbox_and_caught_ones_leave_it(tmp_path):
     assert inbox.breakthroughs(box) == []          # RUKO catches it now: no longer the blue team's job
 
 
-def test_nikunjs_sink_list_includes_the_blue_team():
+def test_the_runner_sink_list_includes_the_blue_team():
     from interface_script import sinks
     assert sinks.blue_team in sinks.SINKS
 

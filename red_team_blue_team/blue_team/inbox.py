@@ -1,4 +1,4 @@
-"""The blue team's inbox: what Nikunj's red-team runner (synthetic_playbook/interface_script) hands over.
+"""The blue team's inbox: what the attack runner (synthetic_playbook/interface_script) hands over.
 
 His runner plays one playbook against the real RUKO engine and judges each reply by its threat
 score. Its `blue_team` sink (interface_script/sinks.py) calls `receive()` after every run:
