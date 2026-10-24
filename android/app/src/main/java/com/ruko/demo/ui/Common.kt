@@ -45,19 +45,19 @@ import com.ruko.demo.R
 import java.text.NumberFormat
 import java.util.Locale
 
-/** Cache Pay palette: near black surfaces with a violet accent. */
+/** Cache Pay palette: deep navy surfaces with a blue to teal accent. */
 object CacheColors {
-    val Background = Color(0xFF0E0B16)
-    val Surface = Color(0xFF17131F)
-    val Card = Color(0xFF221D2E)
-    val CardBorder = Color(0xFF342C45)
-    val Primary = Color(0xFF7C3AED)
-    val PrimaryDeep = Color(0xFF9333EA)
-    val PrimaryLight = Color(0xFFA78BFA)
-    val HeroTop = Color(0xFF240760)
-    val HeroBottom = Color(0xFF5B21B6)
-    val TextPrimary = Color(0xFFF5F3FA)
-    val TextSecondary = Color(0xFFB4ADC6)
+    val Background = Color(0xFF0A0F1C)
+    val Surface = Color(0xFF111827)
+    val Card = Color(0xFF1A2335)
+    val CardBorder = Color(0xFF2B3852)
+    val Primary = Color(0xFF2563EB)
+    val PrimaryDeep = Color(0xFF0D9488)
+    val PrimaryLight = Color(0xFF7DD3FC)
+    val HeroTop = Color(0xFF0B1F4B)
+    val HeroBottom = Color(0xFF1E4FB8)
+    val TextPrimary = Color(0xFFF1F5F9)
+    val TextSecondary = Color(0xFFA3B1C6)
     val Success = Color(0xFF22C55E)
     val Warning = Color(0xFFF59E0B)
     val Danger = Color(0xFFEF4444)

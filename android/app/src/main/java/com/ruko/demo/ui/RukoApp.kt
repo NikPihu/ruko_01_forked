@@ -50,6 +50,7 @@ private object Routes {
     const val HISTORY = "history"
     const val CONTACTS = "contacts"
     const val MESSAGES = "messages"
+    const val ALERTS = "alerts"
 }
 
 /** Sign up or login first; the payment app only exists once the account is unlocked. */
@@ -129,6 +130,7 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 onHistory = { nav.navigate(Routes.HISTORY) },
                 onPayContact = { nav.navigate(Routes.CONTACTS) },
                 onMessageCheck = { nav.navigate(Routes.MESSAGES) },
+                onAlerts = { nav.navigate(Routes.ALERTS) },
             )
         }
         composable(Routes.PAY) {
@@ -197,6 +199,14 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
         }
         composable(Routes.MESSAGES) {
             MessageCheckScreen(auth.consents, onProfile = { nav.navigate(Routes.PROFILE) }, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.ALERTS) {
+            AlertsScreen(
+                history = auth.history,
+                onMessages = { nav.navigate(Routes.MESSAGES) },
+                onHistory = { nav.navigate(Routes.HISTORY) },
+                onBack = { nav.popBackStack() },
+            )
         }
         composable(Routes.HISTORY) {
             // Money received: the credits the watcher read from bank SMS (none while it is off).

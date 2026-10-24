@@ -4,7 +4,6 @@
 
     <!-- Home -->
     <string name="demo_banner">Cache Pay demo, not a real payment app. No real money moves.</string>
-    <string name="demo_only">Not part of this demo yet</string>
     <string name="home_hero_tagline">Scam Shield by RUKO is on. A risky payment gets a pause and a reason.</string>
     <string name="home_check_server">Check Scam Shield</string>
     <string name="home_api_address">API: %1$s</string>
@@ -19,19 +18,8 @@
     <string name="home_money_transfers">Money Transfers</string>
     <string name="home_shield_chip">Shield on</string>
     <string name="home_to_mobile">To Mobile Number</string>
-    <string name="home_to_bank">To Bank &amp; Self A/c</string>
-    <string name="home_receive">Receive Money</string>
-    <string name="home_check_balance">Check Balance</string>
     <string name="home_trusted">Add trusted contacts</string>
-    <string name="home_how_shield">How Scam Shield works</string>
-    <string name="home_bills">Recharge &amp; Bills</string>
-    <string name="bill_mobile">Mobile Recharge</string>
-    <string name="bill_rent">Rent Payment</string>
-    <string name="bill_electricity">Electricity Bill</string>
-    <string name="bill_loan">Loan Repayment</string>
-    <string name="home_pay_upi">Pay any UPI ID</string>
     <string name="nav_home">Home</string>
-    <string name="nav_search">Search</string>
     <string name="nav_scan">Scan and pay</string>
     <string name="nav_alerts">Alerts</string>
     <string name="nav_history">History</string>
@@ -458,4 +446,18 @@
     <string name="history_received_detail">Read from your bank\'s SMS alert on this phone. The SMS text is never stored or sent.</string>
     <string name="consent_share_received">Share money I receive with Scam Shield</string>
     <string name="consent_share_received_desc">Sends each credit your money alerts show (the amount, the sender\'s UPI ID and the time) so Scam Shield\'s analysts can see money coming in. Never your SMS text.</string>
+    <string name="home_to_upi">To UPI ID</string>
+    <string name="home_trusted_short">Trusted person</string>
+    <string name="nav_profile">Profile</string>
+    <string name="alerts_title">Alerts</string>
+    <string name="alerts_empty_title">No alerts yet</string>
+    <string name="alerts_empty_body">Scam Shield lists here every suspicious message it warned you about and every payment it stepped in on.</string>
+    <string name="alerts_section_warnings">Warnings on this phone</string>
+    <string name="alerts_section_payments">Payments Scam Shield stepped in on</string>
+    <string name="alert_scam_message_title">Possible scam message</string>
+    <string name="alert_in_sms">in an SMS</string>
+    <string name="alert_in_chat">in a chat app</string>
+    <string name="alert_ai_written">looks AI-written</string>
+    <string name="alert_new">NEW</string>
+    <string name="alert_payment_title">%1$s to %2$s</string>
 </resources>

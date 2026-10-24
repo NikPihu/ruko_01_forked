@@ -48,7 +48,7 @@ import java.util.Locale
 private val WHEN = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.forLanguageTag("en-IN"))
     .withZone(ZoneId.of("Asia/Kolkata"))
 
-private fun whenText(ms: Long): String = WHEN.format(Instant.ofEpochMilli(ms))
+internal fun whenText(ms: Long): String = WHEN.format(Instant.ofEpochMilli(ms))
 
 /**
  * Every payment started in this app, each with its payment ID (the request_id the server knows it
@@ -233,7 +233,7 @@ private fun PaymentDetail(p: PaymentRecord, onClose: () -> Unit) {
 }
 
 @Composable
-private fun scamTypeText(playbook: String?): String? = when (playbook) {
+internal fun scamTypeText(playbook: String?): String? = when (playbook) {
     "digital_arrest" -> stringResource(R.string.fraud_digital_arrest)
     "task_job" -> stringResource(R.string.fraud_task_job)
     "trading_group" -> stringResource(R.string.fraud_trading_group)
@@ -252,7 +252,7 @@ private fun Field(label: String, value: @Composable () -> Unit) {
 }
 
 @Composable
-private fun shieldText(tier: String?): String = stringResource(
+internal fun shieldText(tier: String?): String = stringResource(
     when (tier) {
         "T0" -> R.string.history_result_t0
         "T1" -> R.string.history_result_t1
@@ -262,7 +262,7 @@ private fun shieldText(tier: String?): String = stringResource(
     },
 )
 
-private fun shieldColor(tier: String?): Color = when (tier) {
+internal fun shieldColor(tier: String?): Color = when (tier) {
     "T0" -> CacheColors.Success
     "T1" -> CacheColors.Info
     "T2" -> CacheColors.Warning
@@ -271,7 +271,7 @@ private fun shieldColor(tier: String?): Color = when (tier) {
 }
 
 @Composable
-private fun statusText(state: PaymentState): String = stringResource(
+internal fun statusText(state: PaymentState): String = stringResource(
     when (state) {
         PaymentState.COMPLETED -> R.string.history_status_completed
         PaymentState.CANCELLED -> R.string.history_status_cancelled
@@ -279,7 +279,7 @@ private fun statusText(state: PaymentState): String = stringResource(
     },
 )
 
-private fun statusColor(state: PaymentState): Color = when (state) {
+internal fun statusColor(state: PaymentState): Color = when (state) {
     PaymentState.COMPLETED -> CacheColors.Success
     PaymentState.CANCELLED -> CacheColors.TextSecondary
     PaymentState.PENDING -> CacheColors.Warning

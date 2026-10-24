@@ -14,9 +14,15 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.ruko.demo.MainActivity
 import com.ruko.demo.R
+import com.ruko.demo.data.AlertEntry
+import com.ruko.demo.data.AlertKind
+import com.ruko.demo.ui.scamTagRes
 import java.util.Locale
 
-/** Gentle warnings from the watcher. It only warns; it never blocks a payment. */
+/**
+ * Gentle warnings from the watcher. It only warns; it never blocks a payment. Every warning is also
+ * kept for the Alerts screen ([AlertRecorder]), even when notifications are off.
+ */
 object ShieldNotifier {
     const val CHANNEL = "scam_shield_alerts"
     private const val CONFIRMED_ID = 200
@@ -34,29 +40,37 @@ object ShieldNotifier {
     }
 
     fun show(context: Context, alert: ShieldEngine.Alert, language: String?) {
+        val kind = when (alert.kind) {
+            ShieldEngine.AlertKind.ACTIVE -> AlertKind.TASK_SCAM
+            ShieldEngine.AlertKind.OUT_OTHER_APP -> AlertKind.PAID_OTHER_APP
+        }
+        AlertRecorder.record(context, AlertEntry(System.currentTimeMillis(), kind))
         val (title, body) = text(localized(context, language), alert)
         post(context, alert.kind.ordinal + 100, title, body)
     }
 
     /** A stronger notification when the server confirms the accounts look like a ring (§8.4). */
     fun showConfirmed(context: Context, language: String?) {
+        AlertRecorder.record(context, AlertEntry(System.currentTimeMillis(), AlertKind.RING_CONFIRMED))
         val c = localized(context, language)
         post(context, CONFIRMED_ID, c.getString(R.string.shield_confirmed_title), c.getString(R.string.shield_confirmed_text))
     }
 
     /** An OTP arrived while a call is going on: whoever asks for it on the call is a scammer (A5). */
     fun showOtpOnCall(context: Context, language: String?) {
+        AlertRecorder.record(context, AlertEntry(System.currentTimeMillis(), AlertKind.OTP_ON_CALL))
         val c = localized(context, language)
         post(context, OTP_ON_CALL_ID, c.getString(R.string.msg_otp_call_title), c.getString(R.string.msg_otp_call_text))
     }
 
     /**
      * A new SMS matches a scam script (A5). Says which kind and, when known, that it looks
-     * AI-written; never quotes the message. Tapping opens Message check.
+     * AI-written; never quotes the message. Tapping opens Message check. [source] is "sms" or "chat".
      */
-    fun showScamSms(context: Context, language: String?, kindText: (Context) -> String, aiWritten: Boolean, id: Int) {
+    fun showScamSms(context: Context, language: String?, tag: String, aiWritten: Boolean, id: Int, source: String) {
+        AlertRecorder.record(context, AlertEntry(System.currentTimeMillis(), AlertKind.SCAM_MESSAGE, tag, source, aiWritten))
         val c = localized(context, language)
-        val body = c.getString(R.string.msg_scam_notify_text, kindText(c)) +
+        val body = c.getString(R.string.msg_scam_notify_text, c.getString(scamTagRes(tag))) +
             if (aiWritten) " " + c.getString(R.string.msg_scam_notify_ai) else ""
         post(context, SCAM_SMS_ID + id, c.getString(R.string.msg_scam_notify_title), body, MainActivity.OPEN_MESSAGES)
     }
