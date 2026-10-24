@@ -162,8 +162,9 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
   Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
   bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
-  dismiss), Explore, AI scammer (scam lab, `--lab`). The Evaluation page was removed; results are in
-  `data/eval/*_results.json` and `GET /v1/eval`.
+  dismiss), Explore, AI scammer (scam lab, `--lab`), Accuracy (held-out confusion table, false alarms,
+  misses, red-team results, named failure cases; `GET /v1/accuracy` from `python -m evalsuite.accuracy`,
+  see `docs/features/accuracy.md`). Older eval results stay in `data/eval/*_results.json` and `GET /v1/eval`.
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs

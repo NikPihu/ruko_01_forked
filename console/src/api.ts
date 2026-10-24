@@ -334,6 +334,28 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+/** The Accuracy page (GET /v1/accuracy, written by python -m evalsuite.accuracy). */
+export interface AccuracyScorer {
+  confusion: { scam_interrupted: number; scam_missed: number; legit_interrupted: number; legit_not_interrupted: number };
+  scam_caught_rate: number; scam_rupees_caught_rate: number; false_alarms_per_1000: number;
+  legit_tips_per_1000: number; precision: number | null; tiers: Record<string, number>;
+  by_scam_type: Record<string, number>;
+  missed_by_type: { scam_type: string; missed: number; of: number; median_inr: number | null; no_scam_message: number | null;
+    no_call_during_payment: number | null; payee_older_than_90d: number | null; under_2000_inr: number | null }[];
+}
+export interface Accuracy {
+  built_at: string; command: string;
+  payments: { world: string; rows: number; scam_payments: number; legit_payments: number; live_scorer: string;
+    rules_scorer: string; scorers: Record<string, AccuracyScorer> };
+  messages: { model: string; held_out: string; messages: number; scam_caught: number; scam_right_type: number;
+    scam_unclear: number; scam_called_normal: number; normal_false_alarm: number; normal_unclear: number;
+    per_type_f1: Record<string, number>;
+    by_language: Record<string, { messages: number; scam_caught: number; scam_called_normal: number; scam_unclear: number; normal_false_alarm: number }> };
+  new_scams: { source: string; playbooks: number; scam_payments: number; missed: number; rules_missed: number;
+    by_shape: Record<string, { playbooks: number; missed: number }>; examples: { name: string; title: string; missed: number }[] };
+  failure_cases: { name: string; measured: string; why: string; fix: string }[];
+}
+
 export const api = {
   health: () => get<Health>("/health"),
   alerts: (minTier: Tier = "T1") => get<Alert[]>(`/v1/alerts?min_tier=${minTier}`),
@@ -389,6 +411,13 @@ export const api = {
   },
   labSent: () => get<{ sent: LabSent[] }>("/v1/lab/sent"),
   labReset: () => post<{ ok: boolean }>("/v1/lab/reset"),
+  /** null until python -m evalsuite.accuracy has been run. */
+  accuracy: async () => {
+    const r = await fetch("/v1/accuracy");
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`accuracy: ${r.status}`);
+    return r.json() as Promise<Accuracy>;
+  },
   rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
   emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
   reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {

@@ -445,6 +445,15 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         out["ai_lures"] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
         return out
 
+    @app.get("/v1/accuracy")
+    def accuracy() -> dict:
+        """The console's Accuracy page: held-out results, false alarms, misses and named failure
+        cases (python -m evalsuite.accuracy writes the file; nothing here is computed live)."""
+        f = Path(__file__).resolve().parents[1] / "evalsuite" / "accuracy_results.json"
+        if not f.exists():
+            raise HTTPException(404, "no accuracy results yet: run python -m evalsuite.accuracy")
+        return json.loads(f.read_text(encoding="utf-8"))
+
     # ---------- payment graph for the analyst console (contract C5, §9.7) ----------
 
     @app.get("/v1/graph/account/{upi_id}")
