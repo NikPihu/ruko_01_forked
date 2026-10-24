@@ -1,5 +1,46 @@
 # Red team
 
+Two ways to attack RUKO, both producing sim_v2 playbook YAML (the format in
+`data/sim_v2/config/playbooks/README.md`):
+
+| Part | What it is |
+|---|---|
+| `playbooks/` | the 50 hand-written playbooks (below) |
+| `generator.py`, `cli.py` | writes variants of existing playbooks into `playbook_v2/`, using AWS Bedrock when it is configured and built-in rules when it is not |
+| `ui.py` | the dashboard: generate, run, and see what got through |
+
+## The dashboard
+
+```bash
+export PYTHONPATH="backend;ml;data;synthetic_playbook" PYTHONIOENCODING=utf-8
+.venv/Scripts/python -m streamlit run red_team_blue_team/red_team/ui.py
+```
+
+Four tabs:
+- **Run** - every playbook in a folder against the real engine, with two live progress bars (the
+  set, and payments inside the current playbook) and a Stop button.
+- **Results** - how much of each playbook the server called normal, against the breakthrough bar;
+  how much evidence each number rests on; and the false alarms each one cost. Table and CSV.
+- **One playbook** - its threat scores, which step of the scam the server lost it at, and the
+  reason codes behind the payments it did catch.
+- **Generate** - new playbooks into `playbook_v2/`. Needs `BEDROCK_MODEL_ID` and
+  `AWS_DEFAULT_REGION`; without them the generator falls back to its own rules, so it never stalls.
+
+Everything the dashboard does, the command line does too (below); it only starts those tools and
+reads their output.
+
+## Generating playbooks
+
+```bash
+.venv/Scripts/python -m pip install -r red_team_blue_team/red_team/requirements.txt
+.venv/Scripts/python -m red_team --target-count 30      # -> playbook_v2/
+```
+
+Every generated playbook carries `emerging: true`, and `interface_script run-all --playbooks <dir>`
+picks up any folder of them with no code change.
+
+## The 50 hand-written playbooks
+
 **The 50 attack playbooks** (`playbooks/`, notes in `ATTACK_PLAYBOOKS.md`, claimed scores
 in `attack_manifest.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
 (YAML in the `data/sim_v2/config/playbooks/` format), never executed: the simulator plays them out
@@ -51,7 +92,7 @@ it up.
 ## First result (offline agents, 4,000 users x 30 days, seed 41)
 
 1,609 scam journeys, 1,436 by these 50 playbooks (all 50 attacked), 845 red-team scam payments.
-**RUKO (lgbm-0.2 + policy) interrupted 2.8% of them**, which bears out Claimed miss rate (97.5% missed),
+**RUKO (lgbm-0.2 + policy) interrupted 2.8% of them**, which bears out the claimed miss rate (97.5% missed),
 while it still interrupted digital_arrest 100%, fake_kyc_apk 100%, refund_qr 89% and
 fake_customer_care 85% of their payments. Then the blue team: 304 complaints (275 missed), 24 HDBSCAN
 groups; all 50 red-team playbooks produced complaints, 49 landed in a group, 19 are the majority of

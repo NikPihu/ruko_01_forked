@@ -36,6 +36,7 @@ def load_config(a) -> dict:
                                ("victims", "scenario", "victims"),
                                ("victims_mode", "scenario", "victims_mode"),
                                ("normal_sample", "scenario", "normal_sample"),
+                               ("honest_users", "scenario", "honest_users"),
                                ("users", "world", "users"), ("days", "world", "days"),
                                ("seed", "world", "seed"), ("server", "server", "target"),
                                ("scorer", "server", "scorer")):
@@ -143,6 +144,8 @@ def main() -> None:
         p.add_argument("--victims", type=int)
         p.add_argument("--victims-mode", choices=["comply", "model"], dest="victims_mode")
         p.add_argument("--normal-sample", type=float, dest="normal_sample")
+        p.add_argument("--honest-users", type=int, dest="honest_users",
+                       help="honest users besides those attacked (main speed knob)")
         p.add_argument("--users", type=int)
         p.add_argument("--days", type=int)
         p.add_argument("--seed", type=int)
