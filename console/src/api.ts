@@ -298,6 +298,8 @@ export interface RingAccount {
   automation_why: string | null;
   registry_listed: boolean;
   approved: boolean;
+  /** How a suspect is tied to the ring, in words (null for the accounts discovery started from). */
+  linked_by: string | null;
 }
 
 export interface Ring {
@@ -313,6 +315,7 @@ export interface Ring {
   links: { from: string; to: string; inr: number; n: number; hold_min: number | null; sources: string[] }[];
   victims_per_account: Record<string, number>;
   summary: string;
+  explanation: { started_from: { upi_id: string; why: string }[]; linked_by: Record<string, string | null>; steps: string[] };
 }
 
 export interface EmergingPattern {
@@ -340,7 +343,11 @@ async function get<T>(path: string): Promise<T> {
 
 
 /** Scam lab (/v1/lab/*, only when the API runs with --lab): the judge plays the scammer. */
-export interface LabStatus { lab: boolean; adb: string | null; emulator: string | null; victim: string }
+export interface LabStatus {
+  lab: boolean; adb: string | null; emulator: string | null;
+  /** The demo account that paid most recently (the one signed in on the phone). */
+  victim: string; victims: { user_id: string; name: string }[];
+}
 export interface LabWorkflow {
   id: string; title: string; flagged: boolean; story: string; expect: string; expect_tiers: Tier[];
   sms: { from: string; text: string } | null; call: string | null; victim_steps: string[];
@@ -357,6 +364,7 @@ export interface LabLatest {
   reasons?: { code: string; text: string }[];
   headline?: string; lit?: string[]; result?: string; words?: string;
   expected?: { workflow: string; words: string; met: boolean; same_payee: boolean };
+  victim?: string;
 }
 export interface LabSent { ts: string; kind: string; from?: string; number?: string; action?: string; chars?: number; workflow?: string }
 
@@ -413,13 +421,19 @@ export const api = {
     if (!r.ok) throw new Error(`lab: ${r.status}`);
     return r.json() as Promise<LabStatus>;
   },
-  labPresets: () => get<LabPresets>("/v1/lab/presets"),
-  labWorkflows: () => get<{ victim: string; workflows: LabWorkflow[]; app_switches: string[] }>("/v1/lab/workflows"),
+  labPresets: (victim?: string) => get<LabPresets>(`/v1/lab/presets${victim ? `?victim=${victim}` : ""}`),
+  labWorkflows: (victim?: string) => get<{ victim: string; workflows: LabWorkflow[]; app_switches: string[] }>(
+    `/v1/lab/workflows${victim ? `?victim=${victim}` : ""}`),
   labSms: (from: string, text: string) => post<{ sent: boolean }>("/v1/lab/sms", { from, text }),
   labCall: (number: string, action: "ring" | "answer" | "hangup") => post<{ done: boolean }>("/v1/lab/call", { number, action }),
-  labPrepare: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare`),
-  labSend: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send`),
-  labLatest: (workflow?: string) => get<LabLatest>(`/v1/lab/latest${workflow ? `?workflow=${workflow}` : ""}`),
+  labPrepare: (id: string, victim?: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare${victim ? `?victim=${victim}` : ""}`),
+  labSend: (id: string, victim?: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send${victim ? `?victim=${victim}` : ""}`),
+  labLatest: (workflow?: string, victim?: string) => {
+    const q = new URLSearchParams();
+    if (workflow) q.set("workflow", workflow);
+    if (victim) q.set("user_id", victim);
+    return get<LabLatest>(`/v1/lab/latest?${q}`);
+  },
   labSent: () => get<{ sent: LabSent[] }>("/v1/lab/sent"),
   labReset: () => post<{ ok: boolean }>("/v1/lab/reset"),
   rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),

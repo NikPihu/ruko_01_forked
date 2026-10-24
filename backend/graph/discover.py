@@ -59,6 +59,8 @@ def seeds(g: GraphStore, reviews: dict[str, Review]) -> dict[str, str]:
             out[acc] = "registry-listed"
         elif m.get("flagged"):
             out[acc] = "flagged in a high-risk episode"
+        elif m.get("interrupted"):
+            out[acc] = f"the payee of a payment RUKO stopped ({m['interrupted']}) for mule-like evidence"
     for acc, r in reviews.items():
         if r.approved:
             out[acc] = "confirmed by analysts"
@@ -221,6 +223,63 @@ def hub_score(g: GraphStore, acc: str, members: set[str], now: datetime) -> dict
             "fastest_hold_min": min(holds) if holds else None}
 
 
+def _inr(x: float) -> str:
+    return f"₹{x:,.0f}"
+
+
+def _source(e) -> str:
+    return "its bank's flow data" if "bank_flows" in e.sources else "payments RUKO checked"
+
+
+def _link_words(g: GraphStore, a: str, members: set[str], seed: dict[str, str]) -> Optional[str]:
+    """How one account is tied to the rest of the ring, strongest evidence first."""
+    money = []
+    for (x, y), e in g.edges.items():
+        if x == a and y in members:
+            money.append((e.inr, f"sent {_inr(e.inr)} to {y}", e))
+        elif y == a and x in members:
+            money.append((e.inr, f"received {_inr(e.inr)} from {x}", e))
+    if money:
+        inr, words, e = max(money, key=lambda t: t[0])
+        fast = f", passed on within {e.hold_min:.0f} min" if e.hold_min is not None and e.hold_min <= 30 else ""
+        return f"{words}{fast} ({_source(e)})"
+    users = {u for (u, y) in g.edges if u.startswith("u:") and y == a}
+    for m in sorted(members - {a}, key=lambda m: m not in seed):
+        shared = users & {u for (u, y) in g.edges if u.startswith("u:") and y == m}
+        if shared:
+            return f"{len(shared)} RUKO user{'s' if len(shared) > 1 else ''} paid both it and {m}"
+    return None
+
+
+def explain_ring(g: GraphStore, accs: list[str], seed: dict[str, str], hubs: set[str],
+                 victims: int, money_in: float, fastest: Optional[float]) -> dict:
+    """The ring in plain words for the analyst: where discovery started, how each member is tied in,
+    where the money goes, and what happens next. Facts only; nothing here changes a payment."""
+    members = set(accs)
+    start = [{"upi_id": a, "why": seed[a]} for a in sorted(accs) if a in seed]
+    linked = {a: _link_words(g, a, members, seed) for a in sorted(accs) if a not in seed}
+    steps = []
+    if start:
+        steps.append("Started from " + "; ".join(f"{x['upi_id']} ({x['why']})" for x in start) + ".")
+    for a, words in linked.items():
+        if words:
+            steps.append(f"{a} joined because it {words}.")
+    seeds_in = [x["upi_id"] for x in start]
+    for i, a in enumerate(seeds_in[1:], 1):
+        words = _link_words(g, a, set(seeds_in[:i]), seed)
+        if words:
+            steps.append(f"The starting accounts are tied together: {a} {words}.")
+    ring_hubs = sorted(h for h in hubs & members if any(y == h and x in members for (x, y) in g.edges))
+    if ring_hubs:
+        steps.append(f"{len(ring_hubs)} hub{'s' if len(ring_hubs) > 1 else ''} ({', '.join(ring_hubs)}): several ring "
+                     "accounts send money to each, the usual shape of cash-out accounts.")
+    if victims:
+        steps.append(f"{victims} RUKO user{'s' if victims > 1 else ''} paid {_inr(money_in)} into the ring"
+                     + (f"; the fastest account passed money on within {fastest:.0f} min." if fastest is not None else "."))
+    steps.append("Suspects count in live payment checks only after two different analysts approve them.")
+    return {"started_from": start, "linked_by": linked, "steps": steps}
+
+
 def ring_view(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[dict]:
     """Every ring with its members, hubs, victims, money and speed (analyst console)."""
     suspects = {s["upi_id"]: s for s in discover(g, reviews, now, min_band="low")}
@@ -251,6 +310,7 @@ def ring_view(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[
                 "automated": bool(auto["automated"]), "automation_why": auto.get("why"),
                 "registry_listed": bool(g.marks.get(a, {}).get("listed")),
                 "approved": bool(reviews.get(a) and reviews[a].approved),
+                "linked_by": None if a in seed else _link_words(g, a, members, seed),
             })
         victims = {u for (u, b) in g.edges if u.startswith("u:") and b in members}
         baited = {u for (a, u) in g.edges if a in members and u.startswith("u:")}
@@ -271,6 +331,7 @@ def ring_view(g: GraphStore, reviews: dict[str, Review], now: datetime) -> list[
             "fastest_hold_min": min(holds) if holds else None,
             "automated": any(x["automated"] for x in accounts),
             "links": links, "victims_per_account": dict(victim_links),
+            "explanation": explain_ring(g, accs, seed, hubs, len(victims), money_in, min(holds) if holds else None),
             "summary": (f"{len(accs)} accounts, {len(victims)} RUKO users paid into it"
                         + (f", {len(baited)} got 'rewards' from it" if baited else "")
                         + (f"; money leaves within {min(holds):.0f} min" if holds else "")

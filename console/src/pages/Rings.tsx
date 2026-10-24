@@ -11,16 +11,18 @@ export function Rings() {
       <div className="page-head">
         <div>
           <h1>Scam rings</h1>
-          <p>Groups of accounts linked by money and by the people they took it from. Seeds are already
-            listed or flagged; suspects were found next to them. Nothing here blocks a payment until two
-            analysts approve a suspect.</p>
+          <p>Groups of accounts linked by money and by the people they took it from. Discovery starts from
+            accounts with hard evidence (on a fraud list, flagged in a task scam, or the payee of a payment RUKO
+            stopped) and follows the money from there. Open a ring to see, step by step, why each account is in it.
+            Nothing here blocks a payment until two analysts approve a suspect.</p>
         </div>
       </div>
-      {data.rings.length === 0 ? <Empty title="No rings yet">Rings appear once a listed or flagged account is linked to others.</Empty> : (
+      {data.rings.length === 0 ? <Empty title="No rings yet">Rings appear once RUKO stops a payment to a mule-like account, or a listed or
+          flagged account is linked to others. Overview → Run scenario adds demo payments.</Empty> : (
         <Card pad={false}>
           <div className="table-wrap">
             <table className="list">
-              <thead><tr><th>Ring</th><th className="num">Accounts</th><th className="num">Victims</th><th className="num">Money from victims</th><th>Summary</th></tr></thead>
+              <thead><tr><th>Ring</th><th className="num">Accounts</th><th className="num">Victims</th><th className="num">Money from victims</th><th>Summary</th><th>Found from</th></tr></thead>
               <tbody>
                 {data.rings.map((r) => (
                   <tr key={r.ring_id} className="click" onClick={() => go(`#/rings/${r.ring_id}`)}>
@@ -29,6 +31,8 @@ export function Rings() {
                     <td className="num">{r.victims}</td>
                     <td className="num">{inr(r.money_from_victims_inr)}</td>
                     <td>{r.summary}</td>
+                    <td>{r.explanation.started_from.map((s) => (
+                      <div key={s.upi_id}><span className="mono">{s.upi_id}</span><div className="muted">{s.why}</div></div>))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -60,6 +64,11 @@ export function RingDetail({ id }: { id: string }) {
         <Stat label="Money from victims" value={inr(r.money_from_victims_inr)} />
         <Stat label="Fastest money out" value={r.fastest_hold_min != null ? `${Math.round(r.fastest_hold_min)} min` : "—"} sub="median hold, from bank flows" />
       </div>
+      <Card title="Why this is a ring">
+        <ol className="story">
+          {r.explanation.steps.map((s, i) => <li key={i}>{s}</li>)}
+        </ol>
+      </Card>
       <Card title="How the ring is linked"><RingGraph r={r} /></Card>
       <Card title="Accounts" pad={false}>
         <div className="table-wrap">
@@ -80,7 +89,8 @@ export function RingDetail({ id }: { id: string }) {
                     {Object.entries(a.hub_parts).map(([k, v]) => `${k.replace("_", " ")} ${v.toFixed(1)}`).join(" · ")}</div></td>
                   <td className="num">{a.payers}</td>
                   <td className="num">{inr(a.inr_in)} / {inr(a.inr_out)}</td>
-                  <td>{a.automation_why ?? a.why ?? "—"}</td>
+                  <td>{a.role === "seed" ? <>Started here: {a.why}</> : a.linked_by ? <>Tied in: {a.linked_by}</> : a.why ?? "—"}
+                    {a.automation_why && <div className="muted">{a.automation_why}</div>}</td>
                 </tr>
               ))}
             </tbody>
@@ -121,7 +131,7 @@ function RingGraph({ r }: { r: Ring }) {
           );
         })}
       </svg>
-      <p className="muted" style={{ margin: "6px 0 0" }}>Filled = seed (listed or flagged). Large = hub. Thick red outline = bot-scale. Line width = money moved between members.</p>
+      <p className="muted" style={{ margin: "6px 0 0" }}>Filled = where discovery started (listed, flagged or stopped by RUKO). Large = hub. Thick red outline = bot-scale. Line width = money moved between members.</p>
     </div>
   );
 }

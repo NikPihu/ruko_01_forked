@@ -81,8 +81,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                intel_budget_s: float = 0.150, intel_cache_ttl_s: float = 10.0,
                log_path: str | Path | None = "logs/decide.jsonl", evidence_async: bool = True,
                demo_clock: bool = False, discover_every_s: float | None = None,
-               db_path: str | Path = ":memory:", scorer_name: str = "rules", lab: bool = False) -> FastAPI:
-    """`lab`: add the scam lab (/v1/lab/*, demo/lab.py), where a judge plays the scammer against an
+               db_path: str | Path = ":memory:", scorer_name: str = "rules", lab: bool = False,
+               seed_demo_url: str | None = None) -> FastAPI:
+    """`seed_demo_url`: this server's own address; when set, the demo agents run once at startup so the
+    console has payments, alerts, rings and emerging patterns to show (`--seed-demo`).
+    `lab`: add the scam lab (/v1/lab/*, demo/lab.py), where a judge plays the scammer against an
     emulator; off unless asked for (`--lab`).
     `scorer_name`: "rules" (api/rule_scorer.py) or "ml" (the trained LightGBM model in
     ml/model/predict.py). If the model cannot be loaded, the engine keeps the rules (never fails).
@@ -110,6 +113,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         if demo_clock:
             await sync_clock()
         task = asyncio.create_task(discover_loop()) if discover_every_s else None
+        if seed_demo_url:
+            import threading
+            threading.Thread(target=seed_when_up, args=(seed_demo_url,), daemon=True).start()
         yield
         if task:
             task.cancel()
@@ -178,6 +184,14 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     def fail_open(req: DecideRequest) -> DecideResponse:
         return DecideResponse(request_id=req.request_id, tier="T0", reasons=["ruko_unavailable"], fail_open=True)
+
+    async def learn_payee(upi: str) -> None:
+        """A payee RUKO stopped (or a listed one) seeds ring discovery: add where its bank says the
+        money went. Analyst view only until two analysts approve a suspect (rule 11)."""
+        try:
+            graph.add_bank_flows(upi, await intel.flows(upi))
+        except Exception:  # a slow or missing bank must never matter here
+            log.warning("bank flows for %s not available", upi)
 
     async def decide_inner(req: DecideRequest, ms: dict, trace: dict) -> DecideResponse:
         t = time.perf_counter()
@@ -257,6 +271,12 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
         reasons = s["reasons"] if d.tier != "T0" else []
         graph.set_decision(req.request_id, d.tier, reasons, evidence_id)
+        # Ring discovery starts from payees RUKO interrupted for payee evidence, or found on a fraud
+        # list; their bank's money flows are fetched off the payment path (graph/discover.py seeds).
+        listed = bool(feats.get("payee_registry_listed"))
+        if listed or (d.tier in ("T2", "T3", "T4") and "P" in d.lit_families):
+            graph.mark(upi, listed=listed or None, interrupted=d.tier)
+            asyncio.get_running_loop().create_task(learn_payee(upi))
         trace.update(details={
             "features": feats, "p_scam": s["p_scam"], "family_scores": s["family_scores"],
             "lit_families": d.lit_families, "policy_steps": d.applied, "intel_status": res.status,
@@ -579,32 +599,44 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
     demo_state: dict = {"running": False, "results": None, "error": None, "started": None}
 
+    def run_demo(base: str, scenario: str | None) -> None:
+        """The scripted demo agents against this engine (demo only). They are test actors using the
+        public API; they never take part in a decision (rule 13)."""
+        from demo import agents
+        demo_state.update(running=True, error=None, started=datetime.now().astimezone().isoformat())
+        try:
+            w = agents.load_world(Path(data_dir))
+            with httpx.Client(base_url=base, timeout=30) as c, httpx.Client(base_url=intel_url, timeout=30) as mock:
+                now = datetime.fromisoformat(mock.get("/sim/state").json()["now"])
+                agents.pump_mule(mock, w)
+                demo_state["results"] = agents.run(c, w, now, [scenario] if scenario else None)
+        except Exception as e:  # a demo failure must never touch payments
+            log.exception("demo agents failed")
+            demo_state["error"] = str(e)
+        finally:
+            demo_state["running"] = False
+
+    def seed_when_up(base: str) -> None:
+        """--seed-demo: wait until this server answers, then fill it once with the demo agents."""
+        for _ in range(120):
+            try:
+                if httpx.get(f"{base}/health", timeout=2).status_code == 200:
+                    break
+            except httpx.HTTPError:
+                pass
+            time.sleep(0.5)
+        if store.counts().get("payments", 0) == 0:
+            log.info("seeding the console with the demo agents")
+            run_demo(base, None)
+
     @app.post("/v1/demo/run")
     def demo_run(request: Request, scenario: str | None = None) -> dict:
-        """Run the scripted demo agents against this engine, in the background (demo only).
-        They are test actors using the public API; they never take part in a decision (rule 13)."""
+        """Run the scripted demo agents in the background (Overview "Run scenario")."""
         import threading
-
-        from demo import agents
         if demo_state["running"]:
             return {"started": False, "reason": "already running"}
         base = str(request.base_url).rstrip("/")
-
-        def go_run() -> None:
-            demo_state.update(running=True, error=None, started=datetime.now().astimezone().isoformat())
-            try:
-                w = agents.load_world(Path(data_dir))
-                with httpx.Client(base_url=base, timeout=30) as c, httpx.Client(base_url=intel_url, timeout=30) as mock:
-                    now = datetime.fromisoformat(mock.get("/sim/state").json()["now"])
-                    agents.pump_mule(mock, w)
-                    demo_state["results"] = agents.run(c, w, now, [scenario] if scenario else None)
-            except Exception as e:  # a demo failure must never touch payments
-                log.exception("demo agents failed")
-                demo_state["error"] = str(e)
-            finally:
-                demo_state["running"] = False
-
-        threading.Thread(target=go_run, daemon=True).start()
+        threading.Thread(target=run_demo, args=(base, scenario), daemon=True).start()
         return {"started": True}
 
     @app.get("/v1/demo/results")
@@ -698,11 +730,14 @@ def main() -> None:
                    help="transaction database: in memory (default) or a file to keep the run, e.g. logs/ruko.db")
     p.add_argument("--scorer", choices=("ml", "rules"), default="ml",
                    help="ml: the trained LightGBM model (falls back to rules if missing); rules: rules-only")
+    p.add_argument("--seed-demo", action="store_true",
+                   help="run the demo agents once at startup, so the console starts with data")
     p.add_argument("--lab", action="store_true",
                    help="scam lab: the console's 'AI scammer' page sends SMS and calls to an emulator over adb")
     a = p.parse_args()
     uvicorn.run(create_app(a.data, intel_url=a.intel, evidence_path=a.evidence, demo_clock=a.demo_clock,
-                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer, lab=a.lab),
+                           discover_every_s=3600, db_path=a.db, scorer_name=a.scorer, lab=a.lab,
+                           seed_demo_url=f"http://127.0.0.1:{a.port}" if a.seed_demo else None),
                 host="0.0.0.0", port=a.port)
 
 
