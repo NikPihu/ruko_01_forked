@@ -117,6 +117,10 @@ class CampaignStore:
                         "last_seen": max(l for _, l in recent).isoformat()})
         return sorted(out, key=lambda x: (-x["users"], x["last_seen"]))[:limit]
 
+    def latest(self) -> Optional[datetime]:
+        """When the newest handle was seen, or None."""
+        return max((last for by_user in self.seen.values() for _, last in by_user.values()), default=None)
+
     def expire(self, now: datetime) -> None:
         for key in list(self.seen):
             users = {u: t for u, t in self.seen[key].items() if now - t[1] <= self.keep}

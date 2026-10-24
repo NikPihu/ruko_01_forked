@@ -42,6 +42,7 @@ REASON_INPUTS = {
                           "episode_out_to_in", "episode_escalation_steps"],
     "R11_ring_link": ["payee_money_loop", "payee_crowd", "payee_forwards_to_cashout", "payee_approved_suspect",
                       "payee_automated"],
+    "R13_scam_campaign": ["payee_in_campaign", "caller_in_campaign"],
     "R12_coached_session": ["session_dictated", "session_pasted_after_switch", "session_app_switches",
                             "session_abandoned_30m", "session_hesitation"],
 }
@@ -58,6 +59,7 @@ REASON_TEXT = {
     "R10_bait_then_pay": "small 'rewards' in, then bigger payments out (task scam)",
     "R11_ring_link": "the payee is linked to a scam ring in the payment graph",
     "R12_coached_session": "the Pay screen was used as if someone was guiding the user",
+    "R13_scam_campaign": "the payee (or the caller's number) is being pushed in scam messages to many people",
 }
 USER_MAX_REASONS = 3
 SOURCES = ("npci", "bank", "payee_registry", "caller_registry", "payee_fri", "caller_fri")
@@ -192,6 +194,8 @@ INPUT_WORDS: dict[str, Callable[[Any], Optional[str]]] = {
     "payee_approved_suspect": lambda v: "two analysts approved it as a mule",
     "payee_automated": lambda v: "bot-scale: the same amount to or from many people at a steady rhythm",
     "payee_new_and_spreading": lambda v: "new to RUKO in the last 2 days and already paid by several different people",
+    "payee_in_campaign": lambda v: "this UPI ID appeared in scam messages that several different people got in the last hour",
+    "caller_in_campaign": lambda v: "the caller's number is the call-back number in scam messages several people got in the last hour",
     "amount_inr": lambda v: f"amount {_inr(v)}",
     "amount_to_max_90d": lambda v: f"{_times(v)} the user's biggest payment in 90 days" if v >= 1 else None,
     "amount_to_median_90d": lambda v: f"{_times(v)} the user's usual payment" if v >= 1.5 else None,

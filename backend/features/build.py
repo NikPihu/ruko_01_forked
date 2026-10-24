@@ -38,6 +38,8 @@ FAMILY = {
     "payee_crowd": "P", "payee_money_loop": "P", "payee_forwards_to_cashout": "P", "payee_approved_suspect": "P",
     "payee_automated": "P",  # bot-scale ring: same amount, many people, steady rhythm
     "payee_new_and_spreading": "P",  # new to RUKO and already paid by several users (fresh AI-crew mule)
+    "payee_in_campaign": "P",        # c2-0.13: this UPI ID is in scam messages several users got
+    "caller_in_campaign": "C",       # c2-0.13: the caller's number is a call-back number in those messages
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "payee_micro_anchor": "B",
@@ -136,6 +138,11 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["payee_new_and_spreading"] = (None if not ring else bool(ring.get("new_and_spreading"))
                                     and not f["payee_verified_merchant"]
                                     and (age is None or age <= CROWD["new_account_max_age_days"]))
+
+    # Same scam, many phones (c2-0.13, graph/campaigns.py). One campaign is one source: the scorer
+    # and the overlay light at most one family from these two (rule 5).
+    f["payee_in_campaign"] = ring.get("in_campaign") if ring else None
+    f["caller_in_campaign"] = ring.get("caller_in_campaign") if ring else None
 
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr

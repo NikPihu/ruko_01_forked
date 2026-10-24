@@ -45,6 +45,7 @@ from api.intel import IntelAdapter
 from api.policy import Policy
 from api.episode_events import EpisodeService
 from graph import discover as discovery
+from graph.campaigns import CampaignStore, wire_value
 from graph.store import GraphStore
 from store.db import TxnStore
 from api.explain import explain
@@ -136,6 +137,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             fn(*args)
     app.state.evidence, app.state.trusted = evidence, trusted
     graph = GraphStore()
+    campaigns = CampaignStore()   # money handles across scam messages (c2-0.13)
     app.state.graph = graph
     reviews: dict[str, discovery.Review] = {}
     found: dict = {"suspects": [], "last_run": None}
@@ -203,6 +205,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
+        # Same scam, many phones (c2-0.13): is this UPI ID, or the caller's number, being pushed in
+        # scam messages to several different users right now? Unknown number -> None (rule 1).
+        ring["in_campaign"] = campaigns.spreading("upi", upi, req.ts)
+        caller = wire_value("phone", call.caller_number) if call and call.caller_number else None
+        ring["caller_in_campaign"] = campaigns.spreading("phone", caller, req.ts) if caller else None
         feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here,
                                micro_anchor=micro_anchor)
         ms["features"] = (time.perf_counter() - t) * 1000
@@ -368,6 +375,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         stage = tracker.observe(ev.user_id, ev.kind, ts, lure_conf=ev.lure_conf, call_minutes=ev.call_minutes)
         detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "ai_written",
                                                            "call_kind", "call_minutes"}).items() if v is not None}
+        # Money handles from the flagged message (c2-0.13): UPI plain, link/number pseudonyms, no text.
+        if ev.kind == "lure_seen" and ev.handles:
+            campaigns.record(ev.user_id, [(h.kind, h.value) for h in ev.handles], ts)
+            campaigns.expire(ts)
+            detail["handles"] = [h.model_dump() for h in ev.handles]
         persist(store.record_watch, ev.event_id, ev.user_id, ev.kind, detail, ts)
         return WatchEventResponse(event_id=ev.event_id, recorded=True, stage=stage)
 
@@ -528,6 +540,14 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             now = max(now, ts)
         return now
 
+    @app.get("/v1/campaigns/spreading")
+    def campaigns_spreading(limit: int = 20) -> dict:
+        """Money handles going around in scam messages right now (console "Spreading now"). UPI IDs
+        plain; links and numbers stay hidden (only their pseudonyms are known). Analyst view only."""
+        now = max(patterns_now(), campaigns.latest() or patterns_now())
+        return {"as_of": now.isoformat(), "window_minutes": campaigns.window.total_seconds() / 60,
+                "min_users": campaigns.min_users, "handles": campaigns.top(now, limit=max(1, min(limit, 100)))}
+
     @app.get("/v1/patterns/emerging")
     def emerging_patterns() -> dict:
         """New scam workflows with no known playbook (A4): analyst view only, never in a decision."""
@@ -609,6 +629,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         trusted.clear()
         episodes.reset()
         graph.reset()
+        campaigns.reset()
         reviews.clear()
         alerts.clear()
         store.reset()

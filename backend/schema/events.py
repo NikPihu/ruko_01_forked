@@ -10,13 +10,14 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.11"
+CONTRACT_VERSION = "c2-0.13"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
     "R1_live_unknown_call", "R2_remote_control", "R3_mule_like_payee", "R4_unusual_amount",
     "R5_lure_message", "R6_new_payee_typed", "R7_tranche_pattern", "R8_intel_hit",
     "R9_story_mismatch", "R10_bait_then_pay", "R11_ring_link", "R12_coached_session",
+    "R13_scam_campaign",  # c2-0.13: the payee or caller is being pushed in scam messages to many people
     "ruko_unavailable",
 ]
 LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "normal"]
@@ -264,6 +265,15 @@ WatchKind = Literal[
 ]
 
 
+class Handle(_M):
+    """A money handle from a scam message (c2-0.13): what the crew wants paid, opened or called.
+    The UPI ID is plain (payees are plain, rule 7); a link host or call-back number is a salted
+    SHA-256 pseudonym "sha256:<hex>" (graph/campaigns.py, contracts/examples/handle_vectors.json).
+    Never the message text (rule 2)."""
+    kind: Literal["upi", "link", "phone"]
+    value: str = Field(min_length=3, max_length=100)
+
+
 class WatchEvent(_M):
     """POST /v1/watch. Sent only when a threshold is crossed (never on a timer), only with
     "Early warnings" on. Moves the user's scam stage forward before a payment."""
@@ -275,6 +285,7 @@ class WatchEvent(_M):
     lure_conf: Optional[float] = Field(None, ge=0, le=1)
     source: Optional[Literal["sms", "notification"]] = None   # lure_seen only
     ai_written: Optional[bool] = None             # lure_seen only (c2-0.10): the message looked AI-written
+    handles: Optional[list[Handle]] = Field(None, max_length=10)  # lure_seen only (c2-0.13): money handles
     call_kind: Optional[Literal["sim", "voip"]] = None        # long_unknown_call only
     call_minutes: Optional[float] = Field(None, ge=0)         # long_unknown_call only
 

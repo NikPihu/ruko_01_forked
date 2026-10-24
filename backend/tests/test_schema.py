@@ -131,6 +131,23 @@ def test_watch_event_never_carries_text():
         WatchEvent.model_validate({**load("watch_event_lure.json"), "text": "Your account is under arrest"})
 
 
+def test_campaign_handles_and_r13_validate():
+    """c2-0.13: money handles on lure_seen (UPI plain, link/number pseudonyms) and reason R13."""
+    from schema.events import DecideResponse, WatchEvent
+    w = WatchEvent.model_validate(load("watch_event_lure_handles.json"))
+    kinds = {h.kind: h.value for h in w.handles}
+    assert kinds["upi"].endswith("@ybl") and kinds["link"].startswith("sha256:") and kinds["phone"].startswith("sha256:")
+    assert "R13_scam_campaign" in DecideResponse.model_validate(load("decide_response_t2_campaign.json")).reasons
+    # At most 10 handles; never an unknown kind; never the text inside a handle object.
+    with pytest.raises(ValidationError):
+        WatchEvent.model_validate({**load("watch_event_lure_handles.json"), "handles": [{"kind": "upi", "value": "a.b@ybl"}] * 11})
+    with pytest.raises(ValidationError):
+        WatchEvent.model_validate({**load("watch_event_lure_handles.json"), "handles": [{"kind": "email", "value": "x@y.z"}]})
+    with pytest.raises(ValidationError):
+        WatchEvent.model_validate({**load("watch_event_lure_handles.json"),
+                                   "handles": [{"kind": "upi", "value": "a.b@ybl", "text": "pay now"}]})
+
+
 def test_ai_written_lure_check_runs_and_has_no_false_alarms():
     """A3: the lure model on AI-written scam messages, scored the way the phone scores."""
     pytest.importorskip("sklearn")

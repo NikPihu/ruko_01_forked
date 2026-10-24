@@ -22,9 +22,14 @@ def apply(s: dict, f: dict, cfg: dict) -> dict:
     floor = ov.get("family_floor", 0.6)
     fams = dict(s.get("family_scores") or {})
     reasons = list(s.get("reasons") or [])
+    groups: set[str] = set()
     for name in fired:
-        fam, code = specs[name]["family"], specs[name]["reason"]
-        fams[fam] = max(fams.get(fam) or 0.0, floor)
+        fam, code, group = specs[name]["family"], specs[name]["reason"], specs[name].get("group")
+        # Features from one source (a group, e.g. one scam campaign) light at most one family (rule 5).
+        if group is None or group not in groups:
+            fams[fam] = max(fams.get(fam) or 0.0, floor)
+            if group is not None:
+                groups.add(group)
         if code in reasons:
             reasons.remove(code)
         reasons.insert(0, code)

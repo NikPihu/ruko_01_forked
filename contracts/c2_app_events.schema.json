@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments, POST /v1/payment/received",
-  "contract_version": "c2-0.11",
+  "contract_version": "c2-0.13",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.13",
           "title": "Contract Version",
           "type": "string"
         }
@@ -133,6 +133,35 @@
   },
   "watch": {
     "request": {
+      "$defs": {
+        "Handle": {
+          "additionalProperties": false,
+          "description": "A money handle from a scam message (c2-0.13): what the crew wants paid, opened or called.\nThe UPI ID is plain (payees are plain, rule 7); a link host or call-back number is a salted\nSHA-256 pseudonym \"sha256:<hex>\" (graph/campaigns.py, contracts/examples/handle_vectors.json).\nNever the message text (rule 2).",
+          "properties": {
+            "kind": {
+              "enum": [
+                "upi",
+                "link",
+                "phone"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 100,
+              "minLength": 3,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "title": "Handle",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "POST /v1/watch. Sent only when a threshold is crossed (never on a timer), only with\n\"Early warnings\" on. Moves the user's scam stage forward before a payment.",
       "properties": {
@@ -221,6 +250,22 @@
           "default": null,
           "title": "Ai Written"
         },
+        "handles": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Handle"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Handles"
+        },
         "call_kind": {
           "anyOf": [
             {
@@ -284,7 +329,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.13",
           "title": "Contract Version",
           "type": "string"
         }
@@ -347,6 +392,7 @@
                   "R10_bait_then_pay",
                   "R11_ring_link",
                   "R12_coached_session",
+                  "R13_scam_campaign",
                   "ruko_unavailable"
                 ],
                 "type": "string"
@@ -424,7 +470,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.13",
           "title": "Contract Version",
           "type": "string"
         }
@@ -499,7 +545,7 @@
           "type": "boolean"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.13",
           "title": "Contract Version",
           "type": "string"
         }

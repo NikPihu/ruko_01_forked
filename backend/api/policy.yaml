@@ -124,6 +124,9 @@ evidence_overlay:
   min_tier: T2                   # explain card, slide to pay: a warning, never a block
   features:
     payee_new_and_spreading: {family: P, reason: R3_mule_like_payee}
+    # One campaign is one source: features in the same group light at most one family (rule 5).
+    payee_in_campaign: {family: P, reason: R13_scam_campaign, group: campaign}
+    caller_in_campaign: {family: C, reason: R13_scam_campaign, group: campaign}
 
 # Emerging patterns (patterns/emerging.py): scam workflows with no known playbook. Analyst view only,
 # never in the payment decision. A group of payments with the same signature in the window is shown

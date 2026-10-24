@@ -1,0 +1,26 @@
+{
+  "event_id": "3c9e7b21-5a4d-4f60-8b2e-9d1a7c6e5f42",
+  "user_id": "u_demo_meena",
+  "kind": "lure_seen",
+  "ts": "2026-11-07T09:48:00+05:30",
+  "lure_tag": "kyc",
+  "lure_conf": 0.88,
+  "source": "sms",
+  "call_kind": null,
+  "call_minutes": null,
+  "ai_written": true,
+  "handles": [
+    {
+      "kind": "upi",
+      "value": "kyc.refund.desk@ybl"
+    },
+    {
+      "kind": "link",
+      "value": "sha256:bc7bad2cab68bd87de8eef7473c3d40737c3e34c4335da4f1ed976862d9592fd"
+    },
+    {
+      "kind": "phone",
+      "value": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+    }
+  ]
+}

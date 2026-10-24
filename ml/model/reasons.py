@@ -31,6 +31,7 @@ REASON = {
     "payee_crowd": "R11_ring_link", "payee_money_loop": "R11_ring_link",
     "payee_forwards_to_cashout": "R11_ring_link", "payee_approved_suspect": "R11_ring_link",
     "payee_automated": "R11_ring_link", "payee_new_and_spreading": "R3_mule_like_payee",
+    "payee_in_campaign": "R13_scam_campaign", "caller_in_campaign": "R13_scam_campaign",
     # B: this payment against the payer's own habits, and the Pay screen
     "amount_inr": "R4_unusual_amount", "amount_to_max_90d": "R4_unusual_amount",
     "amount_to_median_90d": "R4_unusual_amount",

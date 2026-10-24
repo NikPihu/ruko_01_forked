@@ -24,7 +24,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.11`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.10 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.13`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.12 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -223,6 +223,23 @@ server's tracker reads the same file, rule 6):
   once per `device_repeat_quiet_hours`.
 - Events wait encrypted on the phone until there is a network and expire after `max_age_days`.
 
+**Money handles (c2-0.13).** A `lure_seen` event may carry `handles` (at most `max_handles`, 10): the
+things in the scam message that move money, found on the phone. Never the text (rule 2).
+
+| `kind` | `value` |
+|---|---|
+| `upi` | the UPI ID, lowercase, plain (payees are plain, rule 7) |
+| `link` | `"sha256:<hex>"` of the link's host (lowercase, no `www.`, no path or port) |
+| `phone` | `"sha256:<hex>"` of the call-back number in E.164 (`+91…` for Indian mobiles) |
+
+The hash is SHA-256 of `"<handle_salt>|<kind>|<normalised value>"`, with `handle_salt` from
+`watch_rules.json`. That is pseudonymisation, not secrecy: phone numbers are a small space and could
+be guessed back. The phone and the server normalise and hash identically; both are tested against
+`examples/handle_vectors.json`. The server counts how many **different** users got each handle
+(`backend/graph/campaigns.py`, `policy.yaml campaign:`). A payee UPI ID or a caller's number that is
+spreading gives reason **R13_scam_campaign** at `/v1/decide` (payee family, or call family for a
+number). It never interrupts on its own (rule 5).
+
 ## GET /v1/me/payments?user_id= (c2-0.9)
 
 The user's own payments as RUKO recorded them, newest first: payment id, payee, amount, time, tier,
@@ -254,6 +271,7 @@ pseudonymised) for the console; it does not feed `/v1/decide` or the payment gra
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.13**: `WatchEvent.handles` (`Handle {kind: upi|link|phone, value}`): money handles from a flagged scam message, UPI plain and link/number as salted SHA-256 (`watch_rules.json handle_salt`, `examples/handle_vectors.json`). New reason `R13_scam_campaign`: the payee UPI ID, or the caller's number, is being pushed in scam messages to many different users. Additive: c2-0.12 and older requests still validate.
 - **c2-0.11**: `POST /v1/payment/received` (`MoneyReceived`, `MoneyReceivedResponse`, in `c2_app_events.schema.json`): credits the phone read from bank SMS, opt-in, stored for the console. Additive: c2-0.10 requests still validate.
 - **c2-0.10**: `call.video` (a VoIP call with the camera in use by another app while paying: a video call, e.g. a deepfake "officer" watching; only that the camera is busy, never images) and `WatchEvent.ai_written` (the scam message looked AI-written; the phone's model, text never leaves). Engine: a video call from an unknown caller strengthens R1 and counts for the digital-arrest playbook; `payee_automated` (bot-scale ring) is payee-family evidence (R11). Additive: c2-0.9 requests still validate.
 - **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.
