@@ -15,6 +15,7 @@ AWS_BEARER_TOKEN_BEDROCK set if runs should use Bedrock; otherwise they run offl
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import threading
@@ -131,6 +132,14 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     def worlds() -> list[dict]:
         return [{"index": i, **w, "ready": (repo / w["table"]).exists() and (repo / w["data"]).exists()}
                 for i, w in enumerate(config.load()["console"]["worlds"])]
+
+    @app.get("/api/agents")
+    def agents() -> dict:
+        """Whether this console process can reach Bedrock at all (the key is read when the run starts)."""
+        from blue_team import llm
+        a = config.load()["agents"]
+        return {"key": llm.has_credentials(), "region": os.environ.get("AWS_REGION") or a["region"],
+                "models": a["models"], "help": None if llm.has_credentials() else llm.NO_KEY}
 
     @app.get("/api/runs")
     def list_runs() -> list[dict]:

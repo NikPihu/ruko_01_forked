@@ -209,7 +209,7 @@ const PAGE = {};
 
 // ---------------------------------------------------------------- 0 run
 PAGE.run = async () => {
-  const worlds = await api("/api/worlds");
+  const [worlds, ag] = await Promise.all([api("/api/worlds"), api("/api/agents")]);
   const wsel = el("select", {}, worlds.map(w => el("option", { value: w.index, disabled: w.ready ? null : "disabled" }, w.name + (w.ready ? "" : " (not built)"))));
   const lsel = el("select", {}, el("option", { value: "auto" }, "Bedrock if available, else offline"), el("option", { value: "bedrock" }, "Bedrock only"), el("option", { value: "offline" }, "offline (no LLM)"));
   const model = el("input", { placeholder: "model id (optional)", size: 26 });
@@ -236,7 +236,9 @@ PAGE.run = async () => {
     el("div", { class: "flow" }, ["Complaints", "Breaches", "HDBSCAN", "Generator agent", "Analyst agent", "Human review", "Playbook database"]
       .flatMap((s, i) => i ? [el("span", { class: "a" }, "→"), el("span", { class: "s" }, s)] : [el("span", { class: "s" }, s)])),
     el("div", { class: "card" }, el("h2", {}, "Start"), el("div", { class: "row" }, wsel, lsel, model, start, reset), msg,
-      el("p", { class: "muted", style: "font-size:12.5px;color:var(--muted)" }, "Bedrock needs AWS_BEARER_TOKEN_BEDROCK set in the terminal that started this console. A run takes about a minute offline, a few minutes with an LLM.")),
+      el("p", {}, ag.key ? chip("Bedrock key found", "good") : chip("no Bedrock key: agents will run offline", "bad"),
+        el("span", { style: "font-size:12.5px;color:var(--muted)" }, ag.key ? ` region ${ag.region}; models tried in order: ${ag.models.join(", ")}` : " " + ag.help)),
+      el("p", { class: "muted", style: "font-size:12.5px;color:var(--muted)" }, "A run takes about a minute offline, a few minutes with an LLM.")),
   ];
   if (!run) return out.concat(el("div", { class: "empty" }, "No runs yet."));
   const list = el("ul", { class: "tl" });

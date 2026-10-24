@@ -45,3 +45,14 @@ def test_console_runner_and_build_guards(tmp_db, tmp_path, monkeypatch):
     assert c.post("/api/redteam/runner", json={"workers": 99}).status_code == 400
     r = c.post("/api/redteam/build", json={"source": "breakthroughs"})
     assert r.status_code == 400 and "no breakthroughs" in r.json()["detail"]
+
+
+def test_missing_bedrock_key_is_said_plainly(tmp_db, tmp_path, monkeypatch):
+    from blue_team import llm, pipeline
+    monkeypatch.setattr(llm, "has_credentials", lambda: False)
+    c = TestClient(webapp.create_app(root=tmp_db, exports=tmp_path / "e", runs=tmp_path / "runs", repo=tmp_path))
+    a = c.get("/api/agents").json()
+    assert a["key"] is False and "AWS_BEARER_TOKEN_BEDROCK" in a["help"]
+    said = []
+    assert pipeline.connect("auto", log=said.append) == (None, None)
+    assert "AWS_BEARER_TOKEN_BEDROCK" in said[-1]

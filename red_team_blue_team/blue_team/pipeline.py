@@ -61,7 +61,7 @@ def connect(provider: str, log=print, model: str | None = None, region: str | No
     except llm.LLMUnavailable as e:
         if provider == "bedrock":
             raise
-        log(f"Bedrock unavailable ({str(e).splitlines()[0]})")
+        log("Bedrock unavailable, so the agents run offline: " + " ".join(str(e).split()))
         return None, None
 
 
