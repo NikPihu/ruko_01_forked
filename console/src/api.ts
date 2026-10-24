@@ -338,6 +338,40 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+
+/** Scam lab (/v1/lab/*, only when the API runs with --lab): the judge plays the scammer. */
+export interface LabStatus { lab: boolean; adb: string | null; emulator: string | null; victim: string }
+export interface LabWorkflow {
+  id: string; title: string; flagged: boolean; story: string; expect: string; expect_tiers: Tier[];
+  sms: { from: string; text: string } | null; call: string | null; victim_steps: string[];
+  payee: string; amount: number; prepare: string;
+}
+export interface LabPresets {
+  scam: { tag: string; lang: string; text: string }[];
+  everyday: { lang: string; text: string }[];
+  numbers: { unknown: string[]; contacts: { name: string; mobile: string }[] };
+}
+export interface LabLatest {
+  payment: { payment_id: string; payee_upi: string; amount_inr: number; ts: string; tier: Tier;
+    playbook: string | null; status: string; message_key: string | null } | null;
+  reasons?: { code: string; text: string }[];
+  headline?: string; lit?: string[]; result?: string; words?: string;
+  expected?: { workflow: string; words: string; met: boolean; same_payee: boolean };
+}
+export interface LabSent { ts: string; kind: string; from?: string; number?: string; action?: string; chars?: number; workflow?: string }
+
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const detail = await r.json().then((j) => j.detail, () => null);
+    throw new Error(typeof detail === "string" ? detail : `${path}: ${r.status}`);
+  }
+  return r.json() as Promise<T>;
+}
+
 export const api = {
   health: () => get<Health>("/health"),
   alerts: (minTier: Tier = "T1") => get<Alert[]>(`/v1/alerts?min_tier=${minTier}`),
@@ -372,6 +406,22 @@ export const api = {
   },
   demoResults: () => get<{ running: boolean; error: string | null; started: string | null;
     results: { scenario: string; expect: string; tiers: string[]; playbooks: string[]; ok: boolean }[] | null }>("/v1/demo/results"),
+  /** false when the API was started without --lab. */
+  labStatus: async (): Promise<LabStatus | false> => {
+    const r = await fetch("/v1/lab/status");
+    if (r.status === 404) return false;
+    if (!r.ok) throw new Error(`lab: ${r.status}`);
+    return r.json() as Promise<LabStatus>;
+  },
+  labPresets: () => get<LabPresets>("/v1/lab/presets"),
+  labWorkflows: () => get<{ victim: string; workflows: LabWorkflow[]; app_switches: string[] }>("/v1/lab/workflows"),
+  labSms: (from: string, text: string) => post<{ sent: boolean }>("/v1/lab/sms", { from, text }),
+  labCall: (number: string, action: "ring" | "answer" | "hangup") => post<{ done: boolean }>("/v1/lab/call", { number, action }),
+  labPrepare: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare`),
+  labSend: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send`),
+  labLatest: (workflow?: string) => get<LabLatest>(`/v1/lab/latest${workflow ? `?workflow=${workflow}` : ""}`),
+  labSent: () => get<{ sent: LabSent[] }>("/v1/lab/sent"),
+  labReset: () => post<{ ok: boolean }>("/v1/lab/reset"),
   rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
   emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
   reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {
