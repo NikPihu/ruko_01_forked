@@ -37,10 +37,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api import overlay
+from api import playbook_search
 from api import rule_scorer as scorer
 from features.user_baseline import Baselines
 from evidence.store import EvidenceStore, pseudonym
 from features.build import build_features
+from features.steps import from_verdict, merge as merge_steps, server_steps
 from api.intel import IntelAdapter
 from api.policy import Policy
 from api.episode_events import EpisodeService
@@ -231,6 +233,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         # RUKO's own cross-user evidence (e.g. a new account many users are paying) counts with any
         # scorer, including the trained model that has not learned it yet (api/overlay.py).
         s = overlay.apply(s, feats, policy.cfg)
+        # Playbook search (plan v3 step 3): the journey's steps, as the server and the phone saw them,
+        # against every known scam written in steps. Recorded for the analyst; no effect on the tier yet.
+        steps = merge_steps(server_steps(feats, req), from_verdict(dv))
+        s = {**s, "playbook_search": playbook_search.search(steps, playbook_search.PLAYBOOKS)}
         ms["score"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -245,7 +251,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 "id": evidence_id, "ts": req.ts.isoformat(), "user_hash": pseudonym(req.user_id),
                 "payee_hash": pseudonym(upi), "caller_hash": pseudonym(call.caller_number if call else None),
                 "tier": d.tier, "p_scam": s["p_scam"], "reasons": s["reasons"], "playbook": s["playbook"],
-                "family_scores": {**s["family_scores"], "lit": d.lit_families, "policy_rules": d.applied},
+                "family_scores": {**s["family_scores"], "lit": d.lit_families, "policy_rules": d.applied,
+                                  "playbook_search": [[m["name"], m["similarity"]] for m in s["playbook_search"]]},
                 "features": feats, "intel_status": res.status,
                 "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
                 "model_version": s["model_version"], "policy_version": policy.version,
@@ -261,7 +268,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             "features": feats, "p_scam": s["p_scam"], "family_scores": s["family_scores"],
             "lit_families": d.lit_families, "policy_steps": d.applied, "intel_status": res.status,
             "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
-            "signals": s.get("signals")},
+            "signals": s.get("signals"), "playbook_search": s["playbook_search"],
+            "steps": {"seen": [k for k, v in steps.items() if v], "unmeasured": [k for k, v in steps.items() if v is None]}},
             scorer_version=s.get("model_version", scorer_version))
         if d.tier != "T0":
             alerts.append({
@@ -282,7 +290,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok", "model_version": app.state.model_version, "scorer": scorer_used,
-                "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE, "contract_version": CONTRACT_VERSION,
+                "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE,
+                "playbook_search": playbook_search.SOURCE, "contract_version": CONTRACT_VERSION,
                 "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)

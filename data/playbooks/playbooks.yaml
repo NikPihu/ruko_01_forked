@@ -3,7 +3,7 @@
 # Checked in order: the first playbook whose `match` holds names the payment. A new name needs
 # app words for "<tier>_<name>" (AlertText.kt); until then the app shows the tier's generic text.
 # The simulator's journey scripts are a different thing: data/sim_v2/config/playbooks/.
-version: playbooks-0.1
+version: playbooks-0.3
 playbooks:
   # An active task-scam episode beats any older message on the phone.
   - name: task_job
@@ -42,3 +42,69 @@ playbooks:
   - name: refund_qr
     why: "an unknown caller on the line + a payee that was not typed (QR or picked)"
     match: {on_call: true, unknown_caller: true, entry_typed: false}
+
+# Playbook search (playbooks-0.3, plan v3 step 3; backend/api/playbook_search.py). Each scam written
+# as the steps a journey shows (contracts/steps.json). `any` = one of these steps; `required` = the
+# scam needs it (measured and not seen -> no match; at least one required step must be seen).
+# Weights are multiplied by how rare the step is across these playbooks. Unknown counts half.
+search:
+  - name: task_job
+    title: "Small rewards first, then ever bigger 'deposits' to strangers"
+    steps:
+      - {any: [episode_active, lure:task_job], weight: 3, required: true}
+      - {step: escalating_payments, weight: 2}
+      - {step: bait_credit, weight: 1}        # not required: any credit from a stranger counts (29% of honest payments)
+      - {step: episode_watching, weight: 1}
+      - {step: repeat_attempts, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [many_payers, pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}
+
+  - name: fake_kyc_apk
+    title: "A KYC message, then an app from outside the store that reads the screen"
+    steps:
+      - {any: [sideload_24h, untrusted_accessibility], weight: 3, required: true}
+      - {step: lure:kyc, weight: 2}
+      - {step: remote_control, weight: 1}
+      - {step: amount_unusual, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}
+
+  - name: fake_customer_care
+    title: "The user calls a fake helpline, which then takes over the screen or dictates the payment"
+    steps:
+      - {any: [remote_control, dictated_amount, untrusted_accessibility], weight: 3, required: true}
+      - {step: call_out_to_unknown, weight: 2}  # not required: the phone often cannot tell whether the number dialled is a contact
+      - {step: paste_after_switch, weight: 1}
+      - {step: paid_after_call, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}
+
+  - name: digital_arrest
+    title: "A fake officer on a call; the victim pays under threat"
+    steps:
+      - {any: [unknown_call, lure:arrest_threat], weight: 2, required: true}
+      - {any: [remote_control, video_call, dictated_amount, lure:arrest_threat], weight: 2, required: true}
+      - {step: long_call, weight: 1}
+      - {step: amount_large, weight: 1}
+      - {step: paste_after_switch, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}
+
+  - name: trading_group
+    title: "A trading-tip group; the victim 'invests' with a stranger"
+    steps:
+      - {step: lure:trading_tip, weight: 3, required: true}
+      - {step: escalating_payments, weight: 1}
+      - {step: amount_large, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}
+
+  - name: refund_qr
+    title: "A caller promises a refund and sends a QR code to 'receive' it"
+    steps:
+      - {any: [unknown_call, lure:refund], weight: 2, required: true}
+      - {any: [qr_entry, contact_entry], weight: 2, required: true}
+      - {step: lure:refund, weight: 1}
+      - {step: amount_small, weight: 1}
+      - {step: new_payee, weight: 1}
+      - {any: [pass_through, mulehunter_high, registry_listed, ring_member, young_account], weight: 1}

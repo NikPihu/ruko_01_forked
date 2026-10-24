@@ -256,6 +256,10 @@ mind. Offline episode features for training:
   Naming an emerging pattern in the console drafts an entry in this format. A new name needs app
   words for `<tier>_<name>`, else the app shows the tier's generic text. Not the same as the
   simulator's journey scripts in `data/sim_v2/config/playbooks/`.
+  The same file's `search:` section (playbooks-0.3) writes each scam as weighted steps;
+  `api/playbook_search.py` scores every payment's merged steps (server + phone) against them and the
+  top 3 go to the transaction database and evidence. No effect on the tier until plan v3 step 5
+  (`docs/features/playbooks.md`).
 - `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
   applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
   and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),
