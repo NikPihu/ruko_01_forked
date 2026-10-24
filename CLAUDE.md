@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.11)
+## Contract (current: c2-0.13)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -129,9 +129,16 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   Stored in the transaction database's `received` table for the console (`GET /v1/received`, Transactions
   → Received); it does not feed `/v1/decide` or the payment graph. The app's History shows received
   money from the phone's own watcher. A message that reads like a scam is never counted as a credit.
-- Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.10
-  requests still validate.
+- c2-0.13 (same scam, many phones): `WatchEvent.handles` — money handles from a flagged scam
+  message (UPI ID plain; link host and call-back number as salted SHA-256, `watch_rules.json
+  handle_salt`, `examples/handle_vectors.json` shared with the phone's `signals/Handles.kt`). The
+  server counts distinct users per handle (`graph/campaigns.py`, `policy.yaml campaign:`); a spreading
+  payee UPI (`payee_in_campaign`, P) or caller number (`caller_in_campaign`, C) gives reason
+  `R13_scam_campaign` — one campaign lights at most one family (rule 5). Console: Overview "Spreading
+  now" (`GET /v1/campaigns/spreading`). See `docs/features/campaigns.md`.
+- Reason codes R1 to R13 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
+  `R13_scam_campaign`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
+  c2-0.3 to c2-0.12 requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
