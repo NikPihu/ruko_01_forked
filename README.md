@@ -18,26 +18,26 @@ Merge to `main` by pull request with one review. Keep `main` runnable every hour
 
 ```
 ruko_01/
-├── android/            Manjeet: Kotlin + Compose app
-├── backend/            Jagdeep
+├── android/            app: Kotlin + Compose app
+├── backend/            backend
 │   ├── api/            FastAPI app, routes, intel adapter, policy engine + policy.yaml
 │   ├── features/       stage tracker, feature store, payee graph, build_features()
 │   ├── intel_mock/     mock FRI / Suspect Registry / MuleHunter on port 8001
 │   ├── evidence/       hash chained evidence vault
 │   ├── schema/         events.py, the shared contract
 │   └── tests/
-├── ml/                 Diwansu
+├── ml/                 ML
 │   └── model/          train, calibrate, families, reasons, playbooks, lure, discovery, predict
 │       └── artifacts/  v0, v1, lure.json
-├── data/               Nikunj (generated *.parquet also lands here)
+├── data/               data (generated *.parquet also lands here)
 │   ├── sim/            simulator, config, playbooks.yaml, hard negatives, scenarios/
 │   ├── eval/           replay, metrics, red team, load test, results.json, charts/
 │   ├── console/        draft report (the analyst console itself is ../console/)
 │   ├── sample_v0/      small sample dataset
 │   └── external/       public datasets (not committed)
 ├── console/            analyst console (React + TypeScript), served by the API at /console/
-├── docker-compose.yml  (Jagdeep, to add)
-└── Makefile            (Jagdeep, to add)
+├── docker-compose.yml  (backend, to add)
+└── Makefile            (backend, to add)
 ```
 
 ## Paths in the guides vs this repo

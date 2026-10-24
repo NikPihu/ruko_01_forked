@@ -10,6 +10,7 @@ import kotlin.math.floor
  *   unmeasured (a model's guess about nothing must not look like a measurement).
  * - level: high when the local warning fires, medium when any family is lit, low otherwise.
  * - fraudClass: the known scam the phone's own signals point to (the engine's playbook names).
+ * - stepsSeen / stepsUnmeasured (c2-0.14): the scam steps the phone saw, in the shared vocabulary (Steps.kt).
  */
 data class Verdict(
     val modelVersion: String,
@@ -20,6 +21,8 @@ data class Verdict(
     val b: Double?,
     val reasons: List<String>,
     val warn: Boolean,
+    val stepsSeen: List<Pair<String, Double?>> = emptyList(),
+    val stepsUnmeasured: List<String> = emptyList(),
 )
 
 object DeviceVerdicts {
@@ -52,13 +55,14 @@ object DeviceVerdicts {
         }
     }
 
-    fun of(model: DeviceModel, features: Map<String, Double?>): Verdict {
+    fun of(model: DeviceModel, features: Map<String, Double?>, steps: StepVocab? = null): Verdict {
         val r = model.score(features)
         val fam = model.familyOrder.associateWith { family ->
             val measured = model.familyFeatures(family).any { features[it] != null }
             if (measured) round2(r.familyScores.getValue(family)) else null
         }
         val level = if (r.warn) "high" else if (r.lit.isNotEmpty()) "medium" else "low"
-        return Verdict(model.version, fraudClass(features), level, fam["C"], fam["L"], fam["B"], r.reasons, r.warn)
+        val (seen, unmeasured) = steps?.let { Steps.verdictSteps(features, it) } ?: (emptyList<Pair<String, Double?>>() to emptyList())
+        return Verdict(model.version, fraudClass(features), level, fam["C"], fam["L"], fam["B"], r.reasons, r.warn, seen, unmeasured)
     }
 }

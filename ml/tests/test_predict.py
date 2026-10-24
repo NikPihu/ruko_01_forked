@@ -140,7 +140,7 @@ def test_meena_digital_arrest_gets_paused(stack, world, context):
     assert "p_scam" not in r
     if context is MEENA_BACKEND:
         # The playbook comes from the rules engine's matcher, which needs caller_unknown. A real
-        # phone sends null for a WhatsApp call, so it finds no playbook (ml/PLAN.md §12, Jagdeep).
+        # phone sends null for a WhatsApp call, so it finds no playbook (ml/PLAN.md §12, backend).
         assert r["playbook"] == "digital_arrest"
 
 

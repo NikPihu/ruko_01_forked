@@ -13,7 +13,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
-/** Endpoints owned by Jagdeep. */
+/** Endpoints owned by the backend. */
 interface RukoApi {
     @GET("health")
     suspend fun health(): ResponseBody

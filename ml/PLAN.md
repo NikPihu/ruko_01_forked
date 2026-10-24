@@ -1,6 +1,6 @@
 # ml/ build plan: server model, on-device model, synthetic data
 
-Owner: Diwansu Pilania. Everything here lives in `ml/`. Changes other folders need are in §12.
+Owner: ML. Everything here lives in `ml/`. Changes other folders need are in §12.
 
 ## 0. Status
 Branch `feature/threat-analysis` on top of `main` 5fc81a7: contract c2-0.8, engine rules-0.7, server model lgbm-0.2, device model device-0.1.
@@ -10,7 +10,7 @@ Branch `feature/threat-analysis` on top of `main` 5fc81a7: contract c2-0.8, engi
 | M0 | `.venv` + `ml/requirements.txt` | `pytest ml/tests backend/tests`: 50 ML + 166 backend passed, pandas 3.0; Kotlin model and contract tests (33) compiled and run here with IntelliJ's kotlinc |
 | M2 | `dataset/phone_view.py` (the app's exact readings: call, device, lures, session, payee in contacts), `dataset/episodes.py` (the backend's own episode state machine + episode events), `dataset/graph.py`, `dataset/replay.py` (incl. payment outcomes, c2-0.6), `dataset/worlds.py` | replay == live engine, feature for feature, with episode events, outcomes and the payment graph (`test_replay_parity.py`) |
 | M3 | `model/metrics.py` (deck slide 7), `model/experiments.py` (ablation incl. the current rules engine) | runs; the world is still too easy to rank models (§12) |
-| M4a | `model/lure_corpus.py` (3,643 synthetic EN / HI / Hinglish SMS), `model/lure_train.py` → `artifacts/lure.json` + `lure_vectors.json` | unseen templates: 84% scams caught, 0 false alarms (with the §12 Manjeet rule) |
+| M4a | `model/lure_corpus.py` (3,643 synthetic EN / HI / Hinglish SMS), `model/lure_train.py` → `artifacts/lure.json` + `lure_vectors.json` | unseen templates: 84% scams caught, 0 false alarms (with the §12 app rule) |
 | M5 | `model/train.py` (LightGBM per family C/L/P/B + isotonic + logistic combiner), `model/predict.py` (`score(features)`, drop-in for `api/rule_scorer.score`), `model/evaluate.py`, `serve.py`, `artifacts/v0/server_model.json` (lgbm-0.2: also reads the phone's verdict scores `device_c/l/b`, hidden on 30% of training rows so a request without a verdict is still judged on its raw signals) | `test_predict.py`: Meena T3/T4, kirana T0, rule 1 (unknown never safer), p95 < 10 ms; held-out world below |
 | M4b | `model/device/train.py` (3 small LightGBM families C/L/B on the phone-side features + isotonic + combiner + local warning), `model/device/score.py` (pure-Python JSON scorer), `model/device/verdict.py` (fraud class + level), `model/device/feature_vectors.py`, `artifacts/v0/device_model.json` (device-0.1, trained on `dev_device`) + `device_vectors.json` + `device_feature_vectors.json`; the Kotlin side now lives in the app (`android/.../signals/DeviceModel.kt`, `DeviceFeatures.kt`, `DeviceVerdict.kt`) | JSON == LightGBM to 1e-12 incl. all missing-value modes (`test_device_model.py`); Kotlin features, scores and verdicts equal Python's on 56 real payments and 13 verdict cases; held out: PR-AUC 0.980, local warning on 64% of scam payments, 0 per 1,000 legit |
 | M4c | Threat analysis (c2-0.8): the phone sends only its verdict (`context.device_verdict`: fraud class, level, C/L/B scores, reasons); the server adds intel, MuleHunter, FRI, the registry and the payment graph and answers `threat` (score 0-100, level, scam type, lit families); the app shows it | `backend/tests/test_threat.py`, `ContractTest`, `test_replay_parity.py` (replayed requests carry the verdict) |
@@ -74,7 +74,7 @@ Model notes:
 - The playbook still comes from the rules engine's matcher (`api/rule_scorer._playbook`); when it finds
   none, the phone's `fraud_class` names the scam (c2-0.8).
 
-Synthetic worlds come from `data/sim` (Nikunj; pay-screen sessions by Jagdeep). `ml/` only adds what
+Synthetic worlds come from `data/sim` (data; pay-screen sessions by the backend). `ml/` only adds what
 the world does not say: which Scam Shield groups each phone has on (`dataset/assumptions.yaml`) and the
 "who are you paying?" answers, plus the lure texts.
 
@@ -305,7 +305,7 @@ Deck targets (slide 7), all on the `test` world:
 | p95 decision latency | < 150 ms | ML share < 10 ms |
 Plus: ablation (transaction-only vs RUKO at the same budget), mules flagged days before registry
 listing, PR-AUC, calibration plot, red-team journeys, giveaway audit, and a property test that a
-`None` input never lowers `p_scam`. Results → `ml/eval/results.json` for Nikunj's dashboard.
+`None` input never lowers `p_scam`. Results → `ml/eval/results.json` for the evaluation dashboard.
 The backend's demo stories (`backend/tests/test_decide.py`: Meena T3, kirana T0, split tranches)
 must pass with the ML scorer swapped in.
 
@@ -329,7 +329,7 @@ prevalence, fairness slices, known gaps, versioning.
 ## 12. Needed from other owners
 Measured on the `dev` world (5,000 users × 60 days, simulator as of 372aa73, `ml/runs/experiments_dev.json`).
 
-**Nikunj (data/sim): the world is still too easy to show RUKO's value.** Every model scores 95–100%
+**Data (data/sim): the world is still too easy to show RUKO's value.** Every model scores 95–100%
 (transaction-only PR-AUC 0.95; today's stack with lists 0.998). `data/eval/realism/FINDINGS.md` reaches
 the same verdict, and its fix list (mule account age, scam-only phone signals, amounts, too few
 positives, uniform normal life) covers most of what ML needs. In addition:
@@ -337,7 +337,7 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    registry, because mules are reused for the whole 60 days. Make mules short-lived (used for a few
    days, then dropped) with new ones appearing all the time, so most scam payments reach accounts no
    list knows yet (the deck's Gap 2).
-2. **Session leak (`data/sim/session.py`, with Jagdeep):** the "dictated amount" sign is on for 41% of
+2. **Session leak (`data/sim/session.py`, with the backend):** the "dictated amount" sign is on for 41% of
    scam payments and 0.0% of normal ones, because a legit user's digit rhythm never breaks. Add legit
    slow or dictated typing: an amount read off a bill or invoice, a family member saying it, typing
    while distracted.
@@ -347,7 +347,7 @@ positives, uniform normal life) covers most of what ML needs. In addition:
 5. **Done when** `python -m model.experiments` shows the giveaway set near the base rate and
    transaction-only clearly below RUKO.
 
-**Jagdeep (backend):**
+**Backend:**
 1. Done: baselines use only earlier payments (372aa73), and `CLAUDE.md` now says so.
 2. Done in `feature/threat-analysis` (rules-0.7): an active VoIP call with unknown contact status counts as an
    unknown caller in the tracker and R1. Was: **The tracker missed WhatsApp/VoIP scam calls.** `features/tracker.py` counts contact only when
@@ -374,7 +374,7 @@ positives, uniform normal life) covers most of what ML needs. In addition:
    (3+ families, or a live call + mule-like payee) still differs from `policy.yaml` (2 families); that is a
    product call, not a tuning one.
 
-**Manjeet (android):** items 1-5 of the old list (lure.json asset, scam-tag rule, Unicode split, lure
+**Android:** items 1-5 of the old list (lure.json asset, scam-tag rule, Unicode split, lure
 vectors test, on-device model) are done in `feature/threat-analysis`, plus the device features, the
 verdict in the request and the threat on the decision screen. Please review, and run
 `gradlew assembleDebug testDebugUnitTest`: the pure-Kotlin parts were compiled and tested here, but

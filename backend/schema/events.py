@@ -5,12 +5,14 @@ Only derived flags leave the phone (no SMS text, audio, contacts). Any missing f
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.13"
+CONTRACT_VERSION = "c2-0.14"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -20,7 +22,9 @@ ReasonCode = Literal[
     "R13_scam_campaign",  # c2-0.13: the payee or caller is being pushed in scam messages to many people
     "ruko_unavailable",
 ]
-LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "normal"]
+# c2-0.14: other_scam (a scam outside the five kinds) and unclear (no class reached the 0.6 bar: never
+# treated as normal, rule 1), from the lure-0.2 classifier.
+LureTag = Literal["arrest_threat", "kyc", "task_job", "trading_tip", "refund", "other_scam", "unclear", "normal"]
 # The known scam workflows (playbooks); the engine's and the phone's fraud class use the same names.
 FraudType = Literal["digital_arrest", "fake_customer_care", "fake_kyc_apk", "trading_group", "task_job", "refund_qr"]
 ThreatLevel = Literal["none", "low", "medium", "high", "critical"]
@@ -96,6 +100,19 @@ class SessionSignal(_M):
     abandoned_flows_30m: Optional[int] = Field(None, ge=0)        # payments started and left unpaid, last 30 min
 
 
+# c2-0.14: the scam steps vocabulary (contracts/steps.json), shared by the phone's verdict, the engine,
+# the playbooks and the blue team.
+STEPS_JSON = Path(__file__).resolve().parents[2] / "contracts" / "steps.json"
+STEP_IDS = tuple(s["id"] for s in json.loads(STEPS_JSON.read_text(encoding="utf-8"))["steps"])
+StepId = Literal[STEP_IDS]  # type: ignore[valid-type]
+
+
+class StepSeen(_M):
+    """One step the phone saw in this journey (c2-0.14), with how long ago when it has a time."""
+    step: StepId
+    min_ago: Optional[float] = Field(None, ge=0)
+
+
 class DeviceVerdict(_M):
     """The phone's own model on what only the phone can see (c2-0.8; ml/model/device, DeviceModel.kt).
 
@@ -110,6 +127,10 @@ class DeviceVerdict(_M):
     l: Optional[float] = Field(None, ge=0, le=1)         # lure messages and the task-scam episode
     b: Optional[float] = Field(None, ge=0, le=1)         # own spending and the Pay screen
     reasons: list[ReasonCode] = Field(default_factory=list, max_length=3)
+    # c2-0.14: the steps the phone saw (features/steps.py phone_steps) and the ones it could not measure
+    # (a switch off, no permission); a phone step in neither list was measured and not seen.
+    steps_seen: Optional[list[StepSeen]] = Field(None, max_length=len(STEP_IDS))
+    steps_unmeasured: Optional[list[StepId]] = Field(None, max_length=len(STEP_IDS))  # type: ignore[valid-type]
 
 
 class Context(_M):

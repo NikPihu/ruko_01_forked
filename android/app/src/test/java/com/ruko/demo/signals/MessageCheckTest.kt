@@ -90,7 +90,41 @@ class MessageCheckTest {
         assertNull(MessageCheck.check("+919876543210", "Mom, I reached the hostel safely. Will call after dinner.", 0, lure, null, emptyList()).scamTag)
     }
 
-    /** Diwansu's ai_text.json must score the same here as in Python (skipped until it exists). */
+    /** A stand-in lure model with a fixed answer. */
+    private fun fixed(hit: LureHit) = object : LureClassifier {
+        override val version = "fixed"
+        override fun classify(text: String) = hit
+    }
+
+    @Test
+    fun unclearIsShownAsBeCarefulNeverAsNoWarning() {
+        val unsure = fixed(LureHit(LURE_UNCLEAR, 0.45, top = "kyc"))
+        val m = MessageCheck.check("+919876543210", "Your account needs attention, call us", 0, unsure, null, emptyList())
+        assertTrue(m.unclear)
+        assertNull(m.scamTag) // not a scam label, so no notification and no lure_seen
+        assertNull(m.scamConf)
+        assertTrue(m.anyWarning)
+        assertTrue(m.handles.isEmpty())
+        // Leaning to normal is still unclear.
+        assertTrue(MessageCheck.check("+919876543210", "ok", 0, fixed(LureHit(LURE_UNCLEAR, 0.55, top = "normal")), null, emptyList()).unclear)
+        // An OTP keeps its own label instead.
+        assertFalse(MessageCheck.check("VM-HDFCBK", otp, 0, unsure, null, emptyList()).unclear)
+        // A decided answer is never unclear.
+        val normal = MessageCheck.check("+919876543210", "ok", 0, fixed(LureHit(LURE_NORMAL, 0.9)), null, emptyList())
+        assertFalse(normal.unclear)
+        assertFalse(normal.anyWarning)
+    }
+
+    @Test
+    fun otherScamIsAScamScript() {
+        val m = MessageCheck.check("+919876543210", "Pay the redelivery fee", 0, fixed(LureHit("other_scam", 0.9)), null, emptyList())
+        assertEquals("other_scam", m.scamTag)
+        assertEquals(0.9, m.scamConf!!, 0.0)
+        assertFalse(m.unclear)
+        assertNull(MessageCheck.check("+919876543210", "x", 0, fixed(LureHit("other_scam", 0.59)), null, emptyList()).scamTag)
+    }
+
+    /** The ML ai_text.json must score the same here as in Python (skipped until it exists). */
     @Test
     fun aiTextModelMatchesPythonVectors() {
         val model = File(artifacts, "ai_text.json")

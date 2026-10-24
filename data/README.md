@@ -1,4 +1,4 @@
-# data: Nikunj Santosh Tangle (data, evaluation and console)
+# data: data, evaluation and console
 
 The world RUKO is tested in, the proof that it works, and the analyst console (zone 4).
 Branches: `data/*`.
@@ -6,10 +6,10 @@ Branches: `data/*`.
 | Component | Files (inside `data/`) |
 |---|---|
 | Journey simulator | `sim/generate.py`, `sim/config.yaml` |
-| Playbook library (data side, with Diwansu) | `sim/playbooks.yaml` |
+| Playbook library (data side, with ml/) | `sim/playbooks.yaml` |
 | Hard negatives | `sim/hard_negatives.yaml` |
 | Demo scenarios | `sim/scenarios/meena.json`, `kirana.json`, `adaptive.json` |
-| Mock intel lists (served by Jagdeep) | `../backend/intel_mock/data/*.json` |
+| Mock intel lists (served by the backend) | `../backend/intel_mock/data/*.json` |
 | Fraud ops analyst console (Streamlit, port 8501) | `console/app.py` |
 | Draft 1930 / CFCFRMS report ("draft, not filed") | `console/report.py` |
 | Replay, metrics, ablation, fairness | `eval/replay.py`, `eval/metrics.ipynb` |
@@ -23,4 +23,4 @@ Generated datasets also live in this folder, at the paths the guides use:
 - `data/sample_v0/`: small sample, committed so everyone can start before H10
 - `data/external/`: public datasets such as the UCI SMS Spam Collection (git ignored)
 
-Top priority: full Parquet data to Jagdeep and Diwansu by H10.
+Top priority: full Parquet data to backend and ML by H10.

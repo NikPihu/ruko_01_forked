@@ -28,7 +28,7 @@ only what existed before it. They are computed by the same code the live engine 
 
 `ml/dataset/replay.py` turns a world into the 51-column training table (one row per payment).
 As of 2026-10-23 it fails on `main` because `ml/dataset/phone_view.py` imports the removed
-`MoneySignal`; that's in the ml/ folder (Diwansu).
+`MoneySignal`; that's in the ml/ folder.
 
 ---
 

@@ -19,7 +19,7 @@ data class MoneyTxn(
     val flow: Flow,
     val counterparty: String? = null, // a UPI ID when the alert names one
     @SerialName("from_sms") val fromSms: Boolean = false,
-    // The account holder's name when the alert gives it, e.g. "by JAGDEEP SINGH (jag@upi)" (PNB).
+    // The account holder's name when the alert gives it, e.g. "by RAHUL SHARMA (rahul@upi)" (PNB).
     @SerialName("counterparty_name") val counterpartyName: String? = null,
 )
 
@@ -28,12 +28,12 @@ object BankSms {
     private val AMOUNT = Regex("""(?:\b(?:rs\.?|inr)|₹)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
     private val AMOUNT_AFTER_VERB = Regex("""(?:debited|credited)\s+(?:by|with|for)\s+([0-9][0-9,]*(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
     private val VPA = Regex("""[a-z0-9][a-z0-9._-]{1,63}@[a-z]{2,20}""", RegexOption.IGNORE_CASE)
-    // A name next to the UPI ID: "by JAGDEEP SINGH (jag@upi)" (PNB), "from NAME (vpa)", "to NAME (vpa)"...
+    // A name next to the UPI ID: "by RAHUL SHARMA (rahul@upi)" (PNB), "from NAME (vpa)", "to NAME (vpa)"...
     private val NAME_THEN_VPA = Regex(
         """\b(?:by|from|to)\s+([a-z][a-z .'&-]{0,60}?)\s*\(\s*([a-z0-9][a-z0-9._-]{1,63}@[a-z]{2,20})\s*\)""",
         RegexOption.IGNORE_CASE,
     )
-    // ... or after it: "from jag@upi (JAGDEEP SINGH)".
+    // ... or after it: "from rahul@upi (RAHUL SHARMA)".
     private val VPA_THEN_NAME = Regex(
         """([a-z0-9][a-z0-9._-]{1,63}@[a-z]{2,20})\s*\(\s*([a-z][a-z .'&-]{0,60}?)\s*\)""",
         RegexOption.IGNORE_CASE,

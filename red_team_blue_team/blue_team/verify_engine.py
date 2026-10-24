@@ -1,4 +1,4 @@
-"""Nikunj's runner against the real engine, for verify.py's live check. Used as
+"""The attack runner against the real engine, for verify.py's live check. Used as
 
     python -m blue_team.verify_engine run --playbook <yaml> --out <dir> --seed <n>
 

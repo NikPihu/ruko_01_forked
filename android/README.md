@@ -1,4 +1,4 @@
-# android: Manjeet Singh (Android app)
+# android: Android app
 
 Cache Pay, the phone part of RUKO (zone 1). Branches: `android/*`. Kotlin, Jetpack Compose,
 Retrofit and kotlinx.serialization. It is a demo only: no real money moves.

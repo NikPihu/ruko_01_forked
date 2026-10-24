@@ -25,6 +25,6 @@ Does the lure model, trained on known scam templates, still catch them?
 
 The set is small and hand-written, so treat these as a smoke test, not a benchmark.
 
-**Who does what.** The model is Diwansu's (`ml/`). If the number drops, he retrains, and the test
+**Who does what.** The model is in `ml/`. If the number drops, ML retrains, and the test
 re-runs on the new `lure.json`. The separate "looks AI-written" classifier for the app is in
 [message-check.md](message-check.md).

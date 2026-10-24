@@ -65,7 +65,7 @@ class RunnerStart(BaseModel):
 
 
 class VerifyStart(BaseModel):
-    live: bool = True                # check 2: Nikunj's runner before / after on a fresh world
+    live: bool = True                # check 2: the attack runner before / after on a fresh world
     retrain: bool = False            # check 3: LightGBM retrained with the card's labels
 
 

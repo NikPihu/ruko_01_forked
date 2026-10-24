@@ -52,12 +52,12 @@ class BankSmsTest {
     @Test
     fun readsTheSendersNameWhenTheAlertGivesIt() {
         val pnb = BankSms.parse(
-            "A/c X3673 credited for INR 30.00 on 21-10-26 16:27:11 by JAGDEEP SINGH (jag@upi) thru UPI. (UPI:629441147556).-PNB", now,
+            "A/c X3673 credited for INR 30.00 on 21-10-26 16:27:11 by RAHUL SHARMA (rahul@upi) thru UPI. (UPI:629441147556).-PNB", now,
         )!!
         assertEquals(Flow.IN, pnb.flow)
         assertEquals(30.0, pnb.amount, 0.0)
-        assertEquals("jag@upi", pnb.counterparty)
-        assertEquals("JAGDEEP SINGH", pnb.counterpartyName)
+        assertEquals("rahul@upi", pnb.counterparty)
+        assertEquals("RAHUL SHARMA", pnb.counterpartyName)
 
         val after = BankSms.parse("Rs.500.00 credited to A/c XX4821 from arjun.pandey@okicici (ARJUN  PANDEY). Ref 4312", now)!!
         assertEquals("arjun.pandey@okicici", after.counterparty)

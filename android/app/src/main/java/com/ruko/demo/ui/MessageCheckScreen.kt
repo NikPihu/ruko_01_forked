@@ -111,7 +111,7 @@ private fun Notice(text: String, action: @Composable () -> Unit) {
 private fun MessageRow(m: MessageLabel) {
     val border = when {
         m.otpDuringCall || m.scamTag != null -> CacheColors.Danger.copy(alpha = 0.7f)
-        m.aiWritten == true -> CacheColors.Warning.copy(alpha = 0.7f)
+        m.aiWritten == true || m.unclear -> CacheColors.Warning.copy(alpha = 0.7f)
         else -> CacheColors.CardBorder
     }
     Column(
@@ -126,6 +126,7 @@ private fun MessageRow(m: MessageLabel) {
         Text(m.preview, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             m.scamTag?.let { Label(stringResource(R.string.msg_label_scam, scamTagText(it)), CacheColors.Danger) }
+            if (m.unclear) Label(stringResource(R.string.msg_label_unclear), CacheColors.Warning)
             if (m.aiWritten == true) Label(stringResource(R.string.msg_label_ai), CacheColors.Warning)
             if (m.otp) Label(stringResource(R.string.msg_label_otp), CacheColors.Info)
             if (!m.anyWarning) Label(stringResource(R.string.msg_label_none), CacheColors.Success)
@@ -165,5 +166,6 @@ fun scamTagRes(tag: String): Int =
         "refund" -> R.string.msg_tag_refund
         "task_job" -> R.string.msg_tag_task_job
         "trading_tip" -> R.string.msg_tag_trading_tip
+        "other_scam" -> R.string.msg_tag_other_scam
         else -> R.string.msg_tag_other
     }

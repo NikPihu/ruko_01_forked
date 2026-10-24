@@ -3,7 +3,7 @@ title: "'Approve this request / enter your PIN to receive the money' (UPI collec
 confidence: guess
 emerging: true
 sources: ["ml/PLAN.md §3.2", "NPCI advisory: you never need a PIN to receive money"]
-# The contract has no 'collect' entry method yet; approvals are recorded as 'typed' (ask Jagdeep for a
+# The contract has no 'collect' entry method yet; approvals are recorded as 'typed' (ask the backend for a
 # new entry_method value if this playbook should be told apart).
 # Lure tag: closest contract tag is 'refund' (a story about receiving money).
 weight: 0.07

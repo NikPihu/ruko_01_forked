@@ -1,7 +1,7 @@
 """The red team's playbooks, as the blue team sees them: what each one tries, a world where they
 attack, and a scorecard of what RUKO and the blue team made of them.
 
-The playbooks are sim_v2 scam scripts (red_team_blue_team/red_team/playbooks/, by Nikunj). They are
+The playbooks are sim_v2 scam scripts (red_team_blue_team/red_team/playbooks/). They are
 data: read with yaml.safe_load, never executed. `techniques()` reads each script and names the
 evasion tricks it uses, so the console can say *why* a scam might slip through before any run.
 
@@ -21,7 +21,7 @@ import yaml
 from blue_team import config
 
 RED_DIR = config.HERE.parent / "red_team" / "playbooks"
-CLAIMS = config.HERE.parent / "red_team" / "nikunj_manifest_and_scores.csv"
+CLAIMS = config.HERE.parent / "red_team" / "attack_manifest.csv"
 INTERRUPT = {"T2", "T3", "T4"}
 
 TECHNIQUES = {

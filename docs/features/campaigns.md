@@ -78,7 +78,7 @@ API: `GET /v1/campaigns/spreading`.
   - `WatchPolicyTest`: handles in the event, new handles not silenced.
 
 ## Next (not built)
-- **Diwansu:** retrain on the new features (`lgbm-0.3`) with a non-negative combiner.
-- **Nikunj:** AI-variant red-team playbooks (rephrased message, same UPI; fresh mule every few
+- **ML:** retrain on the new features (`lgbm-0.3`) with a non-negative combiner.
+- **Data:** AI-variant red-team playbooks (rephrased message, same UPI; fresh mule every few
   victims). Then measure the miss rate before and after with `interface_script`.
 - **Caller crowd (#2):** one unknown number calling many RUKO users.

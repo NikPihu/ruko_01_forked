@@ -2,7 +2,7 @@
 
 ## Context
 - **What the app sees:** at the moment of payment, a UPI app knows only the **payee's UPI ID** (for example `ravi.k@okaxis` or `98xxxxxx10@ybl`) and, from the phone, the **number calling the user**.
-- **What Jagdeep wants to know:**
+- **What the backend needs to know:**
   - How do real NPCI, bank and government systems turn those two strings into risk details (who owns the account, its age, whether it's a mule, whether the number is reported)?
   - How do we build a mock that is accessed **the same way**?
 - **Approach:** this is an experimental repo. The PDF is guidance, not a strict contract, so the mock is designed to look like the real world: **one mock service per real organisation**, each reached only through the identifier it would really accept.

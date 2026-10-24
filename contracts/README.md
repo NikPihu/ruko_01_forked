@@ -24,7 +24,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.13`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.12 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.14`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.13 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -252,7 +252,7 @@ Money the user **received**, as the phone's money watch read it from a bank SMS 
 (a UUID, one per credit), `user_id`, `sender_upi_id` (the UPI ID the alert named; `null` when it
 named none, rule 1), `amount_inr`, `ts` (when the SMS arrived), `source` (`bank_sms`) and, from
 c2-0.12, `sender_name` (the account holder's name when the alert gives it, e.g. PNB's
-`... by JAGDEEP SINGH (jag@upi) thru UPI`; `null` otherwise). Never the SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
+`... by RAHUL SHARMA (rahul@upi) thru UPI`; `null` otherwise). Never the SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
 "Watch my money alerts" on; a message that reads like a scam script is never counted as a credit.
 Events wait encrypted on the phone until there is a network. Reply: `recorded` (`false` for a
 repeated `event_id`). The server stores it in the transaction database (`received` table: sender
@@ -275,6 +275,7 @@ becomes crowd evidence (payee family) at payment time. A credit with no sender U
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.14**: scam steps and lure-0.2. `context.device_verdict` gains `steps_seen` (`[{step, min_ago}]`) and `steps_unmeasured` (`[step]`): the steps of a scam the phone saw, in the shared vocabulary `steps.json` (definitions in `backend/features/steps.py` `phone_steps`, port in `android/.../signals/Steps.kt`, cases in `examples/steps_vectors.json`). A phone step in neither list was measured and not seen; an unmeasured step is never "not seen" (rule 1). `LureTag` gains `other_scam` (a scam outside the five kinds) and `unclear` (no class reached the 0.6 bar; never treated as normal). Example `examples/decide_request_steps.json`. Additive: c2-0.13 and older requests still validate.
 - **c2-0.13**: `WatchEvent.handles` (`Handle {kind: upi|link|phone, value}`): money handles from a flagged scam message, UPI plain and link/number as salted SHA-256 (`watch_rules.json handle_salt`, `examples/handle_vectors.json`). New reason `R13_scam_campaign`: the payee UPI ID, or the caller's number, is being pushed in scam messages to many different users. Additive: c2-0.12 and older requests still validate.
 - **c2-0.12**: `MoneyReceived.sender_name` (optional): the account holder's name from the bank SMS. Received credits now feed the payment graph (sender → user; small ones count as bait credits). Additive: c2-0.11 requests still validate.
 - **c2-0.11**: `POST /v1/payment/received` (`MoneyReceived`, `MoneyReceivedResponse`, in `c2_app_events.schema.json`): credits the phone read from bank SMS, opt-in, stored for the console. Additive: c2-0.10 requests still validate.

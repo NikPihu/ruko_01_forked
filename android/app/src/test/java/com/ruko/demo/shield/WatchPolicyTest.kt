@@ -36,6 +36,9 @@ class WatchPolicyTest {
     fun lureNeedsTheSendThresholdAndKeepsQuietAfter() {
         assertNull(WatchPolicy.event(Sighting.Lure("kyc", rules.lureMinConf - 0.05, "sms", null), rules, now, none))
         assertNull(WatchPolicy.event(Sighting.Lure("normal", 0.99, "sms", null), rules, now, none))
+        // lure-0.2: "unclear" is never a lure_seen, whatever its confidence; other_scam is a scam tag.
+        assertNull(WatchPolicy.event(Sighting.Lure("unclear", 0.99, "sms", null), rules, now, none))
+        assertEquals("other_scam", WatchPolicy.event(Sighting.Lure("other_scam", 0.9, "sms", null), rules, now, none)!!.first.lureTag)
         val (e, key) = WatchPolicy.event(Sighting.Lure("kyc", 0.876, "notification", true), rules, now, none)!!
         assertEquals(WatchKind.LURE_SEEN, e.kind)
         assertEquals("kyc", e.lureTag)

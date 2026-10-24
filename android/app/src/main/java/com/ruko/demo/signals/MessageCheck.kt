@@ -20,8 +20,11 @@ import kotlinx.serialization.json.Json
  * "Message check" (A5): labels for the user's own SMS, worked out on the phone. Nothing here is
  * sent anywhere; the labels are hints and never change a payment's tier (rules 2, 5, 10).
  *
- * - Scam script: the lure model (`lure.json`), same send threshold as the payment check.
- * - Looks AI-written: Diwansu's `ai_text.json`, only for personal or unregistered senders and long
+ * - Scam script: the lure model (`lure.json`), same send threshold as the payment check; any scam
+ *   class counts, `other_scam` too.
+ * - Couldn't tell: no class of the lure model reached 0.6 (`unclear`, lure-0.2). Shown as "be
+ *   careful", never as "no warning" (rule 1), and never sent or notified.
+ * - Looks AI-written: the ML `ai_text.json`, only for personal or unregistered senders and long
  *   enough texts. Until the model file exists the label is unknown (null) and hidden.
  * - OTP: every one-time code gets "never share this"; one that arrives during a call with someone
  *   not known to be a contact gets the full warning.
@@ -59,7 +62,7 @@ object MessageCheck {
     ): MessageLabel {
         val otp = isOtp(body)
         val hit = lure.classify(body)
-        val scamTag = hit.tag.takeIf { it != "normal" && hit.conf >= LURE_SEND_THRESHOLD }
+        val scamTag = hit.tag.takeIf { hit.scam }
         val words = body.trim().split(Regex("\\s+")).count { it.isNotEmpty() }
         val aiWritten = when {
             ai == null -> null // no model yet: unknown, the label stays hidden
@@ -76,6 +79,8 @@ object MessageCheck {
             aiWritten = aiWritten,
             otp = otp,
             otpDuringCall = otp && duringUnknownCall(ts, calls),
+            // An OTP is known for what it is and keeps its own warning.
+            unclear = hit.unclear && !otp,
             // Money handles only for a message flagged as a scam (c2-0.13); never for an OTP.
             handles = if (scamTag != null && !otp) Handles.extract(body) else emptyList(),
         )
@@ -100,8 +105,9 @@ data class MessageLabel(
     val otp: Boolean,
     val otpDuringCall: Boolean,
     val handles: List<Handle> = emptyList(), // c2-0.13: UPI / link / number pseudonyms, never the text
+    val unclear: Boolean = false, // lure-0.2: the model could not tell; "be careful", never "no warning"
 ) {
-    val anyWarning: Boolean get() = scamTag != null || aiWritten == true || otp
+    val anyWarning: Boolean get() = scamTag != null || aiWritten == true || otp || unclear
 }
 
 /** `ai_text.json` header: the version, the recommended threshold and which class means "AI". */
@@ -112,7 +118,7 @@ data class AiTextMeta(
     @SerialName("positive_class") val positiveClass: String = "ai",
 )
 
-/** Diwansu's "looks AI-written" model: the same TF-IDF + logistic regression format as `lure.json`. */
+/** The "looks AI-written" model (ml/): the same TF-IDF + logistic regression format as `lure.json`. */
 class AiTextScorer(private val model: LureModel, meta: AiTextMeta) {
     val version: String = meta.version
     val threshold: Double = meta.threshold

@@ -21,6 +21,7 @@ import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.net.WatchEvent
 import com.ruko.demo.net.WatchKind
+import com.ruko.demo.signals.isScamTag
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -87,7 +88,8 @@ object WatchPolicy {
         val ts = RequestBuilder.istIso(now)
         val (event, key, quietMs) = when (s) {
             is Sighting.Lure -> {
-                if (s.tag == "normal" || s.conf < rules.lureMinConf) return null
+                // Only scam tags: never normal, never unclear (lure-0.2: no class reached 0.6).
+                if (!isScamTag(s.tag) || s.conf < rules.lureMinConf) return null
                 // The same scam type is quiet for a while, but a message with new money handles (a new
                 // UPI ID, link or number) is reported: that is what the server counts across phones.
                 val handleKey = s.handles.map { it.value }.sorted().joinToString("|").takeIf { it.isNotEmpty() }

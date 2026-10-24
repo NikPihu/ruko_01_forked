@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.13"
+const val CONTRACT_VERSION = "c2-0.14"
 
 @Serializable
 enum class CallKind {
@@ -132,6 +132,16 @@ data class DeviceVerdict(
     val l: Double? = null, // lure messages and the task-scam episode
     val b: Double? = null, // own spending and the Pay screen
     val reasons: List<String> = emptyList(),
+    // c2-0.14: the scam steps the phone saw and the ones it could not measure (contracts/steps.json).
+    @SerialName("steps_seen") val stepsSeen: List<StepSeen>? = null,
+    @SerialName("steps_unmeasured") val stepsUnmeasured: List<String>? = null,
+)
+
+/** One scam step the phone saw (c2-0.14), with minutes ago when it has a time. */
+@Serializable
+data class StepSeen(
+    val step: String,
+    @SerialName("min_ago") val minAgo: Double? = null,
 )
 
 /** The server's threat analysis of the payment (c2-0.8). */

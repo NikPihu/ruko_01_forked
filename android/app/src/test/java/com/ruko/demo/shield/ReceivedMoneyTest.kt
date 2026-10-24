@@ -54,11 +54,11 @@ class ReceivedMoneyTest {
 
     @Test
     fun theBanksNameForTheSenderReachesHistoryAndTheServer() {
-        val pnb = MoneyTxn(m(1.0), 30.0, Flow.IN, "jag@upi", fromSms = true, counterpartyName = "JAGDEEP SINGH")
-        assertEquals("JAGDEEP SINGH", ReceivedPayments.from(WatcherState(history = listOf(pnb))).single().senderName)
+        val pnb = MoneyTxn(m(1.0), 30.0, Flow.IN, "rahul@upi", fromSms = true, counterpartyName = "RAHUL SHARMA")
+        assertEquals("RAHUL SHARMA", ReceivedPayments.from(WatcherState(history = listOf(pnb))).single().senderName)
         val event = ReceivedPolicy.events(listOf(pnb), "u_demo_meena") { "e" }.single()
-        assertEquals("JAGDEEP SINGH", event.senderName)
-        assertEquals("jag@upi", event.senderUpiId)
+        assertEquals("RAHUL SHARMA", event.senderName)
+        assertEquals("rahul@upi", event.senderUpiId)
         // A saved contact's own name wins over the bank's.
         val contact = MoneyTxn(m(2.0), 30.0, Flow.IN, "9876543210@oksbi", fromSms = true, counterpartyName = "A PANDEY")
         assertEquals("Arjun Pandey", ReceivedPayments.from(WatcherState(history = listOf(contact)),

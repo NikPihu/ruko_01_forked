@@ -31,7 +31,7 @@ def test_all_fifty_red_team_playbooks_load_with_their_tricks():
     pbs = redteam.load()
     assert len(pbs) == 50 and len({p["name"] for p in pbs}) == 50
     assert all(p["techniques"] for p in pbs)
-    assert sum("notification_lure" in p["techniques"] for p in pbs) == 25    # as Nikunj's README says
+    assert sum("notification_lure" in p["techniques"] for p in pbs) == 25    # as the attack playbooks' README says
     assert all(p["claimed_ml_missed"] is not None for p in pbs)
 
 

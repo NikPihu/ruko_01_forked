@@ -1,7 +1,10 @@
 package com.ruko.demo.shield
 
 import com.ruko.demo.signals.Flow
+import com.ruko.demo.signals.LURE_UNCLEAR
 import com.ruko.demo.signals.LinearLureClassifier
+import com.ruko.demo.signals.LureClassifier
+import com.ruko.demo.signals.LureHit
 import com.ruko.demo.signals.LureModel
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -50,6 +53,16 @@ class SmsTriageTest {
             assertNotNull("not counted: $body", v.txn)
         }
         assertEquals(Flow.OUT, triage("VM-HDFCBK", alerts[2].second).txn!!.flow)
+    }
+
+    @Test
+    fun anUnclearMessageIsNeverWarnedAboutAsAScam() {
+        val unsure = object : LureClassifier {
+            override val version = "fixed"
+            override fun classify(text: String) = LureHit(LURE_UNCLEAR, 0.5, top = "refund")
+        }
+        val v = SmsTriage.triage("+919876543210", "Your money is waiting, reply to get it", now, unsure, ai = null, trustNumbers = true)
+        assertNull(v.scam)
     }
 
     @Test

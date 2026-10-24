@@ -38,7 +38,7 @@ def main() -> None:
     p.add_argument("--victim-rate", type=float, default=0.5, help="share approached per 60 days (train default 0.08)")
     p.add_argument("--emerging-boost", type=float, default=4.0)
     p.add_argument("--red-team", action="store_true",
-                   help="attack with red_team/playbooks (Nikunj's 50) instead of sim_v2's own emerging scams")
+                   help="attack with red_team/playbooks (the 50 attack playbooks) instead of sim_v2's own emerging scams")
     p.add_argument("--red-boost", type=float, default=2.0, help="red-team playbook weights x this")
     p.add_argument("--red-dir", type=Path, default=None,
                    help="playbooks to attack with (default red_team/playbooks; the console passes the inbox's breakthroughs)")

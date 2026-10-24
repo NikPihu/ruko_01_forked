@@ -7,11 +7,15 @@ about what it saw. DeviceVerdict.kt is a line-by-line port; device_feature_vecto
 - fraud_class: the known scam the phone's own signals point to, with the engine's playbook names
   (the same order of checks as api/rule_scorer._playbook, on what the phone can see).
 - reasons: the device model's reasons, at most 3.
+- steps_seen / steps_unmeasured (c2-0.14): the scam steps the phone saw, in the shared vocabulary
+  (contracts/steps.json, backend/features/steps.py phone_steps), with minutes ago where it has one;
+  the server's playbook search matches them with its own steps.
 """
 from __future__ import annotations
 
 import math
 
+from features.steps import verdict_steps
 from model.device import score as device_score
 
 FAMILY_KEY = {"C": "c", "L": "l", "B": "b"}
@@ -64,5 +68,6 @@ def verdict(model: dict, features: dict) -> dict:
         measured = any(features.get(n) is not None for n in model["families"][f]["features"])
         fam[FAMILY_KEY[f]] = round2(r["family_scores"][f]) if measured else None
     level = "high" if r["warn"] else "medium" if r["lit"] else "low"
+    seen, unmeasured = verdict_steps(features)
     return {"model_version": model["version"], "fraud_class": fraud_class(features), "level": level, **fam,
-            "reasons": r["reasons"]}
+            "reasons": r["reasons"], "steps_seen": seen, "steps_unmeasured": unmeasured}

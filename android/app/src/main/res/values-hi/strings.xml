@@ -206,6 +206,7 @@
     <string name="msg_label_ai">AI से लिखा लगता है</string>
     <string name="msg_label_otp">OTP: किसी को न बताएं</string>
     <string name="msg_label_none">कोई चेतावनी नहीं</string>
+    <string name="msg_label_unclear">पक्का नहीं कह सकते — सावधान रहें</string>
     <string name="msg_ai_note">ठग अब AI से ऐसे साफ़-सुथरे, जल्दबाज़ी वाले मैसेज लिखते हैं। यह सिर्फ़ संकेत है, सबूत नहीं: भेजने वाले से किसी और तरीके से पुष्टि करें।</string>
     <string name="msg_otp_call_title">कॉल के दौरान एक कोड आया है</string>
     <string name="msg_otp_call_text">कॉल पर जो भी यह कोड माँगे, वह ठग है। बैंक, पुलिस और कंपनियाँ कभी OTP नहीं माँगतीं। कोड न बताएं; कॉल काट दें।</string>
@@ -218,6 +219,7 @@
     <string name="msg_tag_task_job">नकली टास्क या नौकरी</string>
     <string name="msg_tag_trading_tip">नकली निवेश टिप</string>
     <string name="msg_tag_other">जाना-पहचाना स्कैम</string>
+    <string name="msg_tag_other_scam">आम स्कैम (पार्सल, बिजली कटौती, इनाम, लोन फीस)</string>
 
     <!-- "Check Scam Shield" on Home -->
     <string name="home_server_checking">स्कैम शील्ड जाँच रहे हैं…</string>

@@ -1,0 +1,87 @@
+{
+  "request_id": "5d0e7c21-3f4a-4b8e-a2c6-9e1f0b7d3a54",
+  "user_id": "u_demo_meena",
+  "payee_upi_id": "secure.settlement.desk@okaxis",
+  "amount_inr": 95000,
+  "entry_method": "typed",
+  "payer_says": "government",
+  "ts": "2026-11-07T10:40:00+05:30",
+  "context": {
+    "call": {
+      "active": true,
+      "kind": "voip",
+      "direction": null,
+      "caller_number": null,
+      "caller_in_contacts": null,
+      "started_min_ago": 38,
+      "ended_min_ago": null,
+      "speaker_on": true
+    },
+    "device": {
+      "remote_access_active": true,
+      "remote_app_installed_min_ago": 25,
+      "untrusted_accessibility": false,
+      "sideloaded_last_24h": false
+    },
+    "lures": [
+      {
+        "tag": "other_scam",
+        "conf": 0.82,
+        "min_ago": 95.0
+      }
+    ],
+    "episode": null,
+    "session": null,
+    "payee_in_contacts": false,
+    "device_verdict": {
+      "model_version": "device-0.1",
+      "fraud_class": "digital_arrest",
+      "level": "high",
+      "c": 0.99,
+      "l": null,
+      "b": 0.97,
+      "reasons": [
+        "R2_remote_control",
+        "R12_coached_session",
+        "R4_unusual_amount"
+      ],
+      "steps_seen": [
+        {
+          "step": "unknown_call",
+          "min_ago": 0.0
+        },
+        {
+          "step": "voip_call",
+          "min_ago": 0.0
+        },
+        {
+          "step": "long_call",
+          "min_ago": 0.0
+        },
+        {
+          "step": "lure:other_scam",
+          "min_ago": 95.0
+        },
+        {
+          "step": "remote_control",
+          "min_ago": null
+        },
+        {
+          "step": "new_payee",
+          "min_ago": null
+        },
+        {
+          "step": "amount_unusual",
+          "min_ago": null
+        }
+      ],
+      "steps_unmeasured": [
+        "dictated_amount",
+        "paste_after_switch",
+        "many_app_switches",
+        "long_hesitation",
+        "abandoned_tries"
+      ]
+    }
+  }
+}

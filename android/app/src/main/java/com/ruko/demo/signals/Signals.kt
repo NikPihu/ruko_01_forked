@@ -23,6 +23,7 @@ import com.ruko.demo.net.DeviceVerdict
 import com.ruko.demo.net.EntryMethod
 import com.ruko.demo.net.EpisodeSignal
 import com.ruko.demo.net.SessionSignal
+import com.ruko.demo.net.StepSeen
 import com.ruko.demo.shield.ShieldController
 import com.ruko.demo.shield.Sighting
 import com.ruko.demo.shield.WatchSender
@@ -75,12 +76,16 @@ object Signals {
     var classifier: LureClassifier = KeywordLureClassifier
         private set
 
-    /** "Looks AI-written" (assets/ai_text.json, A5); null until Diwansu's model is in the app. */
+    /** "Looks AI-written" (assets/ai_text.json, A5); null until the ML model is in the app. */
     var aiText: AiTextScorer? = null
         private set
 
     /** The on-device model (assets/device_model.json); null when missing, and then no verdict is sent. */
     var deviceModel: DeviceModel? = null
+        private set
+
+    /** The scam steps vocabulary (assets/steps.json, c2-0.14); null when missing, and then the verdict has no steps. */
+    var stepVocab: StepVocab? = null
         private set
 
     var overrides by mutableStateOf(SignalOverrides())
@@ -120,6 +125,12 @@ object Signals {
             DeviceModel.parse(app.assets.open(DEVICE_MODEL_ASSET).bufferedReader().use { it.readText() })
         } catch (e: Exception) {
             Log.w("Signals", "no $DEVICE_MODEL_ASSET, sending no device verdict", e)
+            null
+        }
+        stepVocab = try {
+            StepVocab.parse(app.assets.open(STEPS_ASSET).bufferedReader().use { it.readText() })
+        } catch (e: Exception) {
+            Log.w("Signals", "no $STEPS_ASSET, the verdict carries no steps", e)
             null
         }
     }
@@ -184,8 +195,11 @@ object Signals {
                     nowSeconds = now / 1000.0,
                     anyShield = true,
                 )
-                val v = DeviceVerdicts.of(model, DeviceFeatures.compute(facts))
-                DeviceVerdict(v.modelVersion, v.fraudClass, v.level, v.c, v.l, v.b, v.reasons)
+                val vocab = stepVocab
+                val v = DeviceVerdicts.of(model, DeviceFeatures.compute(facts), vocab)
+                DeviceVerdict(v.modelVersion, v.fraudClass, v.level, v.c, v.l, v.b, v.reasons,
+                    stepsSeen = if (vocab == null) null else v.stepsSeen.map { (step, ago) -> StepSeen(step, ago) },
+                    stepsUnmeasured = if (vocab == null) null else v.stepsUnmeasured)
             }.onFailure { Log.w("Signals", "device model failed; no verdict", it) }.getOrNull()
         } else {
             null
@@ -232,11 +246,14 @@ object Signals {
         KeywordLureClassifier
     }
 
-    /** Diwansu's ml/model/artifacts/lure.json; the keyword fallback is used when it is missing. */
+    /** ml/model/artifacts/lure.json; the keyword fallback is used when it is missing. */
     const val LURE_ASSET = "lure.json"
 
     /** ml/model/artifacts/v0/device_model.json (c2-0.8 device verdict). */
     const val DEVICE_MODEL_ASSET = "device_model.json"
+
+    /** contracts/steps.json (c2-0.14 scam steps). */
+    const val STEPS_ASSET = "steps.json"
 }
 
 /**

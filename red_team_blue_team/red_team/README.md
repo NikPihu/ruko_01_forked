@@ -41,8 +41,8 @@ picks up any folder of them with no code change.
 
 ## The 50 hand-written playbooks
 
-**Nikunj's 50 breakthrough playbooks** (`playbooks/`, his notes in `NIKUNJ_README.md`, his own scores
-in `nikunj_manifest_and_scores.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
+**The 50 attack playbooks** (`playbooks/`, notes in `ATTACK_PLAYBOOKS.md`, claimed scores
+in `attack_manifest.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
 (YAML in the `data/sim_v2/config/playbooks/` format), never executed: the simulator plays them out
 against simulated users, and RUKO judges every payment as it would live.
 
@@ -60,7 +60,7 @@ The tricks they use, as the blue team reads them from each script (`blue_team/re
 
 ## Use them
 
-The red team is run by **Nikunj's runner**, `synthetic_playbook/interface_script` (team main, PR #27):
+The red team is run by **the attack runner**, `synthetic_playbook/interface_script` (team main, PR #27):
 each playbook plays out in its own small sim_v2 world against the **real RUKO engine**, and every
 reply is judged by its threat score (70 or less = RUKO called it normal). When 75% of a playbook's
 scam payments come back normal it is a **breakthrough**, and the runner's `blue_team` sink
@@ -92,7 +92,7 @@ it up.
 ## First result (offline agents, 4,000 users x 30 days, seed 41)
 
 1,609 scam journeys, 1,436 by these 50 playbooks (all 50 attacked), 845 red-team scam payments.
-**RUKO (lgbm-0.2 + policy) interrupted 2.8% of them**, which bears out Nikunj's claim (97.5% missed),
+**RUKO (lgbm-0.2 + policy) interrupted 2.8% of them**, which bears out the claimed miss rate (97.5% missed),
 while it still interrupted digital_arrest 100%, fake_kyc_apk 100%, refund_qr 89% and
 fake_customer_care 85% of their payments. Then the blue team: 304 complaints (275 missed), 24 HDBSCAN
 groups; all 50 red-team playbooks produced complaints, 49 landed in a group, 19 are the majority of

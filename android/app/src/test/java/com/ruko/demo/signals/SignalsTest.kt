@@ -47,7 +47,10 @@ class SignalsTest {
         val scam = KeywordLureClassifier.classify("This is CBI. A warrant for your arrest is issued.")
         assertEquals("arrest_threat", scam.tag)
         assertTrue(scam.conf >= LURE_SEND_THRESHOLD)
-        assertTrue(KeywordLureClassifier.classify("Your refund is processed").conf < LURE_SEND_THRESHOLD)
+        val one = KeywordLureClassifier.classify("Your refund is processed")
+        assertTrue(one.conf < LURE_SEND_THRESHOLD)
+        assertEquals(LURE_UNCLEAR, one.tag) // one word: leaning to refund, not sure
+        assertEquals("refund", one.top)
         assertEquals("normal", KeywordLureClassifier.classify("Dinner at 8?").tag)
     }
 

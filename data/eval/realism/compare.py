@@ -4,7 +4,7 @@
     -> data/eval/realism/results.json
 
 --team is a folder written by `python -m sim.generate` (the full Parquet tables, git ignored).
---old-sim is optional: the root of Nikunj's Oct-17 prototype (ruko_sim), for the side-by-side.
+--old-sim is optional: the root of the Oct-17 prototype (ruko_sim), for the side-by-side.
 Real-data numbers (PaySim, Xente) come from real_baseline.json: summary stats only, no rows.
 On Windows use `;` instead of `:` in PYTHONPATH.
 """

@@ -27,6 +27,8 @@ class DeviceFeaturesTest {
     private val model = DeviceModel.parse(File(artifacts, "device_model.json").readText())
     private val cases = Json.parseToJsonElement(File(artifacts, "device_feature_vectors.json").readText()).jsonObject
     private val tol = cases.getValue("tolerance").jsonPrimitive.double
+    private val steps = StepVocab.parse(generateSequence(File("").absoluteFile) { it.parentFile }
+        .map { File(it, "contracts/steps.json") }.first { it.exists() }.readText())
 
     private fun JsonObject.d(k: String): Double? = (get(k) as? JsonElement)?.takeIf { it !is JsonNull }?.jsonPrimitive?.doubleOrNull
     private fun JsonObject.bool(k: String): Boolean? = (get(k) as? JsonElement)?.takeIf { it !is JsonNull }?.jsonPrimitive?.booleanOrNull
@@ -76,6 +78,13 @@ class DeviceFeaturesTest {
         assertEquals("$name: l", w.d("l"), got.l)
         assertEquals("$name: b", w.d("b"), got.b)
         assertEquals("$name: reasons", w.getValue("reasons").jsonArray.map { it.jsonPrimitive.content }, got.reasons)
+        // c2-0.14: the scam steps the phone saw and could not measure.
+        val wantSeen = w.getValue("steps_seen").jsonArray.map { s ->
+            val o = s.jsonObject
+            o.getValue("step").jsonPrimitive.content to o.d("min_ago")
+        }
+        assertEquals("$name: steps_seen", wantSeen, got.stepsSeen)
+        assertEquals("$name: steps_unmeasured", w.getValue("steps_unmeasured").jsonArray.map { it.jsonPrimitive.content }, got.stepsUnmeasured)
     }
 
     @Test
@@ -94,7 +103,7 @@ class DeviceFeaturesTest {
                 if (x is JsonNull) assertEquals("$name: $k", null, g)
                 else assertEquals("$name: $k", x.jsonPrimitive.double, g ?: Double.NaN, tol)
             }
-            val verdict = if (inputs.bool("any_shield") == true) DeviceVerdicts.of(model, got) else null
+            val verdict = if (inputs.bool("any_shield") == true) DeviceVerdicts.of(model, got, steps) else null
             checkVerdict(name, c.getValue("verdict"), verdict)
         }
     }
@@ -104,7 +113,7 @@ class DeviceFeaturesTest {
         for (v in cases.getValue("verdict_cases").jsonArray) {
             val c = v.jsonObject
             val features = c.getValue("features").jsonObject.mapValues { (_, x) -> if (x is JsonNull) null else x.jsonPrimitive.double }
-            checkVerdict(c.s("case")!!, c.getValue("verdict"), DeviceVerdicts.of(model, features))
+            checkVerdict(c.s("case")!!, c.getValue("verdict"), DeviceVerdicts.of(model, features, steps))
         }
     }
 

@@ -1,0 +1,9120 @@
+{
+ "version": "steps-0.1",
+ "about": "Test cases for the phone's step code: device features in, steps out -> contracts/examples/steps_vectors.json",
+ "cases": [
+  {
+   "case": "nothing_measured",
+   "features": {},
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     null,
+     null
+    ],
+    "sideload_24h": [
+     null,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     null,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "quiet_payment",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "whatsapp_call_now",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_call_voip": 1.0,
+    "dev_call_minutes": 38.0,
+    "dev_call_incoming": 1.0
+   },
+   "steps": {
+    "unknown_call": [
+     true,
+     0.0
+    ],
+    "voip_call": [
+     true,
+     0.0
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "called_unknown_number",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 1.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_call_unknown": 1.0,
+    "dev_call_incoming": 0.0,
+    "dev_call_minutes": 3.0
+   },
+   "steps": {
+    "unknown_call": [
+     true,
+     0.0
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     true,
+     0.0
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     true,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "cool_off_after_call",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_call_voip": 1.0,
+    "dev_call_ended_min_ago": 42.25
+   },
+   "steps": {
+    "unknown_call": [
+     true,
+     42.3
+    ],
+    "voip_call": [
+     true,
+     42.3
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     true,
+     42.3
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call_ended_too_long_ago",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_call_unknown": 1.0,
+    "dev_call_ended_min_ago": 400.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "remote_app_installed_recently",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 1.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_remote_min_ago": 119.95
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     true,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures_on_the_bar",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.6,
+    "dev_lure_kyc": 0.5999,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_lure_min_ago": 7.05,
+    "dev_lure_other_scam": 0.92,
+    "dev_lure_unclear": 1.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     true,
+     7.1
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "lure:other_scam": [
+     true,
+     7.1
+    ],
+    "lure:unclear": [
+     true,
+     7.1
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "task_episode_active",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 2.0,
+    "dev_ep_bait_credits": 3.0,
+    "dev_ep_escalation": 2.0,
+    "dev_first_time_payee": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     true,
+     null
+    ],
+    "escalating_payments": [
+     true,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "coached_session",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_sess_digits": 6.0,
+    "dev_sess_median_gap_s": 2.5,
+    "dev_sess_max_gap_s": 5.0,
+    "dev_sess_pasted": 1.0,
+    "dev_sess_paste_after_return_s": 20.0,
+    "dev_sess_app_switches": 2.0,
+    "dev_sess_pay_screen_s": 180.0,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     true,
+     0.0
+    ],
+    "paste_after_switch": [
+     true,
+     0.0
+    ],
+    "many_app_switches": [
+     true,
+     0.0
+    ],
+    "long_hesitation": [
+     true,
+     0.0
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "pasted_without_leaving",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_sess_pasted": 1.0,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_digits": 3.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "big_payment_for_this_user",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_amount_to_max": 1.5
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     true,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000343",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 1.0,
+    "dev_sideloaded_24h": 1.0,
+    "dev_lure_max": 0.93,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.93,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 296.5,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 4.769377326076138,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     true,
+     296.5
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     true,
+     null
+    ],
+    "sideload_24h": [
+     true,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000351",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 1.0,
+    "dev_sideloaded_24h": 1.0,
+    "dev_lure_max": 0.93,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.93,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 307.6,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 4.628388930050312,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 1.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     true,
+     307.6
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     true,
+     null
+    ],
+    "sideload_24h": [
+     true,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000356",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 1.0,
+    "dev_sideloaded_24h": 1.0,
+    "dev_lure_max": 0.93,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.93,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 314.5,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 3.7558748556724915,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 2.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 2.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     true,
+     314.5
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     true,
+     null
+    ],
+    "sideload_24h": [
+     true,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000596",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 4.267171728403014,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 5.0,
+    "dev_sess_median_gap_s": 6.0,
+    "dev_sess_max_gap_s": 10.5,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 1.0,
+    "dev_sess_paste_after_return_s": 8.3,
+    "dev_sess_app_switches": 3.0,
+    "dev_sess_away_s": 64.2,
+    "dev_sess_pay_screen_s": 380.4,
+    "dev_sess_abandoned_30m": 1.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     true,
+     0.0
+    ],
+    "paste_after_switch": [
+     true,
+     0.0
+    ],
+    "many_app_switches": [
+     true,
+     0.0
+    ],
+    "long_hesitation": [
+     true,
+     0.0
+    ],
+    "abandoned_tries": [
+     true,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000604",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 4.960946195733832,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 1.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 5.0,
+    "dev_sess_median_gap_s": 5.3,
+    "dev_sess_max_gap_s": 7.9,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 1.0,
+    "dev_sess_paste_after_return_s": 10.6,
+    "dev_sess_app_switches": 3.0,
+    "dev_sess_away_s": 108.6,
+    "dev_sess_pay_screen_s": 86.8,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     true,
+     0.0
+    ],
+    "paste_after_switch": [
+     true,
+     0.0
+    ],
+    "many_app_switches": [
+     true,
+     0.0
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000606",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 5.0,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 2.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 2.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 6.0,
+    "dev_sess_median_gap_s": 0.7,
+    "dev_sess_max_gap_s": 1.1,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 16.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000610",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 3.433289685195026,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 4.0,
+    "dev_sess_median_gap_s": 1.7,
+    "dev_sess_max_gap_s": 3.7,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 1.0,
+    "dev_sess_paste_after_return_s": 7.0,
+    "dev_sess_app_switches": 2.0,
+    "dev_sess_away_s": 83.2,
+    "dev_sess_pay_screen_s": 96.4,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     true,
+     0.0
+    ],
+    "many_app_switches": [
+     true,
+     0.0
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "scam t_0000611",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 4.724275869600789,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 3.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 3.0,
+    "dev_out_24h": 3.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 5.0,
+    "dev_sess_median_gap_s": 0.9,
+    "dev_sess_max_gap_s": 2.0,
+    "dev_sess_gap_vs_usual": 0.2,
+    "dev_sess_edits": 1.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 28.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000027",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 2.1,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.9232440186302764,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 0.8,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 2.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 11.1,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000033",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 13.0,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 3.594060901270418,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 4.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.3,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 1.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 1.0,
+    "dev_sess_away_s": 26.5,
+    "dev_sess_pay_screen_s": 34.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000049",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 17.9,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 3.450864692379766,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 4.0,
+    "dev_sess_median_gap_s": 1.0,
+    "dev_sess_max_gap_s": 1.5,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 29.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000097",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 9.0,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.824776462475546,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 0.9,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 2.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 27.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000125",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 19.3,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 3.4496326504700745,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 4.0,
+    "dev_sess_median_gap_s": 0.3,
+    "dev_sess_max_gap_s": 0.7,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 16.7,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000159",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 1.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": 21.9,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.380211241711606,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.7,
+    "dev_sess_max_gap_s": 1.2,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 15.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     true,
+     21.9
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     true,
+     21.9
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000181",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 1.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": 7.3,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.093421685162235,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     true,
+     7.3
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     true,
+     7.3
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "call t_0000222",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": 13.1,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.52,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.52,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 789.2,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.919078092376074,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.4,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 6.5,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000221",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.51,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.51,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 439.0,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.4578818967339924,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000244",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.51,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.51,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 503.6,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.6748611407378116,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000294",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.52,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.52,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 960.7,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.568201724066995,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.3,
+    "dev_sess_max_gap_s": 0.4,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 1.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 1.0,
+    "dev_sess_away_s": 40.0,
+    "dev_sess_pay_screen_s": 23.6,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000319",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.64,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.64,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 507.8,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.9294189257142926,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.3,
+    "dev_sess_max_gap_s": 0.5,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 2.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 22.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     true,
+     507.8
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000363",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.51,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.51,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 709.9,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.8055008581584002,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 2.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000400",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.9,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.9,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 740.8,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.0681858617461617,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 1.0,
+    "dev_sess_max_gap_s": 1.6,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 21.0,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     true,
+     740.8
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000403",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.51,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.51,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 824.4,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.9708116108725178,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 3.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 3.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "lures t_0000435",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.65,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.65,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 576.1,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.9084850188786497,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 1.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.4,
+    "dev_sess_max_gap_s": 0.7,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 5.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     true,
+     576.1
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002840",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.174,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 405.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 1.8573324964312685,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 6.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002844",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.054,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 263.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 1.7781512503836436,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 9.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 1.1,
+    "dev_sess_gap_vs_usual": 1.0,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 27.3,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002846",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.158,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 286.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 2.103803720955957,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 12.0,
+    "dev_amount_to_p95": 0.311,
+    "dev_amount_to_max": 0.236,
+    "dev_amount_to_median": 1.283,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 4.0,
+    "dev_hour_share": 0.083,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002876",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.87,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.87,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 4107.2,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.074,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 226.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 2.4424797690644486,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 10.0,
+    "dev_amount_to_p95": 0.237,
+    "dev_amount_to_max": 0.216,
+    "dev_amount_to_median": 1.345,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": 0.1,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     true,
+     4107.2
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002906",
+   "features": {
+    "dev_call_active": 1.0,
+    "dev_call_voip": 0.0,
+    "dev_call_unknown": 0.0,
+    "dev_call_incoming": 1.0,
+    "dev_call_minutes": 13.9,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": 0.0,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.286,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 405.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 3.2757719001649312,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 7.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     true,
+     0.0
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002954",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.89,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.89,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 1.0,
+    "dev_lure_min_ago": 81.7,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.618,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 431.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 1.9590413923210936,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 7.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     true,
+     81.7
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002956",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.091,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 475.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 3.339848783037637,
+    "dev_entry_typed": 1.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 11.0,
+    "dev_amount_to_p95": 0.883,
+    "dev_amount_to_max": 0.597,
+    "dev_amount_to_median": 8.04,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 4.0,
+    "dev_hour_share": 0.182,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "episode t_0002971",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 1.0,
+    "dev_ep_age_days": 0.097,
+    "dev_ep_bait_credits": 1.0,
+    "dev_ep_bait_inr": 257.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": 0.0,
+    "dev_ep_payee_seen": 0.0,
+    "dev_amount_log10": 3.3738311450738303,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 12.0,
+    "dev_amount_to_p95": 4.655,
+    "dev_amount_to_max": 4.164,
+    "dev_amount_to_median": 24.256,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": 0.25,
+    "dev_sess_digits": 4.0,
+    "dev_sess_median_gap_s": 0.9,
+    "dev_sess_max_gap_s": 1.6,
+    "dev_sess_gap_vs_usual": 0.8,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 10.1,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     true,
+     null
+    ],
+    "episode_watching": [
+     true,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     true,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001697",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.2041199826559246,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 10.0,
+    "dev_amount_to_p95": 0.017,
+    "dev_amount_to_max": 0.01,
+    "dev_amount_to_median": 1.06,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": 0.0,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.5,
+    "dev_sess_gap_vs_usual": 1.0,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 1.0,
+    "dev_sess_away_s": 9.1,
+    "dev_sess_pay_screen_s": 21.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001805",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.6532125137753437,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 10.0,
+    "dev_amount_to_p95": 0.004,
+    "dev_amount_to_max": 0.002,
+    "dev_amount_to_median": 0.134,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": 0.0,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.3,
+    "dev_sess_gap_vs_usual": 1.0,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 21.6,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001841",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.0,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 11.0,
+    "dev_amount_to_p95": 0.011,
+    "dev_amount_to_max": 0.006,
+    "dev_amount_to_median": 0.625,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": 0.273,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.3,
+    "dev_sess_gap_vs_usual": 1.0,
+    "dev_sess_edits": 2.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 18.0,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001920",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.792391689498254,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 10.0,
+    "dev_amount_to_p95": 0.007,
+    "dev_amount_to_max": 0.005,
+    "dev_amount_to_median": 0.626,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": 0.1,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 1.2,
+    "dev_sess_max_gap_s": 1.9,
+    "dev_sess_gap_vs_usual": 0.7,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 19.9,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001938",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.75815462196739,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 0.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 1.0,
+    "dev_hist_n": 11.0,
+    "dev_amount_to_p95": 0.063,
+    "dev_amount_to_max": 0.047,
+    "dev_amount_to_median": 6.228,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 3.0,
+    "dev_hour_share": 0.0,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 1.6,
+    "dev_sess_max_gap_s": 2.6,
+    "dev_sess_gap_vs_usual": 1.1,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 23.0,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001942",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.4712917110589387,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 11.0,
+    "dev_amount_to_p95": 0.029,
+    "dev_amount_to_max": 0.016,
+    "dev_amount_to_median": 1.069,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 1.0,
+    "dev_hour_share": 0.182,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.3,
+    "dev_sess_max_gap_s": 0.7,
+    "dev_sess_gap_vs_usual": 1.5,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 28.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001949",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.5010592622177517,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 12.0,
+    "dev_amount_to_p95": 0.039,
+    "dev_amount_to_max": 0.019,
+    "dev_amount_to_median": 2.113,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 2.0,
+    "dev_hour_share": 0.083,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.4,
+    "dev_sess_gap_vs_usual": 1.0,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 14.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "warm t_0001981",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.6866362692622934,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 0.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 10.0,
+    "dev_amount_to_p95": 0.037,
+    "dev_amount_to_max": 0.023,
+    "dev_amount_to_median": 0.844,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 3.0,
+    "dev_hour_share": 0.1,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     false,
+     null
+    ],
+    "amount_unusual": [
+     false,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000004",
+   "features": {
+    "dev_call_active": null,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.9030899869919435,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": null,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": null,
+    "dev_sess_median_gap_s": null,
+    "dev_sess_max_gap_s": null,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": null,
+    "dev_sess_pasted": null,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": null,
+    "dev_sess_away_s": null,
+    "dev_sess_pay_screen_s": null,
+    "dev_sess_abandoned_30m": null
+   },
+   "steps": {
+    "unknown_call": [
+     null,
+     null
+    ],
+    "voip_call": [
+     null,
+     null
+    ],
+    "call_out_to_unknown": [
+     null,
+     null
+    ],
+    "long_call": [
+     null,
+     null
+    ],
+    "foreign_call": [
+     null,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     null,
+     null
+    ],
+    "paste_after_switch": [
+     null,
+     null
+    ],
+    "many_app_switches": [
+     null,
+     null
+    ],
+    "long_hesitation": [
+     null,
+     null
+    ],
+    "abandoned_tries": [
+     null,
+     null
+    ],
+    "paid_after_call": [
+     null,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000005",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.1271047983648077,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 0.6,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 24.6,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000006",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.8920946026904804,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.6,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 24.3,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000007",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.8512583487190752,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.7,
+    "dev_sess_max_gap_s": 1.7,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 1.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 16.1,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000008",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.7737864449811935,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 0.7,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 17.7,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000009",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 1.9138138523837167,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 2.0,
+    "dev_sess_median_gap_s": 0.5,
+    "dev_sess_max_gap_s": 1.1,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 20.2,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000010",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": 0.0,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": 0.0,
+    "dev_lure_arrest": 0.0,
+    "dev_lure_kyc": 0.0,
+    "dev_lure_task": 0.0,
+    "dev_lure_trading": 0.0,
+    "dev_lure_refund": 0.0,
+    "dev_lure_count_72h": 0.0,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": 0.0,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": 0.0,
+    "dev_ep_bait_inr": 0.0,
+    "dev_ep_outs": 0.0,
+    "dev_ep_new_payees": 0.0,
+    "dev_ep_escalation": 0.0,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.754348335711019,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.2,
+    "dev_sess_max_gap_s": 0.5,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 1.0,
+    "dev_sess_away_s": 59.4,
+    "dev_sess_pay_screen_s": 40.5,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     false,
+     null
+    ],
+    "lure:kyc": [
+     false,
+     null
+    ],
+    "lure:task_job": [
+     false,
+     null
+    ],
+    "lure:trading_tip": [
+     false,
+     null
+    ],
+    "lure:refund": [
+     false,
+     null
+    ],
+    "bait_credit": [
+     false,
+     null
+    ],
+    "episode_watching": [
+     false,
+     null
+    ],
+    "episode_active": [
+     false,
+     null
+    ],
+    "escalating_payments": [
+     false,
+     null
+    ],
+    "remote_control": [
+     false,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "case": "other t_0000012",
+   "features": {
+    "dev_call_active": 0.0,
+    "dev_call_voip": null,
+    "dev_call_unknown": null,
+    "dev_call_incoming": null,
+    "dev_call_minutes": null,
+    "dev_call_ended_min_ago": null,
+    "dev_call_foreign": null,
+    "dev_remote_installed": 0.0,
+    "dev_remote_min_ago": null,
+    "dev_screen_recorded": null,
+    "dev_accessibility": 0.0,
+    "dev_sideloaded_24h": 0.0,
+    "dev_lure_max": null,
+    "dev_lure_arrest": null,
+    "dev_lure_kyc": null,
+    "dev_lure_task": null,
+    "dev_lure_trading": null,
+    "dev_lure_refund": null,
+    "dev_lure_count_72h": null,
+    "dev_lure_min_ago": null,
+    "dev_ep_state": null,
+    "dev_ep_age_days": null,
+    "dev_ep_bait_credits": null,
+    "dev_ep_bait_inr": null,
+    "dev_ep_outs": null,
+    "dev_ep_new_payees": null,
+    "dev_ep_escalation": null,
+    "dev_ep_out_to_in": null,
+    "dev_ep_payee_seen": null,
+    "dev_amount_log10": 2.5118833609788744,
+    "dev_entry_typed": 0.0,
+    "dev_entry_qr": 1.0,
+    "dev_first_time_payee": 1.0,
+    "dev_payee_in_contacts": 0.0,
+    "dev_hist_n": 0.0,
+    "dev_amount_to_p95": null,
+    "dev_amount_to_max": null,
+    "dev_amount_to_median": null,
+    "dev_out_1h": 0.0,
+    "dev_out_24h": 0.0,
+    "dev_hour_share": null,
+    "dev_sess_digits": 3.0,
+    "dev_sess_median_gap_s": 0.7,
+    "dev_sess_max_gap_s": 1.3,
+    "dev_sess_gap_vs_usual": null,
+    "dev_sess_edits": 0.0,
+    "dev_sess_pasted": 0.0,
+    "dev_sess_paste_after_return_s": null,
+    "dev_sess_app_switches": 0.0,
+    "dev_sess_away_s": 0.0,
+    "dev_sess_pay_screen_s": 30.7,
+    "dev_sess_abandoned_30m": 0.0
+   },
+   "steps": {
+    "unknown_call": [
+     false,
+     null
+    ],
+    "voip_call": [
+     false,
+     null
+    ],
+    "call_out_to_unknown": [
+     false,
+     null
+    ],
+    "long_call": [
+     false,
+     null
+    ],
+    "foreign_call": [
+     false,
+     null
+    ],
+    "lure:arrest_threat": [
+     null,
+     null
+    ],
+    "lure:kyc": [
+     null,
+     null
+    ],
+    "lure:task_job": [
+     null,
+     null
+    ],
+    "lure:trading_tip": [
+     null,
+     null
+    ],
+    "lure:refund": [
+     null,
+     null
+    ],
+    "bait_credit": [
+     null,
+     null
+    ],
+    "episode_watching": [
+     null,
+     null
+    ],
+    "episode_active": [
+     null,
+     null
+    ],
+    "escalating_payments": [
+     null,
+     null
+    ],
+    "remote_control": [
+     null,
+     null
+    ],
+    "untrusted_accessibility": [
+     false,
+     null
+    ],
+    "sideload_24h": [
+     false,
+     null
+    ],
+    "dictated_amount": [
+     false,
+     null
+    ],
+    "paste_after_switch": [
+     false,
+     null
+    ],
+    "many_app_switches": [
+     false,
+     null
+    ],
+    "long_hesitation": [
+     false,
+     null
+    ],
+    "abandoned_tries": [
+     false,
+     null
+    ],
+    "paid_after_call": [
+     false,
+     null
+    ],
+    "new_payee": [
+     true,
+     null
+    ],
+    "amount_unusual": [
+     null,
+     null
+    ]
+   }
+  }
+ ]
+}
