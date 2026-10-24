@@ -4,6 +4,15 @@ version: policy-0.1
 family_threshold: 0.5            # a family "lights" at this score
 corroboration_min_families: 2    # fewer lit families -> T0, whatever p_scam says
 
+# When a completed payment here (c2-0.6) counts the payee as "known" (so new-payee signals drop).
+# Defeats "known-payee poisoning": a tiny recent anchor payment must NOT make a mule look known.
+# The bank's own history (base.known_payees) is always trusted; this gates only the in-app shortcut.
+known_payee:
+  min_age_hours: 48              # the anchor payment must be at least this old
+  min_inr: 500                  # ...and at least this large (a sub-cap anchor never qualifies)
+  anchor_window_hours: 72       # a small completed payment this recent to the same payee,
+  anchor_max_inr: 200           # at or below this amount, is an "anchor" -> a behaviour signal
+
 # Walked from T4 down; the first match wins.
 tiers:
   T4: {min_p: 0.90, min_families: 3, requires_intel_hit: true}   # analyst review
@@ -19,6 +28,10 @@ tiers:
 approved_playbooks:
   min_tier: T2                   # explain card, slide to pay: a warning, never a block
   min_condition_families: 2
+
+# A payee two analysts approved as a mule (rule 11) always warrants a pause, even if it is the only
+# lit family — it is human-verified, so it cannot be a false registry entry (audit §2.6).
+approved_mule_min_tier: T3
 
 amount_caps:
   - {below: 200, max_tier: T1}
@@ -38,6 +51,9 @@ alert_budget:
   # registry): fatigue is about the user's nerves, not about who receives the money. Without
   # this, the same payment to the same mule got T2 twice and then T1 for good.
   never_applies_with_families: [P]
+  # Never throttle an anchor-then-drain attempt: a small recent payment to this payee is a live scam
+  # signal, not user nerves (defeats alert-budget exhaustion, audit §2.6).
+  never_applies_with_anchor: true
 
 pause_minutes: {T0: 0, T1: 0, T2: 0, T3: 30, T4: 60}
 

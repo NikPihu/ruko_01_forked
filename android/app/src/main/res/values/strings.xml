@@ -442,4 +442,14 @@
     <string name="msg_tag_task_job">fake task or job offer</string>
     <string name="msg_tag_trading_tip">fake investment tip</string>
     <string name="msg_tag_other">known scam</string>
+    <!-- Money received, read by the watcher from bank SMS alerts (History) -->
+    <string name="history_received">Received</string>
+    <string name="history_received_source">from your bank\'s SMS</string>
+    <string name="history_received_note">Money you received also appears here: Scam Shield reads it from your bank\'s SMS alerts and keeps only the amount, the sender\'s UPI ID and the time, for 30 days.</string>
+    <string name="history_received_off">Turn on \"Watch my money alerts\" in Profile to see money you receive here as well.</string>
+    <string name="history_received_unknown_sender">Sender not named in the SMS</string>
+    <string name="history_from">From</string>
+    <string name="history_received_detail">Read from your bank\'s SMS alert on this phone. The SMS text is never stored or sent.</string>
+    <string name="consent_share_received">Share money I receive with Scam Shield</string>
+    <string name="consent_share_received_desc">Sends each credit your money alerts show (the amount, the sender\'s UPI ID and the time) so Scam Shield\'s analysts can see money coming in. Never your SMS text.</string>
 </resources>

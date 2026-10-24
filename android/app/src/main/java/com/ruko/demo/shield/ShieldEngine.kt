@@ -24,7 +24,8 @@ object ShieldEngine {
     @Serializable
     data class Transition(val trigger: String, val episodeId: String?, val ts: Long, val txn: MoneyTxn? = null)
 
-    data class Result(val data: ShieldData, val alerts: List<Alert>, val transitions: List<Transition>)
+    /** [fresh]: the transactions this call took as new (a repeated alert is not), oldest first. */
+    data class Result(val data: ShieldData, val alerts: List<Alert>, val transitions: List<Transition>, val fresh: List<MoneyTxn> = emptyList())
 
     const val MAX_ALERTS_PER_WEEK = 2
     private const val SAME_ALERT_MS = 2 * 60_000L
@@ -36,7 +37,8 @@ object ShieldEngine {
         val transitions = ArrayList<Transition>()
         // The SMS receiver and the catch-up scan can both see the same alert; keep the first.
         val fresh = txns.filter { t -> data.watcher.history.none { h -> sameAlert(h, t) } }
-        for (t in fresh.distinctBy { listOf(it.flow, it.amount, it.counterparty, it.fromSms, it.ts / SAME_ALERT_MS) }.sortedBy { it.ts }) {
+            .distinctBy { listOf(it.flow, it.amount, it.counterparty, it.fromSms, it.ts / SAME_ALERT_MS) }.sortedBy { it.ts }
+        for (t in fresh) {
             val before = tr.episode
             tr.add(t)
             diff(before, tr.episode, t, t.ts, transitions, alerts)
@@ -44,7 +46,7 @@ object ShieldEngine {
         val before = tr.episode
         tr.summary(now) // closes a quiet episode
         diff(before, tr.episode, null, now, transitions, alerts)
-        return finish(data, tr, alerts, transitions, now)
+        return finish(data, tr, alerts, transitions, now).copy(fresh = fresh)
     }
 
     /** The user tapped "I know them / it's a real job". */

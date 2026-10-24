@@ -122,6 +122,14 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("B", 0.4, "R7_tranche_pattern")
     if (f["new_payee_sum_to_max_90d"] or 0) >= 3 and run >= 1:
         add("B", 0.6, "R7_tranche_pattern")
+    # Anchor-then-drain: a small recent payment to this payee, now a bigger one — the "gate pass /
+    # slot fee" trick that tries to make a mule look like a known payee (audit §2.1).
+    if f.get("payee_micro_anchor") and (f["amount_to_max_90d"] is None or f["amount_to_max_90d"] >= 1.0):
+        add("B", 0.6, "R7_tranche_pattern")
+    # Salami slicing: many small payments (any payee, QR/contact) that add up well past the user's
+    # usual, even when no single one looks unusual (audit §2.5).
+    if (f.get("outflow_24h_to_max_90d") or 0) >= 1.5:
+        add("B", 0.5, "R7_tranche_pattern")
     # Coached session (c2-0.5): the Pay screen was used the way a guided victim uses it.
     if f["session_dictated"]:
         add("B", 0.6, "R12_coached_session")

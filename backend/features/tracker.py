@@ -39,6 +39,7 @@ class Session:
     episode_hooked: bool = False   # the phone's task-scam episode is ACTIVE
     long_call: bool = False        # the phone reported a long call with an unknown caller (watch event)
     attempts: list[Attempt] = field(default_factory=list)
+    recent_out: list[tuple[datetime, float]] = field(default_factory=list)  # new-payee payments, for 24h cumulative outflow
     stage_path: list[tuple[str, datetime]] = field(default_factory=list)
 
 
@@ -50,6 +51,7 @@ class TrackerState:
     on_call: bool | None
     attempts_72h: int          # earlier attempts to new payees in the window, not counting this one
     new_payee_sum_72h: float   # including this one
+    outflow_24h: float         # payments to new/unknown payees in the last 24h, any entry method (incl. this one)
     payee_in_run: bool         # this payee is new, or one of those earlier new payees
     minutes_since_first_contact: float | None
 
@@ -102,6 +104,14 @@ class StageTracker:
         earlier_new = [a for a in s.attempts if a.new_payee]
         if new_payee:
             s.attempts.append(Attempt(now, req.payee_upi_id, req.amount_inr, True))
+        # Cumulative 24h outflow to new/unknown payees, across every entry method: salami-sliced
+        # draining (many small QR/contact tranches) is caught even when no single payment looks
+        # unusual. Payments to established payees (the bank's history) are excluded, so paying a
+        # known landlord in instalments does not light this.
+        s.recent_out = [(t, a) for t, a in s.recent_out if t > now - timedelta(hours=24)]
+        if new_payee:
+            s.recent_out.append((now, req.amount_inr))
+        outflow_24h = sum(a for _, a in s.recent_out)
         stage = self._stage(s, call, new_payee, earlier_new)
         if not s.stage_path or s.stage_path[-1][0] != stage:
             s.stage_path.append((stage, now))
@@ -110,6 +120,7 @@ class StageTracker:
             stage=stage, stage_path=list(s.stage_path), on_call=on_call,
             attempts_72h=len(earlier_new),
             new_payee_sum_72h=sum(a.amount for a in s.attempts if a.new_payee),
+            outflow_24h=outflow_24h,
             payee_in_run=new_payee or any(a.payee == req.payee_upi_id for a in earlier_new),
             minutes_since_first_contact=(now - first).total_seconds() / 60 if first else None,
         )

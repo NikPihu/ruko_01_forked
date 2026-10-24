@@ -118,6 +118,13 @@ def test_watch_response_and_my_payments_validate():
     assert mp.payments[0].status == "cancelled"
 
 
+def test_money_received_examples_validate():
+    from schema.events import MoneyReceived, MoneyReceivedResponse
+    m = MoneyReceived.model_validate(load("money_received.json"))
+    r = MoneyReceivedResponse.model_validate(load("money_received_response.json"))
+    assert r.event_id == m.event_id and r.contract_version == CONTRACT_VERSION
+
+
 def test_watch_event_never_carries_text():
     from schema.events import WatchEvent
     with pytest.raises(ValidationError):

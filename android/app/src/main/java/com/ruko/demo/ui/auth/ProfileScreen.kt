@@ -83,10 +83,10 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         ConsentRow(R.string.consent_session, R.string.consent_session_desc, c.sessionSignals) { vm.updateConsents(c.copy(sessionSignals = it)) }
         ConsentRow(R.string.consent_sms, R.string.consent_sms_desc, c.smsLure) {
             // Watching money alerts needs SMS checks; switching SMS off switches it off too.
-            vm.updateConsents(c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it))
+            vm.updateConsents(c.copy(smsLure = it, moneyWatch = c.moneyWatch && it, shareAccounts = c.shareAccounts && it, shareReceived = c.shareReceived && it))
         }
         ConsentRow(R.string.consent_watch, R.string.consent_watch_desc, c.moneyWatch) {
-            vm.updateConsents(c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it))
+            vm.updateConsents(c.copy(moneyWatch = it, smsLure = c.smsLure || it, shareAccounts = c.shareAccounts && it, shareReceived = c.shareReceived && it))
         }
         ConsentRow(R.string.consent_chat, R.string.consent_chat_desc, c.chatLure) {
             vm.updateConsents(c.copy(chatLure = it))
@@ -100,6 +100,7 @@ fun ProfileScreen(vm: AuthViewModel, onBack: () -> Unit) {
         ConsentRow(R.string.consent_early, R.string.consent_early_desc, c.earlyWarnings) { vm.updateConsents(c.copy(earlyWarnings = it)) }
         if (c.moneyWatch) {
             ConsentRow(R.string.consent_share, R.string.consent_share_desc, c.shareAccounts) { vm.updateConsents(c.copy(shareAccounts = it)) }
+            ConsentRow(R.string.consent_share_received, R.string.consent_share_received_desc, c.shareReceived) { vm.updateConsents(c.copy(shareReceived = it)) }
             KeepRunningRow()
             TextButton(onClick = { askDeleteHistory = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.profile_delete_history), color = CacheColors.Warning, style = MaterialTheme.typography.titleMedium)

@@ -33,7 +33,7 @@ class WatchPolicyTest {
 
     @Test
     fun lureNeedsTheSendThresholdAndKeepsQuietAfter() {
-        assertNull(WatchPolicy.event(Sighting.Lure("kyc", 0.4, "sms", null), rules, now, none))
+        assertNull(WatchPolicy.event(Sighting.Lure("kyc", rules.lureMinConf - 0.05, "sms", null), rules, now, none))
         assertNull(WatchPolicy.event(Sighting.Lure("normal", 0.99, "sms", null), rules, now, none))
         val (e, key) = WatchPolicy.event(Sighting.Lure("kyc", 0.876, "notification", true), rules, now, none)!!
         assertEquals(WatchKind.LURE_SEEN, e.kind)

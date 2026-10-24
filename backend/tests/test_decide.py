@@ -294,6 +294,36 @@ def test_alert_budget_never_applies_when_the_payee_family_is_lit():
     assert _calm_day_tiers({"B": 0.8, "L": 0, "C": 0, "P": 0.9}) == ["T2", "T2", "T2", "T2"]
 
 
+def _policy_tier(families, p_scam=0.6, **feat):
+    """The policy alone for one payment (stage S1, no control), with feature overrides."""
+    from api.policy import Policy
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None,
+         "payee_approved_suspect": False, "payee_micro_anchor": False, **feat}
+    s = {"p_scam": p_scam, "family_scores": families, "playbook": None}
+    return Policy().decide(s, f, "S1", False, "u", NOW)
+
+
+def test_approved_mule_floors_to_a_pause_even_as_the_only_family():
+    """Hardened (audit §2.6): a two-analyst-approved mule pauses even with no second family lit."""
+    d = _policy_tier({"B": 0, "L": 0, "C": 0, "P": 0}, p_scam=0.1, payee_approved_suspect=True)
+    assert d.tier == "T3" and "approved_mule_floor" in d.applied
+    # A plain single-family case with no approved mule still passes silently (corroboration gate).
+    assert _policy_tier({"P": 0.9, "B": 0, "L": 0, "C": 0}, p_scam=0.8).tier == "T0"
+
+
+def test_alert_budget_not_applied_during_an_anchor_pattern():
+    """An anchor-then-drain keeps interrupting; it is not treated as alert fatigue (audit §2.6)."""
+    from api.policy import Policy
+    pol = Policy()
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None,
+         "payee_approved_suspect": False, "payee_micro_anchor": True}
+    s = {"p_scam": 0.6, "family_scores": {"B": 0.8, "L": 0.85, "C": 0, "P": 0}, "playbook": None}
+    tiers = [pol.decide(s, f, "S1", False, "u_anchor", NOW + timedelta(days=i)).tier for i in range(4)]
+    assert tiers == ["T2", "T2", "T2", "T2"]
+
+
 def test_alert_budget_never_silences_a_risky_payee(engine, mock, world):
     """The same calm days, but the payee is the mule-like demo account: every one is interrupted."""
     pump(mock[1], world)
@@ -522,7 +552,9 @@ def test_unknown_contacts_are_not_softened(engine, world):
     assert "R6_new_payee_typed" in r["reasons"]
 
 
-def test_payee_paid_here_before_is_known(engine, world):
+def test_payee_paid_here_is_known_only_after_a_holding_period(engine, world):
+    """Hardened (audit §2.1): a completed payment makes the payee "known" only once it is aged and
+    non-trivial. A fresh payment does not, so a tiny/recent "anchor" cannot launder a mule."""
     user, payee, amount = _new_payee_case(world, 2)
     first = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
                                                context={"lures": LURE}, rid="p_first")).json()
@@ -530,9 +562,56 @@ def test_payee_paid_here_before_is_known(engine, world):
     engine.post("/v1/payment/outcome", json={"request_id": "p_first", "user_id": user, "payee_upi_id": payee,
                                              "amount_inr": amount, "status": "completed",
                                              "ts": (NOW + timedelta(minutes=2)).isoformat()})
-    again = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
-                                               context={"lures": LURE}, rid="p_again",
-                                               ts=NOW + timedelta(hours=2))).json()
-    assert "R6_new_payee_typed" not in again["reasons"]
-    if again["evidence_id"]:
-        assert engine.get(f"/v1/evidence/{again['evidence_id']}").json()["features"]["first_time_payee"] is False
+    # Two hours later the payee is still NEW: a just-completed payment does not grant known status.
+    soon = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                              context={"lures": LURE}, rid="p_soon",
+                                              ts=NOW + timedelta(hours=2))).json()
+    assert "R6_new_payee_typed" in soon["reasons"]
+    # After the holding period (>= 48 h) the aged payment counts, and the payee is known.
+    later = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_later",
+                                               ts=NOW + timedelta(hours=49))).json()
+    assert "R6_new_payee_typed" not in later["reasons"]
+    if later["evidence_id"]:
+        assert engine.get(f"/v1/evidence/{later['evidence_id']}").json()["features"]["first_time_payee"] is False
+
+
+def test_salami_slicing_adds_up(engine, world):
+    """Small QR payments to new payees in a day add up past the user's usual, so the cumulative
+    outflow lights behaviour even though no single payment is unusual (audit §2.5). With a scam
+    message also seen, the two families together interrupt."""
+    users = world[1]["users"].set_index("user_id")
+    user = users_in(world)[15]
+    base = baseline(world, user)
+    fresh = [users.loc[u].upi_id for u in users_in(world, "Delhi")
+             if users.loc[u].upi_id not in base.known_payees][:4]
+    each = round(base.max_90d * 0.6)  # each below 1x the usual max; four of them are well above
+    last = {}
+    for i, payee in enumerate(fresh):
+        last = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=each, entry="qr",
+                                                  context={"lures": LURE}, rid=f"sl_{i}",
+                                                  ts=NOW + timedelta(minutes=10 * i))).json()
+    # The cumulative outflow to new payees is well over the user's biggest-ever payment...
+    assert engine.get(f"/v1/evidence/{last['evidence_id']}").json()["features"]["outflow_24h_to_max_90d"] >= 1.5
+    # ...and with the scam message (L) it corroborates into an interruption naming the tranche pattern.
+    assert last["tier"] in ("T2", "T3", "T4") and "R7_tranche_pattern" in last["reasons"]
+
+
+def test_anchor_then_drain_is_flagged(engine, world):
+    """A tiny sub-cap "gate pass" payment, then a drain to the same mule, is an anchor pattern that
+    no longer launders the payee (known-payee poisoning, audit §2.1)."""
+    user, payee, amount = _new_payee_case(world, 4)
+    anchor = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=150, entry="typed",
+                                                context={"lures": LURE}, rid="p_anchor")).json()
+    assert anchor["tier"] in ("T0", "T1")  # a sub-200 payment is capped, never interruptive
+    engine.post("/v1/payment/outcome", json={"request_id": "p_anchor", "user_id": user, "payee_upi_id": payee,
+                                             "amount_inr": 150, "status": "completed",
+                                             "ts": (NOW + timedelta(minutes=2)).isoformat()})
+    drain = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_drain",
+                                               ts=NOW + timedelta(minutes=30))).json()
+    # The drain still sees a new payee (not laundered) and the anchor pattern.
+    assert "R6_new_payee_typed" in drain["reasons"]
+    if drain["evidence_id"]:
+        feats = engine.get(f"/v1/evidence/{drain['evidence_id']}").json()["features"]
+        assert feats["first_time_payee"] is True and feats["payee_micro_anchor"] is True

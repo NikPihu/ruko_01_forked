@@ -49,9 +49,9 @@ from store.db import TxnStore
 from api.explain import explain
 from patterns import emerging
 from api.feedback import FeedbackService, alert_health
-from schema.events import (CONTRACT_VERSION, DecideRequest, FraudType, DecideResponse, EpisodeEvent, EpisodeEventResponse,
-                           Feedback, FeedbackResponse, MyPayment, MyPayments, PaymentOutcome,
-                           PaymentOutcomeResponse, Threat, WatchEvent, WatchEventResponse)
+from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
+                           Feedback, FeedbackResponse, FraudType, MoneyReceived, MoneyReceivedResponse, MyPayment,
+                           MyPayments, PaymentOutcome, PaymentOutcomeResponse, Threat, WatchEvent, WatchEventResponse)
 from features.tracker import StageTracker
 
 log = logging.getLogger("ruko")
@@ -179,8 +179,13 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
         is_trusted = upi in trusted.get(req.user_id, set())
-        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
-        paid_here = graph.paid_before(req.user_id, upi, req.ts)
+        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6) —
+        # but only a real, aged payment, not a tiny recent "anchor" (known-payee poisoning, audit §2.1).
+        kp = policy.cfg.get("known_payee", {})
+        paid_here = graph.known_payee(req.user_id, upi, req.ts,
+                                      kp.get("min_age_hours", 48), kp.get("min_inr", 500))
+        micro_anchor = not paid_here and graph.micro_anchor(
+            req.user_id, upi, req.ts, kp.get("anchor_window_hours", 72), kp.get("anchor_max_inr", 200))
         state = tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not is_trusted)
         ms["tracker"] = (time.perf_counter() - t) * 1000
 
@@ -197,7 +202,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
-        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here,
+                               micro_anchor=micro_anchor)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -309,6 +315,17 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         if recorded:
             persist(store.record_outcome, o.request_id, o.status, ts)
         return PaymentOutcomeResponse(request_id=o.request_id, status=status, recorded=recorded)
+
+    @app.post("/v1/payment/received", response_model=MoneyReceivedResponse)
+    def payment_received(m: MoneyReceived) -> MoneyReceivedResponse:
+        """Money the user received, read from a bank SMS on the phone (c2-0.11, opt-in). Stored for the
+        console only: it does not feed /v1/decide or the payment graph. A repeated event_id is not
+        recorded twice."""
+        ts = m.ts
+        if clock["offset"] is not None:
+            ts = datetime.now(m.ts.tzinfo) + clock["offset"]
+        recorded = store.record_received(m.event_id, m.user_id, m.sender_upi_id, m.amount_inr, ts, m.source)
+        return MoneyReceivedResponse(event_id=m.event_id, recorded=recorded)
 
     @app.post("/v1/episode", response_model=EpisodeEventResponse)
     async def episode_event(ev: EpisodeEvent) -> EpisodeEventResponse:
@@ -467,6 +484,13 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             raise HTTPException(422, "status must be checked, completed or cancelled")
         rows = store.transactions(user_hash, payee, min_tier, status, since, until, limit)
         return {"count": len(rows), "transactions": rows}
+
+    @app.get("/v1/received")
+    def received(user_hash: str | None = None, sender: str | None = None, since: str | None = None,
+                 until: str | None = None, limit: int = 200) -> dict:
+        """Money users received (c2-0.11), newest first, for the console's Transactions page."""
+        rows = store.received(user_hash, sender, since, until, limit)
+        return {"count": len(rows), "received": rows}
 
     @app.get("/v1/transactions/{payment_id}")
     def transaction(payment_id: str) -> dict:

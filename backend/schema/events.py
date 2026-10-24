@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.10"
+CONTRACT_VERSION = "c2-0.11"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -283,6 +283,26 @@ class WatchEventResponse(_M):
     event_id: str
     recorded: bool
     stage: Optional[str] = None                   # the user's stage after this event (S0 to S3)
+    contract_version: str = CONTRACT_VERSION
+
+
+# ---------- Money received, read from a bank SMS on the phone (c2-0.11) ----------
+
+class MoneyReceived(_M):
+    """POST /v1/payment/received. A credit the phone's money watch read from a bank SMS alert: the
+    amount, the sender's UPI ID and the time, never the SMS text (rule 2). Sent only with "Share money
+    received" on (off by default, rule 7). Safe to retry: a repeated event_id is not recorded twice."""
+    event_id: str                                 # UUID made on the phone, one per credit
+    user_id: str                                  # the receiver (pseudonymised on the server)
+    sender_upi_id: Optional[str] = None           # the UPI ID the alert named; null when it named none (rule 1)
+    amount_inr: float = Field(gt=0)
+    ts: AwareDatetime                             # when the bank SMS arrived
+    source: Literal["bank_sms"] = "bank_sms"
+
+
+class MoneyReceivedResponse(_M):
+    event_id: str
+    recorded: bool                                # False for a repeated event_id
     contract_version: str = CONTRACT_VERSION
 
 
