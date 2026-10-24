@@ -94,7 +94,7 @@ def test_presets_come_from_the_synthetic_set(engine):
 def test_four_workflows_both_outcomes(engine):
     tc, _ = engine
     flows = {f["id"]: f for f in tc.get("/v1/lab/workflows").json()["workflows"]}
-    assert set(flows) == {"flagged", "everyday", "campaign", "new_scam"}
+    assert set(flows) == {"flagged", "everyday", "campaign", "new_scam", "otp_call"}
     assert not flows["everyday"]["flagged"] and all(flows[k]["flagged"] for k in ("flagged", "campaign", "new_scam"))
 
 
@@ -179,3 +179,14 @@ def test_the_lab_follows_whichever_demo_account_paid_last(engine, world):
     out = tc.get("/v1/lab/latest").json()
     assert out["victim"] == "u_001435" and out["payment"]["payment_id"] == rid
     assert tc.get("/v1/lab/latest", params={"user_id": "u_demo_meena"}).json()["payment"] is None
+
+
+def test_otp_rings_first_and_the_code_comes_once_the_call_is_on(engine):
+    tc, fake = engine
+    f = next(x for x in tc.get("/v1/lab/workflows").json()["workflows"] if x["id"] == "otp_call")
+    assert f["sms_after_call"] and f["on_phone_only"] and "OTP" in f["sms"]["text"]
+    tc.post("/v1/lab/workflows/otp_call/send", params={"part": "call"})
+    assert [c[4:6] for c in fake.calls if "emu" in c] == [["gsm", "call"]]
+    tc.post("/v1/lab/workflows/otp_call/send", params={"part": "sms"})
+    assert [c[4:6] for c in fake.calls if "emu" in c][-1] == ["sms", "send"]
+    assert tc.post("/v1/lab/workflows/otp_call/send", params={"part": "fax"}).status_code == 422

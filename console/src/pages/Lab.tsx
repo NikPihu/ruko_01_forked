@@ -140,6 +140,10 @@ function FlowCard({ f, victim, active, onPick, onSent }: {
           {f.victim_steps.map((s) => <li key={s}>{s}</li>)}
         </ol>
         <p className="muted" style={{ margin: "8px 0" }}>Expected: {f.expect}</p>
+        {f.on_phone_only && (
+          <p className="muted" style={{ margin: "0 0 8px" }}>Watch the phone: this warning comes from the phone itself
+            ("SMS scam check" and "Call signals" on), so "Did your scam work?" stays unchanged.</p>
+        )}
         <div className="row">
           {f.prepare && (
             <button className="btn" disabled={busy} title={f.prepare}
@@ -147,15 +151,32 @@ function FlowCard({ f, victim, active, onPick, onSent }: {
               1. Set up
             </button>
           )}
-          <button className="btn primary" disabled={busy}
-            onClick={() => run(f.call ? "Message sent and the phone is ringing" : "Message sent",
-              async () => { onPick(); await api.labSend(f.id, victim); onSent(); })}>
-            {f.prepare ? "2. " : ""}Send to the victim
-          </button>
-          {f.call && (
+          {f.sms_after_call ? (
             <>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run("The phone is ringing: answer it", async () => { onPick(); await api.labSend(f.id, victim, "call"); onSent(); })}>
+                1. Ring the phone
+              </button>
               <button className="btn" disabled={busy} onClick={() => run("Call answered", () => api.labCall(f.call!, "answer"))}>Answer call</button>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run("Code sent during the call", async () => { await api.labSend(f.id, victim, "sms"); onSent(); })}>
+                2. Send the code
+              </button>
               <button className="btn" disabled={busy} onClick={() => run("Call ended", () => api.labCall(f.call!, "hangup"))}>Hang up</button>
+            </>
+          ) : (
+            <>
+              <button className="btn primary" disabled={busy}
+                onClick={() => run(f.call ? "Message sent and the phone is ringing" : "Message sent",
+                  async () => { onPick(); await api.labSend(f.id, victim); onSent(); })}>
+                {f.prepare ? "2. " : ""}Send to the victim
+              </button>
+              {f.call && (
+                <>
+                  <button className="btn" disabled={busy} onClick={() => run("Call answered", () => api.labCall(f.call!, "answer"))}>Answer call</button>
+                  <button className="btn" disabled={busy} onClick={() => run("Call ended", () => api.labCall(f.call!, "hangup"))}>Hang up</button>
+                </>
+              )}
             </>
           )}
           <Note msg={msg} />

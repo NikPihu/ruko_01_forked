@@ -38,6 +38,8 @@ UNKNOWN_NUMBERS = ["9812345670", "9800011122", "7012345678"]
 DEMO_MULE = "secure.settlement.desk@okaxis"
 KIRANA = "shreeganesh.kirana@okaxis"
 CAMPAIGN_UPI = "kyc.refund.desk@ybl"     # a fresh mule no bank or registry knows
+# docs/testing-on-device.md's OTP test message (a made-up code).
+OTP_TEXT = "482915 is your OTP for login. Do not share it with anyone."
 
 Runner = Callable[[list[str]], "tuple[int, str]"]
 
@@ -156,6 +158,8 @@ class Workflow:
     payee: str = ""
     amount: int = 0
     prepare: str = ""                # what the server sets up first, in words ("" = nothing)
+    sms_after_call: bool = False     # ring first; the message is sent only once the victim answered
+    on_phone_only: bool = False      # the warning is the phone's own; nothing reaches the server
 
 
 def workflows(contacts: list[dict], fresh_mule: str) -> list[Workflow]:
@@ -210,6 +214,19 @@ def workflows(contacts: list[dict], fresh_mule: str) -> list[Workflow]:
                           "Pay Rs 25,000 and read RUKO's alert."],
             payee=fresh_mule, amount=25_000,
             prepare="Nine other people pay the same fresh account the same amount, in a burst.",
+        ),
+        Workflow(
+            id="otp_call", title="OTP while on a call", flagged=True,
+            story="A fake 'bank officer' calls, keeps the victim talking, and triggers a one-time code to be "
+                  "read out to him.",
+            expect="The phone shows a full warning at once: someone on the call may ask for this code. "
+                   "Checked on the phone only; nothing is sent to the server",
+            expect_tiers=[],
+            sms={"from": UNKNOWN_NUMBERS[1], "text": OTP_TEXT}, call=UNKNOWN_NUMBERS[0],
+            victim_steps=["Answer the incoming call and keep it on.",
+                          "Wait for the code to arrive: the full-screen 'never share this code' warning appears.",
+                          "Open Message check: the SMS is labelled 'OTP: never share this'."],
+            sms_after_call=True, on_phone_only=True,
         ),
     ]
 
@@ -395,16 +412,19 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
         return done
 
     @app.post("/v1/lab/workflows/{flow_id}/send")
-    def lab_send(flow_id: str, victim: Optional[str] = None) -> dict:
-        """The scammer's move: the workflow's message, then its call (if any), to the emulator."""
+    def lab_send(flow_id: str, victim: Optional[str] = None, part: str = "all") -> dict:
+        """The scammer's move: the workflow's message, then its call (if any), to the emulator.
+        `part` sends only the call or only the message (an OTP must arrive while the call is on)."""
         f = flows(active(victim)).get(flow_id)
         if f is None:
             raise HTTPException(404, "no such workflow")
+        if part not in ("all", "sms", "call"):
+            raise HTTPException(422, "part is all, sms or call")
         out: dict = {"workflow": f.id}
-        if f.sms:
+        if f.sms and part in ("all", "sms"):
             out["emulator"] = wrap(device.sms, f.sms["from"], f.sms["text"])
             state.log("sms", **{"from": f.sms["from"], "chars": len(f.sms["text"]), "workflow": f.id})
-        if f.call:
+        if f.call and part in ("all", "call"):
             out["emulator"] = wrap(device.call, f.call, "ring")
             state.log("call", number=f.call, action="ring", workflow=f.id)
         return out
@@ -425,7 +445,7 @@ def routes(app, *, data_dir: Path, intel_url: str, store, explain_fn, reset_fn,
                "headline": ex["summary"]["headline"], "lit": ex["scores"]["lit_families"],
                "victim": user_id, **verdict(p["tier"], p["status"])}
         f = flows(user_id).get(workflow) if workflow else None
-        if f is not None:
+        if f is not None and not f.on_phone_only:
             out["expected"] = {"workflow": f.id, "words": f.expect, "met": p["tier"] in f.expect_tiers,
                                "same_payee": p["payee_upi"] == f.payee}
         return out

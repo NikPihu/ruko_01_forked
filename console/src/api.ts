@@ -306,6 +306,10 @@ export interface LabWorkflow {
   id: string; title: string; flagged: boolean; story: string; expect: string; expect_tiers: Tier[];
   sms: { from: string; text: string } | null; call: string | null; victim_steps: string[];
   payee: string; amount: number; prepare: string;
+  /** Ring first; the message goes only after the victim answers (an OTP during a call). */
+  sms_after_call: boolean;
+  /** The phone warns on its own; nothing reaches the server, so there is no result to show. */
+  on_phone_only: boolean;
 }
 export interface LabPresets {
   scam: { tag: string; lang: string; text: string }[];
@@ -402,7 +406,11 @@ export const api = {
   labSms: (from: string, text: string) => post<{ sent: boolean }>("/v1/lab/sms", { from, text }),
   labCall: (number: string, action: "ring" | "answer" | "hangup") => post<{ done: boolean }>("/v1/lab/call", { number, action }),
   labPrepare: (id: string, victim?: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare${victim ? `?victim=${victim}` : ""}`),
-  labSend: (id: string, victim?: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send${victim ? `?victim=${victim}` : ""}`),
+  labSend: (id: string, victim?: string, part: "all" | "sms" | "call" = "all") => {
+    const q = new URLSearchParams({ part });
+    if (victim) q.set("victim", victim);
+    return post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send?${q}`);
+  },
   labLatest: (workflow?: string, victim?: string) => {
     const q = new URLSearchParams();
     if (workflow) q.set("workflow", workflow);
