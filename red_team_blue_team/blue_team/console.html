@@ -549,7 +549,11 @@ PAGE.playbooks = async (p) => {
     el("p", { style: "color:var(--muted)" }, `playbooks/${d.state}/${c.name}.yaml — the full card, its rule at priority ${(c.match || [{}])[0].priority}${c.misnamed_as ? " (just before " + c.misnamed_as + ", which it corrects)" : " (after all known playbooks)"}, the evidence, the backtest, the analyst's verdict, the mule accounts and every review.`),
     el("details", {}, el("summary", {}, "show the stored YAML"), el("pre", {}, yamlText)),
     el("h2", { style: "margin-top:12px" }, "Into the engine's live list"),
-    eng.ready ? el("p", {}, chip("ready", "good"), " Paste this entry into data/playbooks/playbooks.yaml where the comment says.")
+    eng.ready ? el("div", {}, el("p", {}, chip("ready", "good"), " ",
+        eng.effect === "warns" ? chip(`warns: raises its payments to T2+ (conditions span ${eng.families.join("+")})`, "good")
+          : chip(`names only: conditions are all family ${eng.families.join("") || "?"}; a warning needs two families (rule 5)`, "warn"),
+        " Paste this entry into data/playbooks/playbooks.yaml where the comment says."),
+        eng.notes.length ? el("ul", { style: "font-size:12.5px;color:var(--muted)" }, eng.notes.map(n => el("li", {}, n))) : null)
       : el("div", {}, el("p", {}, chip("not yet", "warn"), " The engine needs:"), el("ul", {}, eng.blockers.map(b => el("li", {}, b)))),
     el("details", {}, el("summary", {}, "entry for data/playbooks/playbooks.yaml"), el("pre", {}, eng.entry)));
   const revs = (c.reviews || []).concat((c.edits || []).map(e => ({ analyst: e.analyst, decision: "edited " + e.fields.join(", "), at: e.at })));

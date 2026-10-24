@@ -79,15 +79,18 @@ class RedBuild(BaseModel):
 
 
 def engine_status(card: dict) -> dict:
-    """Can this card go into the engine's data/playbooks/playbooks.yaml today, and if not, why not."""
+    """Can this card go into the engine's data/playbooks/playbooks.yaml, and what would it do there:
+    warn (policy raises its payments to T2+, its conditions span two families) or only name the scam."""
+    from api.playbooks import families
     from schema.events import FraudType
-    entry, problems = engine_file.export_entry({**card, "approved_by": card.get("approved_by", [])})
-    names = typing.get_args(FraudType)
-    blockers = list(problems)
-    if names and card["name"] not in names:
-        blockers.append("the contract's FraudType allows only " + ", ".join(names)
-                        + ": a new name would fail the /v1/decide response (backend ask 1)")
-    return {"ready": not blockers, "blockers": blockers, "entry": entry}
+    entry, problems = engine_file.export_entry({**card, "approved_by": card.get("approved_by") or ["analyst_1", "analyst_2"]})
+    fam = sorted(families(yaml.safe_load(entry)[0]["match"])) if not problems else []
+    notes = []
+    if card["name"] not in typing.get_args(FraudType):
+        notes.append("threat.fraud_type stays empty for a new name (the contract lists six); the payment is "
+                     "labelled through `playbook` and the message key, and the app shows the tier's generic words")
+    return {"ready": not problems, "blockers": list(problems), "entry": entry, "families": fam,
+            "effect": None if problems else ("warns" if len(fam) >= 2 else "names only"), "notes": notes}
 
 
 def _summary(card: dict, state: str) -> dict:

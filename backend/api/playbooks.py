@@ -22,6 +22,18 @@ File format (checked in order; the first playbook whose `match` holds names the 
 
 Feature names are those of `features/build.py` (`FAMILY`) plus DERIVED. An unknown name is an
 error, so a typo cannot silently turn a playbook off.
+
+playbooks-0.2 adds, for playbooks the blue team drafts and analysts approve
+(red_team_blue_team/blue_team):
+
+          amount_inr: {gte: 1000, lt: 10000}  # number comparisons: gte, gt, lte, lt; unknown never matches
+          entry_method: qr                    # the request's own fields (REQUEST_FIELDS), not features
+        approved_by: [asha, ravi]             # two different analysts approved it (blue-team review)
+
+A playbook with `approved_by` does more than name the scam: policy raises the payment to at least
+`approved_playbooks.min_tier` (api/policy.yaml), so the user is warned. Rule 5 still holds: its own
+conditions must come from at least `min_condition_families` families (`families()` below), and
+amount caps, trusted payees and the alert budget apply after it.
 """
 from __future__ import annotations
 
@@ -48,6 +60,12 @@ def unknown_caller(f: dict) -> bool:
 
 
 DERIVED: dict[str, Callable[[dict], Any]] = {"unknown_caller": unknown_caller}
+DERIVED_FAMILY = {"unknown_caller": "C"}
+# Fields of the /v1/decide request a playbook may match on (main.py adds them before naming).
+REQUEST_FIELDS = {"entry_method": "B", "payer_says": "B"}
+COMPARE: dict[str, Callable[[Any, Any], bool]] = {"gte": lambda a, b: a >= b, "gt": lambda a, b: a > b,
+                                                  "lte": lambda a, b: a <= b, "lt": lambda a, b: a < b}
+MIN_APPROVERS = 2
 
 # The same rules as the shipped file, used when it cannot be read.
 BUILTIN: list[Rule] = [
@@ -88,8 +106,20 @@ def _condition(key: str, want: Any) -> Callable[[dict], bool]:
             raise PlaybookError("'any' needs a list of condition maps")
         options = [_all(m) for m in want]
         return lambda f: any(o(f) for o in options)
-    if key not in FAMILY and key not in DERIVED:
+    if key not in FAMILY and key not in DERIVED and key not in REQUEST_FIELDS:
         raise PlaybookError(f"unknown feature '{key}'")
+    if isinstance(want, dict):
+        if not want or set(want) - set(COMPARE) or not all(
+                isinstance(v, (int, float)) and not isinstance(v, bool) for v in want.values()):
+            raise PlaybookError(f"'{key}': a comparison map takes numbers under {sorted(COMPARE)}")
+        tests = [(COMPARE[op], v) for op, v in want.items()]
+
+        def compare(f: dict) -> bool:
+            x = _value(f, key)
+            if x is None or isinstance(x, bool) or not isinstance(x, (int, float)):
+                return False                          # unknown is never inside a range (rule 1)
+            return all(fn(x, v) for fn, v in tests)
+        return compare
     if want is True:
         return lambda f: bool(_value(f, key))
     if want is False:
@@ -121,14 +151,61 @@ def parse(doc: dict) -> list[Rule]:
             raise PlaybookError(f"playbook {i}: 'name' must be snake_case")
         if not isinstance(why, str) or not why.strip():
             raise PlaybookError(f"playbook {name}: 'why' is required (the analyst console shows it)")
-        unknown = set(p) - {"name", "why", "match", "title"}
+        unknown = set(p) - {"name", "why", "match", "title", "approved_by"}
         if unknown:
             raise PlaybookError(f"playbook {name}: unknown keys {sorted(unknown)}")
+        if "approved_by" in p:
+            who = p["approved_by"]
+            if not isinstance(who, list) or len({str(a).strip().lower() for a in who if str(a).strip()}) < MIN_APPROVERS:
+                raise PlaybookError(f"playbook {name}: 'approved_by' needs {MIN_APPROVERS} different analysts")
         try:
             rules.append((name, why, _all(p.get("match"))))
         except PlaybookError as e:
             raise PlaybookError(f"playbook {name}: {e}") from None
     return rules
+
+
+def families(match: dict) -> set[str]:
+    """The evidence families (C, L, P, B) a match map's conditions come from; an `any` counts only the
+    families all its options share. Stage (S) is not evidence of its own."""
+    out: set[str] = set()
+    for key, want in match.items():
+        if key == "any":
+            opts = [families(m) for m in want]
+            out |= set.intersection(*opts) if opts else set()
+        else:
+            out.add(FAMILY.get(key) or DERIVED_FAMILY.get(key) or REQUEST_FIELDS[key])
+    return out & {"C", "L", "P", "B"}
+
+
+def approved(doc: dict) -> dict[str, list[str]]:
+    """{name: families of its conditions} for playbooks two analysts approved. A name counts only if
+    every entry with it is approved; its families are those of its weakest entry."""
+    out: dict[str, list[str]] = {}
+    entries: dict[str, list[dict]] = {}
+    for p in doc["playbooks"]:
+        entries.setdefault(p["name"], []).append(p)
+    for name, ps in entries.items():
+        if all("approved_by" in p for p in ps):
+            out[name] = sorted(min((families(p["match"]) for p in ps), key=len))
+    return out
+
+
+def uses_request_fields(doc: dict) -> bool:
+    def walk(m: dict) -> bool:
+        return any(k in REQUEST_FIELDS or (k == "any" and any(walk(x) for x in v)) for k, v in m.items())
+    return any(walk(p["match"]) for p in doc["playbooks"])
+
+
+def load_approved(path: Path = PATH) -> tuple[dict[str, list[str]], bool]:
+    """(approved playbooks with their condition families, whether any rule reads request fields);
+    ({}, False) whenever load() would fall back to BUILTIN."""
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        parse(doc)
+        return approved(doc), uses_request_fields(doc)
+    except (FileNotFoundError, PlaybookError, yaml.YAMLError, OSError):
+        return {}, False
 
 
 def load(path: Path = PATH) -> tuple[list[Rule], str]:

@@ -35,9 +35,9 @@ def test_candidate_file_is_the_engine_file_plus_the_entry_where_promote_puts_it(
 
 def test_a_rule_the_file_cannot_express_is_still_measured_and_flagged(tmp_path):
     c = card(rule={"all": [{"feature": "entry_method", "op": "eq", "value": "qr"},
-                           {"feature": "amount_inr", "op": "<", "value": 1000}]})
+                           {"not": {"feature": "amount_inr", "op": ">=", "value": 1000}}]})
     path, problems = verify.candidate_file(c, tmp_path)
-    assert path is None and len(problems) == 2
+    assert path is None and len(problems) == 1 and "NOT" in problems[0]
     name = verify.namer(c, None)
     assert name(features(entry_method="qr", amount_inr=400.0)) == "qr_stranger_small"
     assert name(features(entry_method="qr", amount_inr=4000.0)) is None
@@ -66,8 +66,9 @@ def test_live_results_and_the_contract_block_are_reported(tmp_path):
     assert s["preview"]["named"] == 1.0 and s["preview"]["named_shown"] == 0.2
     assert s["preview"]["interrupted"] == 0.2 and s["before"]["interrupted"] == 0.1 and s["before"]["named"] == 0.0
     lines = verify.verdict({"live": {"x": {"before": s["before"], "engine_file": s["file"], "preview": s["preview"]}}})
-    assert any("BLOCKED" in x and "FraudType" in x for x in lines)
-    assert any("preview: named 100% inside the engine, 20% shown" in x and "10% -> 20%" in x for x in lines)
+    assert any("WARNING: fail-open 0 -> 6" in x for x in lines)
+    assert any("preview (not expressible in the file yet): named 100% inside the engine, 20% shown" in x
+               and "10% -> 20%" in x for x in lines)
 
 
 def test_the_preview_opens_the_contract_only_inside_its_own_process():

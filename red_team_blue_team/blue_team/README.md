@@ -188,11 +188,11 @@ changes. A playbook only **names** a scam (the warning's words and `threat.fraud
 Verify runs never write the red-team inbox (the runner's blue-team sink is dropped) or anything in
 `backend/`, `data/` or `ml/model/artifacts/`. Results: `exports/<name>/verify.json`.
 
-What it found on the first cards: only 3 of 39 queued cards can be written in the engine's file
-format today (no `>=` / `<`, no entry method), and a new name fails the contract, which makes the
-engine **fail open** on those payments. So pasting an approved entry before backend asks 1 and 2 would
-weaken RUKO. And `qr_dictated_payment_scam` (LLM run) named 75% of its own complaints but 0% of the
-same scam's payments nobody complained about: an overfitted rule two readers would not have spotted.
+What it found on the first cards: before playbooks-0.2, a playbook only *named* a scam and the engine
+showed the name only at T1+, so an approved playbook changed nothing for a victim LightGBM scored T0
+(live: named 43% of a red-team scam inside the engine, 0% shown, 0% interrupted). Hence the policy
+step below. It also catches overfitting: `qr_dictated_payment_scam` (LLM run) named 75% of its own
+complaints but 0% of the same scam's payments nobody complained about.
 
 ## What other folders need (not done here)
 
@@ -202,29 +202,25 @@ How an approved playbook goes live: `approve` (two analysts) writes
 playbook it corrects. Someone pastes it into the file and the engine names that scam from then on.
 The blue team reads the engine's file for the known playbooks, so it never judges against a stale copy.
 
-**Jagdeep (backend):**
-1. **Blocker: open the scam-name list in the contract.** `Threat.fraud_type` and
-   `DeviceVerdict.fraud_class` are `FraudType`, a fixed list of six names (c2-0.10), and `threat.fraud_type`
-   is the playbook. So *any* new name in `playbooks.yaml` (from the blue team, or from naming an A4
-   emerging pattern) fails validation when the `/v1/decide` response is built, and `decide` then
-   **fails open** (T0, no check) on every payment it names at T1 or above (`verify` measures it,
-   arm `engine_file`). Pasting a new entry before this change makes RUKO weaker. Make it a string
-   (snake_case), or keep the list but map unknown names to `null` plus a new `scam_name` field.
-   Rule 8: version bump, examples, Models.kt, ContractTest.
-2. **Extend the playbooks-0.1 format** so blue-team rules fit. Of the 24 cards gpt-oss drafted in the
-   two test worlds, 3 export as they are; the rest need:
-   - the request fields `entry_method` (20 cards) and `payer_says` (6) as match keys (they are in
-     every `/v1/decide` request but are not `FAMILY` features);
-   - number comparisons, e.g. `amount_inr: {gte: 10000, lt: 50000}` (`>=` in 17 cards, `<` in 7);
-     the blue team's ops are `>=`, `<=`, `>`, `<`; unknown (null) must never satisfy them (rule 1).
-   `engine_file.export_entry` lists exactly what is missing for each card, and
-   `tests/test_matcher_and_db.py` checks an exported entry names payments exactly like the matcher.
-3. **Message text for new names.** The app shows `<tier>_<name>` strings from AlertText.kt and falls
+**Jagdeep (backend): done on this branch, please review** (`backend/api/playbooks.py`, `policy.py`,
+`policy.yaml`, `main.py`, `rule_scorer.py`, `tests/test_approved_playbooks.py`):
+1. **Approved playbooks warn.** An entry with `approved_by` (two different analysts) makes policy raise
+   its payments to at least T2 (`policy.yaml` `approved_playbooks`), even when LightGBM scored them
+   low, which it does for scams it never saw. Rule 5 holds: the entry's own conditions must span two
+   families (`playbooks.families`); amount caps, trusted payees and the alert budget apply after it.
+   A rule made only of behaviour signals still just names the scam.
+2. **No fail-open on a new name.** `threat.fraud_type` stays the contract's six names; a newer name goes
+   out in `playbook` and the message key only (before, it failed the response and the engine failed
+   open). No contract change: the app shows the tier's generic words until item 3.
+3. **playbooks-0.2 format:** number comparisons (`amount_inr: {gte: 1000, lt: 10000}`, unknown never
+   matches, rule 1), the request fields `entry_method` / `payer_says`, and `approved_by`. 48 of the 49
+   cards drafted so far export (was 3); 17 of them warn, the rest only name.
+4. **Message text for new names.** The app shows `<tier>_<name>` strings from AlertText.kt and falls
    back to the tier's generic text. An approved card carries `advice_en` / `advice_hi`; either ship
    them in the response (with item 1) or add them to AlertText.kt per playbook.
-4. **Mule accounts:** `exports/<name>/mule_accounts.csv` as seeds for `graph/discover.py`'s suspect
+5. **Mule accounts:** `exports/<name>/mule_accounts.csv` as seeds for `graph/discover.py`'s suspect
    review (still two analysts, rule 11), e.g. `POST /v1/graph/suspects/import`.
-5. **Emerging patterns (your A4) and the blue team** look at different moments: A4 groups flagged
+6. **Emerging patterns (your A4) and the blue team** look at different moments: A4 groups flagged
    and near-miss payments *before* a loss; the blue team groups 1930 / NCRP complaints *after* one,
    including interruptions that named the wrong scam. Both draft entries in the same file format,
    so they can share the review step. Optional: send an A4 pattern to the blue team's investigator

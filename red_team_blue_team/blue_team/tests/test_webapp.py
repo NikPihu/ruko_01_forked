@@ -30,8 +30,15 @@ def test_page_and_list(tmp_db, tmp_path):
 def test_detail_shows_engine_blockers_and_hides_labels(tmp_db, tmp_path):
     queued(tmp_db)
     d = client(tmp_db, tmp_path).get("/api/cards/relative_voice_clone").json()
-    assert "label_tx_ids" not in d["card"] and d["engine"]["ready"] is False
-    assert any("payer_says" in b for b in d["engine"]["blockers"]) and any("FraudType" in b for b in d["engine"]["blockers"])
+    assert "label_tx_ids" not in d["card"] and d["engine"]["ready"] is True
+    assert d["engine"]["effect"] == "warns" and d["engine"]["families"] == ["B", "C"]   # on_call + payer_says
+    assert any("fraud_type stays empty" in n for n in d["engine"]["notes"])
+    queued(tmp_db, name="qr_only", match=[{"priority": 100, "rule": {"all": [
+        {"feature": "entry_method", "op": "eq", "value": "qr"}, {"feature": "amount_inr", "op": "<", "value": 1000}]}}])
+    assert client(tmp_db, tmp_path).get("/api/cards/qr_only").json()["engine"]["effect"] == "names only"
+    queued(tmp_db, name="not_range", match=[{"priority": 100, "rule": {"not": {"feature": "amount_inr", "op": "<", "value": 1000}}}])
+    e = client(tmp_db, tmp_path).get("/api/cards/not_range").json()["engine"]
+    assert e["ready"] is False and any("NOT" in b for b in e["blockers"])
 
 
 def test_two_analysts_approve_through_the_page(tmp_db, tmp_path):

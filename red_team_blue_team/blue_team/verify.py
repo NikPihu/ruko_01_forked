@@ -219,10 +219,13 @@ def runner(ref: str, out: Path, repo: Path, seed: int, env_extra: dict, users: i
 
 ARMS = {
     "before": "the engine as it is",
-    "engine_file": "the engine with the entry pasted into its playbook file (RUKO_PLAYBOOKS), contract unchanged",
-    "preview": "PREVIEW: the card's rule in the engine's namer and the contract open to new names (both need backend changes)",
+    "engine_file": "the engine with the approved entry in its playbook file (RUKO_PLAYBOOKS): names it, and "
+                   "policy raises it to a warning when its conditions span two families",
+    "preview": "PREVIEW: the card's rule in the engine's namer (the playbooks-0.2 format cannot express it), "
+               "without the policy step, which needs an entry in the file",
     "retrained": "the retrained model (RUKO_MODEL), playbooks unchanged",
-    "retrained_preview": "PREVIEW: the retrained model plus the card's rule, contract open",
+    "retrained_engine_file": "the retrained model plus the approved entry",
+    "retrained_preview": "PREVIEW: the retrained model plus the card's rule in the namer",
 }
 
 
@@ -230,13 +233,13 @@ def live(card: dict, card_path: Path, scam_types: list[str], cand: Path | None, 
          model: Path | None = None, log=print, stop=lambda: False) -> dict:
     """The same fresh world per scam type, judged by several engine set-ups (ARMS)."""
     s = settings()
-    preview = {"BLUE_VERIFY_CARD": str(card_path), "BLUE_VERIFY_CONTRACT": "open"}
-    arms = {"before": {}, "preview": preview}
-    if cand is not None:
-        arms["engine_file"] = {"RUKO_PLAYBOOKS": str(cand)}
+    # The real engine with the entry in its file when the format can express it; otherwise a preview.
+    after = {"RUKO_PLAYBOOKS": str(cand)} if cand is not None else {"BLUE_VERIFY_CARD": str(card_path)}
+    arm = "engine_file" if cand is not None else "preview"
+    arms = {"before": {}, arm: after}
     if model is not None:
         arms["retrained"] = {"RUKO_MODEL": str(model)}
-        arms["retrained_preview"] = {"RUKO_MODEL": str(model), **preview}
+        arms[f"retrained_{arm}"] = {"RUKO_MODEL": str(model), **after}
     jobs = [(t, arm, env) for t in scam_types for arm, env in arms.items()]
     log(f"live: {len(scam_types)} scam type(s) x {len(arms)} engine set-ups ({', '.join(arms)}) on a fresh world "
         f"(seed {s['seed']}), {s['workers']} at a time")
@@ -301,14 +304,15 @@ def verdict(r: dict) -> list[str]:
             continue
         f, pv = arms.get("engine_file") or {}, arms.get("preview") or {}
         if "called_normal" in f:
-            line = f"Live, {t}, entry pasted as it is: named {_pct(f['named'])} inside the engine, {_pct(f['named_shown'])} shown"
+            line = (f"Live, {t}, with the approved entry: named {_pct(f['named'])}; interrupted (T2+) "
+                    f"{_pct(b['interrupted'])} -> {_pct(f['interrupted'])}; called normal {_pct(b['called_normal'])} -> "
+                    f"{_pct(f['called_normal'])}; false alarms {b['false_alarms']:.1%} -> {f['false_alarms']:.1%}")
             if f["fail_open"] > b["fail_open"] + max(2, 0.02 * f["scam_payments"]):
-                line += (f". BLOCKED: fail-open {b['fail_open']} -> {f['fail_open']} payments: the engine cannot return "
-                         "the new name (contract FraudType), so pasting it now would let those payments through "
-                         "unchecked. Wait for the contract change")
+                line += (f". WARNING: fail-open {b['fail_open']} -> {f['fail_open']}: the engine could not finish on "
+                         "payments it named; see the runner log before pasting the entry")
             out.append(line + ".")
         if "called_normal" in pv:
-            out.append(f"Live, {t}, preview: named {_pct(pv['named'])} inside the engine, "
+            out.append(f"Live, {t}, preview (not expressible in the file yet): named {_pct(pv['named'])} inside the engine, "
                        f"{_pct(pv['named_shown'])} shown to the user (only T1+ shows a name); interrupted {_pct(b['interrupted'])} -> "
                        f"{_pct(pv['interrupted'])}; called normal {_pct(b['called_normal'])} -> {_pct(pv['called_normal'])}. "
                        "Naming alone does not interrupt.")

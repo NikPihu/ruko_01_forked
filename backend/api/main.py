@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import time
+import typing
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -48,7 +49,7 @@ from store.db import TxnStore
 from api.explain import explain
 from patterns import emerging
 from api.feedback import FeedbackService, alert_health
-from schema.events import (CONTRACT_VERSION, DecideRequest, DecideResponse, EpisodeEvent, EpisodeEventResponse,
+from schema.events import (CONTRACT_VERSION, DecideRequest, FraudType, DecideResponse, EpisodeEvent, EpisodeEventResponse,
                            Feedback, FeedbackResponse, MyPayment, MyPayments, PaymentOutcome,
                            PaymentOutcomeResponse, Threat, WatchEvent, WatchEventResponse)
 from features.tracker import StageTracker
@@ -201,6 +202,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
 
         t = time.perf_counter()
         s = app.state.score(feats)
+        if scorer.PLAYBOOK_USES_REQUEST:   # a playbook-0.2 rule reads the request's entry method / payer_says
+            s = {**s, "playbook": scorer._playbook({**feats, "entry_method": req.entry_method,
+                                                     "payer_says": req.payer_says})}
+        # Two analysts approved this playbook (blue team): policy may raise the tier (approved_playbooks).
+        s = {**s, "playbook_families": scorer.PLAYBOOK_APPROVED.get(s["playbook"])}
         # The phone's fraud class names the scam when the server's playbook matcher found none (c2-0.8),
         # e.g. a WhatsApp "digital arrest" call whose number the phone cannot see.
         dv = req.context.device_verdict if req.context else None
@@ -592,14 +598,19 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     return app
 
 
+FRAUD_TYPES = set(typing.get_args(FraudType))
 THREAT_LEVEL = {"T0": "none", "T1": "low", "T2": "medium", "T3": "high", "T4": "critical"}
 
 
 def threat_of(s: dict, d) -> Threat:
     """The threat analysis the app shows (c2-0.8): score 0..100, a level in words from the tier, the
     known scam it matches, and the families that agree."""
+    # The contract's FraudType lists the six known scams; a newer playbook name (an approved blue-team
+    # playbook) goes out in `playbook` and the message key only, never as an invalid fraud_type, which
+    # would fail the response and fail open.
+    name = s["playbook"] if d.tier != "T0" and s["playbook"] in FRAUD_TYPES else None
     return Threat(score=max(0, min(100, round(100 * s["p_scam"]))), level=THREAT_LEVEL[d.tier],
-                  fraud_type=s["playbook"] if d.tier != "T0" else None, families=list(d.lit_families))
+                  fraud_type=name, families=list(d.lit_families))
 
 
 def load_scorer(name: str):

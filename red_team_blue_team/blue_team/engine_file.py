@@ -6,8 +6,11 @@ the blue team's matcher format, and back.
 - `export_entry(card)` turns an approved card into an entry for that file, with where it goes
   (before the playbook it corrects, or at the end) and what the file format cannot express yet.
 
-The file format is a subset of ours: `feature: true` (set), `feature: false` (not set or unknown),
-a value (equal), a list (one of), `any:` (one of several maps), and the derived `unknown_caller`.
+The file format (playbooks-0.2) is a subset of ours: `feature: true` (set), `feature: false` (not set
+or unknown), a value (equal), a list (one of), a comparison map (`{gte: 1000, lt: 10000}`), `any:`
+(one of several maps), the derived `unknown_caller`, and the request fields `entry_method` /
+`payer_says`. An approved entry carries `approved_by`, which makes policy raise its payments to a
+warning (backend/api/policy.yaml approved_playbooks) when its conditions span two families.
 """
 from __future__ import annotations
 
@@ -20,6 +23,9 @@ from features.build import FAMILY
 from blue_team import matcher, tokens
 
 STEP = 10
+OPS = {">=": "gte", ">": "gt", "<=": "lte", "<": "lt"}
+OPS_BACK = {v: k for k, v in OPS.items()}
+REQUEST_FIELDS = ("entry_method", "payer_says")
 
 
 def _is_true(f: str) -> dict:
@@ -34,6 +40,10 @@ def to_rule(match: dict) -> dict:
             parts.append({"any": [to_rule(m) for m in want]})
             continue
         leaf = tokens.UNKNOWN_CALLER if key == "unknown_caller" else _is_true(key)
+        if isinstance(want, dict):
+            cmp = [{"feature": key, "op": OPS_BACK[op], "value": v} for op, v in want.items()]
+            parts.extend(cmp)
+            continue
         if want is True:
             parts.append(leaf)
         elif want is False:
@@ -73,8 +83,8 @@ def _leaf_map(node: dict, problems: list[str]) -> dict | None:
         problems.append(f"NOT ({matcher.describe(inner)})")
         return None
     f, op, v = node.get("feature"), node.get("op"), node.get("value")
-    if f not in FAMILY:
-        problems.append(f"{matcher.describe(node)}: '{f}' is a request field, not an engine feature")
+    if f not in FAMILY and f not in REQUEST_FIELDS:
+        problems.append(f"{matcher.describe(node)}: '{f}' is neither an engine feature nor a request field")
         return None
     if op == "is" and v is True:
         return {f: True}
@@ -82,6 +92,8 @@ def _leaf_map(node: dict, problems: list[str]) -> dict | None:
         return {f: v}
     if op == "in":
         return {f: list(v)}
+    if op in OPS and isinstance(v, (int, float)) and not isinstance(v, bool):
+        return {f: {OPS[op]: v}}
     problems.append(f"{matcher.describe(node)}: the file format has no '{op}'"
                     + (" (it reads `false` as 'not set or unknown')" if op == "is" else ""))
     return None
@@ -98,6 +110,9 @@ def to_match(node: dict, problems: list[str]) -> dict | None:
             if m is None:
                 continue
             for k, v in m.items():
+                if k in out and isinstance(out[k], dict) and isinstance(v, dict) and not set(out[k]) & set(v):
+                    out[k] = {**out[k], **v}           # amount >= 1000 AND amount < 10000 -> one range
+                    continue
                 if k in out and out[k] != v:
                     problems.append(f"two conditions on '{k}' in one map")
                 out[k] = v
@@ -117,10 +132,18 @@ def export_entry(card: dict) -> tuple[str, list[str]]:
              f"{card['misnamed_as']})" if card.get("misnamed_as") else "at the END of the list")
     why = " ".join(str(card.get("title", card["name"])).split())
     entry = {"name": card["name"], "why": why, "match": m if m is not None else {"TODO": "see problems above"}}
+    if card.get("approved_by"):
+        entry["approved_by"] = list(card["approved_by"])
     head = [f"# Blue-team playbook '{card['name']}', approved by {', '.join(card.get('approved_by', []))}",
             f"# Put it {where}.",
             f"# App text: add '<tier>_{card['name']}' to AlertText.kt (advice_en / advice_hi are in the approved card)."]
+    if m is not None and card.get("approved_by"):
+        from api.playbooks import families
+        fam = sorted(families(m))
+        head.append(f"# Policy: its payments are raised to a warning (T2+), conditions span {'+'.join(fam)}." if len(fam) >= 2
+                    else f"# Policy: it only NAMES the scam: its conditions are all family {''.join(fam) or '?'}, and "
+                         "raising a payment needs two families (rule 5).")
     if problems:
-        head.append("# NOT EXPRESSIBLE in playbooks-0.1 yet (needs the format extended, see blue_team/README.md):")
+        head.append("# NOT EXPRESSIBLE in playbooks-0.2 (see blue_team/README.md):")
         head += [f"#   - {p}" for p in problems]
     return "\n".join(head) + "\n" + yaml.safe_dump([entry], sort_keys=False, allow_unicode=True), problems

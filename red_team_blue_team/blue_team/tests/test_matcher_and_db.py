@@ -98,7 +98,17 @@ def test_approved_cards_export_to_the_engine_file_format_or_say_why_not():
     for _ in range(2000):                                        # and it names exactly like our matcher
         f = features(**{k: r.choice([None, True, False]) for k in ("on_call", "caller_unknown", "voip_call", "remote_control")})
         assert rules[0][2](f) == matcher.matches(ok["match"][0]["rule"], f)
-    bad = {**ok, "match": [{"priority": 100, "rule": {"all": [{"token": "SAYS_FAMILY"}, {"token": "AMT_10K_50K"}]}}]}
+    ranged = {**ok, "misnamed_as": None,
+              "match": [{"priority": 100, "rule": matcher.normalize({"all": [{"token": "SAYS_FAMILY"}, {"token": "AMT_10K_50K"}]})}]}
+    text, problems = engine_file.export_entry(ranged)                # playbooks-0.2: request fields + ranges
+    entry = yaml.safe_load(text)[0]
+    assert problems == [] and entry["approved_by"] == ["asha", "ravi"]
+    assert entry["match"]["payer_says"] == "family" and set(entry["match"]["amount_inr"]) == {"gte", "lt"}
+    assert "only NAMES" in text                                      # both conditions are family B
+    rules = parse({"playbooks": [entry]})
+    for _ in range(2000):
+        f = features(payer_says=r.choice([None, "family", "government"]), amount_inr=r.choice([None, 500.0, 10000.0, 30000.0, 50000.0]))
+        assert rules[0][2](f) == matcher.matches(ranged["match"][0]["rule"], f)
+    bad = {**ok, "match": [{"priority": 100, "rule": {"not": {"feature": "amount_inr", "op": "<", "value": 1000}}}]}
     text, problems = engine_file.export_entry(bad)
-    assert any("request field" in p for p in problems) and any("no '>='" in p or "no '<'" in p for p in problems)
-    assert "NOT EXPRESSIBLE" in text
+    assert any("NOT" in p for p in problems) and "NOT EXPRESSIBLE" in text

@@ -144,6 +144,9 @@ def _noisy_or(xs: list[float]) -> float:
 # the same rules built in as a fallback (api/playbooks.py). Checked in order; the first rule that
 # matches names the playbook. Each has a plain description for the analyst console (api/explain.py).
 PLAYBOOK_RULES, PLAYBOOK_SOURCE = playbooks.load()
+# Playbooks two analysts approved (blue team): policy may raise their payments (policy.yaml
+# approved_playbooks). Whether any rule reads the request's own fields (main.py adds them).
+PLAYBOOK_APPROVED, PLAYBOOK_USES_REQUEST = playbooks.load_approved()
 
 
 def _playbook(f: dict) -> str | None:
