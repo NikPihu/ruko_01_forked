@@ -60,13 +60,10 @@ fun RukoApp() {
     val vm: PaymentViewModel = viewModel()
 
     // Leaving the app mid-payment (for the call, WhatsApp, a chat) is part of the Pay session.
-    // Kept here, not in PaymentApp, so it still counts when the app locks while the user is away.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        auth.onBackground()
         vm.onAppBackground()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
-        auth.onForeground()
         vm.onAppForeground()
     }
 

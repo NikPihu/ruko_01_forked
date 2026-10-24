@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,12 +53,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ruko.demo.R
+import com.ruko.demo.data.DemoUser
 import com.ruko.demo.data.Passcode
 import com.ruko.demo.ui.CacheColors
 import com.ruko.demo.ui.CacheIcons
 import com.ruko.demo.ui.PinDots
 import com.ruko.demo.ui.PinPad
 import com.ruko.demo.ui.PrimaryButton
+import com.ruko.demo.ui.InitialAvatar
+import com.ruko.demo.ui.SecondaryButton
 import com.ruko.demo.ui.cacheCard
 
 private val BANKS = listOf(
@@ -69,14 +73,15 @@ private val BANKS = listOf(
 fun SignUpFlow(vm: AuthViewModel) {
     BackHandler(enabled = vm.step != SignUpStep.WELCOME) { vm.back() }
     when (vm.step) {
-        SignUpStep.WELCOME -> WelcomeScreen(vm::startSignUp)
+        SignUpStep.WELCOME -> WelcomeScreen(vm::startSignUp, vm.demoUsers, vm::useDemoUser)
         SignUpStep.PASSCODE -> PasscodeStep(vm)
         else -> FormStep(vm)
     }
 }
 
 @Composable
-private fun WelcomeScreen(onCreate: () -> Unit) {
+private fun WelcomeScreen(onCreate: () -> Unit, demoUsers: List<DemoUser>, onDemo: (DemoUser) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -115,6 +120,39 @@ private fun WelcomeScreen(onCreate: () -> Unit) {
             Text(stringResource(R.string.welcome_privacy), style = MaterialTheme.typography.bodyMedium, color = CacheColors.TextSecondary)
         }
         PrimaryButton(stringResource(R.string.welcome_create), onCreate)
+        if (demoUsers.isNotEmpty()) {
+            SecondaryButton(stringResource(R.string.welcome_demo), { picking = true }, Modifier.fillMaxWidth())
+        }
+    }
+    if (picking) {
+        AlertDialog(
+            onDismissRequest = { picking = false },
+            title = { Text(stringResource(R.string.demo_pick_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.demo_pick_body), style = MaterialTheme.typography.bodyMedium, color = CacheColors.TextSecondary)
+                    demoUsers.forEach { d ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .cacheCard()
+                                .clickable { picking = false; onDemo(d) }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            InitialAvatar(d.fullName, size = 40.dp)
+                            Column {
+                                Text(d.fullName, fontWeight = FontWeight.SemiBold)
+                                Text("${d.region} · ${d.upiId}", style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 
