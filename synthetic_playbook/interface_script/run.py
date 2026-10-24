@@ -11,6 +11,7 @@ the files this writes, or add a sink in sinks.py:
 from __future__ import annotations
 
 import json
+import random
 import time
 from pathlib import Path
 
@@ -19,6 +20,19 @@ import yaml
 
 from interface_script import records, scenario, server as server_mod, sinks
 from interface_script.judge import Verdict
+
+
+def scoring_users(sc, cfg: dict) -> set[str]:
+    """Everyone the playbook attacked, plus a fixed number of honest users.
+
+    The honest ones give the false-alarm rate. Users nobody scores are left out: sending their
+    payments only cost time, because each scored user already sends all of their own history.
+    """
+    victims = set(sc.victims)
+    n = int(cfg["scenario"].get("honest_users", 40))
+    others = sorted(set(sc.tables["users"].user_id) - victims)
+    rng = random.Random(cfg["world"]["seed"])
+    return victims | set(rng.sample(others, min(n, len(others))))
 
 
 def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
@@ -36,6 +50,10 @@ def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
     v = Verdict(playbook=sc.name, scorer=str(scorer),
                 normal_max_score=cfg["judge"]["normal_max_score"],
                 breakthrough_share=cfg["judge"]["breakthrough_share"])
+    who = scoring_users(sc, cfg)
+    total = records.payments_for(sc.world_dir, who)
+    log(f"  sending {total:,} payments from {len(who):,} users "
+        f"({len(sc.victims)} attacked, {len(who) - len(sc.victims)} honest)")
     rows: list[dict] = []
     sent = {"pay": 0, "episode": 0}
     try:
@@ -43,7 +61,8 @@ def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
              (out / "responses.jsonl").open("w", encoding="utf-8") as fres:
             for rec in records.stream(sc.world_dir, seed=cfg["world"]["seed"],
                                       warmup_days=cfg["world"]["warmup_days"],
-                                      normal_sample=cfg["scenario"]["normal_sample"]):
+                                      normal_sample=cfg["scenario"]["normal_sample"],
+                                      only_users=who):
                 if rec["kind"] == "episode":
                     srv.post("/v1/episode", rec["body"])
                     sent["episode"] += 1
@@ -60,9 +79,14 @@ def run(playbook_ref: str, cfg: dict, out: Path, log=print) -> Verdict:
                                                  "payee_upi_id": body["payee_upi_id"],
                                                  "amount_inr": body["amount_inr"], "status": "completed",
                                                  "ts": body["ts"]})
+                if sent["pay"] % 100 == 0 or sent["pay"] == total:
+                    # A line a UI can parse for a real progress bar: PROGRESS <sent> <total> <scam judged>
+                    log(f"PROGRESS {sent['pay']} {total} {v.scam_judged}")
                 if sent["pay"] % 500 == 0:
-                    log(f"  {sent['pay']:,} payments sent, {v.scam_judged} scam judged "
-                        f"({time.perf_counter() - t0:.0f}s)")
+                    done = sent["pay"] / total if total else 1.0
+                    el = time.perf_counter() - t0
+                    log(f"  {sent['pay']:,}/{total:,} payments sent ({done:.0%}), {v.scam_judged} scam judged "
+                        f"({el:.0f}s, about {el / max(done, 1e-9) - el:.0f}s left)")
     finally:
         srv.close()
 

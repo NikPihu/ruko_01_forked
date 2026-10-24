@@ -25,6 +25,9 @@ scenario:
   victims_mode: comply
   # Honest payments are sent too, to measure false alarms. 1.0 = send all of them.
   normal_sample: 0.25
+  # How many honest users take part besides the ones attacked. Only these users' payments are
+  # sent, so this is the main speed knob: more users = a steadier false-alarm rate, but slower.
+  honest_users: 40
 
 server:
   # local = start the engine in this process (no server needed). Or a URL: http://127.0.0.1:8000

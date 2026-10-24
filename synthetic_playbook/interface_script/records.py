@@ -25,10 +25,25 @@ def _json(model) -> dict:
     return json.loads(model.model_dump_json(exclude_none=True))
 
 
+def payments_for(world_dir: str | Path, only_users: set[str] | None = None) -> int:
+    """How many payments `stream` will yield, so a caller can show real progress."""
+    tables, _ = load_world(world_dir)
+    users, led = tables["users"], tables["ledger"]
+    if only_users is not None:
+        users = users[users.user_id.isin(only_users)]
+    return int(led.from_upi.isin(set(users.upi_id)).sum())
+
+
 def stream(world_dir: str | Path, *, seed: int = 0, warmup_days: float = 7,
-           normal_sample: float = 0.25, device_model: str | Path | None = DEVICE_MODEL) -> Iterator[dict]:
+           normal_sample: float = 0.25, device_model: str | Path | None = DEVICE_MODEL,
+           only_users: set[str] | None = None) -> Iterator[dict]:
     """Every record of the world, in order. Payments before the warm-up end are marked
-    `judge: False`: they build the user's history, and the server's answers about them are not scored."""
+    `judge: False`: they build the user's history, and the server's answers about them are not scored.
+
+    `only_users` keeps just those users' records. Each kept user still sends **all** of their own
+    payments, so their history and baseline at the server are exactly right; users nobody scores
+    are left out, which is where most of the time went.
+    """
     tables, manifest = load_world(world_dir)
     a = load_assumptions()
     view = PhoneView(tables, a, seed)
@@ -39,9 +54,13 @@ def stream(world_dir: str | Path, *, seed: int = 0, warmup_days: float = 7,
 
     for item in phone_stream(tables, view, feed, seed, dm):
         if item[0] == "episode":
-            yield {"kind": "episode", "body": item[1]}
+            body = item[1]
+            if only_users is None or body.get("user_id") in only_users:
+                yield {"kind": "episode", "body": body}
             continue
         _, req, info = item
+        if only_users is not None and req.user_id not in only_users:
+            continue
         judged = info["t"] >= keep_from
         if not info["is_scam"]:
             # Honest payments are sampled: they measure false alarms, and we do not need all of them.
