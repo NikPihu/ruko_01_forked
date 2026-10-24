@@ -294,6 +294,36 @@ def test_alert_budget_never_applies_when_the_payee_family_is_lit():
     assert _calm_day_tiers({"B": 0.8, "L": 0, "C": 0, "P": 0.9}) == ["T2", "T2", "T2", "T2"]
 
 
+def _policy_tier(families, p_scam=0.6, **feat):
+    """The policy alone for one payment (stage S1, no control), with feature overrides."""
+    from api.policy import Policy
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None,
+         "payee_approved_suspect": False, "payee_micro_anchor": False, **feat}
+    s = {"p_scam": p_scam, "family_scores": families, "playbook": None}
+    return Policy().decide(s, f, "S1", False, "u", NOW)
+
+
+def test_approved_mule_floors_to_a_pause_even_as_the_only_family():
+    """Hardened (audit §2.6): a two-analyst-approved mule pauses even with no second family lit."""
+    d = _policy_tier({"B": 0, "L": 0, "C": 0, "P": 0}, p_scam=0.1, payee_approved_suspect=True)
+    assert d.tier == "T3" and "approved_mule_floor" in d.applied
+    # A plain single-family case with no approved mule still passes silently (corroboration gate).
+    assert _policy_tier({"P": 0.9, "B": 0, "L": 0, "C": 0}, p_scam=0.8).tier == "T0"
+
+
+def test_alert_budget_not_applied_during_an_anchor_pattern():
+    """An anchor-then-drain keeps interrupting; it is not treated as alert fatigue (audit §2.6)."""
+    from api.policy import Policy
+    pol = Policy()
+    f = {"amount_inr": 60_000, "trusted_payee": False, "payee_registry_listed": False,
+         "caller_registry_listed": False, "payee_fri_level": None, "caller_fri_level": None,
+         "payee_approved_suspect": False, "payee_micro_anchor": True}
+    s = {"p_scam": 0.6, "family_scores": {"B": 0.8, "L": 0.85, "C": 0, "P": 0}, "playbook": None}
+    tiers = [pol.decide(s, f, "S1", False, "u_anchor", NOW + timedelta(days=i)).tier for i in range(4)]
+    assert tiers == ["T2", "T2", "T2", "T2"]
+
+
 def test_alert_budget_never_silences_a_risky_payee(engine, mock, world):
     """The same calm days, but the payee is the mule-like demo account: every one is interrupted."""
     pump(mock[1], world)

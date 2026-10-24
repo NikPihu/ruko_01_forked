@@ -6,10 +6,11 @@ Rules, in order:
   3. Walk tiers T4 -> T1; first match wins (T4 also needs an intel hit).
   4. Amount caps (small payments are never interrupted).
   5. Trusted payee -> T0, unless an override holds (intel hit, or the journey reached S3 control).
-  6. Alert budget: too many interruptions in 30 days -> drop to T1 unless p_scam is very high.
-     Never applied while a journey is under way (S3 control, S4/S5 paying after contact), or
-     when a family named in never_applies_with_families is lit (the payee itself looks risky).
-  7. Message key = tier + playbook, or the generic key for the tier.
+  6. Approved-mule floor: a two-analyst-approved mule (rule 11) pauses even as the only lit family.
+  7. Alert budget: too many interruptions in 30 days -> drop to T1 unless p_scam is very high.
+     Never applied while a journey is under way (S3 control, S4/S5 paying after contact), when a
+     family in never_applies_with_families is lit, or when an anchor-then-drain pattern is present.
+  8. Message key = tier + playbook, or the generic key for the tier.
 """
 from __future__ import annotations
 
@@ -76,12 +77,21 @@ class Policy:
                 tier = "T0"
                 applied.append("trusted_payee")
 
+        # A human-verified mule (rule 11) always pauses, even as the only lit family: it is not a
+        # crowd-sourced registry entry that could be false, so corroboration is not needed (audit §2.6).
+        floor = c.get("approved_mule_min_tier")
+        if floor and f.get("payee_approved_suspect") and _rank(tier) < _rank(floor):
+            tier = floor
+            applied.append("approved_mule_floor")
+
         budget = c["alert_budget"]
         recent = [t for t in self._alerts.get(user_id, []) if t > now - timedelta(days=30)]
         in_journey = stage in budget["never_applies_in_stages"] or (
             control_seen and "S3" in budget["never_applies_in_stages"])
         risky_payee = any(fam in lit for fam in budget.get("never_applies_with_families", []))
-        if (tier in INTERRUPTIVE and not in_journey and not risky_payee and len(recent) >= budget["max_interruptive_per_30d"]
+        anchor = bool(f.get("payee_micro_anchor")) and budget.get("never_applies_with_anchor")
+        if (tier in INTERRUPTIVE and not in_journey and not risky_payee and not anchor
+                and len(recent) >= budget["max_interruptive_per_30d"]
                 and s["p_scam"] < budget["bypass_if_p_ge"]):
             tier = budget["drop_to"]
             applied.append("alert_budget")
