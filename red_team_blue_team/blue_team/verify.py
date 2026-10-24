@@ -266,20 +266,18 @@ def retrain(card: dict, runs: Path, out: Path, log=print) -> Path:
     payments are added: the rest of the card's world has no label (unknown is not 'legit', rule 1)."""
     table, _, _, _ = _run_paths(card, runs)
     from model import predict
-    base = Path(json.loads(Path(predict.MODEL_PATH).read_text(encoding="utf-8"))["trained_on"])
-    if not base.is_absolute():
-        base = config.REPO / base
+    bases = [Path(b) for b in json.loads(Path(predict.MODEL_PATH).read_text(encoding="utf-8"))["trained_on"].split(";")]
+    bases = [b if b.is_absolute() else config.REPO / b for b in bases]   # lgbm-0.3 trains on several tables
     add = pd.read_parquet(table)
     add = add[add["tx_id"].isin(set(card.get("label_tx_ids", [])))].assign(label_is_scam=True, playbook=card["name"])
-    t = pd.concat([pd.read_parquet(base), add], ignore_index=True)
     out.mkdir(parents=True, exist_ok=True)
-    tp = out / "train_table.parquet"
-    t.to_parquet(tp)
-    log(f"retrain: {base.name} ({len(t) - len(add):,} rows) + {len(add)} complaint-labelled payments of '{card['name']}'")
+    tp = out / "card_labels.parquet"
+    add.to_parquet(tp)
+    log(f"retrain: {', '.join(b.name for b in bases)} + {len(add)} complaint-labelled payments of '{card['name']}'")
     env = {**os.environ, "PYTHONIOENCODING": "utf-8",
            "PYTHONPATH": os.pathsep.join(str(config.REPO / p) for p in ("backend", "ml", "data"))}
     with open(out / "train.log", "w", encoding="utf-8") as fh:
-        rc = subprocess.run([sys.executable, "-m", "model.train", "--table", str(tp), "--out", str(out)],
+        rc = subprocess.run([sys.executable, "-m", "model.train", "--table", *map(str, bases), str(tp), "--out", str(out)],
                             cwd=config.REPO, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
     if rc:
         raise RuntimeError(f"training failed (exit {rc}); see {out / 'train.log'}")
