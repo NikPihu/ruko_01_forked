@@ -20,6 +20,15 @@ tiers:
   T2: {min_p: 0.50, min_families: 2}                             # explain card, slide to pay
   T1: {min_p: 0.30, min_families: 2}                             # inline tip
 
+# A playbook two analysts approved (blue team: red_team_blue_team/blue_team, `approved_by` in
+# data/playbooks/playbooks.yaml) labels the payment as that scam and raises it to at least this tier,
+# even when the model scored it low: the model cannot learn a scam it has never seen. Rule 5 holds
+# because the playbook's own conditions must come from this many families (api/playbooks.families).
+# Amount caps, trusted payees and the alert budget below still apply.
+approved_playbooks:
+  min_tier: T2                   # explain card, slide to pay: a warning, never a block
+  min_condition_families: 2
+
 # A payee two analysts approved as a mule (rule 11) always warrants a pause, even if it is the only
 # lit family — it is human-verified, so it cannot be a false registry entry (audit §2.6).
 approved_mule_min_tier: T3

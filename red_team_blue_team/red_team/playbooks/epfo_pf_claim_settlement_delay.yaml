@@ -1,0 +1,38 @@
+name: epfo_pf_claim_settlement_delay
+title: 'Fake EPFO desk call: victim calls back or waits 1h for ''claim processing window'' then pays via QR'
+confidence: guess
+emerging: true
+sources: [EPFO official advisories against paying fees for PF withdrawal]
+weight: 0.07
+targets: {salaried: 2.5, gig_worker: 1.6, shopkeeper: 1.0, senior: 1.4, homemaker: 0.6, student: 0.4}
+start_hours: [10, 18]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.6, rented: 0.3, slow_forward: 0.1}
+steps:
+- id: epfo_desk_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.7, voip: 0.3}
+    direction: outgoing
+    minutes: [6, 18]
+  decide: {pressure: 0.8}
+- id: uan_sync_charge
+  gap_min: [50, 160]
+  ask:
+    amount:
+      log: [550, 2100]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.2
+    pressure: 0.85
+    mule: same
+- id: gst_clearance_charge
+  p: 0.55
+  gap_min: [240, 720]
+  ask:
+    amount:
+      log: [900, 2700]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.25
+    pressure: 0.8
+    mule: same

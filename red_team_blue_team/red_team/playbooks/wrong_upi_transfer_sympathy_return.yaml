@@ -1,0 +1,28 @@
+name: wrong_upi_transfer_sympathy_return
+title: Scammer sends fake SMS screenshot of 'accidental ₹1,500 transfer' and pleads on WhatsApp for return via contact/QR
+confidence: guess
+emerging: true
+sources: [NPCI / police advisories on fake credit-SMS accidental transfer refund scams]
+weight: 0.08
+targets: {senior: 2.0, homemaker: 1.8, salaried: 1.5, shopkeeper: 1.6, student: 1.2, gig_worker: 1.2}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {rented: 0.45, merchant_disguised: 0.45, slow_forward: 0.1}
+steps:
+- id: fake_credit_sms
+  stage: S1
+  events:
+  - type: sms_lure
+    tag: refund
+    conf: [0.3, 0.52]
+    has_link: false
+  decide: {pressure: 0.8}
+- id: return_transfer_qr
+  gap_min: [15, 60]
+  ask:
+    amount:
+      log: [400, 1600]
+    entry: {contact: 0.5, qr: 0.5}
+    round: 0.4
+    pressure: 0.9
+    mule: same

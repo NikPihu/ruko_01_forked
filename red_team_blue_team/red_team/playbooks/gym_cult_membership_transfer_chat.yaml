@@ -1,0 +1,37 @@
+name: gym_cult_membership_transfer_chat
+title: Fake seller on community group offers discounted gym/club membership transfer via merchant QR
+confidence: guess
+emerging: true
+sources: [Fitness membership transfer & voucher resale scams]
+weight: 0.06
+targets: {salaried: 2.2, student: 2.0, homemaker: 1.2, shopkeeper: 0.8, gig_worker: 0.8, senior: 0.3}
+start_hours: [9, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: membership_chat
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.75}
+- id: name_change_fee_qr
+  gap_min: [20, 90]
+  ask:
+    amount:
+      log: [450, 1400]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.25
+    pressure: 0.85
+    mule: same
+- id: remaining_months_settlement
+  p: 0.6
+  gap_min: [60, 240]
+  ask:
+    amount:
+      log: [950, 2700]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.25
+    pressure: 0.85
+    mule: same

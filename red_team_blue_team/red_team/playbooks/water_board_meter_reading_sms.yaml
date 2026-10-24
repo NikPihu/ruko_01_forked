@@ -1,0 +1,29 @@
+name: water_board_meter_reading_sms
+title: 'Municipal Jal Board meter-reading discrepancy SMS (conf < 0.55): prompts user to pay provisional bill via
+  QR'
+confidence: guess
+emerging: true
+sources: [Municipal water utility advisories on fake bill arrears SMS]
+weight: 0.07
+targets: {senior: 2.0, homemaker: 1.8, shopkeeper: 1.6, salaried: 1.4, gig_worker: 0.8, student: 0.4}
+start_hours: [9, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: jal_board_sms
+  stage: S1
+  events:
+  - type: sms_lure
+    tag: kyc
+    conf: [0.3, 0.55]
+    has_link: false
+  decide: {pressure: 0.8}
+- id: provisional_bill_qr
+  gap_min: [30, 120]
+  ask:
+    amount:
+      log: [350, 1450]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.1
+    pressure: 0.85
+    mule: same

@@ -1,0 +1,37 @@
+name: wedding_banquet_decorator_advance
+title: Fake event/decorator vendor on Instagram/WhatsApp collects sample-booking & flower advance via merchant QR
+confidence: guess
+emerging: true
+sources: [Consumer complaints on fake event planner & photography vendor QR scams]
+weight: 0.06
+targets: {homemaker: 2.0, salaried: 1.8, shopkeeper: 1.6, senior: 1.4, student: 0.6, gig_worker: 0.8}
+start_hours: [10, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.8, rented: 0.1, slow_forward: 0.1}
+steps:
+- id: portfolio_whatsapp
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.8}
+- id: date_blocking_token_qr
+  gap_min: [30, 180]
+  ask:
+    amount:
+      log: [700, 2400]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.3
+    pressure: 0.85
+    mule: same
+- id: material_procurement_qr
+  p: 0.55
+  gap_min: [240, 960]
+  ask:
+    amount:
+      log: [1000, 2900]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.3
+    pressure: 0.8
+    mule: same

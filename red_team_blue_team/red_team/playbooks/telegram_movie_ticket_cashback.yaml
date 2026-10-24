@@ -1,0 +1,37 @@
+name: telegram_movie_ticket_cashback
+title: Telegram channel offering VIP concert / IPL / movie passes via merchant QR with repeat add-on fee
+confidence: guess
+emerging: true
+sources: [Police advisories on IPL and concert ticket black-market QR scams]
+weight: 0.07
+targets: {student: 2.4, salaried: 1.8, gig_worker: 1.4, shopkeeper: 0.8, homemaker: 0.8, senior: 0.3}
+start_hours: [10, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: ticket_drop_notif
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.4, 0.7]
+  decide: {pressure: 0.8}
+- id: booking_pass_qr
+  gap_min: [10, 60]
+  ask:
+    amount:
+      log: [600, 2200]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.25
+    pressure: 0.85
+    mule: same
+- id: wristband_activation
+  p: 0.55
+  gap_min: [120, 360]
+  ask:
+    amount:
+      log: [400, 1500]
+    entry: {qr: 0.85, contact: 0.15}
+    round: 0.25
+    pressure: 0.8
+    mule: same

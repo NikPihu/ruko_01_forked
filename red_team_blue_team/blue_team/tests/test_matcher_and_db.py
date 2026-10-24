@@ -98,7 +98,38 @@ def test_approved_cards_export_to_the_engine_file_format_or_say_why_not():
     for _ in range(2000):                                        # and it names exactly like our matcher
         f = features(**{k: r.choice([None, True, False]) for k in ("on_call", "caller_unknown", "voip_call", "remote_control")})
         assert rules[0][2](f) == matcher.matches(ok["match"][0]["rule"], f)
-    bad = {**ok, "match": [{"priority": 100, "rule": {"all": [{"token": "SAYS_FAMILY"}, {"token": "AMT_10K_50K"}]}}]}
+    ranged = {**ok, "misnamed_as": None,
+              "match": [{"priority": 100, "rule": matcher.normalize({"all": [{"token": "SAYS_FAMILY"}, {"token": "AMT_10K_50K"}]})}]}
+    text, problems = engine_file.export_entry(ranged)                # playbooks-0.2: request fields + ranges
+    entry = yaml.safe_load(text)[0]
+    assert problems == [] and entry["approved_by"] == ["asha", "ravi"]
+    assert entry["match"]["payer_says"] == "family" and set(entry["match"]["amount_inr"]) == {"gte", "lt"}
+    assert "only NAMES" in text                                      # both conditions are family B
+    rules = parse({"playbooks": [entry]})
+    for _ in range(2000):
+        f = features(payer_says=r.choice([None, "family", "government"]), amount_inr=r.choice([None, 500.0, 10000.0, 30000.0, 50000.0]))
+        assert rules[0][2](f) == matcher.matches(ranged["match"][0]["rule"], f)
+    bad = {**ok, "match": [{"priority": 100, "rule": {"not": {"feature": "amount_inr", "op": "<", "value": 1000}}}]}
     text, problems = engine_file.export_entry(bad)
-    assert any("request field" in p for p in problems) and any("no '>='" in p or "no '<'" in p for p in problems)
-    assert "NOT EXPRESSIBLE" in text
+    assert any("NOT" in p for p in problems) and "NOT EXPRESSIBLE" in text
+
+
+def test_two_ors_inside_one_and_export_and_name_like_the_matcher():
+    from api.playbooks import parse
+    from blue_team import engine_file
+    rule = matcher.normalize({"all": [{"feature": "on_call", "op": "is", "value": True},
+                                      {"any": [{"feature": "remote_control", "op": "is", "value": True},
+                                               {"feature": "session_dictated", "op": "is", "value": True}]},
+                                      {"any": [{"feature": "amount_inr", "op": ">=", "value": 10000},
+                                               {"feature": "payee_mulehunter", "op": ">=", "value": 0.5}]}]})
+    card = {"name": "two_ors", "title": "t", "approved_by": ["asha", "ravi"], "match": [{"priority": 100, "rule": rule}]}
+    text, problems = engine_file.export_entry(card)
+    assert problems == []
+    rules = parse({"playbooks": [yaml.safe_load(text)[0]]})
+    r = random.Random(7)
+    for _ in range(3000):
+        f = features(on_call=r.choice([None, True, False]), remote_control=r.choice([None, True, False]),
+                     session_dictated=r.choice([None, True, False]), amount_inr=r.choice([None, 500.0, 20000.0]),
+                     payee_mulehunter=r.choice([None, 0.1, 0.9]))
+        assert rules[0][2](f) == matcher.matches(rule, f)
+    assert engine_file.rule_families(rule) == {"C"}     # an OR counts only families all its options share

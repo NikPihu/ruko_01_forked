@@ -1,0 +1,38 @@
+name: campus_alumni_emergency_contact_pay
+title: Spoofed college classmate/senior messages asking user to save new mobile number and send urgent travel money
+  via contact
+confidence: guess
+emerging: true
+sources: [Social media profile-cloning & friend-in-need UPI scams, c2-0.7 contact entry rules]
+weight: 0.07
+targets: {student: 2.4, salaried: 1.8, gig_worker: 1.2, homemaker: 1.0, shopkeeper: 0.8, senior: 0.6}
+start_hours: [9, 23]
+mules: {slots: 8}
+mule_kinds: {rented: 0.45, merchant_disguised: 0.4, slow_forward: 0.15}
+steps:
+- id: friend_dm_new_number
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.35, 0.6]
+  decide: {pressure: 0.85}
+- id: bus_ticket_contact_pay
+  gap_min: [15, 75]
+  ask:
+    amount:
+      log: [450, 1600]
+    entry: {contact: 0.7, qr: 0.3}
+    round: 0.4
+    pressure: 0.9
+    mule: same
+- id: baggage_excess_contact_pay
+  p: 0.55
+  gap_min: [60, 240]
+  ask:
+    amount:
+      log: [500, 1800]
+    entry: {contact: 0.7, qr: 0.3}
+    round: 0.4
+    pressure: 0.85
+    mule: same

@@ -1,0 +1,39 @@
+name: tra_sim_block_delayed
+title: 'Fake TRAI/DoT SIM-deactivation call: instructs user to disconnect call and pay KYC verification fee after
+  1 hour'
+confidence: guess
+emerging: true
+sources: [DoT advisories on fake TRAI SIM disconnection calls (2024-25)]
+weight: 0.07
+targets: {senior: 1.8, salaried: 1.6, shopkeeper: 1.5, homemaker: 1.2, gig_worker: 1.0, student: 0.8}
+start_hours: [10, 19]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.6, rented: 0.3, slow_forward: 0.1}
+steps:
+- id: trai_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.8, voip: 0.2}
+    direction: incoming
+    minutes: [4, 14]
+  decide: {pressure: 0.85}
+- id: sim_revalidation_fee
+  gap_min: [50, 140]
+  ask:
+    amount:
+      log: [350, 1600]
+    entry: {qr: 0.8, contact: 0.2}
+    round: 0.15
+    pressure: 0.85
+    mule: same
+- id: refundable_security_deposit
+  p: 0.55
+  gap_min: [240, 720]
+  ask:
+    amount:
+      log: [800, 2500]
+    entry: {qr: 0.75, contact: 0.25}
+    round: 0.2
+    pressure: 0.8
+    mule: same

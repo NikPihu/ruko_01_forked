@@ -182,3 +182,10 @@ def test_analyst_sees_lure_ignored_similarity(ws, new_cluster):
     sims = got["signal_similarity_lures_ignored"]
     assert isinstance(sims["trading_group"], float)                  # 6 named trading cases in the fixture
     assert str(sims["fake_kyc_apk"]).startswith("unknown")           # none named: nothing to compare with
+
+
+def test_offline_rule_reports_families_and_passes_the_gates_on_the_test_world(ws, new_cluster):
+    from blue_team import investigator
+    card, bt = investigator.offline_card(ws, new_cluster, set())
+    assert "families" in bt and bt["warns"] == (len(bt["families"]) >= 2)
+    assert bt["gate_failures"] == [] and bt["cluster_case_recall"] >= 0.6

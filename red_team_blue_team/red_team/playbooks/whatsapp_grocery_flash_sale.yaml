@@ -1,0 +1,37 @@
+name: whatsapp_grocery_flash_sale
+title: 'WhatsApp catalog ''D-Mart / JioMart 60% flash sale'': victim scans merchant-disguised QR from chat'
+confidence: guess
+emerging: true
+sources: [I4C advisories on fake quick-commerce & supermarket discount WhatsApp groups]
+weight: 0.09
+targets: {homemaker: 2.2, salaried: 1.6, shopkeeper: 1.4, senior: 1.2, student: 1.0, gig_worker: 1.2}
+start_hours: [9, 22]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.8, rented: 0.1, slow_forward: 0.1}
+steps:
+- id: catalog_notification
+  stage: S1
+  events:
+  - type: notification_lure
+    tag: refund
+    conf: [0.4, 0.75]
+  decide: {pressure: 0.75}
+- id: basket_checkout_qr
+  gap_min: [15, 90]
+  ask:
+    amount:
+      log: [350, 1600]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.1
+    pressure: 0.85
+    mule: same
+- id: express_delivery_slot
+  p: 0.5
+  gap_min: [60, 240]
+  ask:
+    amount:
+      log: [250, 950]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.15
+    pressure: 0.8
+    mule: same

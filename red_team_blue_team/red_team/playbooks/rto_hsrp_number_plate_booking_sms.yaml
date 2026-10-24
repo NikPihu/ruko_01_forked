@@ -1,0 +1,39 @@
+name: rto_hsrp_number_plate_booking_sms
+title: 'HSRP high-security number plate appointment SMS (conf < 0.56): collects plate booking & home-fitment QR
+  payment'
+confidence: guess
+emerging: true
+sources: [State transport department warnings on fake HSRP booking websites & QR codes]
+weight: 0.07
+targets: {gig_worker: 2.0, shopkeeper: 1.8, salaried: 1.8, senior: 1.0, student: 1.0, homemaker: 0.6}
+start_hours: [9, 21]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.75, rented: 0.15, slow_forward: 0.1}
+steps:
+- id: hsrp_slot_sms
+  stage: S1
+  events:
+  - type: sms_lure
+    tag: kyc
+    conf: [0.32, 0.56]
+    has_link: true
+  decide: {pressure: 0.8}
+- id: plate_booking_qr
+  gap_min: [20, 90]
+  ask:
+    amount:
+      log: [450, 1400]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.1
+    pressure: 0.85
+    mule: same
+- id: home_fitment_addon
+  p: 0.5
+  gap_min: [60, 240]
+  ask:
+    amount:
+      log: [250, 750]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.1
+    pressure: 0.8
+    mule: same

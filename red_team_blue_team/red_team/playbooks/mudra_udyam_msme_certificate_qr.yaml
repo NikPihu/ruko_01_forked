@@ -1,0 +1,38 @@
+name: mudra_udyam_msme_certificate_qr
+title: Fake Udyam / PM Mudra consultancy portal collects MSME certificate & CA attestation fees via merchant QR
+confidence: guess
+emerging: true
+sources: [PIB & Ministry of MSME warnings on fake Udyam registration fee portals]
+weight: 0.07
+targets: {shopkeeper: 2.8, gig_worker: 2.0, homemaker: 1.2, salaried: 0.8, student: 0.8, senior: 0.6}
+start_hours: [9, 20]
+mules: {slots: 10}
+mule_kinds: {merchant_disguised: 0.8, rented: 0.1, slow_forward: 0.1}
+steps:
+- id: udyam_sms
+  stage: S1
+  events:
+  - type: sms_lure
+    tag: kyc
+    conf: [0.32, 0.55]
+    has_link: true
+  decide: {pressure: 0.8}
+- id: portal_registration_qr
+  gap_min: [20, 90]
+  ask:
+    amount:
+      log: [450, 1600]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.2
+    pressure: 0.85
+    mule: same
+- id: ca_project_report_qr
+  p: 0.6
+  gap_min: [180, 600]
+  ask:
+    amount:
+      log: [750, 2200]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.2
+    pressure: 0.8
+    mule: same

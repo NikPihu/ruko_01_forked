@@ -1,0 +1,29 @@
+name: blood_platelet_donor_cab_reimburse
+title: 'Scammer responds to blood-donor SOS post: asks family for cab/testing reimbursement via contact/QR after
+  brief call'
+confidence: guess
+emerging: true
+sources: [Cybercrime alerts on emergency blood/plasma donor cab-fare scams]
+weight: 0.06
+targets: {salaried: 1.8, homemaker: 1.6, shopkeeper: 1.6, senior: 1.5, student: 1.2, gig_worker: 1.2}
+start_hours: [7, 23]
+mules: {slots: 8}
+mule_kinds: {rented: 0.45, merchant_disguised: 0.45, slow_forward: 0.1}
+steps:
+- id: donor_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.85, voip: 0.15}
+    direction: incoming
+    minutes: [2, 6]
+  decide: {pressure: 1.1}
+- id: cab_fare_qr
+  gap_min: [35, 80]
+  ask:
+    amount:
+      log: [400, 1400]
+    entry: {contact: 0.45, qr: 0.55}
+    round: 0.3
+    pressure: 1.0
+    mule: same

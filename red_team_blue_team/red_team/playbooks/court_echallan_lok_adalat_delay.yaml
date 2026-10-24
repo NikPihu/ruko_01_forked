@@ -1,0 +1,28 @@
+name: court_echallan_lok_adalat_delay
+title: 'Fake traffic e-Challan / Lok Adalat settlement call: sends discount QR link 1 hour after call ends'
+confidence: guess
+emerging: true
+sources: [State traffic police advisories on fake e-Challan settlement links]
+weight: 0.07
+targets: {gig_worker: 2.0, salaried: 1.8, shopkeeper: 1.6, student: 1.0, senior: 0.8, homemaker: 0.6}
+start_hours: [9, 20]
+mules: {slots: 8}
+mule_kinds: {merchant_disguised: 0.7, rented: 0.2, slow_forward: 0.1}
+steps:
+- id: challan_clerk_call
+  stage: S1
+  events:
+  - type: call
+    kind: {sim: 0.75, voip: 0.25}
+    direction: incoming
+    minutes: [3, 10]
+  decide: {pressure: 0.75}
+- id: lok_adalat_qr
+  gap_min: [45, 130]
+  ask:
+    amount:
+      log: [400, 1800]
+    entry: {qr: 0.9, contact: 0.1}
+    round: 0.2
+    pressure: 0.85
+    mule: same
