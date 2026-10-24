@@ -217,4 +217,12 @@
     <string name="msg_tag_task_job">नकली टास्क या नौकरी</string>
     <string name="msg_tag_trading_tip">नकली निवेश टिप</string>
     <string name="msg_tag_other">जाना-पहचाना स्कैम</string>
+
+    <!-- "Check Scam Shield" on Home -->
+    <string name="home_server_checking">स्कैम शील्ड जाँच रहे हैं…</string>
+    <string name="home_server_ok_title">स्कैम शील्ड जुड़ा हुआ है</string>
+    <string name="home_server_ok_body">हर पेमेंट आपके PIN से पहले स्कैम के संकेतों के लिए जाँचा जाता है।</string>
+    <string name="home_server_down_title">स्कैम शील्ड से संपर्क नहीं हो पा रहा</string>
+    <string name="home_server_down_body">पेमेंट फिर भी हो जाएँगे, लेकिन सुरक्षा जाँच के बिना। थोड़ी देर में फिर कोशिश करें।</string>
+    <string name="home_server_model">सर्वर मॉडल: %1$s</string>
 </resources>

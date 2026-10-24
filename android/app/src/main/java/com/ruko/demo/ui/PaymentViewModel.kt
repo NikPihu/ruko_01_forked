@@ -94,7 +94,7 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     // The payment being made, for the history: its id is the request_id sent to /v1/decide.
     var checkedPayment by mutableStateOf<PaymentRecord?>(null)
         private set
-    var serverStatus by mutableStateOf<String?>(null)
+    var serverStatus by mutableStateOf<ServerStatus?>(null)
         private set
 
     // The alert being shown: its tier (T3 becomes T2 after "I know this person"), when the answer
@@ -195,14 +195,17 @@ class PaymentViewModel(private val api: RukoApi = ApiClient.api) : ViewModel() {
     }
 
     fun checkServer() {
+        if (serverStatus == ServerStatus.Checking) return
+        serverStatus = ServerStatus.Checking
         viewModelScope.launch {
             serverStatus = try {
                 val body = withContext(Dispatchers.IO) { api.health().string() }
-                "OK: ${body.take(80)}"
+                ServerStatus.fromHealth(body)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                "Not reachable: ${e.message}"
+                Log.w("PaymentViewModel", "health check failed", e)
+                ServerStatus.Unreachable
             }
         }
     }

@@ -27,3 +27,9 @@ Thumbs.db
 data/sim_v1_out/
 # sim_v2 worlds (python -m sim_v2 build)
 data/sim_v2_out/
+
+# interface_script runs (regenerate with python -m interface_script run)
+synthetic_playbook/interface_script_out/
+synthetic_playbook/run_all.log
+synthetic_playbook/.venv/
+synthetic_playbook/.env
