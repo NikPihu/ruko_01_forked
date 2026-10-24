@@ -1,12 +1,11 @@
 # Red team
 
 Two ways to attack RUKO, both producing sim_v2 playbook YAML (the format in
-`data/sim_v2/config/playbooks/README.md`). Playbooks are **data, never executed**: the simulator
-plays them out against simulated users and the real RUKO engine judges every payment.
+`data/sim_v2/config/playbooks/README.md`):
 
 | Part | What it is |
 |---|---|
-| `playbooks/` | the 50 hand-written playbooks (notes in `NIKUNJ_README.md`, scores in `nikunj_manifest_and_scores.csv`) |
+| `playbooks/` | the 50 hand-written playbooks (below) |
 | `generator.py`, `cli.py` | writes variants of existing playbooks into `playbook_v2/`, using AWS Bedrock when it is configured and built-in rules when it is not |
 | `ui.py` | the dashboard: generate, run, and see what got through |
 
@@ -42,7 +41,12 @@ picks up any folder of them with no code change.
 
 ## The 50 hand-written playbooks
 
-What they rely on, as the blue team reads it from each script (`blue_team/redteam.py`):
+**Nikunj's 50 breakthrough playbooks** (`playbooks/`, his notes in `NIKUNJ_README.md`, his own scores
+in `nikunj_manifest_and_scores.csv`): sim_v2 scam scripts written to slip past RUKO. They are data
+(YAML in the `data/sim_v2/config/playbooks/` format), never executed: the simulator plays them out
+against simulated users, and RUKO judges every payment as it would live.
+
+The tricks they use, as the blue team reads them from each script (`blue_team/redteam.py`):
 
 | Trick | Playbooks | Why it hurts RUKO |
 |---|---|---|
