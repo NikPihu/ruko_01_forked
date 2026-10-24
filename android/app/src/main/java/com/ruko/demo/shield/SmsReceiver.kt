@@ -16,7 +16,8 @@ import com.ruko.demo.ui.scamTagRes
 
 /**
  * SMS_RECEIVED wakes the app even when it is not running (the broadcast is on Android's exempt
- * list). Bank alerts are parsed here and handed to EpisodeWorker; the text is never stored.
+ * list). Every message is scam-checked first; a bank alert that does not read like a scam is parsed
+ * and handed to EpisodeWorker; the text is never stored.
  * Also: a one-time code (OTP) that arrives during a call gets a full warning, with "SMS scam
  * check" and "Call signals" on (A5). Ships disabled; ShieldController enables it when "Watch my
  * money alerts" or "SMS scam check" is switched on.
@@ -29,46 +30,49 @@ class SmsReceiver : BroadcastReceiver() {
         val bySender = messages.groupBy { it.originatingAddress }
         // If the consents cannot be read, bank alerts go on as before and no OTP warning is shown.
         val consents = runCatching { AccountStore(context).loadConsents() }.getOrNull()
-        if (consents != null && consents.smsLure) warnScamMessages(context, bySender.mapValues { (_, parts) -> parts.joinToString("") { it.messageBody.orEmpty() } })
         if (consents != null && consents.smsLure && consents.callSignals) {
             val now = System.currentTimeMillis()
             val otpOnCall = bySender.values.any { parts -> MessageCheck.isOtp(parts.joinToString("") { it.messageBody.orEmpty() }) } &&
                 MessageScan.callNow(context, now) != null
             if (otpOnCall) ShieldNotifier.showOtpOnCall(context, runCatching { AccountStore(context).loadProfile()?.language }.getOrNull())
         }
-        if (consents != null && !consents.moneyWatch) return
-        val txns = bySender.mapNotNull { (sender, parts) ->
-            // Debug builds accept numbered senders, so the emulator's `sms send` can play a bank.
-            if (!BankSms.trustedSender(sender, allowNumbers = BuildConfig.DEBUG)) return@mapNotNull null
-            val body = parts.joinToString("") { it.messageBody.orEmpty() }
-            BankSms.parse(body, parts.first().timestampMillis + ShieldController.debugOffsetMs)
-        }
-        ShieldController.enqueue(context, txns)
+        val warn = consents != null && consents.smsLure
+        val count = consents == null || consents.moneyWatch
+        if (!warn && !count) return
+        triageMessages(context, bySender.mapValues { (_, parts) ->
+            parts.joinToString("") { it.messageBody.orEmpty() } to parts.first().timestampMillis + ShieldController.debugOffsetMs
+        }, warn, count)
     }
 
     /**
-     * A new SMS that matches a scam script gets a "may be a scam" notification (A5). Bank alerts
-     * and OTPs are skipped (OTPs have their own warning). The models load off the main thread.
+     * Off the main thread (the models load here): each message is checked once by [SmsTriage]. A
+     * scam script gets a "may be a scam" notification when [warn] (A5), and is never counted as a
+     * bank alert; the rest go to EpisodeWorker when [count].
      */
-    private fun warnScamMessages(context: Context, bodies: Map<String?, String>) {
+    private fun triageMessages(context: Context, messages: Map<String?, Pair<String, Long>>, warn: Boolean, count: Boolean) {
         val pending = goAsync()
         Thread {
             try {
                 Signals.init(context.applicationContext)
-                val language = runCatching { AccountStore(context).loadProfile()?.language }.getOrNull()
-                for ((sender, body) in bodies) {
-                    if (BankSms.trustedSender(sender, allowNumbers = BuildConfig.DEBUG) && BankSms.parse(body, 0L) != null) continue
-                    val m = MessageCheck.check(sender, body, System.currentTimeMillis(), Signals.classifier, Signals.aiText, emptyList())
+                val language = if (warn) runCatching { AccountStore(context).loadProfile()?.language }.getOrNull() else null
+                val txns = ArrayList<MoneyTxn>()
+                for ((sender, message) in messages) {
+                    val (body, ts) = message
+                    // Debug builds accept numbered senders, so the emulator's `sms send` can play a bank.
+                    val verdict = SmsTriage.triage(sender, body, ts, Signals.classifier, Signals.aiText, trustNumbers = BuildConfig.DEBUG)
+                    if (count) verdict.txn?.let(txns::add)
+                    val m = verdict.scam ?: continue
+                    if (!warn) continue
                     val tag = m.scamTag ?: continue
-                    if (m.otp) continue
                     WatchSender.report(context, Sighting.Lure(tag, m.scamConf ?: 0.0, "sms", m.aiWritten))
                     ShieldNotifier.showScamSms(
                         context, language, { c -> c.getString(scamTagRes(tag)) }, m.aiWritten == true,
                         Math.floorMod(sender.orEmpty().hashCode(), 50),
                     )
                 }
+                ShieldController.enqueue(context, txns)
             } catch (e: Exception) {
-                Log.w("SmsReceiver", "scam message check failed", e)
+                Log.w("SmsReceiver", "SMS check failed", e)
             } finally {
                 pending.finish()
             }
