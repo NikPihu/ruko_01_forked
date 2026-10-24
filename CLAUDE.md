@@ -58,8 +58,8 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    `ContractTest.kt`, all in the same PR. Unknown fields get HTTP 422 (`extra="forbid"`).
 9. **The engine only sees what RUKO could really see.** It never reads the simulator's ground
    truth (`is_mule`, `label_*`, journeys, full ledger) at decision time. The payment graph is built
-   only from `/v1/decide`, `/v1/episode` and bank flows the visibility setting allows. Ground truth
-   is for scoring in `data/eval/` only. User baselines (`features/user_baseline.py`,
+   only from `/v1/decide`, `/v1/episode`, `/v1/payment/received` and bank flows the visibility
+   setting allows. Ground truth is for scoring in `data/eval/` only. User baselines (`features/user_baseline.py`,
    `Baselines.get(user, at=ts)`) use only payments before the one being judged; keep it that way.
    `eval/session_eval.py` still hides scam payments from the engine's ledger (an old workaround)
    until it is re-run without it.
@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.11)
+## Contract (current: c2-0.12)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -125,12 +125,14 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   counted for the console). The payment graph's `payee_automated` (bot-scale ring: same amount to or
   from many people at a steady rhythm, `policy.yaml` `automation:`) is payee-family evidence (R11).
 - `POST /v1/payment/received` (c2-0.11): a credit the phone's money watch read from a bank SMS (amount,
-  sender UPI ID or null, time; never the text), only with "Share money I receive" on (off by default).
-  Stored in the transaction database's `received` table for the console (`GET /v1/received`, Transactions
-  → Received); it does not feed `/v1/decide` or the payment graph. The app's History shows received
-  money from the phone's own watcher. A message that reads like a scam is never counted as a credit.
+  sender UPI ID or null, time, and from c2-0.12 `sender_name`, e.g. PNB's `by NAME (vpa) thru UPI`;
+  never the text), only with "Share money I receive" on (off by default). Stored in the `received`
+  table (sender plain, receiver pseudonymised) for the console (`GET /v1/received`, Transactions →
+  Received) and, from c2-0.12, in the payment graph as a sender → user edge (credits of
+  `bait_max_inr` or less are bait votes for the crowd signal, payee family). The app's History shows
+  received money from the phone's own watcher. A message that reads like a scam is never a credit.
 - Reason codes R1 to R12 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`).
-  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.10
+  `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and c2-0.3 to c2-0.11
   requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode

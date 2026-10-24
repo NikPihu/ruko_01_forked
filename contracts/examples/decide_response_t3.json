@@ -13,7 +13,7 @@
   "stage": "S4",
   "evidence_id": "e_3fa91c07d2b4",
   "fail_open": false,
-  "contract_version": "c2-0.11",
+  "contract_version": "c2-0.12",
   "threat": {
     "score": 91,
     "level": "high",

@@ -24,7 +24,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 `backend/tests/test_schema.py` validates every example and fails if the schema file is stale.
 The Android `ContractTest.kt` should read these same example files.
 
-Current version: **`c2-0.11`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.10 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
+Current version: **`c2-0.12`** (see the changelog at the end). c2-0.1 and c2-0.3 to c2-0.11 requests still validate; the c2-0.2 `money` group was removed and now gets 422. The response and `GET /health` both carry `contract_version`.
 
 ## POST /v1/decide
 
@@ -233,12 +233,16 @@ Plain words only, never a score (rule 4). The phone shows them next to its own h
 
 Money the user **received**, as the phone's money watch read it from a bank SMS alert: `event_id`
 (a UUID, one per credit), `user_id`, `sender_upi_id` (the UPI ID the alert named; `null` when it
-named none, rule 1), `amount_inr`, `ts` (when the SMS arrived) and `source` (`bank_sms`). Never the
-SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
+named none, rule 1), `amount_inr`, `ts` (when the SMS arrived), `source` (`bank_sms`) and, from
+c2-0.12, `sender_name` (the account holder's name when the alert gives it, e.g. PNB's
+`... by JAGDEEP SINGH (jag@upi) thru UPI`; `null` otherwise). Never the SMS text (rule 2). Sent only with the "Share money I receive" switch on (off by default, rule 7) and
 "Watch my money alerts" on; a message that reads like a scam script is never counted as a credit.
 Events wait encrypted on the phone until there is a network. Reply: `recorded` (`false` for a
-repeated `event_id`). The server stores it in the transaction database (`received` table, receiver
-pseudonymised) for the console; it does not feed `/v1/decide` or the payment graph.
+repeated `event_id`). The server stores it in the transaction database (`received` table: sender
+name and UPI ID plain, receiver pseudonymised, rule 7) and, from c2-0.12, in the payment graph as a
+sender → user edge with the sender's name as a mark. A credit of `bait_max_inr` or less
+(`episode_rules.json`) also counts as a bait credit, so a sender paying many RUKO users small sums
+becomes crowd evidence (payee family) at payment time. A credit with no sender UPI ID adds no edge.
 
 ## Demo identities (from `data/sim/accounts.py`)
 | Who | ID |
@@ -254,6 +258,7 @@ pseudonymised) for the console; it does not feed `/v1/decide` or the payment gra
 4. Tell the Android owner which fields changed. All of this goes in one commit (CLAUDE.md rule 8).
 
 ## Changelog
+- **c2-0.12**: `MoneyReceived.sender_name` (optional): the account holder's name from the bank SMS. Received credits now feed the payment graph (sender → user; small ones count as bait credits). Additive: c2-0.11 requests still validate.
 - **c2-0.11**: `POST /v1/payment/received` (`MoneyReceived`, `MoneyReceivedResponse`, in `c2_app_events.schema.json`): credits the phone read from bank SMS, opt-in, stored for the console. Additive: c2-0.10 requests still validate.
 - **c2-0.10**: `call.video` (a VoIP call with the camera in use by another app while paying: a video call, e.g. a deepfake "officer" watching; only that the camera is busy, never images) and `WatchEvent.ai_written` (the scam message looked AI-written; the phone's model, text never leaves). Engine: a video call from an unknown caller strengthens R1 and counts for the digital-arrest playbook; `payee_automated` (bot-scale ring) is payee-family evidence (R11). Additive: c2-0.9 requests still validate.
 - **c2-0.9**: `POST /v1/feedback` (`Feedback`, `FeedbackResponse`), `POST /v1/watch` (`WatchEvent`, `WatchEventResponse`), `GET /v1/me/payments` (`MyPayments`), all in `c2_app_events.schema.json`. Additive: c2-0.8 requests still validate.

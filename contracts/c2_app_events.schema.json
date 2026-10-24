@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments, POST /v1/payment/received",
-  "contract_version": "c2-0.11",
+  "contract_version": "c2-0.12",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.12",
           "title": "Contract Version",
           "type": "string"
         }
@@ -284,7 +284,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.12",
           "title": "Contract Version",
           "type": "string"
         }
@@ -424,7 +424,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.12",
           "title": "Contract Version",
           "type": "string"
         }
@@ -476,6 +476,19 @@
           "default": "bank_sms",
           "title": "Source",
           "type": "string"
+        },
+        "sender_name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender Name"
         }
       },
       "required": [
@@ -499,7 +512,7 @@
           "type": "boolean"
         },
         "contract_version": {
-          "default": "c2-0.11",
+          "default": "c2-0.12",
           "title": "Contract Version",
           "type": "string"
         }

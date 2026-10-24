@@ -85,7 +85,8 @@ function ReceivedList() {
             {data.received.map((r) => (
               <tr key={r.event_id}>
                 <td>{when(r.ts)}</td>
-                <td>{r.sender_upi ? <span className="mono">{r.sender_upi}</span> : <span className="muted">not named in the SMS</span>}</td>
+                <td>{r.sender_name && <div>{r.sender_name}</div>}
+                  {r.sender_upi ? <span className="mono">{r.sender_upi}</span> : <span className="muted">no UPI ID in the SMS</span>}</td>
                 <td>{userLabel(r.user_hash)}</td>
                 <td className="num">{inr(r.amount_inr)}</td>
                 <td className="muted">{r.source === "bank_sms" ? "Bank SMS on the phone" : r.source}</td>

@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/decide",
-  "contract_version": "c2-0.11",
+  "contract_version": "c2-0.12",
   "request": {
     "$defs": {
       "CallSignal": {
@@ -963,7 +963,7 @@
         "type": "boolean"
       },
       "contract_version": {
-        "default": "c2-0.11",
+        "default": "c2-0.12",
         "title": "Contract Version",
         "type": "string"
       },
