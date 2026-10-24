@@ -19,14 +19,25 @@ Branch `feature/threat-analysis` on top of `main` 5fc81a7: contract c2-0.8, engi
 **On a held-out world** (`dev_test`, seed 12, never used in training; all through backend/api/policy.py
 with today's thresholds; `ml/runs/evaluate_dev_test.json`):
 
-| | rules-0.7 | lgbm-0.1 | lgbm-0.2 | lgbm-0.2, no phone sends a verdict | deck target |
-|---|---|---|---|---|---|
-| Scam payments interrupted (T2+) | 85.1% | 94.7% | 93.7% | 94.7% | |
-| Scam rupees interrupted | 90.5% | 98.5% | 98.3% | 98.5% | |
-| Paused (T3+) | 66.7% | 93.9% | 93.5% | 93.5% | |
-| Caught at the journey's first payment | 83.4% | 92.1% | 89.4% | 92.1% | >= 70% |
-| Legit interruptions per 1,000 | 6.09 | 0.00 | 0.00 | 0.00 | <= 5 |
-| T3+ precision | 49.5% | 100% | 100% | 100% | >= 1 in 4 |
+| | rules-0.7 | lgbm-0.1 | lgbm-0.2 | lgbm-0.2+pg1 | lgbm-0.2, no phone sends a verdict | deck target |
+|---|---|---|---|---|---|---|
+| Scam payments interrupted (T2+) | 85.1% | 94.7% | 93.7% | 96.8% | 94.7% | |
+| Scam rupees interrupted | 90.5% | 98.5% | 98.3% | 99.1% | 98.5% | |
+| Paused (T3+) | 66.7% | 93.9% | 93.5% | 96.4% | 93.5% | |
+| Caught at the journey's first payment | 83.4% | 92.1% | 89.4% | 94.0% | 92.1% | >= 70% |
+| Legit interruptions per 1,000 | 6.09 | 0.00 | 0.00 | 0.00 | 0.00 | <= 5 |
+| T3+ precision | 49.5% | 100% | 100% | 100% | 100% | >= 1 in 4 |
+
+`lgbm-0.2+pg1` (payee guardrail, 2026-10-24) is the same model with the payee family floored at the
+rules engine's payee score when there is hard payee evidence (registry listed, approved suspect, money
+loop plus crowd); `python -m model.evaluate ... --no-guardrail` gives the lgbm-0.2 column. Re-run on a
+rebuilt `dev_test` (rules-0.7 there: 85.3%, 6.32 per 1,000). Most of the gain is task_job (83.6% ->
+91.8%) and trading_group (90.8% -> 98.2%). It lights the payee family on 591 legit rows (589 through a
+registry listing; 250 are mule_cover payments to real mules, most of the rest are shops), none
+interrupted: no second family was lit. A shop with a false registry report plus an unusual amount would
+now be interrupted. Why it was needed: the worlds hold few mules (11 in the demo world, mostly with 2
+payers), so the payee model learned 35+ payers a week = a shop (the pumped demo mule scored 0.30) and gives no weight to
+approved suspects, which never occur in training.
 
 The phone's verdict adds nothing measurable here (on `dev_calib` too: 93.6% vs 94.1%), because in the
 simulator it is computed from the same readings the server already gets. On a real phone it also

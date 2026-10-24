@@ -70,7 +70,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2`) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2+pg1`) decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -156,17 +156,19 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 
 ## Which scorer runs
 `api/main.py` scores with the trained model by default (`--scorer ml`): `ml/model/predict.py`
-(`lgbm-0.2`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
+(`lgbm-0.2+pg1`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
 family's `build_features` inputs, including the phone's verdict scores `device_c/l/b`; isotonic
 calibration; a logistic combiner; reasons taken in turns from the lit families; the rules engine's
-playbook matcher). If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
+playbook matcher). Payee guardrail (`+pg1`): with hard payee evidence (registry listed, an approved
+suspect, or a money loop plus a crowd signal) the payee family is at least the rules engine's payee
+score, because the simulated worlds' mules are all small and the model reads 35+ payers a week as a shop. If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
 `api/rule_scorer.py` (`rules-0.7`); `--scorer rules` forces the rules. `GET /health` and evidence
 records report the active scorer's version. `scripts/dev.ps1` / `dev.sh` install LightGBM from
 `ml/requirements.txt`, so the demo runs the trained model. `python -m serve` (`ml/serve.py`) still
 works and does the same.
 
-Held-out world (`dev_test`) through the real policy: 93.7% of scam payments interrupted vs 85.1%
-for `rules-0.7`, 0 vs 6.1 legit interruptions per 1,000 (inflated: the simulated world is too easy,
+Held-out world (`dev_test`) through the real policy: 96.8% of scam payments interrupted (93.7%
+without the guardrail) vs 85.3% for `rules-0.7`, 0 vs 6.3 legit interruptions per 1,000 (inflated: the simulated world is too easy,
 see `data/eval/realism/FINDINGS.md`). Details in `ml/PLAN.md` §0.
 
 ## Run it (Windows)
@@ -290,7 +292,7 @@ mind. Offline episode features for training:
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
   would have seen them (`phone_view.py` sends the c2-0.8 context, including the phone's
   `device_verdict`, and replays the payment graph).
-- `model/train.py`, `predict.py` (`lgbm-0.2`), `reasons.py`, `evaluate.py`, `experiments.py`,
+- `model/train.py`, `predict.py` (`lgbm-0.2+pg1`, payee guardrail), `reasons.py`, `evaluate.py`, `experiments.py`,
   `metrics.py`, `tune.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier;
   `model/device/` trains, scores and names the verdict of the on-device model.
 - Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/device_model.json`
