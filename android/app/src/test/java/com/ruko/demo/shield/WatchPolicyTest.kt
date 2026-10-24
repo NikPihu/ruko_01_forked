@@ -2,6 +2,7 @@ package com.ruko.demo.shield
 
 import com.ruko.demo.data.Consents
 import com.ruko.demo.net.CallKind
+import com.ruko.demo.net.Handle
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.net.WatchEvent
 import com.ruko.demo.net.WatchKind
@@ -94,7 +95,7 @@ class WatchPolicyTest {
 
     @Test
     fun eventsCarryTagsAndCountsOnly() {
-        val allowed = setOf("event_id", "user_id", "kind", "ts", "lure_tag", "lure_conf", "source", "ai_written", "call_kind", "call_minutes")
+        val allowed = setOf("event_id", "user_id", "kind", "ts", "lure_tag", "lure_conf", "source", "ai_written", "call_kind", "call_minutes", "handles")
         val sightings = listOf(
             Sighting.Lure("arrest_threat", 0.95, "sms", false),
             Sighting.LongCall(CallKind.VOIP, 40.0, null),
@@ -107,5 +108,19 @@ class WatchPolicyTest {
             assertTrue("$keys", allowed.containsAll(keys))
             assertTrue(e.ts.endsWith("+05:30"))
         }
+    }
+
+    @Test
+    fun lureCarriesHandlesAndNewHandlesAreNotSilenced() {
+        val upi = listOf(Handle("upi", "kyc.refund.desk@ybl"))
+        val (e, key) = WatchPolicy.event(Sighting.Lure("kyc", 0.9, "sms", null, upi), rules, now, none)!!
+        assertEquals(upi, e.handles)
+        // The same scam type with the same handles keeps quiet...
+        assertNull(WatchPolicy.event(Sighting.Lure("kyc", 0.9, "sms", null, upi), rules, now + 1, mapOf(key to now)))
+        // ...but a new UPI ID in the same kind of scam is reported: the server counts it across phones.
+        val other = listOf(Handle("upi", "other.desk@ybl"))
+        assertNotNull(WatchPolicy.event(Sighting.Lure("kyc", 0.9, "sms", null, other), rules, now + 1, mapOf(key to now)))
+        // No handles: the event says nothing about them (null, not an empty list).
+        assertNull(WatchPolicy.event(Sighting.Lure("refund", 0.9, "sms", null), rules, now, none)!!.first.handles)
     }
 }

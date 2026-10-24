@@ -16,6 +16,7 @@ import com.ruko.demo.data.Consents
 import com.ruko.demo.data.SecureStore
 import com.ruko.demo.net.ApiClient
 import com.ruko.demo.net.CallKind
+import com.ruko.demo.net.Handle
 import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.net.WatchEvent
@@ -41,6 +42,8 @@ data class WatchRules(
     @SerialName("device_recent_hours") val deviceRecentHours: Double,
     @SerialName("max_age_days") val maxAgeDays: Double,
     @SerialName("chat_apps") val chatApps: List<String>,
+    @SerialName("handle_salt") val handleSalt: String = "ruko-handles-v1",
+    @SerialName("max_handles") val maxHandles: Int = 10,
 ) {
     companion object {
         const val ASSET = "watch_rules.json"
@@ -58,7 +61,10 @@ data class WatchRules(
 
 /** What the phone saw, before it becomes a [WatchEvent]. Tags and counts only, never text. */
 sealed class Sighting {
-    data class Lure(val tag: String, val conf: Double, val source: String, val aiWritten: Boolean?) : Sighting()
+    data class Lure(
+        val tag: String, val conf: Double, val source: String, val aiWritten: Boolean?,
+        val handles: List<Handle> = emptyList(), // c2-0.13: money handles (UPI plain, link/number hashed)
+    ) : Sighting()
     data class LongCall(val kind: CallKind, val minutes: Double, val callerKnown: Boolean?) : Sighting()
     data class RemoteApp(val installedMinAgo: Double?) : Sighting()
     data class Sideload(val within24h: Boolean?) : Sighting()
@@ -82,9 +88,15 @@ object WatchPolicy {
         val (event, key, quietMs) = when (s) {
             is Sighting.Lure -> {
                 if (s.tag == "normal" || s.conf < rules.lureMinConf) return null
+                // The same scam type is quiet for a while, but a message with new money handles (a new
+                // UPI ID, link or number) is reported: that is what the server counts across phones.
+                val handleKey = s.handles.map { it.value }.sorted().joinToString("|").takeIf { it.isNotEmpty() }
                 Triple(
-                    WatchEvent(id, DemoConfig.USER_ID, WatchKind.LURE_SEEN, ts, lureTag = s.tag, lureConf = round2(s.conf), source = s.source, aiWritten = s.aiWritten),
-                    "lure:${s.tag}", minutes(rules.lureRepeatQuietMin),
+                    WatchEvent(
+                        id, DemoConfig.USER_ID, WatchKind.LURE_SEEN, ts, lureTag = s.tag, lureConf = round2(s.conf),
+                        source = s.source, aiWritten = s.aiWritten, handles = s.handles.take(rules.maxHandles).ifEmpty { null },
+                    ),
+                    "lure:${s.tag}" + (handleKey?.let { ":" + it.hashCode() } ?: ""), minutes(rules.lureRepeatQuietMin),
                 )
             }
             is Sighting.LongCall -> {

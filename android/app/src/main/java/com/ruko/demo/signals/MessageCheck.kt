@@ -11,6 +11,7 @@ import android.provider.Telephony
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.ruko.demo.net.Handle
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -75,6 +76,8 @@ object MessageCheck {
             aiWritten = aiWritten,
             otp = otp,
             otpDuringCall = otp && duringUnknownCall(ts, calls),
+            // Money handles only for a message flagged as a scam (c2-0.13); never for an OTP.
+            handles = if (scamTag != null && !otp) Handles.extract(body) else emptyList(),
         )
     }
 
@@ -96,6 +99,7 @@ data class MessageLabel(
     val aiWritten: Boolean?,
     val otp: Boolean,
     val otpDuringCall: Boolean,
+    val handles: List<Handle> = emptyList(), // c2-0.13: UPI / link / number pseudonyms, never the text
 ) {
     val anyWarning: Boolean get() = scamTag != null || aiWritten == true || otp
 }
