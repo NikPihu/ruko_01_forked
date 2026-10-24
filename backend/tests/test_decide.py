@@ -522,7 +522,9 @@ def test_unknown_contacts_are_not_softened(engine, world):
     assert "R6_new_payee_typed" in r["reasons"]
 
 
-def test_payee_paid_here_before_is_known(engine, world):
+def test_payee_paid_here_is_known_only_after_a_holding_period(engine, world):
+    """Hardened (audit §2.1): a completed payment makes the payee "known" only once it is aged and
+    non-trivial. A fresh payment does not, so a tiny/recent "anchor" cannot launder a mule."""
     user, payee, amount = _new_payee_case(world, 2)
     first = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
                                                context={"lures": LURE}, rid="p_first")).json()
@@ -530,9 +532,35 @@ def test_payee_paid_here_before_is_known(engine, world):
     engine.post("/v1/payment/outcome", json={"request_id": "p_first", "user_id": user, "payee_upi_id": payee,
                                              "amount_inr": amount, "status": "completed",
                                              "ts": (NOW + timedelta(minutes=2)).isoformat()})
-    again = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
-                                               context={"lures": LURE}, rid="p_again",
-                                               ts=NOW + timedelta(hours=2))).json()
-    assert "R6_new_payee_typed" not in again["reasons"]
-    if again["evidence_id"]:
-        assert engine.get(f"/v1/evidence/{again['evidence_id']}").json()["features"]["first_time_payee"] is False
+    # Two hours later the payee is still NEW: a just-completed payment does not grant known status.
+    soon = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                              context={"lures": LURE}, rid="p_soon",
+                                              ts=NOW + timedelta(hours=2))).json()
+    assert "R6_new_payee_typed" in soon["reasons"]
+    # After the holding period (>= 48 h) the aged payment counts, and the payee is known.
+    later = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_later",
+                                               ts=NOW + timedelta(hours=49))).json()
+    assert "R6_new_payee_typed" not in later["reasons"]
+    if later["evidence_id"]:
+        assert engine.get(f"/v1/evidence/{later['evidence_id']}").json()["features"]["first_time_payee"] is False
+
+
+def test_anchor_then_drain_is_flagged(engine, world):
+    """A tiny sub-cap "gate pass" payment, then a drain to the same mule, is an anchor pattern that
+    no longer launders the payee (known-payee poisoning, audit §2.1)."""
+    user, payee, amount = _new_payee_case(world, 4)
+    anchor = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=150, entry="typed",
+                                                context={"lures": LURE}, rid="p_anchor")).json()
+    assert anchor["tier"] in ("T0", "T1")  # a sub-200 payment is capped, never interruptive
+    engine.post("/v1/payment/outcome", json={"request_id": "p_anchor", "user_id": user, "payee_upi_id": payee,
+                                             "amount_inr": 150, "status": "completed",
+                                             "ts": (NOW + timedelta(minutes=2)).isoformat()})
+    drain = engine.post("/v1/decide", json=req(user=user, payee=payee, amount=amount, entry="typed",
+                                               context={"lures": LURE}, rid="p_drain",
+                                               ts=NOW + timedelta(minutes=30))).json()
+    # The drain still sees a new payee (not laundered) and the anchor pattern.
+    assert "R6_new_payee_typed" in drain["reasons"]
+    if drain["evidence_id"]:
+        feats = engine.get(f"/v1/evidence/{drain['evidence_id']}").json()["features"]
+        assert feats["first_time_payee"] is True and feats["payee_micro_anchor"] is True

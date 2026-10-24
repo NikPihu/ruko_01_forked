@@ -28,6 +28,7 @@ import pandas as pd
 from fastapi import HTTPException
 
 from api.episode_events import EpisodeService
+from api.policy import Policy
 from api.intel import NUMBER_UPI, IntelAdapter, IntelResult
 from dataset.device_features import device_features
 from dataset.episodes import EpisodeFeed
@@ -43,6 +44,9 @@ from intel_mock.store import Store
 from model.device import score as device_score
 from model.device.verdict import verdict as device_verdict
 from schema.events import Context, DecideRequest, DeviceVerdict, EpisodeEvent
+
+# The engine's known-payee numbers (policy.yaml), so replay features match the live engine (rule 6).
+_KNOWN_PAYEE = Policy().cfg.get("known_payee", {})
 
 TABLES = ("users", "accounts", "ledger", "context_events", "journeys")
 DEVICE_MODEL = Path(__file__).resolve().parents[1] / "model" / "artifacts" / "v0" / "device_model.json"
@@ -123,8 +127,13 @@ class EngineReplay:
 
     def step(self, req: DecideRequest, base: UserBaseline, trusted: bool = False, with_features: bool = True):
         upi = req.payee_upi_id.strip().lower()
-        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
-        paid_here = self.graph.paid_before(req.user_id, upi, req.ts)
+        # Known payee: the bank's history, or an aged, non-trivial payment here (mirrors api/main.py:
+        # a tiny recent anchor does not count — known-payee poisoning, audit §2.1).
+        kp = _KNOWN_PAYEE
+        paid_here = self.graph.known_payee(req.user_id, upi, req.ts,
+                                           kp.get("min_age_hours", 48), kp.get("min_inr", 500))
+        micro_anchor = not paid_here and self.graph.micro_anchor(
+            req.user_id, upi, req.ts, kp.get("anchor_window_hours", 72), kp.get("anchor_max_inr", 200))
         state = self.tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not trusted)
         # Every checked payment is a graph edge and a payment record; old ones expire (api/main.py).
         self.graph.add_payment(req.user_id, upi, req.amount_inr, req.ts, request_id=req.request_id)
@@ -135,7 +144,8 @@ class EngineReplay:
         res = self.intel.lookup(upi, call.caller_number if call else None, req.ts)
         ring = self.graph.account_signals(upi, req.ts)
         ring["approved_suspect"] = False  # two analysts approve discovered suspects live; none in a replay
-        return state, res, build_features(req, state, res, base, trusted, ring=ring, paid_here=paid_here)
+        return state, res, build_features(req, state, res, base, trusted, ring=ring, paid_here=paid_here,
+                                          micro_anchor=micro_anchor)
 
     def outcome(self, req: DecideRequest, status: str = "completed", ts: datetime | None = None) -> None:
         """POST /v1/payment/outcome (c2-0.6): every payment in the world was completed."""

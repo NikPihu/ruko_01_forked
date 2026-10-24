@@ -346,6 +346,32 @@ class GraphStore:
         return any((p := self.payments.get(r)) is not None and p.user == u and p.status == "completed"
                    and (p.outcome_ts or p.ts) < before for r in self.payments_into.get(acc, ()))
 
+    def _completed_to(self, user_id: str, payee: str, before: datetime):
+        """This user's completed payments to this payee, before `before`."""
+        u, acc = user_node(user_id), payee.strip().lower()
+        for r in self.payments_into.get(acc, ()):
+            p = self.payments.get(r)
+            if p is not None and p.user == u and p.status == "completed" and (p.outcome_ts or p.ts) < before:
+                yield p
+
+    def known_payee(self, user_id: str, payee: str, before: datetime,
+                    min_age_hours: float, min_inr: float) -> bool:
+        """A real prior relationship, not a poisoning anchor: a completed payment to this payee at
+        least `min_age_hours` old and at least `min_inr`. A tiny or very recent payment never
+        grants "known" status (defeats known-payee poisoning; the audit's §2.1)."""
+        cutoff = before - timedelta(hours=min_age_hours)
+        return any((p.outcome_ts or p.ts) <= cutoff and p.inr >= min_inr
+                   for p in self._completed_to(user_id, payee, before))
+
+    def micro_anchor(self, user_id: str, payee: str, before: datetime,
+                     within_hours: float, max_inr: float) -> bool:
+        """A small completed payment to this payee within the last `within_hours` (at or below
+        `max_inr`) that does not itself qualify as "known": the classic scam "gate pass / slot fee"
+        anchor placed just before the drain. A behaviour signal, not a free pass."""
+        since = before - timedelta(hours=within_hours)
+        return any(since <= (p.outcome_ts or p.ts) < before and p.inr <= max_inr
+                   for p in self._completed_to(user_id, payee, before))
+
     def payments_for(self, account: str, limit: int = 20) -> dict:
         """Payments into one account, newest first, with counts by status."""
         acc = account.strip().lower()

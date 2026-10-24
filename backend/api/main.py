@@ -178,8 +178,13 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         base = baselines.get(req.user_id, at=req.ts)  # only what the bank knew before this payment
         upi = req.payee_upi_id.strip().lower()
         is_trusted = upi in trusted.get(req.user_id, set())
-        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6).
-        paid_here = graph.paid_before(req.user_id, upi, req.ts)
+        # Known payee: the bank's history, or a payment here the phone reported completed (c2-0.6) —
+        # but only a real, aged payment, not a tiny recent "anchor" (known-payee poisoning, audit §2.1).
+        kp = policy.cfg.get("known_payee", {})
+        paid_here = graph.known_payee(req.user_id, upi, req.ts,
+                                      kp.get("min_age_hours", 48), kp.get("min_inr", 500))
+        micro_anchor = not paid_here and graph.micro_anchor(
+            req.user_id, upi, req.ts, kp.get("anchor_window_hours", 72), kp.get("anchor_max_inr", 200))
         state = tracker.update(req, new_payee=upi not in base.known_payees and not paid_here and not is_trusted)
         ms["tracker"] = (time.perf_counter() - t) * 1000
 
@@ -196,7 +201,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring = graph.account_signals(upi, req.ts)
         # Discovered suspects count only after two analysts approved them (§9.5).
         ring["approved_suspect"] = upi in discovery.approved_suspects(reviews)
-        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here)
+        feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here,
+                               micro_anchor=micro_anchor)
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()

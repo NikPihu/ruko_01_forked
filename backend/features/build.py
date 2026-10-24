@@ -38,6 +38,7 @@ FAMILY = {
     "payee_automated": "P",  # bot-scale ring: same amount, many people, steady rhythm
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
+    "payee_micro_anchor": "B",
     "payee_in_contacts": "B",
     "new_payee_sum_to_max_90d": "B", "trusted_payee": "B",
     # Coached session (c2-0.5): how the Pay screen was used. Behaviour only, never a second family.
@@ -49,8 +50,9 @@ FAMILY = {
 
 def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
                    base: UserBaseline, trusted: bool, ring: dict | None = None,
-                   paid_here: bool = False) -> dict:
-    """`paid_here`: RUKO saw this user complete a payment to this payee before (c2-0.6 outcomes)."""
+                   paid_here: bool = False, micro_anchor: bool = False) -> dict:
+    """`paid_here`: RUKO saw this user complete an aged, non-trivial payment to this payee (c2-0.6).
+    `micro_anchor`: a small recent payment to this payee that looks like a scam "anchor" (audit §2.1)."""
     ctx = req.context
     call = ctx.call if ctx else None
     dev = ctx.device if ctx else None
@@ -138,6 +140,7 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["attempts_72h"] = st.attempts_72h
     f["payee_in_run"] = st.payee_in_run
     f["new_payee_sum_to_max_90d"] = round(st.new_payee_sum_72h / base.max_90d, 3) if base.max_90d else None
+    f["payee_micro_anchor"] = micro_anchor   # a small recent payment to this payee, then this one
     f["trusted_payee"] = trusted
     f.update(session_features(ctx.session if ctx else None))
 

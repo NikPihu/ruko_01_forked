@@ -151,3 +151,20 @@ def test_paid_before_needs_a_completed_payment_by_the_same_user():
     checked(g, rid="p2", user="u_c")
     g.record_outcome("p2", "u_c", PAYEE, 2_000, "cancelled", NOW)
     assert not g.paid_before("u_c", PAYEE, NOW + timedelta(hours=1))
+
+
+def test_known_payee_needs_age_and_amount_and_anchors_are_flagged():
+    """Hardened (audit §2.1): a fresh or tiny payment is not "known"; a small recent one is an anchor."""
+    g = GraphStore()
+    # A tiny gate-pass payment, just now.
+    checked(g, rid="a1", user="u_a", inr=150.0)
+    g.record_outcome("a1", "u_a", PAYEE, 150.0, "completed", NOW + timedelta(minutes=1))
+    drain = NOW + timedelta(minutes=30)
+    assert not g.known_payee("u_a", PAYEE, drain, min_age_hours=48, min_inr=500)   # too recent and too small
+    assert g.micro_anchor("u_a", PAYEE, drain, within_hours=72, max_inr=200)       # a sub-cap anchor is seen
+    # A real, large payment three days ago IS known, and is not a (sub-cap) anchor.
+    checked(g, rid="a2", user="u_b", inr=4000.0)
+    g.record_outcome("a2", "u_b", PAYEE, 4000.0, "completed", NOW - timedelta(hours=72))
+    now = NOW + timedelta(minutes=1)
+    assert g.known_payee("u_b", PAYEE, now, min_age_hours=48, min_inr=500)
+    assert not g.micro_anchor("u_b", PAYEE, now, within_hours=72, max_inr=200)

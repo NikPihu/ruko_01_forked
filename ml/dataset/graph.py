@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import heapq
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from graph.store import KEEP, GraphStore, user_node
@@ -21,7 +21,7 @@ class ReplayGraphStore(GraphStore):
         super().__init__()
         self._edge_heap: list[tuple[datetime, str, str]] = []
         self._payment_heap: list[tuple[datetime, str]] = []
-        self._completed: dict[tuple[str, str], list[datetime]] = defaultdict(list)  # (user node, payee) -> times
+        self._completed: dict[tuple[str, str], list[tuple[datetime, float]]] = defaultdict(list)  # (user node, payee) -> (time, inr)
 
     def reset(self) -> None:
         self.__init__()
@@ -58,7 +58,7 @@ class ReplayGraphStore(GraphStore):
             heapq.heappush(self._payment_heap, (p.outcome_ts or p.ts, request_id))
             self._push_edge((p.user, p.payee))  # a completed payment can move the edge's last_ts
             if recorded and p.status == "completed":
-                self._completed[(p.user, p.payee)].append(p.outcome_ts or p.ts)
+                self._completed[(p.user, p.payee)].append((p.outcome_ts or p.ts, p.inr))
         return held, recorded
 
     # ---------- the same answers, without full scans ----------
@@ -84,9 +84,20 @@ class ReplayGraphStore(GraphStore):
             if ids and rid in ids:
                 ids.remove(rid)
             if p.status == "completed":
-                times = self._completed[(p.user, p.payee)]
-                times.remove(ts)
+                self._completed[(p.user, p.payee)].remove((ts, p.inr))
 
     def paid_before(self, user_id: str, payee: str, before: datetime) -> bool:
         times = self._completed.get((user_node(user_id), payee.strip().lower()))
-        return bool(times) and min(times) < before
+        return bool(times) and any(t < before for t, _ in times)
+
+    def known_payee(self, user_id: str, payee: str, before: datetime,
+                    min_age_hours: float, min_inr: float) -> bool:
+        cutoff = before - timedelta(hours=min_age_hours)
+        times = self._completed.get((user_node(user_id), payee.strip().lower()), ())
+        return any(t <= cutoff and inr >= min_inr for t, inr in times)
+
+    def micro_anchor(self, user_id: str, payee: str, before: datetime,
+                     within_hours: float, max_inr: float) -> bool:
+        since = before - timedelta(hours=within_hours)
+        times = self._completed.get((user_node(user_id), payee.strip().lower()), ())
+        return any(since <= t < before and inr <= max_inr for t, inr in times)
