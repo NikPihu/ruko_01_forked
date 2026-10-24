@@ -1,0 +1,171 @@
+name: contact_card_urgent_payment
+title: Contact‑card payment request with dictation
+status: review
+summary: Scammer sends a contact (vCard) with a UPI ID, claims urgent need, and dictates a ₹1‑10k payment
+  via the contact entry; repeats the request to new payees that appear in a run.
+steps:
+- Scammer shares a contact (vCard) containing a UPI ID via chat.
+- Claims urgent personal need and asks victim to pay a specific amount (₹1‑10k).
+- Victim opens UPI app, selects the contact entry, and is told the exact amount.
+- Scammer dictates the payment amount while the victim follows on the phone.
+- Victim confirms and sends payment to a new payee that appears in a run of similar scams.
+- If the victim hesitates, the scammer repeats the request.
+signals:
+- ENTRY_CONTACT
+- SESSION_DICTATED
+- AMT_1K_10K
+- PAYEE_IN_RUN
+- NEW_PAYEE
+- REPEAT_ATTEMPTS
+reason_codes:
+- R7_tranche_pattern
+- R3_mule_like_payee
+- R5_lure_message
+advice_en: If you receive a payment request via a contact card, verify the person directly before paying.
+advice_hi: यदि आपको संपर्क कार्ड के माध्यम से भुगतान अनुरोध मिले, तो भुगतान करने से पहले व्यक्ति की पहचान
+  स्वयं जांचें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the tokens.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: contact
+    - feature: payee_in_run
+      op: is
+      value: true
+    - all:
+      - feature: amount_inr
+        op: '>='
+        value: 1000
+      - feature: amount_inr
+        op: <
+        value: 10000
+    - feature: session_dictated
+      op: is
+      value: true
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c05
+  cases: 13
+  scorer: lgbm-0.2
+  nearest_known: task_job
+  similarity: 0.219
+  cited:
+  - source: get_cluster_overview
+    fact: Distinctive tokens include ENTRY_CONTACT, SESSION_DICTATED, AMT_1K_10K, PAYEE_IN_RUN.
+    seen: true
+  - source: get_case rep_005889
+    fact: Payment used ENTRY_CONTACT, AMT_1K_10K, SESSION_DICTATED, NEW_PAYEE, PAYEE_IN_RUN.
+    seen: true
+  - source: get_case rep_008615
+    fact: Second payment used ENTRY_CONTACT, AMT_1K_10K, SESSION_DICTATED after an initial QR request.
+    seen: true
+  - source: get_case rep_011660
+    fact: Two payments both ENTRY_CONTACT, AMT_1K_10K, SESSION_DICTATED, NEW_PAYEE, PAYEE_IN_RUN.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with ENTRY_CONTACT, PAYEE_IN_RUN, AMT_1K_10K, SESSION_DICTATED achieved 0.769 case recall
+      and 0.147 legit per 1,000.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.545
+  cluster_case_recall: 0.769
+  legit_payments_named_per_1000: 0.147
+  known_playbook_payments_also_matched: 0.002
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq contact AND payee_in_run is True AND (amount_inr >= 1000 AND amount_inr
+  < 10000) AND session_dictated is True)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The cluster's core signals (ENTRY_CONTACT, SESSION_DICTATED, AMT_1K_10K) describe a mechanism
+    where scammers share a vCard containing a UPI ID and verbally dictate an urgent payment, which is
+    not covered by any known playbook. Similarity metrics to known playbooks are low (0.219 to task_job,
+    max 0.31 across all), far below the 0.8 threshold for a variant. Therefore this represents a new scam
+    pattern requiring its own playbook.
+  required_changes: []
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: Scammer sends a contact (vCard) with a UPI ID, claims urgent need, and dictates a ₹1‑10k payment
+      via the contact entry.
+    seen: true
+  - source: get_cluster_overview
+    fact: Distinctive tokens include ENTRY_CONTACT, SESSION_DICTATED, AMT_1K_10K, PAYEE_IN_RUN, indicating
+      the core mechanism.
+    seen: true
+  - source: get_cluster_overview
+    fact: Nearest known playbook is task_job with similarity 0.219, well below the 0.8 variant threshold.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity lures ignored shows low similarity to all known playbooks (max 0.31).
+    seen: true
+  - source: list_playbooks
+    fact: No existing playbook describes a scam using a contact (vCard) entry method; known playbooks
+      cover tasks, KYC APK, fake customer care, digital arrest, trading groups, and refund QR.
+    seen: true
+mule_accounts:
+- upi_id: sharmastore5661@paytm
+  cases: 2
+- upi_id: agarwalgeneral195@paytm
+  cases: 1
+- upi_id: agarwalmart387@paytm
+  cases: 1
+- upi_id: patelgeneral267@paytm
+  cases: 1
+- upi_id: agarwalgeneral739@ybl
+  cases: 1
+- upi_id: reddykirana8041@okhdfcbank
+  cases: 1
+- upi_id: reddymart96@axl
+  cases: 1
+- upi_id: patelstore614@ybl
+  cases: 1
+- upi_id: raomart967@ibl
+  cases: 1
+- upi_id: patelgeneral551@ybl
+  cases: 1
+- upi_id: raomart51@okicici
+  cases: 1
+- upi_id: raotraders332@ybl
+  cases: 1
+- upi_id: nikhil.verma584@ybl
+  cases: 1
+- upi_id: jainstore71@okaxis
+  cases: 1
+label_tx_ids:
+- t_0145044
+- t_0169568
+- t_0184956
+- t_0209362
+- t_0274277
+- t_0278490
+- t_0277472
+- t_0283968
+- t_0294848
+- t_0356466
+- t_0389146
+- t_0393555
+- t_0391054
+- t_0400799
+- t_0322488
+- t_0345660
+- t_0369769
+- t_0427558
+- t_0434503
+- t_0471416
+- t_0491586
+- t_0523645
+reviews: []

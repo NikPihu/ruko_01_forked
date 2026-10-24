@@ -142,7 +142,7 @@ def build_world(out: Path, users: int, days: int, seed: int, victim_rate: float,
         f"(weight x{red_boost}) + {len(cfg.playbooks) - len(red)} sim_v2 playbooks -> {out}")
     write(run_build(cfg), cfg, out)
     meta = {"red_team": sorted(red), "users": users, "days": days, "seed": seed, "victim_rate": victim_rate,
-            "red_boost": red_boost}
+            "red_boost": red_boost, "source": "all" if Path(red_dir).resolve() == RED_DIR.resolve() else str(red_dir)}
     (Path(out) / "red_team.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     return meta
 
@@ -173,7 +173,8 @@ def scorecard(run_dir: Path, world: Path, table: Path) -> dict:
     for cid, c in clusters.items():
         cnt = Counter(case_pb.get(i, "?") for i in c["cases"])
         main[cid] = cnt.most_common(1)[0][0] if cnt else None
-    rows, cl = [], claims()
+    from blue_team import inbox
+    rows, cl, judged = [], claims(), inbox.verdicts()
     for pb in sorted(set(jr["playbook"])):
         j = jr[jr["playbook"] == pb]
         p = pay[pay["playbook"] == pb]
@@ -188,6 +189,8 @@ def scorecard(run_dir: Path, world: Path, table: Path) -> dict:
         rows.append({
             "playbook": pb, "red_team": pb in red, "journeys": int(len(j)), "victims_paid": int((j["n_payments"] > 0).sum()),
             "claimed": float(cl[pb]["ml_missed_share"]) if cl.get(pb, {}).get("ml_missed_share") else None,
+            "runner": ({k: judged[pb][k] for k in ("miss_rate", "breakthrough", "false_alarm_rate", "scam_payments_judged")}
+                       if pb in judged else None),
             "scam_payments": int(len(p)),
             "ruko_interrupted": round(float(p["tier"].isin(INTERRUPT).mean()), 3) if len(p) else None,
             "ruko_named": dict(named.most_common(3)),

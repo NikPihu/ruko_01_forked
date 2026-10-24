@@ -1,0 +1,143 @@
+name: fake_company_remote_control
+title: Fake company call with remote control dictation
+status: review
+summary: Scammer calls, takes remote control, and forces typed payments to a new personal UPI ID, often
+  claiming to be a company.
+steps:
+- Scammer calls the victim, claiming to be from a company.
+- Caller keeps the victim on the line and gains remote control of the phone.
+- Victim is instructed to type a payment to a new personal UPI ID.
+- Payment amount is unusually large or the story given mismatches known facts.
+- If the victim hesitates, the scammer may repeat the request.
+signals:
+- CALL_ON
+- REMOTE_CONTROL
+- ENTRY_TYPED
+- STORY_MISMATCH
+- AMT_UNUSUAL
+- SAYS_COMPANY
+- NEW_PAYEE
+- PAYEE_PERSON
+reason_codes:
+- R2_remote_control
+- R6_new_payee_typed
+- R9_story_mismatch
+advice_en: If a call asks you to install remote‑control software and type a payment, hang up and verify
+  independently.
+advice_hi: यदि कॉल में रिमोट‑कंट्रोल ऐप इंस्टॉल करने और टाइप करके भुगतान करने को कहा जाए, तो कॉल काटें
+  और स्वतंत्र रूप से सत्यापित करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the data.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: on_call
+      op: is
+      value: true
+    - feature: remote_control
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - any:
+      - feature: story_mismatch
+        op: is
+        value: true
+      - feature: amount_to_max_90d
+        op: '>='
+        value: 1.5
+evidence:
+  run_id: 20261023-171907
+  cluster_id: c02
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.434
+  cited:
+  - source: get_cluster_overview
+    fact: REMOTE_CONTROL token appears in all 4 cases (lift 7.0).
+    seen: true
+  - source: get_case rep_000707
+    fact: Victim received a call, remote control was used, typed payment of 26,968 INR, payer said "company",
+      and story mismatch flagged.
+    seen: true
+  - source: get_case rep_002387
+    fact: Two payments during a call with remote control, typed entry, large amounts (49,000 and 18,700
+      INR), new payee, and story mismatch on second payment.
+    seen: true
+  - source: test_matcher
+    fact: Matcher (CALL_ON & REMOTE_CONTROL & ENTRY_TYPED & (STORY_MISMATCH OR AMT_UNUSUAL)) achieved
+      100% case recall, 83% payment recall, and <0.5 false positives per 1,000.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.833
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 0.142
+  known_playbook_payments_also_matched: 0.011
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (on_call is True AND remote_control is True AND entry_method eq typed AND (story_mismatch
+  is True OR amount_to_max_90d >= 1.5))
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: All four complaints involve inbound calls (CALL_ON) where the scammer claims to represent
+    a legitimate company, takes remote control of the victim’s phone, and forces the victim to type a
+    payment to a new personal UPI ID. The story mismatch token and unusually large amounts further indicate
+    fraudulent intent. The similarity scores to existing playbooks are well below the 0.8 threshold, meaning
+    this mechanism is not captured by any known playbook (digital_arrest focuses on government threats,
+    fake_customer_care on outbound helpline calls). Therefore the cluster represents a distinct scam pattern
+    that requires its own playbook.
+  required_changes:
+  - Add clarification that the scam involves inbound calls claiming to be from a legitimate company, not
+    a customer‑care helpline.
+  - Include the inbound CALL_ON token in the matcher (currently uses on_call is true, which is correct)
+    and note that outgoing_to_unknown is not required.
+  - Specify that the story mismatch often involves the victim being told the company’s story is different
+    from reality.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: REMOTE_CONTROL token appears in all 4 cases (lift 7.0) and CALL_ON token appears in all cases.
+    seen: true
+  - source: get_case rep_000707
+    fact: Victim received a call, remote control was used, typed payment of 26,968 INR to a new UPI ID,
+      payer said "company", and story mismatch flagged.
+    seen: true
+  - source: get_case rep_002387
+    fact: Two payments during a call with remote control, typed entry, large amounts (49,000 and 18,700
+      INR), new payee, and story mismatch on second payment.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity to known playbooks is low (max 0.35 for digital_arrest), far below the 0.8
+      threshold for variant_of_known.
+    seen: true
+  - source: test_matcher
+    fact: Matcher (CALL_ON & REMOTE_CONTROL & ENTRY_TYPED & (STORY_MISMATCH OR AMT_UNUSUAL)) achieved
+      100% case recall, 83% payment recall, and <0.5 false positives per 1,000.
+    seen: false
+mule_accounts:
+- upi_id: amit.yadav30776@ybl
+  cases: 2
+- upi_id: vivaan.thakur72774@ibl
+  cases: 1
+- upi_id: 8096794153@ibl
+  cases: 1
+label_tx_ids:
+- t_0049897
+- t_0164554
+- t_0180977
+- t_0181019
+- t_0179183
+- t_0179214
+reviews: []

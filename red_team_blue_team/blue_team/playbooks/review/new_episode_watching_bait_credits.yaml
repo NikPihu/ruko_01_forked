@@ -1,0 +1,125 @@
+name: new_episode_watching_bait_credits
+title: 'Unnamed pattern from 4 complaints: episode watching, bait credits, amt 1k 10k, session hesitation,
+  entry qr'
+status: review
+summary: '4 complaints from 4 users describe payments RUKO did not stop. Most share: episode watching,
+  bait credits, amt 1k 10k, session hesitation, entry qr. Median payment Rs 2,264; 4 payee accounts. Drafted
+  without an LLM: an analyst should write the story.'
+steps:
+- 'Complaint pattern: episode watching, bait credits, amt 1k 10k, session hesitation, entry qr'
+- Victim pays a new payee the scammer chose
+signals:
+- EPISODE_WATCHING
+- BAIT_CREDITS
+- AMT_1K_10K
+- SESSION_HESITATION
+- ENTRY_QR
+reason_codes:
+- R10_bait_then_pay
+- R12_coached_session
+advice_en: Other people reported payments like this as scams. Stop, check with someone you trust, and
+  call 1930 if unsure.
+advice_hi: दूसरे लोगों ने ऐसे भुगतानों को धोखा बताया है। रुकें, किसी भरोसेमंद व्यक्ति से पूछें, और शक
+  हो तो 1930 पर कॉल करें।
+ai_powered:
+  likely: false
+  why: not assessed offline
+confidence: low
+open_questions:
+- What story did the scammer tell? (no LLM draft)
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: episode_state
+      op: eq
+      value: 1
+    - feature: session_hesitation
+      op: is
+      value: true
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c00
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: trading_group
+  similarity: 0.488
+  cited:
+  - source: get_cluster_overview
+    fact: EPISODE_WATCHING in 100% of the cases (14.7x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: BAIT_CREDITS in 100% of the cases (14.7x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: AMT_1K_10K in 100% of the cases (1.63x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: SESSION_HESITATION in 50% of the cases (1.32x all missed / unnamed complaints)
+    seen: true
+  - source: test_matcher
+    fact: the rule names 50% of the cases and 0.053 legit payments per 1,000
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.4
+  cluster_case_recall: 0.5
+  legit_payments_named_per_1000: 0.053
+  known_playbook_payments_also_matched: 0.0
+  other_clusters_case_recall:
+    c01: 0.67
+  gate_failures: &id001
+  - names only 50% of the cluster's cases (need 60%)
+rule_in_words: (episode_state eq 1 AND session_hesitation is True)
+gate_failures: *id001
+drafted_by: offline (the openai.gpt-oss-120b-1:0 investigator submitted no valid card in 16 turns)
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The cluster's complaints share a unique combination of episode watching, bait credits, QR
+    entry, and modest payment amounts, none of which align with any existing playbook. Similarity scores
+    to known playbooks are well below the 0.8 threshold, and the current matcher fails to cover the majority
+    of cases. Therefore this pattern represents a new scam mechanism that requires its own playbook and
+    a refined matcher.
+  required_changes:
+  - Create a new playbook describing the 'episode watching bait credits' mechanism, including story details
+    (e.g., how the victim is lured via a streaming episode, receives in-app bait credits, then prompted
+    to scan a QR for a reward and ends up paying a new payee).
+  - Refine the matcher to include EPISODE_WATCHING, BAIT_CREDITS, ENTRY_QR, and AMT_1K_10K together, and
+    consider SESSION_HESITATION as optional, to achieve >60% coverage.
+  - Add a clear step-by-step narrative and recommended user advice in Hindi and English.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: The matcher names only 50% of the cluster's cases (needs 60%) and has 0.053 legit payments per
+      1,000
+    seen: true
+  - source: get_cluster_overview
+    fact: Nearest known playbook similarity is 0.488 (trading_group), well below the 0.8 threshold for
+      variant_of_known
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity to known playbooks is low (max 0.23 for task_job, others unknown or lower)
+    seen: true
+  - source: get_case
+    fact: Case rep_015074 contains tokens EPISODE_WATCHING, BAIT_CREDITS, ENTRY_QR, AMT_1K_10K with no
+      remote_control, no known lure tags, indicating a distinct mechanism
+    seen: true
+mule_accounts:
+- upi_id: patelstore79@ibl
+  cases: 1
+- upi_id: pateltraders426@ybl
+  cases: 1
+- upi_id: sai.kumar20844@axl
+  cases: 1
+- upi_id: sharmakirana415@ybl
+  cases: 1
+label_tx_ids:
+- t_0226759
+- t_0233201
+- t_0358068
+- t_0460548
+- t_0490856
+reviews: []

@@ -1,0 +1,136 @@
+name: qr_refund_small_payment
+title: QR code small‑payment scam to new personal UPI IDs
+status: review
+summary: Scammers send a QR code promising a refund, prize or urgent payment, prompting the victim to
+  pay a small amount (<₹1k) to a newly created personal UPI ID that quickly forwards the money.
+steps:
+- Victim receives a call or message claiming a refund, prize, or urgent payment and is sent a QR code.
+- Victim scans the QR code and is prompted to pay a small amount (usually under ₹1,000) using a new personal
+  UPI ID.
+- The payment is made to the newly created personal account.
+- The payee quickly forwards the money to another account or cashes out, indicated by high pass‑through
+  rate.
+- Victim may be asked to repeat the process for additional small amounts.
+signals:
+- ENTRY_QR
+- AMT_UNDER_1K
+- NEW_PAYEE
+- PAYEE_PERSON
+- PAYEE_PASS_THROUGH
+reason_codes:
+- R5_lure_message
+- R7_tranche_pattern
+advice_en: Do not scan QR codes from unknown sources; verify the request through official channels before
+  paying.
+advice_hi: अज्ञात स्रोत से मिले QR कोड को स्कैन न करें; भुगतान करने से पहले आधिकारिक चैनल से पुष्टि करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deepfake content in the complaints.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: amount_inr
+      op: <
+      value: 1000
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_holder_type
+      op: eq
+      value: person
+    - feature: payee_pass_through_24h
+      op: '>='
+      value: 0.5
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c09
+  cases: 6
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.179
+  cited:
+  - source: get_cluster_overview
+    fact: Typical case tokens include ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_012911
+    fact: Payment used ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON, PAYEE_PASS_THROUGH,
+      PAYEE_YOUNG_ACCOUNT, PAYEE_LISTED.
+    seen: true
+  - source: get_payee sanjay.gupta8554@oksbi
+    fact: Payee is a person, account age 17.7 days, pass_through_24h 0.813.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_PERSON, PAYEE_PASS_THROUGH yields legit
+      payments 0.012 per 1,000 and case recall 0.667.
+    seen: true
+  - source: compare_with_playbook
+    fact: Cluster differs from digital_arrest; tokens like AMT_UNDER_1K and PAYEE_PERSON are more common
+      in the cluster.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.571
+  cluster_case_recall: 0.667
+  legit_payments_named_per_1000: 0.012
+  known_playbook_payments_also_matched: 0.0
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND amount_inr < 1000 AND first_time_payee is True AND payee_holder_type
+  eq person AND payee_pass_through_24h >= 0.5)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: refund_qr
+  rationale: The cluster's mechanism—scammers sending a QR code claiming a refund and prompting a small
+    payment to a newly created personal UPI ID—matches the known 'refund_qr' playbook. The core steps
+    (call about refund, QR code, payment during the call) are identical, while the added specifics (small
+    amount, new payee, high pass‑through) are natural variations. Similarity scores are low because the
+    lures were ignored, but the underlying pattern aligns with refund_qr, so no new playbook is needed.
+  required_changes: []
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: compare_with_playbook
+    fact: 'Cluster steps match core steps of refund_qr: call about refund, QR code, payment while call
+      is on.'
+    seen: true
+  - source: get_cluster_overview
+    fact: Typical case includes ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_PERSON, PAYEE_PASS_THROUGH.
+    seen: true
+  - source: get_candidate
+    fact: Matcher rule (entry_method=qr, amount<1000, first_time_payee, payee_person, pass_through>=0.5)
+      yields legit payments 0.012 per 1000 and case recall 0.667.
+    seen: true
+  - source: test_matcher
+    fact: Matcher performance shows high recall (0.667) and low false positives, supporting the mechanism.
+    seen: false
+mule_accounts:
+- upi_id: sanjay.gupta8554@oksbi
+  cases: 1
+- upi_id: 6760776140@ybl
+  cases: 1
+- upi_id: 9458673298@okaxis
+  cases: 1
+- upi_id: nisha.naik16070@okaxis
+  cases: 1
+- upi_id: isha.rao46825@okaxis
+  cases: 1
+- upi_id: isha.das31654@oksbi
+  cases: 1
+label_tx_ids:
+- t_0320620
+- t_0279914
+- t_0340308
+- t_0352736
+- t_0445616
+- t_0464312
+- t_0473700
+reviews: []

@@ -1,0 +1,159 @@
+name: government_remote_control_bait
+title: Government‑official remote‑control payment scam
+status: review
+summary: Scammers pose as government officials, use remote‑control or dictation, and force victims to
+  type large payments to new personal UPI IDs, followed by quick smaller payments.
+steps:
+- Scammer calls, pretends to be a government officer and threatens arrest or legal action.
+- Victim is kept on the call while the scammer gains remote control or dictates the payment.
+- Victim is instructed to type a large payment to a new personal UPI ID.
+- Additional smaller payments are requested quickly, often using dictation or paste‑after‑switch.
+signals:
+- SAYS_GOVERNMENT
+- AMT_50K_PLUS
+- REMOTE_CONTROL
+- SESSION_DICTATED
+- NEW_PAYEE
+reason_codes:
+- R10_bait_then_pay
+- R11_ring_link
+- R12_coached_session
+advice_en: If a caller claims to be a government officer and asks you to remote‑control your phone or
+  type a payment, hang up and verify independently.
+advice_hi: यदि कॉलर खुद को सरकारी अधिकारी बताता है और रिमोट‑कंट्रोल या भुगतान करने को कहे, तो कॉल काटें
+  और स्वतंत्र रूप से सत्यापित करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the data.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: payee_holder_type
+      op: eq
+      value: person
+    - any:
+      - feature: session_dictated
+        op: is
+        value: true
+      - feature: session_pasted_after_switch
+        op: is
+        value: true
+    - any:
+      - feature: amount_inr
+        op: '>='
+        value: 50000
+      - feature: amount_to_max_90d
+        op: '>='
+        value: 1.5
+    - feature: first_time_payee
+      op: is
+      value: true
+evidence:
+  run_id: 20261023-170900
+  cluster_id: c04
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.398
+  cited:
+  - source: get_cluster_overview
+    fact: Distinctive tokens include SAYS_GOVERNMENT (lift 17.5) and AMT_50K_PLUS (lift 7.5).
+    seen: true
+  - source: get_case rep_001138
+    fact: First payment used ENTRY_TYPED, REMOTE_CONTROL, SAYS_GOVERNMENT, AMT_50K_PLUS, NEW_PAYEE, SESSION_DICTATED.
+    seen: true
+  - source: get_case rep_000806
+    fact: Payments show ENTRY_TYPED, AMT_50K_PLUS, NEW_PAYEE, SESSION_DICTATED and PAYEE_IN_RUN.
+    seen: true
+  - source: compare_with_playbook digital_arrest
+    fact: Cluster has higher AMT_50K_PLUS and SAYS_GOVERNMENT, but lower CALL_ON and CALLER_UNKNOWN than
+      the digital_arrest playbook.
+    seen: true
+  - source: test_matcher
+    fact: Matcher achieved 0.75 case recall and 0.441 legit payments per 1,000, meeting all gates.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.273
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.441
+  known_playbook_payments_also_matched: 0.028
+  other_clusters_case_recall:
+    c01: 0.33
+    c02: 0.5
+    c03: 0.5
+    c06: 0.25
+    m_digital_arrest_0: 0.5
+    m_digital_arrest_2: 0.29
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq typed AND payee_in_run is True AND payee_holder_type eq person AND (session_dictated
+  is True OR session_pasted_after_switch is True) AND (amount_inr >= 50000 OR amount_to_max_90d >= 1.5)
+  AND first_time_payee is True)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: digital_arrest
+  rationale: The cluster's victims report scammers posing as government officials, using remote‑control
+    or dictation to force large typed payments to new personal UPI IDs—exactly the pattern described in
+    the existing digital_arrest playbook. Similarity scores (0.398) and token lifts show strong overlap,
+    and the matcher performs well. The draft playbook does not introduce a novel mechanism, so it should
+    be treated as a variant of digital_arrest rather than a new scam.
+  required_changes:
+  - Rename the playbook to align with the existing 'digital_arrest' playbook (or mark it as a variant
+    of digital_arrest).
+  - Adjust the matcher to also consider call‑related tokens (CALL_ON, CALLER_UNKNOWN) that are part of
+    the canonical digital_arrest rule, improving coverage.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: Cluster c04's nearest known playbook is digital_arrest with similarity 0.398.
+    seen: true
+  - source: compare_with_playbook
+    fact: 'Cluster shares core mechanisms with digital_arrest: government‑official claim, remote control,
+      large typed payments to new personal UPI IDs.'
+    seen: true
+  - source: get_candidate
+    fact: Card signals include SAYS_GOVERNMENT, AMT_50K_PLUS, REMOTE_CONTROL, SESSION_DICTATED, matching
+      digital_arrest behavior.
+    seen: true
+  - source: test_matcher
+    fact: Matcher achieved 0.75 case recall and 0.441 legit payments per 1,000, meeting all gates.
+    seen: false
+  - source: get_cluster_overview
+    fact: Distinctive tokens (SAYS_GOVERNMENT, AMT_50K_PLUS, REMOTE_CONTROL) are the same as those defining
+      digital_arrest.
+    seen: true
+mule_accounts:
+- upi_id: 6020446750@ybl
+  cases: 1
+- upi_id: 6639106797@paytm
+  cases: 1
+- upi_id: anita.sinha42935@ybl
+  cases: 1
+- upi_id: nisha.sharma42858@okicici
+  cases: 1
+label_tx_ids:
+- t_0069794
+- t_0069829
+- t_0069840
+- t_0069931
+- t_0069996
+- t_0083262
+- t_0083271
+- t_0083323
+- t_0157595
+- t_0166563
+- t_0166638
+reviews: []

@@ -1,0 +1,152 @@
+name: chat_qr_scam
+title: QR code scam via chat without call
+status: review
+summary: Scammers send a QR code via chat promising a small reward; the victim scans it, enters a tiny
+  amount to a new payee, then abandons the session, leaving the payment vulnerable.
+steps:
+- Scammer sends QR code in chat
+- Victim scans QR code
+- Victim enters small amount to a new payee
+- Session is abandoned before confirmation
+- Payment completes unnoticed
+signals:
+- ENTRY_QR
+- AMT_UNDER_1K
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- SESSION_ABANDONED
+reason_codes:
+- R5_lure_message
+advice_en: Do not scan QR codes from unknown messages; verify the sender before paying.
+advice_hi: अज्ञात संदेशों से QR कोड स्कैन न करें; भुगतान करने से पहले प्रेषक की पुष्टि करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI-generated voice or deepfake content.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: amount_inr
+      op: <
+      value: 1000
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: session_abandoned_30m
+      op: '>='
+      value: 1
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c03
+  cases: 6
+  scorer: lgbm-0.2
+  nearest_known: refund_qr
+  similarity: 0.594
+  cited:
+  - source: get_cluster_overview
+    fact: All 6 cases share tokens ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_IN_RUN, SESSION_ABANDONED.
+    seen: true
+  - source: get_case rep_018143
+    fact: Payment of 500 INR via QR to a new payee with SESSION_ABANDONED token.
+    seen: true
+  - source: get_case rep_007823
+    fact: Payment of 700 INR via QR to a new payee with PAYEE_PERSON and PAYEE_LISTED tokens.
+    seen: true
+  - source: get_case rep_015854
+    fact: Payment of 161 INR via QR to a new payee with PAYEE_PERSON token.
+    seen: true
+  - source: list_playbooks
+    fact: Nearest known playbook is refund_qr with similarity 0.594, but cluster lacks CALLER_UNKNOWN
+      token.
+    seen: true
+  - source: compare_with_playbook
+    fact: Cluster differs by lacking CALLER_UNKNOWN and having AMT_UNDER_1K, SESSION_ABANDONED.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.857
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 2.001
+  known_playbook_payments_also_matched: 0.002
+  other_clusters_case_recall:
+    c05: 0.08
+    c10: 0.21
+    c11: 0.75
+    c12: 0.33
+    c15: 0.2
+    c21: 0.62
+    c22: 0.14
+    c23: 1.0
+  gate_failures: &id001
+  - would name 2.00 legit payments per 1,000 (max 0.5)
+rule_in_words: (entry_method eq qr AND amount_inr < 1000 AND first_time_payee is True AND payee_in_run
+  is True AND session_abandoned_30m >= 1)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: refund_qr
+  rationale: The cluster’s mechanism (QR code sent in a chat message, victim scans and pays a small amount,
+    then the session is abandoned) does not match any known playbook; the nearest playbook (refund_qr)
+    requires a phone call, which is absent here. The similarity score is low (0.594) and the backtest
+    shows the current matcher would generate too many false positives, indicating a distinct scam pattern
+    that needs its own playbook with tighter constraints.
+  required_changes:
+  - Add a condition to exclude cases with any CALLER_* tokens (e.g., caller_unknown, call_voip) to ensure
+    the scam is chat‑only.
+  - Add a stricter amount limit (e.g., amount_inr < 500) to reduce false positives while still covering
+    the median payment size.
+  - Require a lure token indicating the QR was sent via chat/message (e.g., LURE_CHAT or MESSAGE_QR) to
+    differentiate from the refund_qr playbook that involves a phone call.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: 'Backtest gate failure: matcher would name 2.00 legit payments per 1,000 (max allowed 0.5).'
+    seen: true
+  - source: get_cluster_overview
+    fact: Cluster is marked as 'new' with nearest known playbook refund_qr similarity 0.594 (well below
+      the 0.8 variant threshold).
+    seen: true
+  - source: compare_with_playbook
+    fact: Cluster lacks CALLER_UNKNOWN, CALL_VOIP, and other call‑related tokens that define the refund_qr
+      playbook.
+    seen: true
+  - source: get_cluster_overview
+    fact: All 6 cases share ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, PAYEE_IN_RUN, SESSION_ABANDONED, with no
+      call‑related tokens.
+    seen: true
+  - source: list_playbooks
+    fact: No existing playbook describes a QR‑code scam delivered solely via chat without a phone call.
+    seen: true
+mule_accounts:
+- upi_id: ananya.naik73085@okicici
+  cases: 1
+- upi_id: nikhil.rao56806@paytm
+  cases: 1
+- upi_id: sharmaprovision817@paytm
+  cases: 1
+- upi_id: rohan.nair52679@okaxis
+  cases: 1
+- upi_id: jaingeneral376@oksbi
+  cases: 1
+- upi_id: agarwalkirana924@paytm
+  cases: 1
+label_tx_ids:
+- t_0186656
+- t_0369840
+- t_0441498
+- t_0481782
+- t_0482685
+- t_0489424
+- t_0519100
+reviews: []

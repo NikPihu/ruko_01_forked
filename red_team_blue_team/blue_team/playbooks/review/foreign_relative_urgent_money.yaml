@@ -1,0 +1,160 @@
+name: foreign_relative_urgent_money
+title: Foreign caller urges urgent money transfer to new personal UPI ID
+status: review
+summary: Victim receives a call from an unknown foreign number claiming urgent personal need and is asked
+  to type payments to a new person UPI ID, often multiple times.
+steps:
+- Unknown foreign caller contacts victim and claims an urgent personal emergency.
+- Victim stays on the call while the caller asks for immediate money.
+- Victim is instructed to type a payment to a new person UPI ID.
+- Caller may request a second payment shortly after the first.
+- Victim sends one or more typed payments to the new payee.
+signals:
+- CALLER_FOREIGN
+- CALLER_LISTED
+- CALLER_UNKNOWN
+- CALL_ON
+- ENTRY_TYPED
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- PAYEE_PERSON
+reason_codes:
+- R1_live_unknown_call
+- R5_lure_message
+- R6_new_payee_typed
+advice_en: Hang up and verify any money request from unknown foreign callers before paying.
+advice_hi: अज्ञात विदेशी कॉल से पैसे की मांग पर कॉल काटें और अनुरोध की पुष्टि करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the tokens.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: on_call
+      op: is
+      value: true
+    - any:
+      - feature: caller_unknown
+        op: is
+        value: true
+      - all:
+        - feature: voip_call
+          op: is
+          value: true
+        - feature: caller_unknown
+          op: is_null
+    - feature: foreign_caller
+      op: is
+      value: true
+    - feature: caller_registry_listed
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: payee_holder_type
+      op: eq
+      value: person
+evidence:
+  run_id: 20261023-171907
+  cluster_id: c00
+  cases: 5
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.599
+  cited:
+  - source: get_cluster_overview
+    fact: Cluster c00 has 5 complaints; top payee aditya.jain73322@okicici appears in 3 cases.
+    seen: true
+  - source: get_case rep_000981
+    fact: First payment tokens include CALL_ON, CALLER_UNKNOWN, CALLER_FOREIGN, CALLER_LISTED, ENTRY_TYPED,
+      NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_001491
+    fact: Second payment in same case repeats CALL_ON, CALLER_UNKNOWN, CALLER_FOREIGN, CALLER_LISTED,
+      ENTRY_TYPED, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_payee
+    fact: Payee aditya.jain73322@okicici is a listed person, not a merchant.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with tokens CALL_ON, CALLER_UNKNOWN, CALLER_FOREIGN, CALLER_LISTED, ENTRY_TYPED, PAYEE_IN_RUN,
+      PAYEE_PERSON yields 0.8 case recall and 0 false positives.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.75
+  cluster_case_recall: 0.8
+  legit_payments_named_per_1000: 0.0
+  known_playbook_payments_also_matched: 0.002
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (on_call is True AND (caller_unknown is True OR (voip_call is True AND caller_unknown is
+  null)) AND foreign_caller is True AND caller_registry_listed is True AND entry_method eq typed AND payee_in_run
+  is True AND payee_holder_type eq person)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: 'The cluster c00 is characterised by an unknown foreign caller claiming an urgent personal
+    emergency and requesting immediate, typed payments to a new personal UPI ID. None of the existing
+    playbooks describe this exact mechanism: digital_arrest involves law‑enforcement threats and remote‑control,
+    task_job relies on bait credits and escalating deposits, fake_customer_care requires remote‑access,
+    fake_kyc_apk needs a sideloaded app, and refund_qr uses QR codes. Similarity scores are well below
+    the 0.8 threshold, and the token analysis shows clear differences. Therefore this pattern represents
+    a new scam type not covered by current playbooks.'
+  required_changes:
+  - Add explicit mention that the caller claims a foreign relative is in urgent need, differentiating
+    from digital_arrest which involves law‑enforcement threats.
+  - Include token for 'CALLER_FOREIGN' and 'CALLER_LISTED' in the matcher description to capture the foreign
+    caller aspect.
+  - Clarify that no remote‑control or screen‑sharing is involved, to avoid confusion with fake_customer_care
+    or digital_arrest.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: Nearest known playbook is digital_arrest with similarity 0.599, below the 0.8 threshold for
+      variant classification.
+    seen: true
+  - source: compare_with_playbook
+    fact: Cluster c00 lacks playbook‑specific tokens such as SESSION_DICTATED, AMT_UNUSUAL, remote_control,
+      which are common in digital_arrest.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity scores for all known playbooks are low (digital_arrest 0.59, others ≤0.24),
+      indicating a distinct mechanism.
+    seen: true
+  - source: get_cluster_overview
+    fact: Distinctive tokens include CALLER_FOREIGN, CALLER_LISTED, CALLER_UNKNOWN, CALL_ON, ENTRY_TYPED,
+      NEW_PAYEE, PAYEE_PERSON, none of which appear in existing playbooks.
+    seen: true
+  - source: get_candidate
+    fact: Backtest shows the matcher correctly captures the cluster (0.8 case recall, 0 false positives)
+      but does not map to any existing playbook.
+    seen: true
+mule_accounts:
+- upi_id: aditya.jain73322@okicici
+  cases: 3
+- upi_id: 7240038459@ibl
+  cases: 1
+- upi_id: 7208688005@paytm
+  cases: 1
+label_tx_ids:
+- t_0077852
+- t_0077855
+- t_0113943
+- t_0113952
+- t_0124626
+- t_0142020
+- t_0185613
+- t_0185621
+reviews: []

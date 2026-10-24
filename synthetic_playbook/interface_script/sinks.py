@@ -36,8 +36,17 @@ def handoff_folder(v, sc, df, out: Path, log=print) -> None:
     log(f"  handoff written: {h}")
 
 
-# Add the blue team's sink here when it exists; it then gets every run with no other change.
-SINKS = [handoff_folder]
+def blue_team(v, sc, df, out: Path, log=print) -> None:
+    """The blue team's inbox (red_team_blue_team/blue_team/inbox.py): every verdict, and the playbook
+    of every breakthrough. Skipped quietly when the blue team is not on PYTHONPATH."""
+    try:
+        from blue_team import inbox
+    except ImportError:
+        return
+    inbox.receive(v, sc, df, out, log=log)
+
+
+SINKS = [handoff_folder, blue_team]
 
 
 def emit(v, sc, df, out: Path, log=print) -> None:

@@ -1,0 +1,160 @@
+name: on_call_remote_control
+title: On‑call remote‑control payment scam
+status: review
+summary: Victims receive a phone call, are asked to install a remote‑control app, and while the call is
+  active they are instructed to type a large payment to a new personal UPI ID.
+steps:
+- Victim receives a phone call (on‑call) from an unknown or familiar number.
+- Caller asks the victim to install a remote‑control or screen‑sharing app, or takes control of the device.
+- While the call remains active, the caller dictates a large typed payment to a new personal UPI ID.
+- The amount is unusually high (10 k–50 k INR or more) and the payee is a first‑time recipient.
+- Victim may be told the payment is for a company, verification, or other pretext; story may not match
+  the claim.
+- If the victim repeats the request quickly, additional payments may follow.
+signals:
+- CALL_ON
+- REMOTE_CONTROL
+- ENTRY_TYPED
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- AMT_10K_50K
+- AMT_50K_PLUS
+- AMT_UNUSUAL
+reason_codes:
+- R2_remote_control
+- R4_unusual_amount
+- R6_new_payee_typed
+advice_en: If a call asks you to install remote‑control software and type a payment, end the call and
+  verify the request independently.
+advice_hi: यदि कॉल आपको रिमोट‑कंट्रोल ऐप इंस्टॉल करने और भुगतान टाइप करने को कहे, तो कॉल समाप्त करें और
+  अनुरोध को स्वतंत्र रूप से जांचें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the tokens.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: on_call
+      op: is
+      value: true
+    - feature: remote_control
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - any:
+      - all:
+        - feature: amount_inr
+          op: '>='
+          value: 10000
+        - feature: amount_inr
+          op: <
+          value: 50000
+      - feature: amount_inr
+        op: '>='
+        value: 50000
+      - feature: amount_to_max_90d
+        op: '>='
+        value: 1.5
+evidence:
+  run_id: 20261023-170900
+  cluster_id: c02
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.434
+  cited:
+  - source: get_cluster_overview
+    fact: REMOTE_CONTROL token appears in 100% of the cluster's cases with a lift of 7.0.
+    seen: true
+  - source: get_case rep_000707
+    fact: Payment includes CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, NEW_PAYEE, PAYEE_IN_RUN, AMT_10K_50K
+      and STORY_MISMATCH.
+    seen: true
+  - source: get_case rep_002063
+    fact: Payment includes CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, NEW_PAYEE, PAYEE_IN_RUN and AMT_50K_PLUS.
+    seen: true
+  - source: get_case rep_002316
+    fact: Two payments to the same UPI ID show CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, NEW_PAYEE, PAYEE_IN_RUN
+      and AMT_UNUSUAL.
+    seen: true
+  - source: get_payee
+    fact: Top payee is a person (payee_holder_type = person) and appears in multiple complaints.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, NEW_PAYEE, PAYEE_IN_RUN and high‑amount tokens
+      achieves 0.75 case recall, 0.5 payment recall, 0.102 false positives per 1,000 and 0.007 overlap
+      with known playbooks.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.5
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.102
+  known_playbook_payments_also_matched: 0.007
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (on_call is True AND remote_control is True AND entry_method eq typed AND first_time_payee
+  is True AND payee_in_run is True AND ((amount_inr >= 10000 AND amount_inr < 50000) OR amount_inr >=
+  50000 OR amount_to_max_90d >= 1.5))
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: 'The cluster exhibits a distinct pattern: victims receive an inbound phone call, are told
+    to install a remote‑control app, and then type a large payment to a new personal UPI ID, often under
+    a company pretext. This differs from fake_customer_care (outbound victim‑initiated calls) and digital_arrest
+    (police/officer pretense with caller‑unknown cues). The similarity metrics are well below the 0.8
+    threshold, and direct comparison shows missing hallmark tokens of the known playbooks. Therefore the
+    mechanism is not described by any existing playbook and warrants a new playbook.'
+  required_changes:
+  - Add clarification that the call is inbound (victim receives call) rather than victim-initiated, distinguishing
+    it from fake_customer_care.
+  - Include the 'company' pretext token in the playbook title/summary to capture the distinct story mismatch
+    pattern.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: Cluster c02 is marked as 'new' with no RUKO playbook name and nearest known playbook similarity
+      0.434 (digital_arrest).
+    seen: true
+  - source: compare_with_playbook digital_arrest
+    fact: Key tokens for digital_arrest such as CALLER_UNKNOWN and CALL_VOIP are absent (negative diff),
+      while the cluster strongly features REMOTE_CONTROL and SAYS_COMPANY.
+    seen: true
+  - source: compare_with_playbook fake_customer_care
+    fact: Fake_customer_care has zero reference cases; similarity could not be computed, and its scenario
+      expects the victim to call the fake helpline, not receive an inbound call.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity scores to all known playbooks are low (max 0.35 to digital_arrest), indicating
+      the mechanism is not captured by existing playbooks.
+    seen: true
+mule_accounts:
+- upi_id: amit.yadav30776@ybl
+  cases: 2
+- upi_id: vivaan.thakur72774@ibl
+  cases: 1
+- upi_id: 8096794153@ibl
+  cases: 1
+label_tx_ids:
+- t_0049897
+- t_0164554
+- t_0180977
+- t_0181019
+- t_0179183
+- t_0179214
+reviews: []

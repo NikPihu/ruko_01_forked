@@ -1,0 +1,174 @@
+name: qr_mule_refund
+title: Unsolicited QR Refund Scam Using Mule Accounts
+status: review
+summary: Scammers send unsolicited QR codes claiming a refund or government payment; victims scan and
+  pay small amounts to new mule accounts that forward money, often repeating payments after short gaps.
+steps:
+- Scammer contacts victim (call, SMS, or chat) claiming a refund, government payout, or prize.
+- Victim receives a QR code and is asked to scan it to claim the money.
+- Scanning opens a UPI payment screen prefilled with a new payee (often a merchant mule account).
+- Victim pays a small amount (under ₹10,000).
+- Scammer urges repeat payments after short gaps, using the same or similar QR codes.
+- Mule account forwards received funds to cash‑out channels, completing the fraud.
+signals:
+- ENTRY_QR
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- PAYEE_PASS_THROUGH
+- PAYEE_MULEHUNTER
+- PAYEE_LISTED
+- SESSION_HESITATION
+- SESSION_ABANDONED
+- REPEAT_ATTEMPTS
+reason_codes:
+- R5_lure_message
+- R3_mule_like_payee
+- R7_tranche_pattern
+advice_en: Do not scan or pay QR codes you did not request; verify the source before any payment.
+advice_hi: अनुरोधित नहीं किए गए QR कोड को स्कैन या भुगतान न करें; भुगतान से पहले स्रोत की पुष्टि करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the cluster.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: payee_pass_through_24h
+      op: '>='
+      value: 0.5
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c15
+  cases: 15
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.372
+  cited:
+  - source: get_cluster_overview
+    fact: Distinctive tokens include PAYEE_MULEHUNTER, PAYEE_PASS_THROUGH, PAYEE_LISTED, ENTRY_QR, NEW_PAYEE,
+      PAYEE_IN_RUN.
+    seen: true
+  - source: get_case rep_007868
+    fact: Payment used ENTRY_QR, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PASS_THROUGH.
+    seen: true
+  - source: get_case rep_010351
+    fact: Payment included PAYEE_MULEHUNTER, REPEAT_ATTEMPTS, SESSION_DICTATED, SESSION_ABANDONED.
+    seen: true
+  - source: get_payee jaingeneral739@okaxis
+    fact: Payee has high mulehunter (0.814) and pass‑through (0.881) scores and is listed in registry.
+    seen: true
+  - source: test_matcher
+    fact: Matcher (ENTRY_QR & NEW_PAYEE & PAYEE_IN_RUN & PAYEE_PASS_THROUGH) achieved 86.7% case recall
+      and 0.194 false positives per 1,000 legit payments.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.565
+  cluster_case_recall: 0.867
+  legit_payments_named_per_1000: 0.194
+  known_playbook_payments_also_matched: 0.003
+  other_clusters_case_recall:
+    c03: 0.17
+    c04: 0.12
+    c09: 0.67
+    c10: 0.07
+    c16: 0.29
+    c20: 1.0
+    c21: 0.5
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND first_time_payee is True AND payee_in_run is True AND payee_pass_through_24h
+  >= 0.5)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: refund_qr
+  rationale: The primary fraud vector in cluster c15 is an unsolicited QR code promising a refund, which
+    is exactly the mechanism captured by the known 'refund_qr' playbook. The additional mule‑account behavior
+    (new payees that forward funds) is a sub‑pattern that can be incorporated as an extension to the existing
+    playbook rather than defining a brand‑new scam. The matcher shows strong recall and low false positives,
+    confirming the relevance of the QR‑refund signal. Since the core mechanism is already covered, the
+    draft should be merged into the 'refund_qr' playbook with added guidance on mule‑account detection.
+  required_changes:
+  - Rename the playbook to align with the existing 'refund_qr' playbook (e.g., 'refund_qr_mule_variant')
+    and incorporate the mule‑account details into the existing refund_qr guidance rather than creating
+    a separate playbook.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: The cluster c15 was not previously named by any playbook (ruko_named_it is null).
+    seen: true
+  - source: get_candidate
+    fact: The matcher (ENTRY_QR & NEW_PAYEE & PAYEE_IN_RUN & PAYEE_PASS_THROUGH) achieved 86.7% case recall
+      with a low false‑positive rate (0.194 per 1,000 legit payments).
+    seen: true
+  - source: compare_with_playbook
+    fact: The cluster shares the core QR‑code refund mechanism with the known 'refund_qr' playbook, but
+      adds mule‑account signals (PAYEE_MULEHUNTER, PAYEE_PASS_THROUGH, REPEAT_ATTEMPTS) not present in
+      the original playbook.
+    seen: true
+  - source: list_playbooks
+    fact: No existing playbook other than 'refund_qr' describes unsolicited QR‑code refunds; other playbooks
+      focus on remote‑control, KYC APKs, or task‑job patterns.
+    seen: true
+mule_accounts:
+- upi_id: jaingeneral739@okaxis
+  cases: 3
+- upi_id: patelgeneral690@axl
+  cases: 2
+- upi_id: khanprovision575@axl
+  cases: 2
+- upi_id: raomart784@okhdfcbank
+  cases: 1
+- upi_id: patelprovision743@okaxis
+  cases: 1
+- upi_id: reddytraders940@oksbi
+  cases: 1
+- upi_id: shettymart521@axl
+  cases: 1
+- upi_id: reddytraders991@okaxis
+  cases: 1
+- upi_id: sharmamart559@oksbi
+  cases: 1
+- upi_id: reddyprovision139@okhdfcbank
+  cases: 1
+- upi_id: jaingeneral376@oksbi
+  cases: 1
+label_tx_ids:
+- t_0187814
+- t_0218125
+- t_0274619
+- t_0277257
+- t_0251249
+- t_0253740
+- t_0261323
+- t_0283511
+- t_0287077
+- t_0298546
+- t_0310819
+- t_0282825
+- t_0287837
+- t_0295632
+- t_0296944
+- t_0374659
+- t_0411782
+- t_0411819
+- t_0449603
+- t_0460406
+- t_0499837
+- t_0505974
+- t_0498723
+reviews: []

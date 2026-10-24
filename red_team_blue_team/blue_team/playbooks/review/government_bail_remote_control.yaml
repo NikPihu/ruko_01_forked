@@ -1,0 +1,171 @@
+name: government_bail_remote_control
+title: Government bail scam with remote‑control dictation
+status: review
+summary: Scammers pose as government officials, use remote‑control or dictation to make victims type large
+  payments to new personal UPI accounts, often in quick succession.
+steps:
+- Scammer calls, claiming to be a government officer and threatens arrest or bail.
+- Victim is kept on the line while the scammer uses remote‑control or dictation to enter payment details.
+- Victim is asked to type a large payment (≥10,000 ₹) to a new personal UPI account.
+- Additional smaller payments may follow quickly, often with the same remote‑control session.
+signals:
+- ENTRY_TYPED
+- PAYEE_IN_RUN
+- AMT_50K_PLUS
+- AMT_10K_50K
+- NEW_PAYEE
+- SESSION_DICTATED
+- SESSION_PASTE_AFTER_SWITCH
+- SESSION_HESITATION
+- SESSION_ABANDONED
+reason_codes:
+- R4_unusual_amount
+- R6_new_payee_typed
+- R7_tranche_pattern
+- R12_coached_session
+- R9_story_mismatch
+advice_en: If a caller claims to be a government officer and asks you to type a large payment, hang up
+  and verify with the official agency before paying.
+advice_hi: यदि कोई कॉलर खुद को सरकारी अधिकारी बताता है और बड़ी राशि टाइप करने को कहे, तो कॉल काटें और
+  आधिकारिक एजेंसी से सत्यापित करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deepfake; the scam relies on remote‑control and social engineering.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: payee_in_run
+      op: is
+      value: true
+    - any:
+      - feature: amount_inr
+        op: '>='
+        value: 50000
+      - all:
+        - feature: amount_inr
+          op: '>='
+          value: 10000
+        - feature: amount_inr
+          op: <
+          value: 50000
+    - feature: first_time_payee
+      op: is
+      value: true
+    - any:
+      - feature: session_dictated
+        op: is
+        value: true
+      - feature: session_pasted_after_switch
+        op: is
+        value: true
+      - feature: session_hesitation
+        op: is
+        value: true
+      - feature: session_abandoned_30m
+        op: '>='
+        value: 1
+evidence:
+  run_id: 20261023-170052
+  cluster_id: c04
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.398
+  cited:
+  - source: get_cluster_overview
+    fact: Token SAYS_GOVERNMENT has a lift of 17.5 and appears in 50% of the cluster's cases.
+    seen: true
+  - source: get_case rep_001138
+    fact: First payment includes REMOTE_CONTROL, ENTRY_TYPED, SAYS_GOVERNMENT, AMT_50K_PLUS, NEW_PAYEE,
+      PAYEE_IN_RUN, SESSION_DICTATED, SESSION_PASTE_AFTER_SWITCH, PAYEE_PERSON, PAYEE_LISTED, STORY_MISMATCH.
+    seen: true
+  - source: get_case rep_000806
+    fact: Payments show ENTRY_TYPED, SAYS_GOVERNMENT, AMT_50K_PLUS, NEW_PAYEE, PAYEE_IN_RUN, SESSION_HESITATION,
+      PAYEE_PERSON, STORY_MISMATCH within minutes.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with ENTRY_TYPED, PAYEE_IN_RUN, amount >=10k, NEW_PAYEE, and session activity passes
+      all gates with 0.75 case recall and 0.497 legit payments per 1,000.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.273
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.497
+  known_playbook_payments_also_matched: 0.033
+  other_clusters_case_recall:
+    c01: 0.33
+    c02: 0.5
+    c03: 0.33
+    c06: 0.38
+    m_digital_arrest_0: 0.5
+    m_digital_arrest_2: 0.43
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq typed AND payee_in_run is True AND (amount_inr >= 50000 OR (amount_inr
+  >= 10000 AND amount_inr < 50000)) AND first_time_payee is True AND (session_dictated is True OR session_pasted_after_switch
+  is True OR session_hesitation is True OR session_abandoned_30m >= 1))
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: digital_arrest
+  rationale: The cluster c04 consists of victims who were contacted by callers claiming to be government
+    officials, kept on the line while the scammer used remote‑control or dictation to enter large typed
+    payments to new personal UPI accounts. This pattern is exactly what the known 'digital_arrest' playbook
+    describes (fake police/customs officer, bail/verification payments, remote control). The similarity
+    scores and step‑by‑step comparison confirm the mechanism is not new, just a specific story variant.
+    Therefore the draft playbook should be merged with or renamed to the existing digital_arrest playbook
+    rather than created as a new one.
+  required_changes:
+  - Rename the playbook to align with the existing 'digital_arrest' playbook (or mark this as an alias
+    of digital_arrest).
+  - Adjust the summary to reflect that the scam is a variant of the known fake police/bail scam, not a
+    distinct mechanism.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: Nearest known playbook is digital_arrest with similarity 0.398, indicating the cluster's mechanism
+      aligns with digital_arrest.
+    seen: true
+  - source: compare_with_playbook
+    fact: Cluster steps (remote control, SAYS_GOVERNMENT, large typed payments) match digital_arrest steps
+      (officer claim, remote‑access, bail payments).
+    seen: true
+  - source: get_candidate
+    fact: Matcher backtest shows 0.75 case recall and low false‑positive rate, similar to digital_arrest's
+      matcher performance.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity lures ignored shows digital_arrest similarity 0.4, the highest among known
+      playbooks.
+    seen: true
+mule_accounts:
+- upi_id: 6020446750@ybl
+  cases: 1
+- upi_id: 6639106797@paytm
+  cases: 1
+- upi_id: anita.sinha42935@ybl
+  cases: 1
+- upi_id: nisha.sharma42858@okicici
+  cases: 1
+label_tx_ids:
+- t_0069794
+- t_0069829
+- t_0069840
+- t_0069931
+- t_0069996
+- t_0083262
+- t_0083271
+- t_0083323
+- t_0157595
+- t_0166563
+- t_0166638
+reviews: []

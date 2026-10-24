@@ -1,0 +1,141 @@
+name: qr_code_dictated_payment
+title: QR code dictation scam
+status: review
+summary: Victims receive a QR code promising a refund or prize, then a call where the scammer dictates
+  the payment amount, leading to a QR‑based payment to a new payee.
+steps:
+- Scammer sends a QR code claiming a refund, cashback or prize.
+- Victim scans the QR code, opening the UPI app.
+- Scammer calls the victim and dictates the amount to pay.
+- Victim enters the dictated amount and confirms the payment.
+- Payment goes to a newly created payee that is part of a cash‑out chain.
+signals:
+- ENTRY_QR
+- SESSION_DICTATED
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- AMT_1K_10K
+reason_codes:
+- R5_lure_message
+- R3_mule_like_payee
+advice_en: If you receive a QR code and a call dictating the amount, verify the request before paying.
+advice_hi: यदि आपको QR कोड और कॉल में राशि बताई जाए, तो भुगतान करने से पहले अनुरोध की पुष्टि करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the data.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: session_dictated
+      op: is
+      value: true
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c19
+  cases: 5
+  scorer: lgbm-0.2
+  nearest_known: refund_qr
+  similarity: 0.26
+  cited:
+  - source: get_cluster_overview
+    fact: Typical case sequence includes ENTRY_QR, AMT_1K_10K, NEW_PAYEE, PAYEE_IN_RUN, SESSION_DICTATED,
+      SESSION_HESITATION.
+    seen: true
+  - source: get_case rep_009371
+    fact: Payment tokens include ENTRY_QR, AMT_1K_10K, NEW_PAYEE, PAYEE_IN_RUN, SESSION_DICTATED, SESSION_HESITATION.
+    seen: true
+  - source: get_case rep_010927
+    fact: Payment includes SESSION_ABANDONED but also SESSION_DICTATED with ENTRY_QR.
+    seen: true
+  - source: get_payee khankirana903@ybl
+    fact: Payee is a merchant, not listed, with no verified merchant flag.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with ENTRY_QR, NEW_PAYEE, PAYEE_IN_RUN, SESSION_DICTATED achieves 100% recall and low
+      false positives.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 1.0
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 0.211
+  known_playbook_payments_also_matched: 0.006
+  other_clusters_case_recall:
+    c04: 0.06
+    c05: 0.08
+    c06: 0.75
+    c13: 0.29
+    c14: 0.5
+    c15: 0.33
+    c16: 0.71
+    c18: 1.0
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND first_time_payee is True AND payee_in_run is True AND session_dictated
+  is True)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: refund_qr
+  rationale: The core mechanism—receiving a QR code from a caller and paying via a UPI app—is exactly
+    the scenario described in the known 'refund_qr' playbook. The only notable difference is that the
+    scammer dictates the amount after the QR scan, which is a minor procedural variation rather than a
+    new fraud mechanism. Because the similarity to 'refund_qr' is the highest among known playbooks and
+    the underlying flow matches, the cluster should be treated as a variant of 'refund_qr' rather than
+    a brand‑new scam. Updating the card to reflect this relationship will keep the playbook set concise
+    and avoid duplication.
+  required_changes:
+  - Note that this cluster is a variant of the existing 'refund_qr' playbook, adding a dictation step
+    after the QR scan.
+  - Update the playbook title to reflect it as a 'refund_qr with dictation' variant or merge into the
+    existing refund_qr card.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: Matcher rule (ENTRY_QR, first_time_payee, payee_in_run, SESSION_DICTATED) has 100% recall for
+      the cluster but low similarity to known playbooks (task_job 0.28, digital_arrest 0.16).
+    seen: true
+  - source: get_cluster_overview
+    fact: Cluster c19's nearest known playbook is 'refund_qr' with similarity 0.26; typical case sequence
+      includes ENTRY_QR and SESSION_DICTATED.
+    seen: true
+  - source: compare_with_playbook (refund_qr)
+    fact: Cluster differs from refund_qr by adding SESSION_DICTATED and SESSION_HESITATION, which are
+      not common in the base playbook.
+    seen: false
+  - source: compare_with_playbook (fake_customer_care)
+    fact: No reference cases for fake_customer_care and many tokens (ENTRY_QR, PAYEE_IN_RUN, NEW_PAYEE)
+      are more common in the cluster than the playbook.
+    seen: false
+mule_accounts:
+- upi_id: khankirana903@ybl
+  cases: 1
+- upi_id: patelgeneral267@paytm
+  cases: 1
+- upi_id: shettyprovision359@ybl
+  cases: 1
+- upi_id: raokirana614@okicici
+  cases: 1
+- upi_id: raomart967@ibl
+  cases: 1
+label_tx_ids:
+- t_0224605
+- t_0258803
+- t_0357279
+- t_0443622
+- t_0487826
+reviews: []

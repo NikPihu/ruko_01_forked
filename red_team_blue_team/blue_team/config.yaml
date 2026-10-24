@@ -82,6 +82,13 @@ review:
   approvals_needed: 2                # two different analysts (same rule as graph/discover.py)
 
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)
+  red_team_runner:                   # Nikunj's interface_script, run from the console over a playbook set
+    workers: 4                       # playbooks judged at once (each ~4 min on its own small world)
+    out: synthetic_playbook/interface_script_out
+    log: ml/runs/redteam_runner.log
+    sets:
+      red_team: red_team_blue_team/red_team/playbooks
+      sim_v2: data/sim_v2/config/playbooks
   red_team_build:                    # defaults for "Build the red-team world"
     users: 4000
     days: 30

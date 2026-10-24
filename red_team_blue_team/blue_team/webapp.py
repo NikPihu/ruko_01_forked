@@ -55,7 +55,16 @@ class Reset(BaseModel):
     confirm: str
 
 
+class RunnerStart(BaseModel):
+    playbooks: str = "red_team"      # a key of console.red_team_runner.sets
+    workers: int | None = None
+    users: int | None = None
+    victims: int | None = None
+    rerun: bool = False              # judge again playbooks the inbox already has a verdict for
+
+
 class RedBuild(BaseModel):
+    source: str = "breakthroughs"    # breakthroughs (the inbox) | all (every red-team playbook)
     users: int | None = None
     days: int | None = None
     victim_rate: float | None = None
@@ -93,6 +102,8 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     app = FastAPI(title="RUKO blue team console", docs_url=None, redoc_url=None)
     running: dict = {"thread": None, "run_id": None}
     building: dict = {"thread": None, "state": "idle", "step": None, "params": None}
+    runner: dict = {"thread": None, "state": "idle", "stop": False, "total": 0, "skipped": 0, "done": 0,
+                    "running": [], "set": None}
 
     def load(name: str) -> tuple[dict, str]:
         try:
@@ -211,10 +222,22 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         import sys
         if building["thread"] is not None and building["thread"].is_alive():
             raise HTTPException(409, "the red-team world is already being built")
+        if runner["thread"] is not None and runner["thread"].is_alive():
+            raise HTTPException(409, "the red-team runner is still judging playbooks")
         if running["thread"] is not None and running["thread"].is_alive():
             raise HTTPException(409, "a blue-team run is going; build after it finishes")
         d = config.load()["console"]["red_team_build"]
         prm = {k: getattr(body, k) if getattr(body, k) is not None else d[k] for k in ("users", "days", "victim_rate", "red_boost", "seed")}
+        from blue_team import inbox as inbox_mod, redteam as red_mod
+        if body.source == "breakthroughs":
+            if not inbox_mod.breakthroughs():
+                raise HTTPException(400, "the blue-team inbox has no breakthroughs yet: run the red team first")
+            red_dir = inbox_mod.INBOX / "breakthroughs"
+        elif body.source == "all":
+            red_dir = red_mod.RED_DIR
+        else:
+            raise HTTPException(400, "source must be breakthroughs or all")
+        prm["source"] = body.source
         if not (100 <= prm["users"] <= 20000 and 7 <= prm["days"] <= 60 and 0 < prm["victim_rate"] <= 1 and 0 < prm["red_boost"] <= 10):
             raise HTTPException(400, "users 100-20000, days 7-60, victim_rate 0-1, red_boost 0-10")
         w = next(w for w in config.load()["console"]["worlds"] if w.get("red_team"))
@@ -224,7 +247,8 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
                "PYTHONIOENCODING": "utf-8"}
         steps = [("building the world with sim_v2", [sys.executable, "-m", "blue_team.testworld", "--red-team",
                   "--users", str(prm["users"]), "--days", str(prm["days"]), "--victim-rate", str(prm["victim_rate"]),
-                  "--red-boost", str(prm["red_boost"]), "--seed", str(prm["seed"]), "--out", w["data"]]),
+                  "--red-boost", str(prm["red_boost"]), "--seed", str(prm["seed"]), "--out", w["data"],
+                  "--red-dir", str(red_dir)]),
                  ("replaying every payment through RUKO (minutes)", [sys.executable, "-m", "dataset.replay", "--data", w["data"],
                   "--out", w["table"], "--warmup-days", "7"])]
 
@@ -246,6 +270,95 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         building.update(thread=t, state="running", step="starting", params=prm)
         t.start()
         return build_status()
+
+    def runner_status() -> dict:
+        from blue_team import inbox as inbox_mod
+        rc = config.load()["console"]["red_team_runner"]
+        log_p = repo / rc["log"]
+        tail = log_p.read_text(encoding="utf-8", errors="replace").splitlines()[-30:] if log_p.exists() else []
+        alive = runner["thread"] is not None and runner["thread"].is_alive()
+        return {"state": "running" if alive else runner["state"], "set": runner["set"], "total": runner["total"],
+                "skipped": runner["skipped"], "done": runner["done"], "running": list(runner["running"]),
+                "stopping": runner["stop"] and alive, "log": tail, "sets": list(rc["sets"]), "workers": rc["workers"],
+                "verdicts": inbox_mod.verdicts(), "breakthroughs": [p.stem for p in inbox_mod.breakthroughs()]}
+
+    @app.get("/api/redteam/runner")
+    def redteam_runner_status() -> dict:
+        return runner_status()
+
+    @app.post("/api/redteam/runner")
+    def redteam_runner(body: RunnerStart) -> dict:
+        import os
+        import subprocess
+        import sys
+        from concurrent.futures import ThreadPoolExecutor
+        from blue_team import inbox as inbox_mod
+        rc = config.load()["console"]["red_team_runner"]
+        for job, what in ((runner, "the red-team runner is already going"), (building, "the attack world is being built"),
+                          (running, "a blue-team run is going")):
+            if job["thread"] is not None and job["thread"].is_alive():
+                raise HTTPException(409, what)
+        if body.playbooks not in rc["sets"]:
+            raise HTTPException(400, f"playbooks must be one of {list(rc['sets'])}")
+        workers = body.workers or rc["workers"]
+        if not 1 <= workers <= 8 or (body.users is not None and not 50 <= body.users <= 3000) or \
+                (body.victims is not None and not 5 <= body.victims <= 200):
+            raise HTTPException(400, "workers 1-8, users 50-3000, victims 5-200")
+        files = sorted((repo / rc["sets"][body.playbooks]).glob("*.yaml"))
+        seen = set() if body.rerun else set(inbox_mod.verdicts())
+        todo = [f for f in files if f.stem not in seen]
+        log_p = repo / rc["log"]
+        log_p.parent.mkdir(parents=True, exist_ok=True)
+        out_base = repo / rc["out"] / body.playbooks
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(["backend", "ml", "data", "synthetic_playbook", "red_team_blue_team"]),
+               "PYTHONIOENCODING": "utf-8"}
+        extra = (["--users", str(body.users)] if body.users else []) + (["--victims", str(body.victims)] if body.victims else [])
+        lock = threading.Lock()
+
+        def say(line: str):
+            with lock, open(log_p, "a", encoding="utf-8") as fh:
+                fh.write(f"{datetime.now().strftime('%H:%M:%S')}  {line}\n")
+
+        def one(f: Path):
+            if runner["stop"]:
+                return
+            with lock:
+                runner["running"].append(f.stem)
+            out = out_base / f.stem
+            out.mkdir(parents=True, exist_ok=True)
+            with open(out / "runner.log", "w", encoding="utf-8") as fh:
+                rcode = subprocess.run([sys.executable, "-m", "interface_script", "run", "--playbook", str(f), "--out", str(out),
+                                        *extra], cwd=repo, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
+            v = inbox_mod.verdicts().get(f.stem)
+            with lock:
+                runner["running"].remove(f.stem)
+                runner["done"] += 1
+            if rcode or not v:
+                say(f"{f.stem}: FAILED (exit {rcode}); see {out / 'runner.log'}")
+            else:
+                say(f"{f.stem}: {'BREAKTHROUGH' if v['breakthrough'] else 'caught'} - {v['scam_called_normal']}/"
+                    f"{v['scam_payments_judged']} scam payments called normal ({v['miss_rate']:.0%}), "
+                    f"{v['false_alarm_rate']:.1%} false alarms")
+
+        def go():
+            log_p.write_text("", encoding="utf-8")
+            say(f"red team: {len(files)} playbooks in {rc['sets'][body.playbooks]}, {len(files) - len(todo)} already judged, "
+                f"{len(todo)} to run, {workers} at a time")
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                list(ex.map(one, todo))
+            say("stopped" if runner["stop"] else "done")
+            runner.update(state="stopped" if runner["stop"] else "done")
+
+        t = threading.Thread(target=go, daemon=True, name="red-team-runner")
+        runner.update(thread=t, state="running", stop=False, total=len(files), skipped=len(files) - len(todo), done=0,
+                      running=[], set=body.playbooks)
+        t.start()
+        return runner_status()
+
+    @app.post("/api/redteam/runner/stop")
+    def redteam_runner_stop() -> dict:
+        runner["stop"] = True
+        return runner_status()
 
     @app.get("/api/runs/{run_id}/scorecard")
     def scorecard(run_id: str) -> dict:

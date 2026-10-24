@@ -1,0 +1,143 @@
+name: refund_qr_dictated
+title: Dictated QR Refund Scam
+status: review
+summary: Scammers send a QR code claiming a refund or prize and dictate via voice or call that the victim
+  should scan and pay. The victim is guided to pay an unusually large amount to a new payee, then the
+  session is abandoned. The scam relies on dictation and the victim's trust in the urgent request.
+steps:
+- Scammer contacts victim (call or chat) claiming a refund, prize, or urgent payment.
+- Scammer sends a QR code and dictating voice note instructing the victim to scan and pay.
+- Victim scans the QR and pays an unusually large amount to a new payee.
+- Victim leaves the app, ending the session (abandoned).
+signals:
+- ENTRY_QR
+- AMT_UNUSUAL
+- SESSION_DICTATED
+- SESSION_ABANDONED
+- NEW_PAYEE
+- PAYEE_IN_RUN
+reason_codes:
+- R12_coached_session
+advice_en: Do not scan QR codes or pay when instructed by a voice note or call without verifying the request
+  first.
+advice_hi: कॉल या आवाज़ नोट में निर्देश मिलने पर बिना जाँच के QR कोड स्कैन या भुगतान न करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI-generated voice or deepfake; scam uses simple dictation.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - feature: session_dictated
+      op: is
+      value: true
+    - feature: session_abandoned_30m
+      op: '>='
+      value: 1
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: amount_to_max_90d
+      op: '>='
+      value: 1.5
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c06
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.27
+  cited:
+  - source: get_cluster_overview
+    fact: Cluster c06 has 4 missed complaints with distinctive tokens AMT_UNUSUAL, SESSION_DICTATED, SESSION_ABANDONED,
+      ENTRY_QR, NEW_PAYEE, PAYEE_IN_RUN.
+    seen: true
+  - source: get_case rep_008723
+    fact: Payment used QR entry, amount 1241 INR (AMT_1K_10K, AMT_UNUSUAL), new payee, payee in run, session
+      dictation, hesitation, and abandonment.
+    seen: true
+  - source: get_case rep_013176
+    fact: Payment via QR, amount 1543 INR (AMT_UNUSUAL), new payee, payee in run, session dictation, abandonment.
+    seen: true
+  - source: get_case rep_014219
+    fact: Second payment in same case shows SESSION_DICTATED, SESSION_HESITATION, SESSION_ABANDONED with
+      QR entry and unusual amount.
+    seen: true
+  - source: test_matcher
+    fact: Matcher with tokens ENTRY_QR, SESSION_DICTATED, SESSION_ABANDONED, NEW_PAYEE, PAYEE_IN_RUN,
+      AMT_UNUSUAL achieves 0.75 recall and low false positives.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.6
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.012
+  known_playbook_payments_also_matched: 0.001
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND session_dictated is True AND session_abandoned_30m >= 1 AND first_time_payee
+  is True AND payee_in_run is True AND amount_to_max_90d >= 1.5)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: variant_of_known
+  nearest_playbook: refund_qr
+  rationale: The core theft mechanism in cluster c06 is the use of a QR code to steal money, which matches
+    the existing 'refund_qr' playbook. The added dictation step is a communication variant, not a new
+    fraud technique. Evidence shows the draft’s signals overlap heavily with 'refund_qr' and the cluster
+    does not exhibit any distinct mechanism beyond that. Therefore, the draft should be merged into the
+    known 'refund_qr' playbook rather than creating a new one.
+  required_changes:
+  - Rename the playbook to the existing 'refund_qr' and incorporate dictation as an optional communication
+    channel rather than a separate playbook.
+  - Update the steps to note that scammers may use voice notes or calls to dictate the QR scan, but the
+    core mechanism remains a QR‑code payment fraud.
+  - Remove the separate 'refund_qr_dictated' entry from the playbook registry to avoid duplication.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: The draft card lists signals ENTRY_QR, SESSION_DICTATED, SESSION_ABANDONED, NEW_PAYEE, PAYEE_IN_RUN,
+      AMT_UNUSUAL as the defining pattern.
+    seen: true
+  - source: compare_with_playbook
+    fact: Comparison with the known 'refund_qr' playbook shows the cluster shares the QR‑code payment
+      core but adds SESSION_DICTATED and AMT_UNUSUAL, while lacking CALL_ON and CALLER_UNKNOWN tokens.
+    seen: true
+  - source: list_playbooks
+    fact: The 'refund_qr' playbook describes a caller sending a QR code that, when scanned, transfers
+      money to the scammer.
+    seen: true
+  - source: get_cluster_overview
+    fact: Cluster c06 has 4 missed complaints, all featuring QR entry and dictation, with no existing
+      RUKO‑named playbook and a low similarity (0.27) to digital_arrest.
+    seen: true
+  - source: test_matcher
+    fact: The matcher using the draft signals achieves 0.75 recall with low false positives, confirming
+      the pattern is well‑captured by the current rule.
+    seen: false
+mule_accounts:
+- upi_id: raostore819@ybl
+  cases: 1
+- upi_id: agarwalkirana306@axl
+  cases: 1
+- upi_id: shettygeneral343@ybl
+  cases: 1
+- upi_id: agarwalprovision34@ibl
+  cases: 1
+label_tx_ids:
+- t_0211496
+- t_0296174
+- t_0349570
+- t_0351405
+- t_0339478
+reviews: []

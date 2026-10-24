@@ -1,0 +1,168 @@
+name: qr_bait_escalation
+title: QR Bait Escalation Scam
+status: review
+summary: Victims are sent a QR code for a tiny payment, then later urged to pay a larger amount via QR
+  to the same new payee, often after a call or chat where the session is abandoned or dictated.
+steps:
+- Scammer sends a QR code for a tiny payment (under ₹1,000).
+- Victim pays the small amount, creating a new payee and repeat attempt flag.
+- Scammer contacts the victim (call/chat) and asks for a larger payment (₹1,000‑₹10,000) using the same
+  or a new QR code.
+- Victim makes the larger QR payment, often after the session is abandoned or dictated.
+signals:
+- ENTRY_QR
+- AMT_UNDER_1K
+- AMT_1K_10K
+- NEW_PAYEE
+- REPEAT_ATTEMPTS
+- PAYEE_IN_RUN
+- SESSION_ABANDONED
+- SESSION_DICTATED
+reason_codes:
+- R7_tranche_pattern
+- R5_lure_message
+advice_en: Verify any QR payment request before sending larger amounts; do not follow up without confirming
+  the recipient.
+advice_hi: छोटा QR भुगतान करने से पहले अनुरोध की पुष्टि करें; बिना जाँच के बड़े भुगतान न करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deepfake content in the data.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: entry_method
+      op: eq
+      value: qr
+    - all:
+      - feature: amount_inr
+        op: '>='
+        value: 1000
+      - feature: amount_inr
+        op: <
+        value: 10000
+    - feature: attempts_72h
+      op: '>='
+      value: 2
+    - feature: payee_in_run
+      op: is
+      value: true
+    - any:
+      - feature: session_abandoned_30m
+        op: '>='
+        value: 1
+      - feature: session_dictated
+        op: is
+        value: true
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c12
+  cases: 6
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.243
+  cited:
+  - source: get_cluster_overview
+    fact: 'Typical case sequence: ENTRY_QR AMT_UNDER_1K NEW_PAYEE REPEAT_ATTEMPTS PAYEE_IN_RUN SESSION_ABANDONED
+      GAP_UNDER_1D ... ENTRY_QR AMT_1K_10K REPEAT_ATTEMPTS PAYEE_IN_RUN'
+    seen: true
+  - source: get_case rep_008672
+    fact: First payment tokens include ENTRY_QR, AMT_UNDER_1K, NEW_PAYEE, REPEAT_ATTEMPTS, PAYEE_IN_RUN,
+      SESSION_ABANDONED
+    seen: true
+  - source: get_case rep_011138
+    fact: Second payment tokens include ENTRY_QR, AMT_1K_10K, REPEAT_ATTEMPTS, PAYEE_IN_RUN, SESSION_DICTATED
+    seen: true
+  - source: get_case rep_011715
+    fact: Second payment tokens include ENTRY_QR, AMT_1K_10K, REPEAT_ATTEMPTS, PAYEE_IN_RUN, SESSION_ABANDONED
+    seen: true
+  - source: test_matcher
+    fact: Matcher flags payments with ENTRY_QR, AMT_1K_10K, REPEAT_ATTEMPTS, PAYEE_IN_RUN, and (SESSION_ABANDONED
+      or SESSION_DICTATED) with low false positives
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.308
+  cluster_case_recall: 0.667
+  legit_payments_named_per_1000: 0.229
+  known_playbook_payments_also_matched: 0.003
+  other_clusters_case_recall:
+    c00: 0.25
+    c15: 0.33
+    c16: 0.71
+    c18: 0.17
+    c22: 0.14
+  gate_failures: &id001 []
+rule_in_words: (entry_method eq qr AND (amount_inr >= 1000 AND amount_inr < 10000) AND attempts_72h >=
+  2 AND payee_in_run is True AND (session_abandoned_30m >= 1 OR session_dictated is True))
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The evidence shows that the cluster’s payment pattern (small QR payment followed by a larger
+    QR after a session is abandoned or dictated) does not align closely with any existing playbook. Signal
+    similarity scores are well below the 0.8 variant threshold, and the matcher isolates the cluster with
+    negligible overlap with known scams. Therefore the mechanism is novel and warrants a new playbook,
+    with the suggested clarifications to the draft card.
+  required_changes:
+  - Add explicit description of the two‑stage QR escalation mechanism (tiny QR payment followed by larger
+    QR after session abandonment or dictation) to differentiate from refund_qr and task_job.
+  - Include example victim statements and attacker communication channels (e.g., follow‑up call or chat
+    prompting the larger QR).
+  - Provide guidance to verify QR codes and confirm recipient before any subsequent payment.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: Matcher backtest shows 0.667 case recall for the cluster and only 0.003 known‑playbook payments
+      also matched, indicating a distinct pattern.
+    seen: true
+  - source: get_cluster_overview
+    fact: Nearest known playbook is digital_arrest with similarity 0.243, well below the 0.8 threshold
+      for a variant.
+    seen: true
+  - source: get_candidate
+    fact: 'Signal similarity lures ignored: highest similarity 0.28 to task_job, others unknown, showing
+      no strong match to existing playbooks.'
+    seen: true
+  - source: test_matcher
+    fact: Known‑playbook payments also matched = 0.003, confirming the matcher isolates a unique set of
+      payments.
+    seen: true
+  - source: get_cluster_overview
+    fact: 'Typical case sequence: ENTRY_QR AMT_UNDER_1K NEW_PAYEE REPEAT_ATTEMPTS PAYEE_IN_RUN SESSION_ABANDONED
+      … ENTRY_QR AMT_1K_10K REPEAT_ATTEMPTS PAYEE_IN_RUN, a two‑stage QR escalation not described in any
+      known playbook.'
+    seen: true
+mule_accounts:
+- upi_id: raomart507@ibl
+  cases: 1
+- upi_id: guptageneral974@axl
+  cases: 1
+- upi_id: guptatraders186@oksbi
+  cases: 1
+- upi_id: jaintraders592@ybl
+  cases: 1
+- upi_id: reddykirana927@okhdfcbank
+  cases: 1
+- upi_id: reddymart203@ibl
+  cases: 1
+label_tx_ids:
+- t_0183823
+- t_0184864
+- t_0243267
+- t_0244796
+- t_0247892
+- t_0269375
+- t_0271573
+- t_0303993
+- t_0304953
+- t_0403453
+- t_0404538
+- t_0390886
+- t_0392362
+reviews: []

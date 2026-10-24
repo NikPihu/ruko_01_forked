@@ -1,0 +1,140 @@
+name: new_amt_1k_10k_entry_qr
+title: 'Unnamed pattern from 4 complaints: amt 1k 10k, entry qr'
+status: review
+summary: '4 complaints from 4 users describe payments RUKO did not stop. Most share: amt 1k 10k, entry
+  qr. Median payment Rs 1,124; 4 payee accounts. Drafted without an LLM: an analyst should write the story.'
+steps:
+- 'Complaint pattern: amt 1k 10k, entry qr'
+- Victim pays a new payee the scammer chose
+signals:
+- AMT_1K_10K
+- ENTRY_QR
+reason_codes:
+- R4_unusual_amount
+advice_en: Other people reported payments like this as scams. Stop, check with someone you trust, and
+  call 1930 if unsure.
+advice_hi: दूसरे लोगों ने ऐसे भुगतानों को धोखा बताया है। रुकें, किसी भरोसेमंद व्यक्ति से पूछें, और शक
+  हो तो 1930 पर कॉल करें।
+ai_powered:
+  likely: false
+  why: not assessed offline
+confidence: low
+open_questions:
+- What story did the scammer tell? (no LLM draft)
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - all:
+      - feature: amount_inr
+        op: '>='
+        value: 1000
+      - feature: amount_inr
+        op: <
+        value: 10000
+    - feature: entry_method
+      op: eq
+      value: qr
+evidence:
+  run_id: 20261023-180612
+  cluster_id: c02
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: refund_qr
+  similarity: 0.306
+  cited:
+  - source: get_cluster_overview
+    fact: AMT_1K_10K in 100% of the cases (1.63x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: ENTRY_QR in 100% of the cases (1.19x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: NEW_PAYEE in 100% of the cases (1.01x all missed / unnamed complaints)
+    seen: true
+  - source: get_cluster_overview
+    fact: PAYEE_IN_RUN in 100% of the cases (1.0x all missed / unnamed complaints)
+    seen: true
+  - source: test_matcher
+    fact: the rule names 100% of the cases and 49.69 legit payments per 1,000
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 1.0
+  cluster_case_recall: 1.0
+  legit_payments_named_per_1000: 49.69
+  known_playbook_payments_also_matched: 0.126
+  other_clusters_case_recall:
+    c00: 1.0
+    c03: 0.17
+    c04: 0.24
+    c05: 0.31
+    c06: 1.0
+    c10: 0.14
+    c11: 1.0
+    c12: 1.0
+    c13: 1.0
+    c14: 1.0
+    c15: 0.73
+    c16: 1.0
+    c18: 1.0
+    c19: 1.0
+    c20: 0.22
+    c21: 0.25
+    c22: 0.43
+  gate_failures: &id001
+  - would name 49.69 legit payments per 1,000 (max 0.5)
+rule_in_words: ((amount_inr >= 1000 AND amount_inr < 10000) AND entry_method eq qr)
+gate_failures: *id001
+drafted_by: offline (the openai.gpt-oss-120b-1:0 investigator submitted no valid card in 16 turns)
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The cluster consists of small (₹1k‑10k) QR‑based payments to new payees, but none of the
+    cases involve a phone call or any explicit refund/ prize lure. Known QR‑based scams (refund_qr) always
+    include a call, and similarity scores are far below the variant threshold, indicating a distinct mechanism.
+    Moreover, the matcher as written would generate a high false‑positive rate, confirming it does not
+    capture a known playbook safely. Therefore this pattern represents a new scam that is not covered
+    by existing playbooks and requires a more specific rule.
+  required_changes:
+  - Add a condition requiring an incoming or outgoing call (on_call true) or a payer_says token indicating
+    a refund/prize to narrow the matcher, as current rule over‑names legitimate QR payments.
+  - Consider adding a token check for a lure context (e.g., "refund", "cashback", "prize") to differentiate
+    scam QR scans from normal QR payments.
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_cluster_overview
+    fact: All 4 cases share AMT_1K_10K, ENTRY_QR, NEW_PAYEE and PAYEE_IN_RUN tokens.
+    seen: true
+  - source: get_case rep_007452
+    fact: The payment entry method is QR, with no call data (on_call missing) and no payer_says token.
+    seen: true
+  - source: list_playbooks
+    fact: The only known QR‑based playbook (refund_qr) requires an on_call flag, which is absent in this
+      cluster.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity to all known playbooks is low (max 0.306 to refund_qr), well below the 0.8
+      variant threshold.
+    seen: true
+  - source: test_matcher
+    fact: The proposed matcher would name 49.69 legitimate payments per 1,000, exceeding the allowed 0.5
+      threshold.
+    seen: false
+mule_accounts:
+- upi_id: shettyprovision863@paytm
+  cases: 1
+- upi_id: reddygeneral9@ybl
+  cases: 1
+- upi_id: raokirana851@ybl
+  cases: 1
+- upi_id: agarwalprovision706@ybl
+  cases: 1
+label_tx_ids:
+- t_0170323
+- t_0240735
+- t_0453160
+- t_0513457
+reviews: []

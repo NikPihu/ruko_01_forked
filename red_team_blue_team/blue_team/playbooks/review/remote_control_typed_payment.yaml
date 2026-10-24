@@ -1,0 +1,162 @@
+name: remote_control_typed_payment
+title: Remote‑control call scam with typed payments to new contacts
+status: review
+summary: Victim receives a call from an unknown number, the attacker takes remote control of the phone
+  and directs the victim to type a large UPI payment to a new personal account, often claiming it is for
+  a company or presenting a mismatched story.
+steps:
+- Victim receives an incoming call from an unknown number (CALL_ON).
+- Caller gains remote control of the victim's phone (REMOTE_CONTROL).
+- Attacker dictates a typed UPI payment (ENTRY_TYPED) to a brand‑new personal payee (NEW_PAYEE, PAYEE_PERSON).
+- Payment amount is large or unusually high compared to the victim's history (AMT_10K_50K, AMT_50K_PLUS,
+  AMT_UNUSUAL).
+- Caller may claim the payment is for a company or give a story that does not match the victim's situation
+  (SAYS_COMPANY, STORY_MISMATCH).
+- Victim completes the payment; later files a complaint.
+signals:
+- CALL_ON
+- REMOTE_CONTROL
+- ENTRY_TYPED
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- PAYEE_PERSON
+- SAYS_COMPANY
+- STORY_MISMATCH
+- AMT_UNUSUAL
+reason_codes:
+- R2_remote_control
+- R6_new_payee_typed
+- R9_story_mismatch
+- R4_unusual_amount
+advice_en: If a caller asks you to remote‑control your phone and type a payment, end the call and verify
+  independently.
+advice_hi: यदि कोई कॉलर आपके फ़ोन को रिमोट‑कंट्रोल करने को कहे और टाइपेड भुगतान करने को कहे, तो कॉल समाप्त
+  करें और स्वतंत्र रूप से सत्यापित करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the tokens.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: on_call
+      op: is
+      value: true
+    - feature: remote_control
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: payee_holder_type
+      op: eq
+      value: person
+    - any:
+      - feature: payer_says
+        op: eq
+        value: company
+      - feature: story_mismatch
+        op: is
+        value: true
+      - feature: amount_to_max_90d
+        op: '>='
+        value: 1.5
+evidence:
+  run_id: 20261023-170052
+  cluster_id: c02
+  cases: 4
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.434
+  cited:
+  - source: get_cluster_overview
+    fact: Cluster c02 has 4 complaints, all with tokens CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, NEW_PAYEE,
+      PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_000707
+    fact: Payment of 26,968 INR typed, with tokens CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, SAYS_COMPANY,
+      AMT_10K_50K, AMT_UNUSUAL, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON, STORY_MISMATCH.
+    seen: true
+  - source: get_case rep_002063
+    fact: Payment of 65,045 INR typed, with tokens CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, SAYS_OTHER, AMT_50K_PLUS,
+      AMT_UNUSUAL, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_002316
+    fact: Two payments to same new payee; first 9,125 INR typed with CALL_ON, REMOTE_CONTROL, ENTRY_TYPED,
+      NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON; second 4,002 INR typed with CALL_ON, REMOTE_CONTROL, ENTRY_TYPED,
+      SAYS_COMPANY, REPEAT_ATTEMPTS, STORY_MISMATCH.
+    seen: true
+  - source: get_payee amit.yadav30776@ybl
+    fact: Payee is a person, not a listed merchant, seen in 3 complaints across clusters c02 and c05.
+    seen: true
+  - source: test_matcher
+    fact: Matcher achieved 0.75 cluster recall, 0.039 legit false positives per 1,000, and 0.006 overlap
+      with known playbooks.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.5
+  cluster_case_recall: 0.75
+  legit_payments_named_per_1000: 0.039
+  known_playbook_payments_also_matched: 0.006
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (on_call is True AND remote_control is True AND entry_method eq typed AND first_time_payee
+  is True AND payee_in_run is True AND payee_holder_type eq person AND (payer_says eq company OR story_mismatch
+  is True OR amount_to_max_90d >= 1.5))
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The cluster's pattern—receiving an incoming call, remote‑control of the phone, and a typed
+    payment to a new personal payee with a story mismatch—does not align with any known playbook. Fake_customer_care
+    expects the victim to initiate the call, and digital_arrest includes explicit arrest or authority
+    threats, which are absent. Low overlap with known playbooks (0.006) and low similarity scores (<0.4)
+    further support that this is a distinct scam mechanism. Therefore, a new playbook is warranted.
+  required_changes: []
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: Only 0.006 of cluster payments overlap with known playbooks, indicating a distinct mechanism.
+    seen: true
+  - source: get_case rep_000707
+    fact: Complaint includes tokens CALL_ON, REMOTE_CONTROL, ENTRY_TYPED, STORY_MISMATCH, SAYS_COMPANY,
+      with no arrest threat token.
+    seen: true
+  - source: compare_with_playbook fake_customer_care
+    fact: Cluster has CALL_ON (incoming) while fake_customer_care expects outgoing_to_unknown, showing
+      a mismatch in call direction.
+    seen: true
+  - source: compare_with_playbook digital_arrest
+    fact: Centroid similarity is 0.434 and cluster lacks arrest‑threat tokens present in digital_arrest.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity scores are low (max 0.35 for digital_arrest), far below the 0.8 threshold
+      for variant classification.
+    seen: true
+mule_accounts:
+- upi_id: amit.yadav30776@ybl
+  cases: 2
+- upi_id: vivaan.thakur72774@ibl
+  cases: 1
+- upi_id: 8096794153@ibl
+  cases: 1
+label_tx_ids:
+- t_0049897
+- t_0164554
+- t_0180977
+- t_0181019
+- t_0179183
+- t_0179214
+reviews: []

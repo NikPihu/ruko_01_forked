@@ -1,0 +1,173 @@
+name: foreign_caller_listed_impersonation
+title: Foreign Caller Listed Impersonation
+status: review
+summary: A foreign caller with a listed number pressures victims on a call to type a modest payment to
+  a new personal UPI ID, often using bait credits and short gaps.
+steps:
+- Victim receives a call from an unknown foreign number that appears in caller ID (listed).
+- Caller keeps the call on, often using urgency or bait credits to hold attention.
+- Caller asks the victim to type a payment of modest amount (₹1,000‑₹10,000) to a new personal UPI ID.
+- Victim makes the payment quickly, usually within minutes of the call.
+- The payee is a newly created personal account that is part of a run of similar victims.
+signals:
+- CALLER_FOREIGN
+- CALLER_LISTED
+- CALL_ON
+- ENTRY_TYPED
+- AMT_1K_10K
+- NEW_PAYEE
+- PAYEE_IN_RUN
+- PAYEE_PERSON
+reason_codes:
+- R1_live_unknown_call
+- R6_new_payee_typed
+- R7_tranche_pattern
+- R8_intel_hit
+advice_en: Never pay on a call from an unknown foreign number; verify the request through official channels.
+advice_hi: अज्ञात विदेशी नंबर से कॉल पर भुगतान न करें; आधिकारिक चैनल से सत्यापित करें।
+ai_powered:
+  likely: false
+  why: No evidence of AI‑generated voice or deep‑fake content in the tokens.
+confidence: high
+open_questions: []
+misnamed_as: null
+match:
+- priority: 100
+  rule:
+    all:
+    - feature: on_call
+      op: is
+      value: true
+    - any:
+      - feature: caller_unknown
+        op: is
+        value: true
+      - all:
+        - feature: voip_call
+          op: is
+          value: true
+        - feature: caller_unknown
+          op: is_null
+    - feature: foreign_caller
+      op: is
+      value: true
+    - feature: caller_registry_listed
+      op: is
+      value: true
+    - feature: entry_method
+      op: eq
+      value: typed
+    - all:
+      - feature: amount_inr
+        op: '>='
+        value: 1000
+      - feature: amount_inr
+        op: <
+        value: 10000
+    - feature: first_time_payee
+      op: is
+      value: true
+    - feature: payee_in_run
+      op: is
+      value: true
+    - feature: payee_holder_type
+      op: eq
+      value: person
+evidence:
+  run_id: 20261023-170052
+  cluster_id: c00
+  cases: 5
+  scorer: lgbm-0.2
+  nearest_known: digital_arrest
+  similarity: 0.599
+  cited:
+  - source: get_cluster_overview
+    fact: Distinctive tokens include CALLER_FOREIGN, CALLER_LISTED, CALLER_UNKNOWN, CALL_ON, ENTRY_TYPED,
+      AMT_1K_10K, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_001491
+    fact: Payments contain tokens CALL_ON, CALLER_UNKNOWN, CALLER_FOREIGN, CALLER_LISTED, ENTRY_TYPED,
+      AMT_1K_10K, NEW_PAYEE, PAYEE_IN_RUN, PAYEE_PERSON.
+    seen: true
+  - source: get_case rep_000981
+    fact: First payment shows CALL_ON, CALLER_UNKNOWN, CALLER_LISTED, EPISODE_WATCHING, BAIT_CREDITS,
+      ENTRY_TYPED, AMT_1K_10K, NEW_PAYEE, PAYEE_IN_RUN, SESSION_ABANDONED, PAYEE_PERSON.
+    seen: true
+  - source: get_payee aditya.jain73322@okicici
+    fact: Payee is a person, listed in registry, not a verified merchant.
+    seen: true
+  - source: compare_with_playbook digital_arrest
+    fact: Cluster has higher lift for CALLER_FOREIGN and CALLER_LISTED than the digital_arrest playbook.
+    seen: true
+  - source: test_matcher
+    fact: Matcher achieves 0.6 case recall, 0 legit false positives per 1,000, and negligible overlap
+      with known playbooks.
+    seen: true
+backtest:
+  valid: true
+  cluster_payment_recall: 0.375
+  cluster_case_recall: 0.6
+  legit_payments_named_per_1000: 0.0
+  known_playbook_payments_also_matched: 0.001
+  other_clusters_case_recall: {}
+  gate_failures: &id001 []
+rule_in_words: (on_call is True AND (caller_unknown is True OR (voip_call is True AND caller_unknown is
+  null)) AND foreign_caller is True AND caller_registry_listed is True AND entry_method eq typed AND (amount_inr
+  >= 1000 AND amount_inr < 10000) AND first_time_payee is True AND payee_in_run is True AND payee_holder_type
+  eq person)
+gate_failures: *id001
+drafted_by: openai.gpt-oss-120b-1:0
+analyst:
+  verdict: new_scam
+  nearest_playbook: null
+  rationale: The evidence shows the cluster's mechanism—pressuring victims via a foreign, listed caller
+    to type a modest payment to a new personal UPI ID—does not match any known playbook. Similarity scores
+    are well below the 0.8 threshold, and detailed comparisons reveal missing hallmark features of digital_arrest,
+    fake_customer_care, task_job, fake_kyc_apk, and refund_qr. The matcher performs well with low false
+    positives, confirming the pattern is consistent and distinct. Therefore this cluster represents a
+    new scam type not covered by existing playbooks.
+  required_changes: []
+  confidence: high
+  reviewed_by: openai.gpt-oss-120b-1:0
+  evidence:
+  - source: get_candidate
+    fact: Matcher backtest shows valid with 0.6 case recall, 0 false positives per 1,000, and negligible
+      overlap with known playbooks.
+    seen: true
+  - source: get_candidate
+    fact: Signal similarity lures ignored shows no known playbook similarity >=0.8; highest similarity
+      is 0.59 to digital_arrest.
+    seen: true
+  - source: compare_with_playbook digital_arrest
+    fact: Cluster lacks remote control, session dictated, and large amounts typical of digital_arrest,
+      and instead has foreign caller listed and modest amounts.
+    seen: true
+  - source: compare_with_playbook fake_customer_care
+    fact: Cluster shows no remote-access app or dictated payment and fake_customer_care has zero reference
+      cases.
+    seen: true
+  - source: get_candidate
+    fact: Distinctive tokens include CALLER_FOREIGN, CALLER_LISTED, ENTRY_TYPED, AMT_1K_10K, NEW_PAYEE,
+      PAYEE_PERSON.
+    seen: true
+mule_accounts:
+- upi_id: aditya.jain73322@okicici
+  cases: 3
+- upi_id: 7240038459@ibl
+  cases: 1
+- upi_id: 7208688005@paytm
+  cases: 1
+label_tx_ids:
+- t_0077852
+- t_0077855
+- t_0113943
+- t_0113952
+- t_0124626
+- t_0142020
+- t_0185613
+- t_0185621
+reviews:
+- analyst: diwansu
+  decision: approve
+  note: ''
+  at: '2026-10-23T17:03:11+00:00'
