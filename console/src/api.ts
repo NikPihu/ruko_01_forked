@@ -143,52 +143,6 @@ export interface Verify {
   first_bad_id: string | null;
 }
 
-export interface EvalCondition {
-  label: string;
-  share_inr_interrupted: number;
-  journeys_alerted: number;
-  journeys: number;
-  median_first_alert_payment: number | null;
-  false_interruption_rate: number;
-}
-
-export interface EvalVisibility {
-  mules_flagged: number;
-  share_of_mules_flagged_before_registry: number;
-  median_days_before_listing: number | null;
-  analyst_list: number;
-  analyst_list_precision: number;
-  rings: number;
-}
-
-export interface AiLures {
-  model_version: string | null;
-  messages: number;
-  scam_messages: number;
-  honest_messages: number;
-  caught: number | null;
-  right_scam_type: number | null;
-  false_alarms: number | null;
-  baseline_caught_unseen_templates: number;
-  by_scam_type: Record<string, number>;
-  by_language: Record<string, { messages: number; flagged: number }>;
-  missed: { tag: string; lang: string; got: string; conf: number; text: string }[];
-}
-
-export interface EvalResults {
-  ai_lures?: AiLures | null;
-  episode: {
-    world: { users: number; task_journeys: number; task_inr: number };
-    conditions: Record<"known_mules" | "fresh_mules", Record<"A" | "B" | "C", EvalCondition>>;
-  } | null;
-  graph: {
-    world: { users: number; mules: number; episode_events: number };
-    visibility: Record<"none" | "partner" | "dpip", EvalVisibility>;
-  } | null;
-}
-
-// ---------- transaction database (every payment check) and explanations ----------
-
 export interface Transaction {
   payment_id: string;
   user_hash: string;
@@ -395,7 +349,6 @@ export const api = {
     if (!r.ok) throw new Error(`payment: ${r.status}`);
     return r.json() as Promise<Payment>;
   },
-  evaluation: () => get<EvalResults>("/v1/eval"),
   transactions: (params: { min_tier?: Tier | "T0"; status?: string; payee?: string; user_hash?: string; limit?: number } = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
     return get<{ count: number; transactions: Transaction[] }>(`/v1/transactions?${q}`);
