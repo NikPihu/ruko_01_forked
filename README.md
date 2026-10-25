@@ -15,6 +15,10 @@ Meena, on a call with a "police officer" who controls her screen, pays Rs 95,000
 A kirana purchase by QR:                                                         T0  (nothing shown)
 ```
 
+![The whole RUKO project: the scammer, the RUKO SDK inside Cache Pay, the RUKO server, outside sources, the analyst console, and the offline work that never decides a payment](docs/diagrams/ruko-complete-project.png)
+
+*The whole project on one page. Left to right: a judge plays the scammer from the console's AI scammer page; the RUKO SDK inside Cache Pay reads the phone and understands it there; only conclusions go to the RUKO server, which decides in under 200 ms, asks the banks, NPCI and the government fraud lists in under 150 ms, and keeps its memory (accounts and callers seen on many phones, the payment graph, the transaction database, the tamper-proof evidence vault). Analysts work in the console. Below, the offline work (simulated towns, model training, the red team and blue team) improves RUKO but never decides a payment.*
+
 ## Contents
 
 1. [What this submission claims](#what-this-submission-claims)
@@ -52,19 +56,15 @@ All of the tests pass: 375 on the server, 79 for the models, 153 on Android, and
 
 ## How a scam is stopped
 
-```mermaid
-flowchart LR
-    watch["<b>1. Before paying</b><br/>the phone notices a scam SMS,<br/>a long unknown call,<br/>a screen-sharing app"] --> pay["<b>2. Pay</b><br/>the phone sends tags<br/>and counts, never text"]
-    pay --> decide["<b>3. Decide</b><br/>payee checks, scam stage,<br/>trained model, policy<br/>(under 200 ms)"]
-    decide --> alert["<b>4. Alert</b><br/>T0 nothing ... T3 pause,<br/>one reason, one action"]
-    alert --> learn["<b>5. Learn</b><br/>what the user did,<br/>mule rings, new scam types"]
-```
+![How RUKO protects a payment: the scammer starts the scam, the SDK reads the phone, a small model on the phone judges the risk, only conclusions go to the RUKO server, which answers in under 0.2 s](docs/diagrams/slide1-how-ruko-protects-a-payment.png)
 
-1. **Before any payment**, the phone watches with the user's permission: a new SMS is checked for scam scripts, a bank alert feeds the task-scam watcher, a call that ends is timed, and a screen-sharing app is noticed. Only tags go to the server, and only if "Early warnings" is on.
-2. **At Pay**, the phone takes one reading (call, device, recent scam tags, the task-scam summary, how the Pay screen was used, whether the payee is a saved contact, and its own on-phone model's verdict) and sends it to `POST /v1/decide`.
-3. **The server decides**: where this person is in a scam, what the payee's bank and the cybercrime lists say about the payee, what the payment graph says (crowd signal, money loops, bot-scale rings), the trained model's score, the closest scam type, and the policy. The answer is a **tier**, from T0 to T4.
-4. **The app shows the alert** for that tier, in words. If RUKO doesn't answer in 1 second, the payment goes ahead.
-5. **Afterwards**, what the user did (paid anyway, waited, called someone, cancelled) and whether the payment happened go back to the server. Analysts see everything, approve mule suspects, and name new scam types.
+1. **The scam starts.** The scammer calls, texts or chats the victim.
+2. **The RUKO SDK reads, inside Cache Pay**, with the user's permission: how the Pay screen is used, calls and screen-sharing apps, scam texts, OTPs and bank alerts, the person's own past payments, and whether the receiver is a saved contact. All of it **stays on the phone**.
+3. **A small AI model on the phone judges the risk.** It runs on everything the phone measured and turns it into a verdict. Some warnings come from the phone itself, straight away: a scam text, or an OTP arriving during a call.
+4. **Only conclusions leave the phone.** When the user taps Pay, the SDK sends tags, counts and the phone's verdict to `POST /v1/decide`, never message text, call audio, contacts or screen content.
+5. **The RUKO server decides** ([next diagram](#how-the-server-decides)): it works out how far the scam has gone, checks the receiver with banks and lists (asked in under 150 ms), spots accounts and callers many people meet, and lets the trained model and the scam-step match give one threat score. It decides: allow, tip, warn or pause.
+6. **The phone shows the warning and a way out**, with the answer back in under 0.2 seconds. If RUKO doesn't answer within 1 second, the payment goes ahead.
+7. **Every decision** is kept as a tamper-proof record and reaches the analyst console. Afterwards, what the user did (paid anyway, waited, called someone, cancelled) goes back to the server too.
 
 | Tier | What the user sees |
 | --- | --- |
@@ -75,7 +75,7 @@ flowchart LR
 | T4 | "Your bank is checking this payment" |
 | No answer | "Safety check unavailable"; the user can still pay |
 
-Words in bold are in the [Glossary](#glossary). Drawings of the whole system are in [docs/diagrams/](docs/diagrams/): how RUKO protects a payment, how the server decides, the SDK inside Cache Pay, and the red team and blue team.
+Words in bold are in the [Glossary](#glossary). The drawings in this README are in [docs/diagrams/](docs/diagrams/), as large PNGs: open one on its own to zoom in.
 
 ## Quick start
 
@@ -222,6 +222,10 @@ curl -X POST http://127.0.0.1:8000/v1/decide -H "content-type: application/json"
 
 ### On the phone (the RUKO SDK inside Cache Pay)
 
+![The RUKO SDK inside Cache Pay: what the SDK notices, what is understood on the phone, what goes to the RUKO server and what the user sees](docs/diagrams/slide3-ruko-sdk-inside-cache-pay.png)
+
+Cache Pay, or any UPI app, makes **one call to check a payment** when the user taps Pay. The SDK notices screen-sharing apps, calls from unknown numbers, how the Pay screen is used, and scam texts and OTPs. On the phone, in locked, encrypted storage, it spots fake-reward-then-pay schemes, reads texts and throws them away, and works out what an OTP is for; a small AI model turns all of it into the scam steps it has seen. **Only yes or no, counts and the app's name** go to the RUKO server. The user sees a payment warning with reasons; a scam text alert and an OTP-during-a-call warning come straight from the phone. **If there's no answer in 1 second, the payment goes ahead.**
+
 | Part | What it does | Details |
 | --- | --- | --- |
 | The payment check | One reading at Pay, sent to the server with a 1 second limit; fails open | [docs/flows.md](docs/flows.md) |
@@ -234,6 +238,22 @@ curl -X POST http://127.0.0.1:8000/v1/decide -H "content-type: application/json"
 | Encrypted storage | Everything kept on the phone is AES-256 encrypted with an Android Keystore key, excluded from backups; "Delete my data" removes the files and the key | [android/README.md](android/README.md) |
 
 ### On the server
+
+#### How the server decides
+
+![How the server decides: seven steps in under 200 ms, the answer to the phone (allow, tip, warn, pause), and the work after the answer](docs/diagrams/slide2-how-the-server-decides.png)
+
+A payment from the RUKO SDK goes through seven steps:
+
+1. **How far has the scam gone?** The stage tracker places the person between "contacted" and "paying again", from early warnings and the payment's own signs.
+2. **Is the receiver on a bank or fraud list?** NPCI, the receiver's bank and the government fraud lists are asked all at once, within 150 ms. A source that's slow is counted as unknown, never as safe.
+3. **Are many people paying this account, or being called by this number?** The payment graph and the campaign counts answer from what RUKO has already seen.
+4. **The AI model gives a risk score.** One LightGBM model per kind of evidence, calibrated and combined.
+5. **Do the steps match a known scam?** The scam steps seen are compared with every known scam type, written as steps.
+6. **Both are combined into one threat score**, 0 to 100.
+7. **Safety rails** turn it into the answer: small amounts aren't interrupted, "I know them" is honoured unless the payee looks like a mule, and the alert budget keeps warnings rare.
+
+The answer to the phone is **allow, tip, warn or pause** (T0 to T3; T4 hands the payment to the bank). A decision usually takes a few milliseconds (the median in a demo run was 4 ms), and the engine gives up and lets the payment through at 200 ms. **After the answer**, without slowing the payment, the server looks for mule rings and writes a tamper-proof record.
 
 | Part | What it does | Details |
 | --- | --- | --- |
@@ -254,6 +274,17 @@ curl -X POST http://127.0.0.1:8000/v1/decide -H "content-type: application/json"
 | Two-person approval | A suspect counts in live decisions only after two different analysts approve it | [rings-and-hubs.md](docs/features/rings-and-hubs.md) |
 | Emerging patterns | Groups flagged payments with no known scam type by how they happened; a growing group can be named | [emerging-patterns.md](docs/features/emerging-patterns.md) |
 | Red team and blue team | The red team writes scams designed to slip past RUKO; the blue team clusters what got through, has LLM agents draft a new scam type, backtests it, and asks two analysts to approve | [red_team_blue_team/](red_team_blue_team/README.md) |
+
+### Red team and blue team
+
+![Red team and blue team: the red team invents scams to beat RUKO, the blue team learns from the ones that got through, and only approved results go back into RUKO](docs/diagrams/slide4-red-team-blue-team.png)
+
+1. **The red team plays the attacker.** It invents new scams designed to beat RUKO, runs them on fake victims in a simulated world, and sends every payment through the real RUKO.
+2. **Scams that got through** are handed over.
+3. **The blue team learns from them.** It groups similar misses, an AI assistant drafts a scam playbook written as steps, the draft is tested on past payments, a second AI assistant questions it, and **two people approve** it.
+4. **Back into RUKO, only after approval:** mule accounts are sent for review, the new scam is matched by its steps, and the next AI model trains on the attacks.
+
+No AI assistant decides anything about a payment: they draft text and rules in a fixed format, code tests them, and people approve them. See [red_team_blue_team/README.md](red_team_blue_team/README.md).
 
 ### The analyst console
 
@@ -412,6 +443,7 @@ The red team's runner and the blue team have their own tests, 11 and 77 (add `sy
 | **Red team, blue team** | People and tools that attack RUKO, and those that learn from what got through |
 | **Scam lab** | The console page where a judge plays the scammer against the emulator |
 | **SDK** | The RUKO library a payment app adds to get the shield |
+| **Scam steps** | The shared words for what has happened so far (contact, lure, hook, control, coaching, payment, payee), used by the phone, the server and the playbooks |
 
 ## Repository layout and other documents
 
@@ -437,7 +469,8 @@ data/                     the simulator, the playbooks file, evaluations
 red_team_blue_team/       attacks on RUKO, and the agents that learn from them
 synthetic_playbook/       the runner that plays an attack script against the real engine
 scripts/                  dev.ps1 and dev.sh, the one-command start
-docs/                     flows, one page per feature, plans, diagrams
+docs/                     flows, one page per feature, plans
+  diagrams/                 the drawings used in this README
 ```
 
 * [CLAUDE.md](CLAUDE.md): the rules every change follows, the contract version by version, how the scorer is chosen, and a map of every module.
