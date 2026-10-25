@@ -18,7 +18,8 @@
     <string name="shield_active_text">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
     <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
     <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
-    <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
+    <string name="shield_channel_name">स्कैम शील्ड गतिविधि</string>
+    <string name="shield_alert_channel_name">स्कैम शील्ड चेतावनियाँ</string>
     <string name="shield_confirmed_text">जिस खाते में आप पैसे भेज रहे हैं, उसे उन कई लोगों से पैसे मिले हैं जिन्हें यही ‘टास्क’ इनाम मिला था। रुकिए और 1930 पर कॉल कीजिए।</string>
     <string name="shield_confirmed_title">हमने खाते जाँचे</string>
     <string name="shield_out_text">आपने अभी %1$s भेजे। अगली माँग और बड़ी होगी। और पैसे मत भेजिए।</string>

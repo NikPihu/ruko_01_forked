@@ -6,8 +6,9 @@ import kotlinx.serialization.Serializable
 
 /**
  * What the background watcher does with new transactions, without any Android code:
- * update the episode, pick the notifications to show (at most one per state change and two a
- * week) and record state changes, which become episode events for the server (c2-0.4).
+ * update the episode, pick the notifications to show (one per new state of the episode, and one per
+ * payment made in another app during it; no weekly cap) and record state changes, which become
+ * episode events for the server (c2-0.4).
  * WATCHING (small money from a stranger) is recorded but never shown: one credit is too common
  * (refunds, cashback) to warn about. The user hears from us once the pattern is ACTIVE.
  */
@@ -17,7 +18,7 @@ object ShieldEngine {
 
     data class Alert(val kind: AlertKind, val episodeId: String?, val amountInr: Double, val summary: EpisodeSummaryText)
 
-    /** The numbers a notification or the Home card puts into words. */
+    /** The numbers a notification or the Alerts card puts into words. */
     data class EpisodeSummaryText(val baitCredits: Int, val baitInr: Double, val outs: Int, val outsInr: Double, val newPayees: Int)
 
     /** A state change (§8.1 trigger) with the transaction that caused it, if any. */
@@ -27,7 +28,6 @@ object ShieldEngine {
     /** [fresh]: the transactions this call took as new (a repeated alert is not), oldest first. */
     data class Result(val data: ShieldData, val alerts: List<Alert>, val transitions: List<Transition>, val fresh: List<MoneyTxn> = emptyList())
 
-    const val MAX_ALERTS_PER_WEEK = 2
     private const val SAME_ALERT_MS = 2 * 60_000L
     private const val WEEK_MS = 7 * 86_400_000L
 
@@ -90,7 +90,7 @@ object ShieldEngine {
         val shown = ArrayList<Alert>()
         for (a in alerts) {
             val key = "${a.episodeId}:${a.kind}" + if (a.kind == AlertKind.OUT_OTHER_APP) ":${a.amountInr}" else ""
-            if (notified.size >= MAX_ALERTS_PER_WEEK || notified.any { it.key == key }) continue
+            if (notified.any { it.key == key }) continue // already told: not a new alert
             notified = notified + Notified(now, key)
             shown += a
         }

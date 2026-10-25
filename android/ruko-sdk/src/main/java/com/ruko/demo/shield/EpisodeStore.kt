@@ -23,7 +23,7 @@ data class ShieldData(
     val notified: List<Notified> = emptyList(),
     // Episode events waiting to be sent (c2-0.4), as encoded JSON.
     val pending: List<String> = emptyList(),
-    // The server's last word on this episode ("high", "elevated"...), shown on Home.
+    // The server's last word on this episode ("high", "elevated"...), shown on the Alerts screen.
     @SerialName("server_risk") val serverRisk: String? = null,
     @SerialName("server_message_key") val serverMessageKey: String? = null,
 )

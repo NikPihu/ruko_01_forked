@@ -422,6 +422,32 @@ def test_demo_clock_uses_sim_time_not_phone_time(world, mock):
     assert abs(datetime.fromisoformat(ev["ts"]) - sim_now) < timedelta(minutes=1)
 
 
+def test_screens_get_the_wall_clock_back_from_the_demo_clock(world, mock):
+    """Stored in sim time, shown in the time the user really paid: /health gives the offset the console
+    subtracts, and the app's own payment list comes back in wall-clock time."""
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=mock[0]), base_url="http://mock")
+    app = create_engine(world[0], intel_client=client, intel_cache_ttl_s=0, log_path=None,
+                        evidence_async=False, demo_clock=True)
+    with TestClient(app) as engine:
+        wall = datetime.now().astimezone()
+        offset = engine.get("/health").json()["demo_clock_offset_s"]
+        sim_now = datetime.fromisoformat(mock[1].get("/sim/state").json()["now"])
+        assert abs(offset - (sim_now - wall).total_seconds()) < 60
+        user = users_in(world)[5]
+        engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=180, entry="qr", rid="wall-1",
+                                           ts=wall))
+        stored = engine.get("/v1/transactions/wall-1").json()["payment"]["ts"]
+        mine = engine.get(f"/v1/me/payments?user_id={user}").json()["payments"]
+    assert abs(datetime.fromisoformat(stored) - sim_now) < timedelta(minutes=1)          # scored in sim time
+    assert abs(datetime.fromisoformat(mine[0]["ts"]) - wall) < timedelta(minutes=1)       # shown in real time
+    # The console does the same: stored sim time - offset = the wall-clock time.
+    assert abs(datetime.fromisoformat(stored) - timedelta(seconds=offset) - wall) < timedelta(minutes=1)
+
+
+def test_without_the_demo_clock_there_is_no_offset(engine):
+    assert engine.get("/health").json()["demo_clock_offset_s"] is None
+
+
 # ---------- episode events (c2-0.4) ----------
 
 def episode_event(trigger="active", accounts=None, event_id="ev_1", user=DEMO_MEENA, state=None):

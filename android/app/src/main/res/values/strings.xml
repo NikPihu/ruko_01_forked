@@ -232,7 +232,7 @@
     <!-- Background task-scam watcher (shield/) -->
     <string name="perm_receive_sms">new bank SMS alerts</string>
     <string name="perm_notifications">notifications</string>
-    <string name="shield_channel_name">Scam Shield alerts</string>
+    <string name="shield_channel_name">Scam Shield activity</string>
     <string name="shield_channel_desc">Warnings when your money alerts look like a task or job scam.</string>
     <string name="shield_working">Scam Shield is checking a money alert</string>
     <string name="shield_active_title">This looks like a task scam</string>

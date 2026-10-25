@@ -35,6 +35,22 @@ class AlertLogTest {
     }
 
     @Test
+    fun aRepeatIsNotANewAlertSoItIsNotNotifiedAgain() {
+        val f = AlertLog.add(AlertLogFile(), scam(t0))
+        assertTrue(AlertLog.isRepeat(f, scam(t0 + 5 * 60_000)))
+        assertFalse(AlertLog.isRepeat(f, scam(t0 + 5 * 60_000, tag = "kyc")))
+        assertFalse(AlertLog.isRepeat(f, scam(t0 + 30 * 60_000)))
+    }
+
+    @Test
+    fun eachPaymentInAnotherAppIsItsOwnAlert() {
+        val paid = AlertEntry(t0, AlertKind.PAID_OTHER_APP)
+        val f = AlertLog.add(AlertLogFile(), paid)
+        assertFalse(AlertLog.isRepeat(f, paid.copy(ts = t0 + 60_000)))
+        assertEquals(2, AlertLog.add(f, paid.copy(ts = t0 + 60_000)).entries.size)
+    }
+
+    @Test
     fun oldAndExtraAlertsAreDropped() {
         var f = AlertLogFile()
         for (i in 0 until AlertLog.MAX + 20) f = AlertLog.add(f, scam(t0 + i * AlertLog.REPEAT_MS * 2))

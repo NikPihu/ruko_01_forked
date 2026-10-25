@@ -97,6 +97,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     # sim time - wall time; None means "use the request's ts".
     clock: dict[str, timedelta | None] = {"offset": None}
 
+    def wall_time(ts: datetime | str) -> datetime:
+        """A stored (sim) time as the wall-clock time it happened at; unchanged without the demo clock."""
+        t = datetime.fromisoformat(ts) if isinstance(ts, str) else ts
+        return t - clock["offset"] if clock["offset"] is not None else t
+
     async def sync_clock() -> None:
         try:
             r = await client.get("/sim/state")
@@ -331,7 +336,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE,
                 "playbook_search": playbook_search.SOURCE,
                 "fusion": app.state.fusion.model_version if app.state.fusion else None, "contract_version": CONTRACT_VERSION,
-                "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
+                "demo_clock": clock["offset"] is not None,
+                # Sim time - wall time. Everything is stored in sim time (the world's history needs it);
+                # screens subtract this to show the time the user really paid (console format.ts `when`).
+                "demo_clock_offset_s": clock["offset"].total_seconds() if clock["offset"] is not None else None,
+                "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)
     async def decide(req: DecideRequest, request: Request) -> DecideResponse:
@@ -448,6 +457,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     def my_payments(user_id: str, limit: int = 100) -> MyPayments:
         """The user's own payments as RUKO recorded them (c2-0.8): plain words, never a score."""
         rows = store.payments_of(user_id, limit=max(1, min(limit, 500)))
+        # The phone shows its own clock: undo the demo clock's shift (stored in sim time).
+        for r in rows:
+            for k in ("ts", "outcome_ts"):
+                if r.get(k):
+                    r[k] = wall_time(r[k])
         return MyPayments(payments=[MyPayment(payee_upi_id=r.pop("payee_upi"), **r) for r in rows])
 
     @app.get("/v1/metrics/alerts")
