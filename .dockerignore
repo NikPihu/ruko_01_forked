@@ -1,0 +1,15 @@
+.git
+.venv
+**/__pycache__
+**/node_modules
+android
+console
+docs
+logs
+data/*.parquet
+data/sim_v2_out
+ml/data/tables
+ml/runs
+synthetic_playbook/interface_script_out
+.env
+.env.*

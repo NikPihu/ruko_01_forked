@@ -827,4 +827,5 @@ def main(port: int = 8765, scenario: bool = False) -> None:
     else:
         app = create_app()
         print(f"RUKO Analyst Console: http://127.0.0.1:{port}  (Ctrl+C to stop)")
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    # HOST=0.0.0.0 only inside the hosting container (Dockerfile); locally it stays on 127.0.0.1.
+    uvicorn.run(app, host=os.environ.get("HOST", "127.0.0.1"), port=port, log_level="warning")

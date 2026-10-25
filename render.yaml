@@ -1,0 +1,15 @@
+# Render blueprint: the red team / blue team console as one Docker web service.
+# New > Blueprint on render.com, pick this repo. Render asks for the secret below (sync: false):
+# paste the Bedrock API key there, never in this file.
+services:
+  - type: web
+    name: ruko-red-blue-console
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # 512 MB; runs that replay a world may need "standard" (2 GB)
+    healthCheckPath: /
+    envVars:
+      - key: AWS_BEARER_TOKEN_BEDROCK
+        sync: false
+      - key: AWS_REGION
+        value: ap-southeast-2
