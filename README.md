@@ -29,15 +29,16 @@ A kirana purchase by QR:                                                        
 6. [Checking the claims yourself](#checking-the-claims-yourself)
 7. [What it does, part by part](#what-it-does-part-by-part)
 8. [AI-enabled scams](#ai-enabled-scams)
-9. [Who can see what](#who-can-see-what)
-10. [Known limitations](#known-limitations)
-11. [Configuration](#configuration)
-12. [Running the parts by hand](#running-the-parts-by-hand)
-13. [Tests](#tests)
-14. [Troubleshooting](#troubleshooting)
-15. [Questions](#questions)
-16. [Glossary](#glossary)
-17. [Repository layout and other documents](#repository-layout-and-other-documents)
+9. [Red team and blue team](#red-team-and-blue-team)
+10. [Who can see what](#who-can-see-what)
+11. [Known limitations](#known-limitations)
+12. [Configuration](#configuration)
+13. [Running the parts by hand](#running-the-parts-by-hand)
+14. [Tests](#tests)
+15. [Troubleshooting](#troubleshooting)
+16. [Questions](#questions)
+17. [Glossary](#glossary)
+18. [Repository layout and other documents](#repository-layout-and-other-documents)
 
 ## What this submission claims
 
@@ -45,6 +46,7 @@ A kirana purchase by QR:                                                        
 | --- | --- | --- |
 | **Detects scam workflows, not single payments** | A stage tracker follows each person from "contacted" to "hooked", "under control", "paying" and "paying again". Every payment is judged on four independent kinds of evidence: the situation on the phone, scam messages, the payee, and the person's own behaviour | [Tour step 2](#a-guided-tour), [docs/flows.md](docs/flows.md) |
 | **Catches AI-enabled scams** | Video calls from unknown callers (deepfake "officers"), one number calling many people (AI voice at scale), OTPs arriving during a call, scam messages written by AI, the same scam reaching many phones, and bot-scale mule rings | [AI-enabled scams](#ai-enabled-scams), the console's **AI scammer** page |
+| **Tests itself against new attacks** | A red team writes 50 scams designed to slip past RUKO and plays them against the real engine; a blue team turns what got through into new, approved scam types | [Red team and blue team](#red-team-and-blue-team) |
 | **Finds emerging scams** | Payments that matched no known scam type are grouped by how they happened; a growing group appears on **Emerging patterns**. The blue team clusters missed scams, drafts a new scam type with an LLM, and two analysts approve it | [docs/features/emerging-patterns.md](docs/features/emerging-patterns.md), [red_team_blue_team/](red_team_blue_team/README.md) |
 | **Timely alerts** | Decisions arrive in under 200 ms, at the moment of payment, before the PIN. Warnings before any payment come from the phone itself (a scam SMS, an OTP during a call, a task-scam pattern) | `logs/decide.jsonl` timings, `backend/tests/test_decide.py` timing tests |
 | **Useful alerts** | One main reason in words, in English or Hindi, never a score, plus one action: call your trusted person, call 1930, or wait | [docs/features/alert-screens-and-feedback.md](docs/features/alert-screens-and-feedback.md) |
@@ -273,18 +275,7 @@ The answer to the phone is **allow, tip, warn or pause** (T0 to T3; T4 hands the
 | Mule discovery | Ranks suspect accounts from the payment graph, groups rings, finds hubs | [rings-and-hubs.md](docs/features/rings-and-hubs.md) |
 | Two-person approval | A suspect counts in live decisions only after two different analysts approve it | [rings-and-hubs.md](docs/features/rings-and-hubs.md) |
 | Emerging patterns | Groups flagged payments with no known scam type by how they happened; a growing group can be named | [emerging-patterns.md](docs/features/emerging-patterns.md) |
-| Red team and blue team | The red team writes scams designed to slip past RUKO; the blue team clusters what got through, has LLM agents draft a new scam type, backtests it, and asks two analysts to approve | [red_team_blue_team/](red_team_blue_team/README.md) |
-
-### Red team and blue team
-
-![Red team and blue team: the red team invents scams to beat RUKO, the blue team learns from the ones that got through, and only approved results go back into RUKO](docs/diagrams/slide4-red-team-blue-team.png)
-
-1. **The red team plays the attacker.** It invents new scams designed to beat RUKO, runs them on fake victims in a simulated world, and sends every payment through the real RUKO.
-2. **Scams that got through** are handed over.
-3. **The blue team learns from them.** It groups similar misses, an AI assistant drafts a scam playbook written as steps, the draft is tested on past payments, a second AI assistant questions it, and **two people approve** it.
-4. **Back into RUKO, only after approval:** mule accounts are sent for review, the new scam is matched by its steps, and the next AI model trains on the attacks.
-
-No AI assistant decides anything about a payment: they draft text and rules in a fixed format, code tests them, and people approve them. See [red_team_blue_team/README.md](red_team_blue_team/README.md).
+| Red team and blue team | The red team writes scams designed to slip past RUKO; the blue team clusters what got through, has AI assistants draft a new scam type, backtests it, and asks two analysts to approve | [Red team and blue team](#red-team-and-blue-team) |
 
 ### The analyst console
 
@@ -307,6 +298,81 @@ AI makes scams sound better and run at a larger scale. It doesn't change what th
 | Scams nobody has seen yet | Emerging patterns and the blue team's clustering find them from what happened, not from a known name | Named once two analysts approve |
 
 LLMs help people, never the decision: they draft scam-type descriptions and red-team attacks, and an analyst approves what's used. The tier always comes from the trained model, the rules and the policy.
+
+## Red team and blue team
+
+RUKO is tested the way a security team tests a system: one side attacks it, the other learns from every attack that worked. Both sides use the real engine, the same one Cache Pay talks to, and neither decides anything about a real payment.
+
+![Red team and blue team: the red team invents scams to beat RUKO, the blue team learns from the ones that got through, and only approved results go back into RUKO](docs/diagrams/slide4-red-team-blue-team.png)
+
+1. **The red team plays the attacker.** It invents new scams designed to beat RUKO, runs them on fake victims in a simulated world, and sends every payment through the real RUKO.
+2. **Scams that got through** are handed to the blue team.
+3. **The blue team learns from them.** It groups similar misses, an AI assistant drafts a scam playbook written as steps, the draft is tested on past payments, a second AI assistant questions it, and **two people approve** it.
+4. **Back into RUKO, only after approval:** mule accounts are sent for review, the new scam is named by its steps (and warned about, when its rule spans two kinds of evidence), and the next model trains on the attacks.
+
+### The red team: attacks written to beat RUKO
+
+* **50 hand-written attack scripts** in [red_team_blue_team/red_team/playbooks/](red_team_blue_team/red_team/playbooks/), each a scam told as steps (who contacts the victim, what they say, how the money moves). They're data, never executed: the simulator plays them out against simulated people, and RUKO judges every payment as it would live. Notes on each are in `ATTACK_PLAYBOOKS.md`.
+* **A generator** (`python -m red_team`) writes new variants of existing scripts, with an AI model on Amazon Bedrock when one is set up, or with built-in rules when it isn't, so it never stalls. AI-powered scams are included: voice-clone relatives, chatbot "customer care", deepfake video KYC.
+* **The attack runner** (`synthetic_playbook/interface_script`) builds a small world where one script is the only scam running, sends every record to the server the way a phone would, and reads the threat score. A payment scored 70 or less was **called normal**; when 75% of a script's scam payments are called normal, that script **got through**, and it lands in the blue team's inbox.
+
+The tricks the scripts use, and why each hurts RUKO:
+
+| Trick | Scripts | Why it hurts |
+| --- | --- | --- |
+| Pay by QR or a saved contact | 50 | No typed payee, so no "new payee typed by hand" and no "who are you paying?" |
+| Many diluted mules, some posing as merchants | 50 | The payee's fan-in and mule signals stay low |
+| Hook only through WhatsApp, Telegram or Instagram | 25 | The phone may not read it, so the scam-message evidence stays dark |
+| Pay 30 or more minutes after the call ends | 15 | No live call at Pay, so the call evidence stays dark |
+| A scam SMS worded to score just under the threshold | 10 | Below the message model's sending bar |
+| A tiny first payment, then the big one | 8 | The big one goes to a payee that's already "known" |
+| A single bait credit | 5 | The task-scam watcher never turns active |
+
+### The blue team: turning misses into new scam types
+
+| Step | What happens |
+| --- | --- |
+| 1. Breaches | Each complaint (a 1930 or cybercrime-portal report) is joined to the victim's payments. Each is marked **missed** (nothing interrupted it), **unnamed** (interrupted, but no scam type named it) or **misnamed** (named, but the victim still paid) |
+| 2. Groups | Each case becomes a sequence of what happened (call on, caller unknown, says "family", amount, gap, pay...), and HDBSCAN groups similar ones. A group most of whose cases a known scam type already names is *known*; otherwise it's *new* |
+| 3. Investigator | An AI assistant on Amazon Bedrock reads the group with read-only tools and drafts a playbook card: a name, the story, its steps and signals, a matching rule, reason codes, advice in English and Hindi, and whether it looks AI-powered. Code checks the card and backtests the rule over every past payment |
+| 4. Analyst | A second, skeptical AI assistant gives a verdict: a new scam, a variant of a known one, a look-alike that isn't a scam, or not enough evidence |
+| 5. People | Two different analysts read the card on the review page and approve or reject it, with a reason. An approved card writes the entry for the engine's scam-type file, the mule accounts for the suspect review, and labelled payments for the next retrain |
+| 6. Verify | Measures what approving changed: how much of the scam is now named, on its own complaints and on payments nobody complained about, how many honest payments it would name, and, live, whether RUKO now interrupts it |
+
+**The rules an AI-drafted rule must pass**, checked by code: it names at least 60% of its group's cases, names at most 0.5 honest payments per 1,000, and takes at most 30% of a known scam type's payments. The rule is written in a fixed format (all, any, not, and comparisons on RUKO's own features), so nothing an AI writes can run, and an unmeasured feature never satisfies a comparison.
+
+**Without an AI model**, everything still works offline: the investigator becomes an exhaustive search over the group's most distinctive steps, with template text, and the analyst becomes fixed rules. Tests and demos run without any key.
+
+### The red and blue console
+
+`python -m blue_team app` opens it at <http://127.0.0.1:8765>. Its tabs follow the loop:
+
+| Tab | What you see |
+| --- | --- |
+| Overview | The loop with one number per step (the step waiting for a person is orange), the attacks grouped by kind of scam, what's waiting for you, and the scorecard |
+| Live | Pick two or three attack scripts; a world is built and 500 payments go through the real engine one at a time, with victims' complaints appearing as the clock reaches them. The blue team works on those complaints; two analysts approve; **Replay** sends the same 500 again with the approved playbooks |
+| 1 Attack | Run the attack runner over a set of scripts, generate new ones, and see each attack in detail: where in the scam RUKO lost it, and why the caught payments were flagged |
+| 2 Investigate | Start a blue-team run and follow it: complaints, what got past RUKO, the groups, the drafts, the checks, the AI assistants' turns |
+| 3 Playbooks | The review queue and the library: catches, honest payments named per 1,000, why each was chosen, the warning in English and Hindi, sign-off by two analysts, and Verify |
+
+### What it found
+
+* **The red team breaks the earlier model.** In one world (4,000 people over 30 days) the 50 scripts made 845 scam payments, and RUKO with the earlier model (`lgbm-0.2`) interrupted only 2.8% of them, while still stopping known scams such as digital arrest (100%) and fake KYC (100%). This is the gap the current model was retrained to close: on 25 attack scripts it never trained on, it interrupts 93.4% of scam payments ([docs/plan-v3.md](docs/plan-v3.md#results-25-oct-2026)).
+* **The blue team finds new scams.** In the same world it turned 304 complaints into 24 groups; 49 of the 50 attacks landed in a group, and 19 dominate a group that got a drafted playbook. In separate test worlds with six hidden scam types, the AI assistants (gpt-oss-120b on Bedrock) found up to 4 of the 6 as new, and on a world their prompts were never tuned on, judged 5 of 6 new-scam groups right.
+* **Approving closes the loop.** Approving one drafted playbook and re-running named 9 more cases, and its group came back as *known*.
+* **Its limits.** Small worlds give only 4 to 16 complaints per new scam, so a pattern needs a few weeks of complaints before it clusters, and one verdict moves the score a lot. The AI analyst still sometimes calls a known scam "new" when its scam message is missing, which is why two people always approve.
+
+### Run it
+
+```powershell
+$env:PYTHONPATH="backend;ml;data;synthetic_playbook;red_team_blue_team"; $env:PYTHONIOENCODING="utf-8"
+.venv\Scripts\python -m pip install -r red_team_blue_team/blue_team/requirements.txt
+.venv\Scripts\python -m interface_script run-all --playbooks red_team_blue_team/red_team/playbooks   # attack
+.venv\Scripts\python -m blue_team app                                                              # the console
+.venv\Scripts\python -m blue_team scenario start                                                   # the whole loop on one small world
+```
+
+For the AI assistants, set `AWS_BEARER_TOKEN_BEDROCK` in the environment (never in a file); `python -m blue_team probe` lists which models answer. The full set of commands, and every run's numbers, are in [red_team_blue_team/README.md](red_team_blue_team/README.md), [red_team/README.md](red_team_blue_team/red_team/README.md) and [blue_team/README.md](red_team_blue_team/blue_team/README.md).
 
 ## Who can see what
 
@@ -440,7 +506,9 @@ The red team's runner and the blue team have their own tests, 11 and 77 (add `sy
 | **Fail open** | When RUKO can't decide in time, the payment goes ahead |
 | **Contract** | The exact shape of what the phone and server send each other (`contracts/`) |
 | **Mock intel** | Stand-ins for NPCI, banks, DoT and I4C, with their real delays and gaps |
-| **Red team, blue team** | People and tools that attack RUKO, and those that learn from what got through |
+| **Red team, blue team** | The side that attacks RUKO with new scams, and the side that turns what got through into approved scam types ([section](#red-team-and-blue-team)) |
+| **Breakthrough** | An attack script whose scam payments RUKO mostly called normal (75% or more scored 70 or less) |
+| **Playbook card** | The blue team's draft of a new scam type: its story, steps, matching rule and advice, waiting for two analysts |
 | **Scam lab** | The console page where a judge plays the scammer against the emulator |
 | **SDK** | The RUKO library a payment app adds to get the shield |
 | **Scam steps** | The shared words for what has happened so far (contact, lure, hook, control, coaching, payment, payee), used by the phone, the server and the playbooks |
