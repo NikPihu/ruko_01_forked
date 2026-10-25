@@ -8,13 +8,18 @@ from __future__ import annotations
 
 import math
 
+import typing
+
 import numpy as np
 import pandas as pd
 
 from dataset import device_features
 from features.build import FAMILY
+from features.steps import STAGE, STEP_IDS
+from schema.events import FraudType
 
 LURE_TAGS = ("arrest_threat", "kyc", "task_job", "trading_tip", "refund")
+VERDICT = ("device_c", "device_l", "device_b")      # the phone verdict's family scores (c2-0.8)
 
 # Server features by family (C, L, P, B), from the engine's own feature map. Stage (S) is journey
 # context: it feeds the combiner, never a family on its own.
@@ -68,8 +73,10 @@ def encode_features(f: dict, ts_hour: float | None = None) -> dict[str, float]:
     return out
 
 
-def encode_frame(df: pd.DataFrame) -> pd.DataFrame:
-    """The training table -> a float frame with every server and device feature column."""
+def encode_frame(df: pd.DataFrame, hide_verdict: np.ndarray | None = None, steps: bool = True) -> pd.DataFrame:
+    """The training table -> a float frame with every server and device feature column, plus (lgbm-0.3)
+    the verdict inputs and the step columns. `hide_verdict` (per row): the phone sent no verdict, so
+    device_c/l/b, the verdict inputs and the phone's step reading are missing, as live."""
     cols: dict[str, pd.Series | np.ndarray] = {}
     for col in df.columns:
         if col in ("lure_tag", "payee_holder_type"):
@@ -89,7 +96,58 @@ def encode_frame(df: pd.DataFrame) -> pd.DataFrame:
     # World checks only, never model inputs: patterns that should NOT predict scams in a realistic world.
     cols["audit_round_100"] = (df["amount"] % 100 == 0).astype("float64")
     cols["audit_payer_asked"] = df["payer_says"].notna().astype("float64")
-    return pd.DataFrame(cols, index=df.index)
+    out = pd.DataFrame(cols, index=df.index)
+    parts = [out, verdict_frame(df)]
+    if steps:
+        from model.steps_table import table_steps
+        st = table_steps(df, None if hide_verdict is None else ~np.asarray(hide_verdict, bool))
+        parts.append(st.rename(columns=step_col))
+    out = pd.concat(parts, axis=1)
+    if hide_verdict is not None:
+        out.loc[np.asarray(hide_verdict, bool), [*VERDICT, *VERDICT_FEATURES]] = np.nan
+    return out
+
+
+# lgbm-0.3 (plan v3 step 4): the phone's verdict converted to inputs, and the journey's scam steps.
+# Steps: 1 seen, 0 measured and not seen, NaN unknown, from the server's reading merged with the
+# phone's (model/steps_table.py offline, api/main.py live). Each step speaks for the family of its
+# stage. The verdict's level and scam class add to p_scam but light no family (rule 5): the phone's
+# own family scores device_c/l/b already carry its evidence into C, L and B.
+STEP_FAMILY = {"contact": "C", "control": "C", "lure": "L", "hook": "L", "coaching": "B", "payment": "B", "payee": "P"}
+DV_LEVELS = ("low", "medium", "high")
+FRAUD_TYPES = typing.get_args(FraudType)
+
+
+def step_col(step: str) -> str:
+    return "step_" + step.replace(":", "_")      # LightGBM feature names cannot hold ':'
+
+
+STEP_FEATURES = {step_col(s): STEP_FAMILY[STAGE[s]] for s in STEP_IDS}
+VERDICT_FEATURES = [f"dv_level_{v}" for v in DV_LEVELS] + [f"dv_class_{c}" for c in FRAUD_TYPES]
+
+
+def verdict_inputs(level: str | None, fraud_class: str | None) -> dict[str, float]:
+    """No verdict -> all NaN; a verdict -> one-hot level, one-hot class (all 0 when it named none)."""
+    if level is None:
+        return dict.fromkeys(VERDICT_FEATURES, math.nan)
+    return {**{f"dv_level_{v}": float(level == v) for v in DV_LEVELS},
+            **{f"dv_class_{c}": float(fraud_class == c) for c in FRAUD_TYPES}}
+
+
+def step_inputs(steps: dict[str, bool | None] | None) -> dict[str, float]:
+    steps = steps or {}
+    return {step_col(s): _num(steps.get(s)) for s in STEP_IDS}
+
+
+def verdict_frame(df: pd.DataFrame) -> pd.DataFrame:
+    lv = df["dv_level"] if "dv_level" in df else pd.Series(None, index=df.index, dtype=object)
+    cl = df["dv_class"] if "dv_class" in df else pd.Series(None, index=df.index, dtype=object)
+    none = lv.isna().to_numpy()
+    cols = {f"dv_level_{v}": (lv == v).astype("float64") for v in DV_LEVELS}
+    cols |= {f"dv_class_{c}": (cl == c).astype("float64") for c in FRAUD_TYPES}
+    out = pd.DataFrame(cols, index=df.index)
+    out.loc[none, :] = np.nan
+    return out
 
 
 def server_features() -> list[str]:

@@ -1,5 +1,12 @@
 """Policy engine: scorer output + features -> tier, message, pause. All numbers come from YAML.
 
+Fused mode (plan v3 step 5): when the scorer output carries `threat` (api/threat.py: the trained
+model's p_scam fused with the playbook search) and policy.yaml has `fused:`, rule 2-3 become "walk
+fused.tiers T4 -> T1 on threat" (T4 still needs an intel hit) with no two-families gate: the model's
+families and the step-based playbook match are already two independent kinds of evidence, combined
+and calibrated. Every guardrail below (3b-7) applies unchanged. Without `threat` (the rules fallback,
+or no fusion for this model) the policy decides as before.
+
 Rules, in order:
   1. A family is lit when its score >= family_threshold.
   2. Fewer than corroboration_min_families lit -> T0.
@@ -62,7 +69,14 @@ class Policy:
         applied: list[str] = []
 
         tier = "T0"
-        if len(lit) >= c["corroboration_min_families"]:
+        fused = c.get("fused") if s.get("threat") is not None else None
+        if fused:
+            for name in ("T4", "T3", "T2", "T1"):
+                if s["threat"] >= fused["tiers"][name] and (hit or name != "T4" or not fused["t4_requires_intel_hit"]):
+                    tier = name
+                    break
+            applied.append("fused_threat")
+        elif len(lit) >= c["corroboration_min_families"]:
             for name in ("T4", "T3", "T2", "T1"):
                 rule = c["tiers"][name]
                 if (s["p_scam"] >= rule["min_p"] and len(lit) >= rule["min_families"]
@@ -118,7 +132,7 @@ class Policy:
         anchor = bool(f.get("payee_micro_anchor")) and budget.get("never_applies_with_anchor")
         if (tier in INTERRUPTIVE and not in_journey and not risky_payee and not anchor
                 and len(recent) >= budget["max_interruptive_per_30d"]
-                and s["p_scam"] < budget["bypass_if_p_ge"]):
+                and (s["threat"] if fused else s["p_scam"]) < budget["bypass_if_p_ge"]):
             tier = budget["drop_to"]
             applied.append("alert_budget")
         if tier in INTERRUPTIVE:

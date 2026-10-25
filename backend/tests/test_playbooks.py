@@ -93,7 +93,7 @@ def test_a_new_playbook_is_picked_up_without_code(tmp_path: Path):
     path = tmp_path / "playbooks.yaml"
     path.write_text(yaml.safe_dump(doc), encoding="utf-8")
     rules, source = load(path)
-    assert source == "file:playbooks-0.1"
+    assert source == "file:playbooks-0.3"
     f = {k: None for k in FLAGS} | {"caller_unknown": None, "entry_typed": True, "episode_state": 0}
     assert first(rules, f | {"lure_tag": "refund", "remote_control": True}) == "electricity_disconnection"
     assert first(rules, f | {"lure_tag": "kyc", "sideloaded_last_24h": True}) == "fake_kyc_apk"

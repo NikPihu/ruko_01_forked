@@ -1,0 +1,451 @@
+{
+ "dev_test_v3": {
+  "payments": 61566,
+  "scam_payments": 475,
+  "playbooks": "file:playbooks-0.3",
+  "by_scam": {
+   "digital_arrest": {
+    "n": 170,
+    "any_match": 0.841,
+    "right_on_top": 0.612,
+    "median_similarity": 0.797,
+    "top_names": {
+     "digital_arrest": 104,
+     "fake_customer_care": 27,
+     "-": 27
+    }
+   },
+   "fake_customer_care": {
+    "n": 31,
+    "any_match": 0.903,
+    "right_on_top": 0.871,
+    "median_similarity": 0.421,
+    "top_names": {
+     "fake_customer_care": 27,
+     "-": 3,
+     "task_job": 1
+    }
+   },
+   "fake_kyc_apk": {
+    "n": 63,
+    "any_match": 0.905,
+    "right_on_top": 0.81,
+    "median_similarity": 0.732,
+    "top_names": {
+     "fake_kyc_apk": 51,
+     "-": 6,
+     "fake_customer_care": 4
+    }
+   },
+   "refund_qr": {
+    "n": 29,
+    "any_match": 0.931,
+    "right_on_top": 0.379,
+    "median_similarity": 0.633,
+    "top_names": {
+     "refund_qr": 11,
+     "fake_customer_care": 9,
+     "digital_arrest": 7
+    }
+   },
+   "task_job": {
+    "n": 73,
+    "any_match": 0.74,
+    "right_on_top": 0.562,
+    "median_similarity": 0.861,
+    "top_names": {
+     "task_job": 41,
+     "-": 19,
+     "trading_group": 11
+    }
+   },
+   "trading_group": {
+    "n": 109,
+    "any_match": 0.165,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 91,
+     "task_job": 12,
+     "fake_customer_care": 6
+    }
+   }
+  },
+  "honest": {
+   "n": 61091,
+   "any_match": 0.0588,
+   "per_1000_at_or_above": {
+    "0.3": 58.85,
+    "0.5": 40.82,
+    "0.7": 16.14,
+    "0.9": 7.58
+   },
+   "top_names": {
+    "task_job": 1813,
+    "refund_qr": 875,
+    "trading_group": 577,
+    "fake_kyc_apk": 266,
+    "fake_customer_care": 62,
+    "digital_arrest": 2
+   }
+  },
+  "scam_at_or_above": {
+   "0.3": 0.688,
+   "0.5": 0.585,
+   "0.7": 0.455,
+   "0.9": 0.135
+  }
+ },
+ "rt_test_v3": {
+  "payments": 22018,
+  "scam_payments": 589,
+  "playbooks": "file:playbooks-0.3",
+  "by_scam": {
+   "airline_reschedule_desk_cooloff": {
+    "n": 7,
+    "any_match": 0.143,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 6,
+     "fake_customer_care": 1
+    }
+   },
+   "blood_platelet_donor_cab_reimburse": {
+    "n": 8,
+    "any_match": 0.0,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 8
+    }
+   },
+   "courier_customs_cooloff": {
+    "n": 30,
+    "any_match": 0.433,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 17,
+     "fake_customer_care": 12,
+     "refund_qr": 1
+    }
+   },
+   "credit_card_reward_points_expiry_sms": {
+    "n": 9,
+    "any_match": 0.222,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 7,
+     "fake_customer_care": 2
+    }
+   },
+   "digital_arrest": {
+    "n": 41,
+    "any_match": 0.902,
+    "right_on_top": 0.634,
+    "median_similarity": 0.736,
+    "top_names": {
+     "digital_arrest": 26,
+     "fake_customer_care": 7,
+     "fake_kyc_apk": 4
+    }
+   },
+   "ecommerce_seller_boost_subscription": {
+    "n": 18,
+    "any_match": 0.333,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 12,
+     "fake_customer_care": 6
+    }
+   },
+   "fake_customer_care": {
+    "n": 16,
+    "any_match": 0.625,
+    "right_on_top": 0.625,
+    "median_similarity": 0.342,
+    "top_names": {
+     "fake_customer_care": 10,
+     "-": 6
+    }
+   },
+   "fake_kyc_apk": {
+    "n": 20,
+    "any_match": 1.0,
+    "right_on_top": 1.0,
+    "median_similarity": 0.59,
+    "top_names": {
+     "fake_kyc_apk": 20
+    }
+   },
+   "fake_medical_equipment_oxygen_rental": {
+    "n": 8,
+    "any_match": 0.5,
+    "right_on_top": 0.0,
+    "median_similarity": 0.188,
+    "top_names": {
+     "-": 4,
+     "fake_customer_care": 3,
+     "trading_group": 1
+    }
+   },
+   "fractional_real_estate_reit_club": {
+    "n": 8,
+    "any_match": 0.375,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 5,
+     "fake_customer_care": 3
+    }
+   },
+   "gold_sip_festival_scheme_chat": {
+    "n": 20,
+    "any_match": 0.2,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 16,
+     "fake_customer_care": 4
+    }
+   },
+   "high_floor_consulting_retainer_bait": {
+    "n": 20,
+    "any_match": 0.35,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 13,
+     "fake_customer_care": 6,
+     "refund_qr": 1
+    }
+   },
+   "hospital_icu_friend_delayed": {
+    "n": 18,
+    "any_match": 0.389,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 11,
+     "fake_customer_care": 7
+    }
+   },
+   "income_tax_scrutiny_cooloff": {
+    "n": 11,
+    "any_match": 0.364,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 7,
+     "fake_customer_care": 4
+    }
+   },
+   "instagram_thrift_boutique_prepay": {
+    "n": 14,
+    "any_match": 0.143,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 12,
+     "fake_customer_care": 2
+    }
+   },
+   "kirana_wholesale_oil_tin_anchor": {
+    "n": 11,
+    "any_match": 0.273,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 8,
+     "fake_customer_care": 2,
+     "refund_qr": 1
+    }
+   },
+   "matrimonial_gift_customs_chat": {
+    "n": 23,
+    "any_match": 0.304,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 16,
+     "fake_customer_care": 7
+    }
+   },
+   "olx_army_furniture_anchor_drain": {
+    "n": 37,
+    "any_match": 0.27,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 27,
+     "fake_customer_care": 7,
+     "refund_qr": 3
+    }
+   },
+   "pet_adoption_delivery_crate_chat": {
+    "n": 14,
+    "any_match": 0.214,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 11,
+     "fake_customer_care": 2,
+     "refund_qr": 1
+    }
+   },
+   "pm_surya_ghar_rooftop_solar_sms": {
+    "n": 6,
+    "any_match": 0.333,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 4,
+     "fake_customer_care": 2
+    }
+   },
+   "refund_qr": {
+    "n": 13,
+    "any_match": 0.846,
+    "right_on_top": 0.308,
+    "median_similarity": 0.746,
+    "top_names": {
+     "digital_arrest": 7,
+     "refund_qr": 4,
+     "-": 2
+    }
+   },
+   "rto_hsrp_number_plate_booking_sms": {
+    "n": 13,
+    "any_match": 0.154,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 11,
+     "fake_customer_care": 2
+    }
+   },
+   "single_bait_flat_task_prepay": {
+    "n": 34,
+    "any_match": 0.353,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 22,
+     "fake_customer_care": 8,
+     "fake_kyc_apk": 3
+    }
+   },
+   "task_job": {
+    "n": 47,
+    "any_match": 0.362,
+    "right_on_top": 0.319,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 30,
+     "task_job": 15,
+     "fake_customer_care": 2
+    }
+   },
+   "telegram_movie_ticket_cashback": {
+    "n": 24,
+    "any_match": 0.25,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 18,
+     "fake_customer_care": 6
+    }
+   },
+   "tra_sim_block_delayed": {
+    "n": 18,
+    "any_match": 0.333,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 12,
+     "fake_customer_care": 4,
+     "trading_group": 2
+    }
+   },
+   "trading_group": {
+    "n": 33,
+    "any_match": 0.182,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 27,
+     "task_job": 4,
+     "fake_customer_care": 2
+    }
+   },
+   "water_board_meter_reading_sms": {
+    "n": 12,
+    "any_match": 0.167,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 10,
+     "fake_customer_care": 2
+    }
+   },
+   "whatsapp_grocery_flash_sale": {
+    "n": 17,
+    "any_match": 0.235,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 13,
+     "refund_qr": 3,
+     "task_job": 1
+    }
+   },
+   "wrong_upi_transfer_sympathy_return": {
+    "n": 20,
+    "any_match": 0.25,
+    "right_on_top": 0.0,
+    "median_similarity": 0.0,
+    "top_names": {
+     "-": 15,
+     "fake_customer_care": 5
+    }
+   },
+   "zero_bait_ipo_allotment_club": {
+    "n": 19,
+    "any_match": 0.632,
+    "right_on_top": 0.0,
+    "median_similarity": 0.376,
+    "top_names": {
+     "fake_customer_care": 12,
+     "-": 7
+    }
+   }
+  },
+  "honest": {
+   "n": 21429,
+   "any_match": 0.0417,
+   "per_1000_at_or_above": {
+    "0.3": 41.72,
+    "0.5": 30.52,
+    "0.7": 10.97,
+    "0.9": 1.21
+   },
+   "top_names": {
+    "refund_qr": 249,
+    "task_job": 246,
+    "trading_group": 183,
+    "fake_kyc_apk": 159,
+    "digital_arrest": 44,
+    "fake_customer_care": 13
+   }
+  },
+  "scam_at_or_above": {
+   "0.3": 0.387,
+   "0.5": 0.19,
+   "0.7": 0.11,
+   "0.9": 0.027
+  }
+ }
+}

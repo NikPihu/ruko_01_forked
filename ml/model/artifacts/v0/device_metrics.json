@@ -1,25 +1,25 @@
 {
-  "version": "device-0.1",
-  "rows": 61699,
-  "scam_payments": 538,
-  "pr_auc": 0.9787540621852164,
+  "version": "device-0.2",
+  "rows": 3014647,
+  "scam_payments": 25995,
+  "pr_auc": 0.8146231342286979,
   "warn_min_p": 0.5,
-  "warn_legit_per_1000": 0.0,
-  "warn_scam_payments": 0.6022304832713755,
-  "warn_first_scam_payment": 0.6134969325153374,
+  "warn_legit_per_1000": 0.032456103955897174,
+  "warn_scam_payments": 0.3414118099634545,
+  "warn_first_scam_payment": 0.2620967741935484,
   "lit_on_scam": {
-    "C": 0.4721189591078067,
-    "L": 0.3215613382899628,
-    "B": 0.9702602230483272
+    "C": 0.3036353144835545,
+    "L": 0.15679938449701866,
+    "B": 0.8251202154260435
   },
   "export_max_raw_diff": 0.0,
   "held_out": {
-    "table": "ml\\data\\tables\\dev_test.parquet",
-    "rows": 61554,
-    "scam_payments": 475,
-    "pr_auc": 0.9795665276976364,
-    "warn_legit_per_1000": 0.0,
-    "warn_scam_payments": 0.6357894736842106,
-    "warn_first_scam_payment": 0.609271523178808
+    "table": "ml\\data\\tables\\v3\\test_sim_00.parquet;ml\\data\\tables\\v3\\test_sim_01.parquet;ml\\data\\tables\\v3\\test_v2_00.parquet;ml\\data\\tables\\v3\\test_v2_01.parquet",
+    "rows": 336467,
+    "scam_payments": 2829,
+    "pr_auc": 0.8074862451883039,
+    "warn_legit_per_1000": 0.02997260503899436,
+    "warn_scam_payments": 0.33510074231177095,
+    "warn_first_scam_payment": 0.24943988050784166
   }
 }

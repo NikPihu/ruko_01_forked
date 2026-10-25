@@ -48,6 +48,16 @@ def test_every_check_is_recorded_with_its_decision(engine, mock, world):
     assert engine.get("/v1/transactions", params={"min_tier": "T3"}).json()["count"] == 1
 
 
+def test_decision_records_the_steps_and_the_playbook_search(engine, mock, world):
+    pump(mock[1], world)
+    engine.post("/v1/decide", json=req(context=MEENA_CONTEXT, says="government", rid="p_steps"))
+    d = engine.get("/v1/transactions/p_steps").json()["details"]
+    assert {"unknown_call", "remote_control", "new_payee"} <= set(d["steps"]["seen"])
+    assert "lure:kyc" not in d["steps"]["unmeasured"]                     # lures: [] was sent, so measured
+    top = d["playbook_search"][0]
+    assert top["name"] == "digital_arrest" and top["similarity"] > 0.5 and "remote_control" in str(top["matched"])
+
+
 def test_outcome_updates_the_payment(engine, world):
     user = users_in(world)[0]
     engine.post("/v1/decide", json=req(user=user, payee=DEMO_KIRANA_UPI, amount=180, entry="qr", rid="p_1"))
@@ -131,3 +141,22 @@ def test_recording_keeps_decide_fast(world, mock):
                                         ts=NOW + timedelta(minutes=i)))
         took.append((time.perf_counter() - t) * 1000)
     assert sorted(took)[int(0.95 * len(took)) - 1] < 150
+
+
+def test_with_a_fusion_file_the_tier_comes_from_the_fused_threat(world, mock, monkeypatch, tmp_path):
+    from api import threat
+    probe = create_engine(world[0], log_path=None, evidence_async=False)
+    fz = tmp_path / "fusion.json"
+    fz.write_text(json.dumps({"model_version": probe.state.model_version,
+                              "playbook_iso": {"x": [0.3, 0.9], "y": [0.05, 0.9]}}))
+    monkeypatch.setattr(threat, "PATH", fz)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=mock[0]), base_url="http://mock")
+    engine = TestClient(create_engine(world[0], intel_client=client, intel_cache_ttl_s=0, log_path=None,
+                                      evidence_async=False))
+    assert engine.get("/health").json()["fusion"] == probe.state.model_version
+    pump(mock[1], world)
+    r = engine.post("/v1/decide", json=req(context=MEENA_CONTEXT, says="government", rid="p_fused")).json()
+    d = engine.get("/v1/transactions/p_fused").json()["details"]
+    assert "fused_threat" in d["policy_steps"] and r["tier"] in ("T3", "T4")
+    assert d["threat"]["best_playbook"] == "digital_arrest" and d["threat"]["playbook"] > 0.5
+    assert r["threat"]["score"] >= 80 and r["threat"]["fraud_type"] == "digital_arrest"

@@ -37,10 +37,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api import overlay
+from api import playbook_search
+from api import threat as fusion
 from api import rule_scorer as scorer
 from features.user_baseline import Baselines
 from evidence.store import EvidenceStore, pseudonym
 from features.build import build_features
+from features.steps import from_verdict, merge as merge_steps, server_steps
 from api.intel import IntelAdapter
 from api.policy import Policy
 from api.episode_events import EpisodeService
@@ -129,6 +132,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     # Swappable: anything with score(features) -> same dict shape (e.g. the trained model).
     app.state.score, app.state.model_version = load_scorer(scorer_name)
     scorer_version = app.state.model_version
+    # The fused threat (plan v3 step 5) exists only for the model its fusion file was fitted for.
+    app.state.fusion = fusion.load(scorer_version)
     scorer_used = "rules" if scorer_version == scorer.MODEL_VERSION else "ml"
     store = TxnStore(db_path)
     app.state.store = store
@@ -235,7 +240,11 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ms["features"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
-        s = app.state.score(feats)
+        # The journey's scam steps, as the server and the phone saw them (contracts/steps.json): inputs
+        # of lgbm-0.3 (with the phone verdict's level and class) and of the playbook search below.
+        dv = req.context.device_verdict if req.context else None
+        steps = merge_steps(server_steps(feats, req), from_verdict(dv))
+        s = app.state.score({**feats, "steps": steps, "verdict": (dv.level, dv.fraud_class) if dv else None})
         if scorer.PLAYBOOK_USES_REQUEST:   # a playbook-0.2 rule reads the request's entry method / payer_says
             s = {**s, "playbook": scorer._playbook({**feats, "entry_method": req.entry_method,
                                                      "payer_says": req.payer_says})}
@@ -243,12 +252,22 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         s = {**s, "playbook_families": scorer.PLAYBOOK_APPROVED.get(s["playbook"])}
         # The phone's fraud class names the scam when the server's playbook matcher found none (c2-0.8),
         # e.g. a WhatsApp "digital arrest" call whose number the phone cannot see.
-        dv = req.context.device_verdict if req.context else None
         if s["playbook"] is None and dv is not None and dv.fraud_class is not None:
             s = {**s, "playbook": dv.fraud_class}
         # RUKO's own cross-user evidence (e.g. a new account many users are paying) counts with any
         # scorer, including the trained model that has not learned it yet (api/overlay.py).
         s = overlay.apply(s, feats, policy.cfg)
+        # Playbook search (plan v3 step 3): the journey's steps against every known scam written in
+        # steps. Recorded for the analyst; no effect on the tier yet.
+        s = {**s, "playbook_search": playbook_search.search(steps, playbook_search.PLAYBOOKS)}
+        # Fused threat: the model and the best playbook match, either strong is enough (api/threat.py).
+        fz = app.state.fusion
+        if fz is not None:
+            top = s["playbook_search"][0] if s["playbook_search"] else None
+            t_val, parts = fz.threat(s["p_scam"], top["similarity"] if top else 0.0)
+            named = (top is not None and top["similarity"] >= policy.cfg.get("fused", {}).get("name_min_similarity", 1.1))
+            s = {**s, "threat": t_val, "threat_parts": {**parts, "best_playbook": top["name"] if top else None},
+                 "playbook": s["playbook"] or (top["name"] if named else None)}
         ms["score"] = (time.perf_counter() - t) * 1000
 
         t = time.perf_counter()
@@ -263,7 +282,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 "id": evidence_id, "ts": req.ts.isoformat(), "user_hash": pseudonym(req.user_id),
                 "payee_hash": pseudonym(upi), "caller_hash": pseudonym(call.caller_number if call else None),
                 "tier": d.tier, "p_scam": s["p_scam"], "reasons": s["reasons"], "playbook": s["playbook"],
-                "family_scores": {**s["family_scores"], "lit": d.lit_families, "policy_rules": d.applied},
+                "family_scores": {**s["family_scores"], "lit": d.lit_families, "policy_rules": d.applied,
+                                  "playbook_search": [[m["name"], m["similarity"]] for m in s["playbook_search"]],
+                                  "threat": s.get("threat_parts")},
                 "features": feats, "intel_status": res.status,
                 "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
                 "model_version": s["model_version"], "policy_version": policy.version,
@@ -285,7 +306,8 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
             "features": feats, "p_scam": s["p_scam"], "family_scores": s["family_scores"],
             "lit_families": d.lit_families, "policy_steps": d.applied, "intel_status": res.status,
             "stage_path": [(stage, ts.isoformat()) for stage, ts in state.stage_path],
-            "signals": s.get("signals")},
+            "signals": s.get("signals"), "playbook_search": s["playbook_search"], "threat": s.get("threat_parts"),
+            "steps": {"seen": [k for k, v in steps.items() if v], "unmeasured": [k for k, v in steps.items() if v is None]}},
             scorer_version=s.get("model_version", scorer_version))
         if d.tier != "T0":
             alerts.append({
@@ -306,7 +328,9 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok", "model_version": app.state.model_version, "scorer": scorer_used,
-                "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE, "contract_version": CONTRACT_VERSION,
+                "policy_version": policy.version, "playbooks": scorer.PLAYBOOK_SOURCE,
+                "playbook_search": playbook_search.SOURCE,
+                "fusion": app.state.fusion.model_version if app.state.fusion else None, "contract_version": CONTRACT_VERSION,
                 "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)
@@ -722,7 +746,8 @@ def threat_of(s: dict, d) -> Threat:
     # playbook) goes out in `playbook` and the message key only, never as an invalid fraud_type, which
     # would fail the response and fail open.
     name = s["playbook"] if d.tier != "T0" and s["playbook"] in FRAUD_TYPES else None
-    return Threat(score=max(0, min(100, round(100 * s["p_scam"]))), level=THREAT_LEVEL[d.tier],
+    p = s["threat"] if s.get("threat") is not None else s["p_scam"]    # fused when the model has a fusion
+    return Threat(score=max(0, min(100, round(100 * p))), level=THREAT_LEVEL[d.tier],
                   fraud_type=name, families=list(d.lit_families))
 
 
