@@ -112,7 +112,7 @@ def tiny_world(root):
     pd.DataFrame(rows).to_parquet(root / "ledger.parquet")
     pd.DataFrame(jr).to_parquet(root / "journeys.parquet")
     pd.DataFrame(rep).to_parquet(root / "reports.parquet")
-    pd.DataFrame({"upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
+    pd.DataFrame({"user_id": [f"u{i}" for i in range(5)], "upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
     (root / "manifest.json").write_text(_json.dumps({"config": {"end": (t0 + pd.Timedelta(days=10)).isoformat(), "n_days": 10}}))
     return root
 
@@ -123,6 +123,7 @@ def test_the_session_takes_whole_journeys_of_every_attack_and_fills_to_the_total
     assert len(sel["tx_ids"]) == 20 and sel["scam_payments"] + sel["honest_payments"] == 20
     assert sel["per_attack"] == {"shop": {"journeys": 2, "payments": 4}, "relative": {"journeys": 2, "payments": 4}}
     assert "shop_0" not in sel["journeys"]                                        # started in the warm-up
+    assert {"u1", "u2"} <= set(sel["users"])                                      # the victims' records are streamed
     small = sc.select_live(w, ["shop", "relative"], total=10, scam_share=0.5, warmup_days=3, seed=0)
     assert small["scam_payments"] == 4 and small["per_attack"]["shop"]["journeys"] == 1   # a fair share each
 

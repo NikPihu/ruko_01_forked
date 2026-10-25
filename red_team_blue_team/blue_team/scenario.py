@@ -168,7 +168,8 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
                       f"playbooks {'with the approved ones' if os.environ.get('RUKO_PLAYBOOKS') else 'as shipped'}. "
                       "The first days build each user's history; the attack follows."}, feed)
     try:
-        for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0):
+        for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0,
+                                  only_users=set(sel["users"]) if sel and sel.get("users") else None):
             if rec["body"].get("ts"):
                 srv.clock(rec["body"]["ts"])         # the mock services answer as of this message's time
             if rec["kind"] == "episode":
@@ -569,8 +570,9 @@ def select_live(world: Path, attacks: list[str], total: int, scam_share: float, 
 
     from dataset.replay import world_start
     led = pd.read_parquet(world / "ledger.parquet", columns=["tx_id", "ts", "from_upi", "journey_id", "label_is_scam"])
-    jr = pd.read_parquet(world / "journeys.parquet", columns=["journey_id", "playbook"])
-    users = set(pd.read_parquet(world / "users.parquet", columns=["upi_id"])["upi_id"])
+    jr = pd.read_parquet(world / "journeys.parquet", columns=["journey_id", "playbook", "user_id"])
+    who = pd.read_parquet(world / "users.parquet", columns=["user_id", "upi_id"])
+    users = set(who["upi_id"])
     start = world_start(json.loads((world / "manifest.json").read_text(encoding="utf-8")))
     window = pd.Timestamp(start) + pd.Timedelta(days=warmup_days)
     led = led[led["from_upi"].isin(users)]
@@ -591,13 +593,29 @@ def select_live(world: Path, attacks: list[str], total: int, scam_share: float, 
             elif queues[a]:
                 queues[a] = []                       # the next journey would not fit: this attack is done
     scam_tx = scam.loc[scam["journey_id"].isin(chosen), "tx_id"].tolist()
-    honest = led[~led["label_is_scam"].astype(bool) & (led["ts"] >= window)]
-    k = min(len(honest), total - len(scam_tx))
-    idx = np.sort(np.random.default_rng(seed).choice(len(honest), size=k, replace=False)) if k > 0 else []
-    honest_tx = honest.iloc[idx]["tx_id"].tolist()
+    # Honest payments from as few users as will do: the victims' own first, then random others until
+    # there are twice as many as needed. Only these users' records are streamed (their whole history,
+    # so the engine knows them), which keeps the warm-up to a fraction of the world.
+    need = max(0, total - len(scam_tx))
+    honest = led[~led["label_is_scam"].astype(bool) & (led["ts"] >= window)].merge(who, left_on="from_upi", right_on="upi_id")
+    victims = set(jr.loc[jr["journey_id"].isin(chosen), "user_id"])
+    rng = np.random.default_rng(seed)
+    others = [u for u in rng.permutation(sorted(set(who["user_id"]) - victims))]
+    per_user = honest.groupby("user_id").size()
+    keep, have = list(victims), int(per_user.reindex(list(victims)).fillna(0).sum())
+    for u in others:
+        if have >= 2 * need:
+            break
+        keep.append(u)
+        have += int(per_user.get(u, 0))
+    pool = honest[honest["user_id"].isin(set(keep))]
+    k = min(len(pool), need)
+    idx = np.sort(rng.choice(len(pool), size=k, replace=False)) if k > 0 else []
+    honest_tx = pool.iloc[idx]["tx_id"].tolist()
     per = scam.loc[scam["journey_id"].isin(chosen)].groupby("playbook").agg(journeys=("journey_id", "nunique"),
                                                                           payments=("tx_id", "size"))
     return {"window_start": window.isoformat(), "tx_ids": sorted(map(str, scam_tx + honest_tx)), "journeys": sorted(chosen),
+            "users": sorted(map(str, keep)),
             "scam_payments": len(scam_tx), "honest_payments": len(honest_tx),
             "per_attack": {a: {"journeys": int(per.loc[a, "journeys"]) if a in per.index else 0,
                                "payments": int(per.loc[a, "payments"]) if a in per.index else 0} for a in attacks}}
@@ -654,12 +672,14 @@ def _start_live(attacks: list[str], provider: str | None, log) -> dict:
                         red_dir=HOME / "red", log=log, known=known, known_boost=s["known_boost"])
     sel = select_live(WORLD, attacks + known, lv["transactions"], lv["scam_share"], s["warmup_days"], s["seed"])
     SELECTION.write_text(json.dumps(sel), encoding="utf-8")
-    state.update(selection={k: v for k, v in sel.items() if k not in ("tx_ids", "journeys")})
+    state.update(selection={**{k: v for k, v in sel.items() if k not in ("tx_ids", "journeys", "users")},
+                            "people": len(sel["users"])})
     _save(state)
     emit({"kind": "stage", "stage": "world", "text": f"{len(sel['tx_ids'])} transactions picked for the session: "
           f"{sel['scam_payments']} from {len(sel['journeys'])} victims of the attacks ("
           + ", ".join(f"{a} {v['payments']}" for a, v in sel["per_attack"].items()) + f") and {sel['honest_payments']} "
-          "honest ones. The first days (each user's history) go to the engine quietly first."})
+          f"honest ones, from {len(sel['users'])} of the {s['users']} people. Their first {s['warmup_days']} days "
+          "(each one's history) go to the engine quietly first."})
     # the replayed table is only for the blue team: build it while the attack plays
     replay = subprocess.Popen([sys.executable, "-m", "dataset.replay", "--data", str(WORLD), "--out", str(TABLE),
                                "--warmup-days", str(s["warmup_days"])], cwd=config.REPO, env=_env(),
