@@ -88,7 +88,7 @@ Counters kept per episode. "Out" means payments out *after the first bait*.
 | `out_to_in_ratio` | `outs_inr / bait_inr`. Null when credits can't be seen. |
 
 **All thresholds go in one config file, `contracts/episode_rules.json`.** The phone copies it into
-`android/app/src/main/assets/` and Python reads it from `contracts/`. Neither side hard-codes
+`android/ruko-sdk/src/main/assets/` and Python reads it from `contracts/`. Neither side hard-codes
 numbers.
 
 ```json

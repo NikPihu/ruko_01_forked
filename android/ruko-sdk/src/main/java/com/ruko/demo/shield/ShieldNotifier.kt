@@ -12,8 +12,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.ruko.demo.MainActivity
-import com.ruko.demo.R
+import com.ruko.sdk.Ruko
+import com.ruko.sdk.R
 import com.ruko.demo.data.AlertEntry
 import com.ruko.demo.data.AlertKind
 import com.ruko.demo.ui.scamTagRes
@@ -72,7 +72,7 @@ object ShieldNotifier {
         val c = localized(context, language)
         val body = c.getString(R.string.msg_scam_notify_text, c.getString(scamTagRes(tag))) +
             if (aiWritten) " " + c.getString(R.string.msg_scam_notify_ai) else ""
-        post(context, SCAM_SMS_ID + id, c.getString(R.string.msg_scam_notify_title), body, MainActivity.OPEN_MESSAGES)
+        post(context, SCAM_SMS_ID + id, c.getString(R.string.msg_scam_notify_title), body, Ruko.OPEN_MESSAGES)
     }
 
     fun post(context: Context, id: Int, title: String, body: String, open: String? = null) {
@@ -82,15 +82,15 @@ object ShieldNotifier {
             return // notifications off: the Home card still shows the episode
         }
         ensureChannel(context)
-        val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        open?.let { intent.putExtra(MainActivity.EXTRA_OPEN, it) }
+        // The host app decides what a tap opens (its own activity, its "Message check" screen).
+        val intent = Ruko.config.openApp(context, open)
         val tap = PendingIntent.getActivity(
             context, id,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(Ruko.config.smallIcon)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

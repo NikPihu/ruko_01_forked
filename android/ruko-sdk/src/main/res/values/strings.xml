@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Words the RUKO SDK shows itself (notifications). A host app overrides any of them by
+     defining the same name. -->
+<resources>
+    <string name="consent_chat">Check chat messages for scams</string>
+    <string name="msg_otp_call_text">Someone on a call asking for this code is a scammer. Banks, police and companies never ask for an OTP. Do not read it out; hang up.</string>
+    <string name="msg_otp_call_title">A code arrived while you are on a call</string>
+    <string name="msg_scam_notify_ai">It also looks AI-written.</string>
+    <string name="msg_scam_notify_text">A new message looks like a %1$s. Do not click its links, call back, share codes or pay. Tap to see it in Message check.</string>
+    <string name="msg_scam_notify_title">This message may be a scam</string>
+    <string name="msg_tag_arrest_threat">fake police or arrest threat</string>
+    <string name="msg_tag_kyc">fake KYC or account block</string>
+    <string name="msg_tag_other">known scam</string>
+    <string name="msg_tag_other_scam">common scam (parcel, bill cut-off, prize, loan fee)</string>
+    <string name="msg_tag_refund">fake refund</string>
+    <string name="msg_tag_task_job">fake task or job offer</string>
+    <string name="msg_tag_trading_tip">fake investment tip</string>
+    <string name="shield_active_text">You received %1$s from %2$d unknown accounts and then paid %3$s to %4$d new people, each time more. This is how task scams work. Stop before paying more.</string>
+    <string name="shield_active_title">This looks like a task scam</string>
+    <string name="shield_channel_desc">Warnings when your money alerts look like a task or job scam.</string>
+    <string name="shield_channel_name">Scam Shield alerts</string>
+    <string name="shield_confirmed_text">The account you are paying has received money from many people who got the same “task” rewards. Stop and call 1930.</string>
+    <string name="shield_confirmed_title">We checked the accounts</string>
+    <string name="shield_out_text">You just paid %1$s. The next ask will be bigger. Do not pay more.</string>
+    <string name="shield_out_title">Do not pay more</string>
+    <string name="shield_working">Scam Shield is checking a money alert</string>
+</resources>

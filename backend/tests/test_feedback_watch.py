@@ -204,7 +204,7 @@ def test_watch_thresholds_come_from_the_shared_rules_file():
     rules = json.loads((Path(__file__).resolve().parents[2] / "contracts" / "watch_rules.json").read_text(encoding="utf-8"))
     assert tracker.LONG_CALL_MIN == rules["long_call_min"]
     assert tracker.LURE_MIN_CONF == rules["lure_min_conf"]
-    app_copy = Path(__file__).resolve().parents[2] / "android" / "app" / "src" / "main" / "assets" / "watch_rules.json"
+    app_copy = Path(__file__).resolve().parents[2] / "android" / "ruko-sdk" / "src" / "main" / "assets" / "watch_rules.json"
     assert json.loads(app_copy.read_text(encoding="utf-8")) == rules
 
 

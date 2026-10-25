@@ -18,7 +18,7 @@ NOW = CFG.end + timedelta(hours=10, minutes=40)
 REMOTE = {"remote_access_active": True, "remote_app_installed_min_ago": 25}
 # What a real phone sends for a WhatsApp call: no number, contact status unknown.
 WHATSAPP = {"active": True, "kind": "voip", "started_min_ago": 38}
-VERDICT = {"model_version": "device-0.1", "fraud_class": "digital_arrest", "level": "high",
+VERDICT = {"model_version": "device-0.2", "fraud_class": "digital_arrest", "level": "high",
            "c": 0.99, "l": None, "b": 0.97, "reasons": ["R2_remote_control", "R12_coached_session"]}
 
 

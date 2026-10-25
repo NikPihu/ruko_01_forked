@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Words the RUKO SDK shows itself (notifications). A host app overrides any of them by
+     defining the same name. -->
+<resources>
+    <string name="consent_chat">चैट मैसेज में स्कैम जाँचें</string>
+    <string name="msg_otp_call_text">कॉल पर जो भी यह कोड माँगे, वह ठग है। बैंक, पुलिस और कंपनियाँ कभी OTP नहीं माँगतीं। कोड न बताएं; कॉल काट दें।</string>
+    <string name="msg_otp_call_title">कॉल के दौरान एक कोड आया है</string>
+    <string name="msg_scam_notify_ai">यह AI से लिखा भी लगता है।</string>
+    <string name="msg_scam_notify_text">एक नया मैसेज %1$s जैसा लगता है। उसके लिंक न खोलें, वापस कॉल न करें, कोड न बताएं, पैसे न भेजें। मैसेज जाँच में देखने के लिए टैप करें।</string>
+    <string name="msg_scam_notify_title">यह मैसेज स्कैम हो सकता है</string>
+    <string name="msg_tag_arrest_threat">नकली पुलिस या गिरफ़्तारी की धमकी</string>
+    <string name="msg_tag_kyc">नकली KYC या खाता बंद</string>
+    <string name="msg_tag_other">जाना-पहचाना स्कैम</string>
+    <string name="msg_tag_other_scam">आम स्कैम (पार्सल, बिजली कटौती, इनाम, लोन फीस)</string>
+    <string name="msg_tag_refund">नकली रिफ़ंड</string>
+    <string name="msg_tag_task_job">नकली टास्क या नौकरी</string>
+    <string name="msg_tag_trading_tip">नकली निवेश टिप</string>
+    <string name="shield_active_text">आपको %2$d अनजान खातों से %1$s मिले और फिर आपने %4$d नए लोगों को %3$s भेजे, हर बार ज़्यादा। टास्क स्कैम ऐसे ही होता है। और पैसे भेजने से पहले रुकिए।</string>
+    <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
+    <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
+    <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
+    <string name="shield_confirmed_text">जिस खाते में आप पैसे भेज रहे हैं, उसे उन कई लोगों से पैसे मिले हैं जिन्हें यही ‘टास्क’ इनाम मिला था। रुकिए और 1930 पर कॉल कीजिए।</string>
+    <string name="shield_confirmed_title">हमने खाते जाँचे</string>
+    <string name="shield_out_text">आपने अभी %1$s भेजे। अगली माँग और बड़ी होगी। और पैसे मत भेजिए।</string>
+    <string name="shield_out_title">और पैसे मत भेजिए</string>
+    <string name="shield_working">स्कैम शील्ड एक बैंक अलर्ट जाँच रहा है</string>
+</resources>

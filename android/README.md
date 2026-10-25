@@ -42,8 +42,29 @@ Privacy rules the phone follows on top of the contract:
   payments; only its verdict (`context.device_verdict`: model version, fraud class, level, three
   family scores, up to 3 reasons) is sent. A family whose inputs were all unmeasured is `null`.
 
+## The RUKO SDK (`ruko-sdk/`)
+The detection code ships as an Android library; Cache Pay (`app/`) is its first host app.
+
+```kotlin
+// Application.onCreate
+Ruko.init(this, RukoConfig(
+    apiBaseUrl = "https://ruko.example/", npciBaseUrl = "https://npci.example/",
+    userId = stablePseudonymousId,                      // never a phone number
+    smallIcon = R.drawable.ic_notification,
+    openApp = { ctx, open -> Intent(ctx, MainActivity::class.java).putExtra(Ruko.EXTRA_OPEN, open) },
+))
+// When the user taps Pay
+when (val d = Ruko.checkPayment(consents, request, payeeMobile)) {
+    is RukoDecision.Checked -> showAlertFor(d.response)  // tier, reasons, message_key, threat level
+    RukoDecision.Unavailable -> letThePaymentGo()        // rule 3: RUKO failing never blocks
+}
+```
+The SDK brings its permissions, SMS receiver, chat listener, models (`assets/`) and English and Hindi
+notification strings through its manifest and resources; the host can override any string. Build
+the library alone with `./gradlew :ruko-sdk:assembleRelease` (`ruko-sdk/build/outputs/aar/`).
+
 ### Updating the models
-`assets/lure.json` and `assets/device_model.json` are copies of `ml/model/artifacts/lure.json` and
+`ruko-sdk/src/main/assets/lure.json` and `ruko-sdk/src/main/assets/device_model.json` are copies of `ml/model/artifacts/lure.json` and
 `ml/model/artifacts/v0/device_model.json`; `LureModelTest` fails if they drift. After a retrain in
 `ml/` (see `ml/PLAN.md`), copy both files and run `testDebugUnitTest`. Device feature names, units
 and null rules are defined in `ml/dataset/device_features.py`; `DeviceFeaturesTest` replays real

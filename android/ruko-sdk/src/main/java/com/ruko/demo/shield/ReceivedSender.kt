@@ -10,7 +10,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.ruko.demo.DemoConfig
+import com.ruko.sdk.Ruko
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.data.Consents
 import com.ruko.demo.data.SecureStore
@@ -62,7 +62,7 @@ object ReceivedSender {
     fun report(context: Context, txns: List<MoneyTxn>) {
         try {
             if (!ReceivedPolicy.allowed(AccountStore(context).loadConsents())) return
-            val events = ReceivedPolicy.events(txns, DemoConfig.USER_ID)
+            val events = ReceivedPolicy.events(txns, Ruko.userId)
             if (events.isEmpty()) return
             update(context) { q -> q.copy(pending = q.pending + events.map { RukoJson.encodeToString(MoneyReceived.serializer(), it) }) }
             schedule(context)

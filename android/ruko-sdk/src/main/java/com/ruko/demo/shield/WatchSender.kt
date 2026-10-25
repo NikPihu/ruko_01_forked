@@ -10,7 +10,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.ruko.demo.DemoConfig
+import com.ruko.sdk.Ruko
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.data.Consents
 import com.ruko.demo.data.SecureStore
@@ -107,7 +107,7 @@ object WatchPolicy {
                 val handleKey = s.handles.map { it.value }.sorted().joinToString("|").takeIf { it.isNotEmpty() }
                 Triple(
                     WatchEvent(
-                        id, DemoConfig.USER_ID, WatchKind.LURE_SEEN, ts, lureTag = s.tag, lureConf = round2(s.conf),
+                        id, Ruko.userId, WatchKind.LURE_SEEN, ts, lureTag = s.tag, lureConf = round2(s.conf),
                         source = s.source, aiWritten = s.aiWritten, handles = s.handles.take(rules.maxHandles).ifEmpty { null },
                     ),
                     "lure:${s.tag}" + (handleKey?.let { ":" + it.hashCode() } ?: ""), minutes(rules.lureRepeatQuietMin),
@@ -119,7 +119,7 @@ object WatchPolicy {
                 if (!unknown || s.minutes < rules.longCallMin) return null
                 Triple(
                     WatchEvent(
-                        id, DemoConfig.USER_ID, WatchKind.LONG_UNKNOWN_CALL, ts, callKind = s.kind, callMinutes = round1(s.minutes),
+                        id, Ruko.userId, WatchKind.LONG_UNKNOWN_CALL, ts, callKind = s.kind, callMinutes = round1(s.minutes),
                         callerHash = s.callerHash,
                     ),
                     "call", 0L, // every long call counts
@@ -131,7 +131,7 @@ object WatchPolicy {
                 if (!s.purpose.forMoney || s.callerKnown == true) return null
                 Triple(
                     WatchEvent(
-                        id, DemoConfig.USER_ID, WatchKind.OTP_DURING_CALL, ts, callKind = s.kind, callerHash = s.callerHash,
+                        id, Ruko.userId, WatchKind.OTP_DURING_CALL, ts, callKind = s.kind, callerHash = s.callerHash,
                         otpPurpose = s.purpose.wire,
                     ),
                     "otp", 0L, // every OTP on a call counts
@@ -140,11 +140,11 @@ object WatchPolicy {
             is Sighting.RemoteApp -> {
                 val recent = s.installedMinAgo ?: return null
                 if (recent > rules.deviceRecentHours * 60) return null
-                Triple(WatchEvent(id, DemoConfig.USER_ID, WatchKind.REMOTE_ACCESS_ON, ts), "remote", hours(rules.deviceRepeatQuietHours))
+                Triple(WatchEvent(id, Ruko.userId, WatchKind.REMOTE_ACCESS_ON, ts), "remote", hours(rules.deviceRepeatQuietHours))
             }
             is Sighting.Sideload -> {
                 if (s.within24h != true) return null
-                Triple(WatchEvent(id, DemoConfig.USER_ID, WatchKind.SIDELOAD, ts), "sideload", hours(rules.deviceRepeatQuietHours))
+                Triple(WatchEvent(id, Ruko.userId, WatchKind.SIDELOAD, ts), "sideload", hours(rules.deviceRepeatQuietHours))
             }
         }
         val last = lastSent[key]

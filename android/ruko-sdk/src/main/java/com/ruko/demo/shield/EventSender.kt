@@ -10,7 +10,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.ruko.demo.DemoConfig
+import com.ruko.sdk.Ruko
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.data.Consents
 import com.ruko.demo.net.ApiClient
@@ -63,7 +63,7 @@ object EventSender {
         return EpisodeEvent(
             eventId = UUID.randomUUID().toString(),
             episodeId = t.episodeId ?: ep.id ?: UUID.randomUUID().toString(),
-            userId = DemoConfig.USER_ID, // the same id /v1/decide uses
+            userId = Ruko.userId, // the same id /v1/decide uses
             ts = RequestBuilder.istIso(t.ts),
             trigger = t.trigger,
             rulesVersion = rulesVersion,

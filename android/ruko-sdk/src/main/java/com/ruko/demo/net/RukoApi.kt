@@ -1,6 +1,6 @@
 package com.ruko.demo.net
 
-import com.ruko.demo.BuildConfig
+import com.ruko.sdk.Ruko
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
@@ -70,6 +70,7 @@ object ApiClient {
     // "safety check unavailable" (fail open, never a hard block).
     private val http = OkHttpClient.Builder()
         .callTimeout(1, TimeUnit.SECONDS)
+        .addInterceptor(::identify)
         .build()
 
     val api: RukoApi = retrofit(http)
@@ -80,17 +81,25 @@ object ApiClient {
     val status: RukoApi = retrofit(http.newBuilder().callTimeout(5, TimeUnit.SECONDS).build())
 
     // Episode events are off the payment path: the server looks every account up, so allow longer.
-    val events: RukoApi = retrofit(OkHttpClient.Builder().callTimeout(15, TimeUnit.SECONDS).build())
+    val events: RukoApi = retrofit(http.newBuilder().callTimeout(15, TimeUnit.SECONDS).build())
 
     val npci: NpciApi = Retrofit.Builder()
-        .baseUrl(BuildConfig.NPCI_BASE_URL)
+        .baseUrl(Ruko.config.npciBaseUrl)
         .client(OkHttpClient.Builder().callTimeout(5, TimeUnit.SECONDS).build())
         .addConverterFactory(RukoJson.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(NpciApi::class.java)
 
+    /** Which app and SDK version asked; the server records it with the payment (not part of the contract). */
+    private fun identify(chain: okhttp3.Interceptor.Chain): okhttp3.Response = chain.proceed(
+        chain.request().newBuilder()
+            .header("X-Ruko-App", Ruko.hostApp)
+            .header("X-Ruko-Sdk", Ruko.VERSION)
+            .build(),
+    )
+
     private fun retrofit(client: OkHttpClient): RukoApi = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(Ruko.config.apiBaseUrl)
         .client(client)
         .addConverterFactory(RukoJson.asConverterFactory("application/json".toMediaType()))
         .build()

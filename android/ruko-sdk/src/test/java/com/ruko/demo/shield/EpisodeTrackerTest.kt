@@ -38,8 +38,8 @@ class EpisodeTrackerTest {
     @Test
     fun assetCopyMatchesTheContract() {
         val asset = generateSequence(File("").absoluteFile) { it.parentFile }
-            .map { File(it, "app/src/main/assets/episode_rules.json") }
-            .firstOrNull { it.exists() } ?: File(contracts.parentFile, "android/app/src/main/assets/episode_rules.json")
+            .map { File(it, "ruko-sdk/src/main/assets/episode_rules.json") }
+            .firstOrNull { it.exists() } ?: File(contracts.parentFile, "android/ruko-sdk/src/main/assets/episode_rules.json")
         assertEquals(rules, json.decodeFromString(EpisodeRules.serializer(), asset.readText()))
         assertEquals(vectors.getValue("rules_version").jsonPrimitive.content, rules.version)
     }

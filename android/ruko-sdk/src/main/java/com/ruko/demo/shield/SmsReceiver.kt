@@ -1,11 +1,11 @@
 package com.ruko.demo.shield
 
+import com.ruko.sdk.Ruko
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import com.ruko.demo.BuildConfig
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.signals.BankSms
 import com.ruko.demo.signals.MessageCheck
@@ -74,7 +74,7 @@ class SmsReceiver : BroadcastReceiver() {
                 for ((sender, message) in messages) {
                     val (body, ts) = message
                     // Debug builds accept numbered senders, so the emulator's `sms send` can play a bank.
-                    val verdict = SmsTriage.triage(sender, body, ts, Signals.classifier, Signals.aiText, trustNumbers = BuildConfig.DEBUG)
+                    val verdict = SmsTriage.triage(sender, body, ts, Signals.classifier, Signals.aiText, trustNumbers = Ruko.config.debugSenders)
                     if (count) verdict.txn?.let(txns::add)
                     val m = verdict.scam ?: continue
                     if (!warn) continue
@@ -96,6 +96,6 @@ class SmsReceiver : BroadcastReceiver() {
     companion object {
         /** For tests and the debug panel: the same path without a real SMS. */
         fun parsed(sender: String, body: String, ts: Long): MoneyTxn? =
-            if (BankSms.trustedSender(sender, allowNumbers = BuildConfig.DEBUG)) BankSms.parse(body, ts) else null
+            if (BankSms.trustedSender(sender, allowNumbers = Ruko.config.debugSenders)) BankSms.parse(body, ts) else null
     }
 }

@@ -334,8 +334,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 "demo_clock": clock["offset"] is not None, "db": "memory" if str(db_path) == ":memory:" else "file"}
 
     @app.post("/v1/decide", response_model=DecideResponse)
-    async def decide(req: DecideRequest) -> DecideResponse:
+    async def decide(req: DecideRequest, request: Request) -> DecideResponse:
         t0, ms, trace = time.perf_counter(), {}, {}
+        # Which host app and RUKO SDK version asked (headers, not the contract; missing is fine).
+        client = {"app": request.headers.get("x-ruko-app"), "sdk": request.headers.get("x-ruko-sdk")}
         if clock["offset"] is not None:
             req = req.model_copy(update={"ts": datetime.now(req.ts.tzinfo) + clock["offset"]})
         try:
@@ -355,7 +357,7 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
                 "stage": resp.stage, "pause_minutes": resp.pause_minutes,
                 "scorer_version": trace.get("scorer_version", scorer_version), "policy_version": policy.version,
                 "evidence_id": resp.evidence_id, "fail_open": resp.fail_open, "latency_ms": round(ms["total"], 2),
-            }, trace.get("details", {}))
+            }, {**trace.get("details", {}), "client": client})
         except Exception:
             log.exception("recording the payment failed")
         if log_path:

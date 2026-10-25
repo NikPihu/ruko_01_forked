@@ -79,7 +79,7 @@ class AlertsTest {
 
     @Test
     fun appModelsHaveNoScore() {
-        val models = File(android, "app/src/main/java/com/ruko/demo/net/Models.kt").readText()
+        val models = File(android, "ruko-sdk/src/main/java/com/ruko/demo/net/Models.kt").readText()
         assertFalse(models.contains("p_scam") || models.contains("pScam"))
     }
 

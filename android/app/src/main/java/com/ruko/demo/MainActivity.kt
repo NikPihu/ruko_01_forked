@@ -20,9 +20,9 @@ import java.util.function.Consumer
 class MainActivity : ComponentActivity() {
 
     companion object {
-        /** Notification extra: the screen to open, e.g. [OPEN_MESSAGES]. */
-        const val EXTRA_OPEN = "open"
-        const val OPEN_MESSAGES = "messages"
+        /** Notification extra: the screen to open, e.g. [OPEN_MESSAGES]. Defined by the RUKO SDK. */
+        const val EXTRA_OPEN = com.ruko.sdk.Ruko.EXTRA_OPEN
+        const val OPEN_MESSAGES = com.ruko.sdk.Ruko.OPEN_MESSAGES
     }
 
     // Android 15+: tells us whether this window is being recorded or mirrored.

@@ -20,7 +20,7 @@ class LureModelTest {
     private val repo: File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "ml/model/artifacts/lure_vectors.json").exists() }
     private val artifacts = File(repo, "ml/model/artifacts")
-    private val assets = File(repo, "android/app/src/main/assets")
+    private val assets = File(repo, "android/ruko-sdk/src/main/assets")
     private val model = Json { ignoreUnknownKeys = true }.decodeFromString(LureModel.serializer(), File(artifacts, "lure.json").readText())
     private val classifier = LinearLureClassifier(model)
     private val vectorFile = Json.parseToJsonElement(File(artifacts, "lure_vectors.json").readText()).jsonObject

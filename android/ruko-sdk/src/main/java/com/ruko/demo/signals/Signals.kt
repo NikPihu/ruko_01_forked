@@ -1,5 +1,6 @@
 package com.ruko.demo.signals
 
+import com.ruko.sdk.Ruko
 import android.Manifest.permission.READ_CALL_LOG
 import android.Manifest.permission.READ_CONTACTS
 import android.Manifest.permission.READ_PHONE_STATE
@@ -15,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import com.ruko.demo.BuildConfig
 import com.ruko.demo.data.Consents
 import com.ruko.demo.net.CallDirection
 import com.ruko.demo.net.CallKind
@@ -303,7 +303,7 @@ object SmsScan {
                     val body = cursor.getString(0) ?: continue
                     val ts = cursor.getLong(1)
                     // Debug builds accept numbered senders, so the emulator's `sms send` can play a bank.
-                    val bank = if (BankSms.trustedSender(cursor.getString(2), allowNumbers = BuildConfig.DEBUG)) {
+                    val bank = if (BankSms.trustedSender(cursor.getString(2), allowNumbers = Ruko.config.debugSenders)) {
                         BankSms.parse(body, ts)
                     } else {
                         null
