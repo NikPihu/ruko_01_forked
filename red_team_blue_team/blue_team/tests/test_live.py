@@ -162,3 +162,41 @@ def test_a_world_of_only_the_picked_attacks_builds(tmp_path):
     j = pd.read_parquet(tmp_path / "w" / "journeys.parquet")
     assert pb["name"] in set(j["playbook"])
     assert set(j.loc[j["playbook"] != pb["name"], "journey_id"]) <= {f"j_demo_{k}" for k in range(10)}   # only the scripted ones
+
+
+def test_stop_and_clear_ends_the_sessions_processes_and_empties_the_demo(monkeypatch, tmp_path):
+    import sys
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    (tmp_path / "world").mkdir()
+    (tmp_path / "feed.jsonl").write_text("{}\n", encoding="utf-8")
+    proc = sc._start_child([sys.executable, "-c", "import time; time.sleep(60)"], tmp_path / "child.log", {**__import__("os").environ})
+    assert sc._children() == [proc.pid]
+    out = sc.stop_and_clear()
+    assert out["stopped_processes"] == 1
+    proc.wait(timeout=10)                                   # it was really ended
+    assert proc.returncode != 0 and list(tmp_path.iterdir()) == []
+
+
+def test_after_stop_nothing_new_starts(monkeypatch, tmp_path):
+    import sys
+
+    import pytest
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    sc.control(cancel=True)
+    with pytest.raises(sc.Cancelled):
+        sc._start_child([sys.executable, "-c", "pass"], tmp_path / "x.log", {})
+
+
+def test_the_clear_endpoint_resets_the_console(monkeypatch, tmp_path):
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    monkeypatch.setattr(sc, "STATE", tmp_path / "scenario.json")
+    sc.emit({"kind": "stage", "text": "old"})
+    c = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r", scenario_mode=True))
+    assert c.post("/api/live/clear", json={}).status_code == 200
+    d = c.get("/api/live").json()
+    assert d["events"] == [] and d["state"] in ("none", "idle")
+    off = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r"))
+    assert off.post("/api/live/clear", json={}).status_code == 400

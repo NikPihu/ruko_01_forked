@@ -66,6 +66,7 @@
   .btn.big { height: 40px; padding: 0 18px; border-radius: 10px; font-size: 14px; }
   .band .btn.ghost { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); color: #fff; }
   .btn.danger { color: var(--bad-ink); }
+  .band .btn.danger { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); color: #ffb3ad; }
 
   /* cards */
   .card { background: var(--card); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); min-width: 0; }
@@ -473,6 +474,22 @@ PAGE.live = async () => {
     try { await api("/api/live/start", { attacks: [...chosen], llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
     catch (e) { put(msg, errBox(e)); }
   } }, "Start the attack");
+  // Stop & clear: ends the session wherever it is (attack, blue team, replay) and empties the demo, so a
+  // new one can start with other attacks. A second click confirms.
+  const clearBtn = el("button", { class: "btn danger big", type: "button", onclick: async () => {
+    if (clearBtn.dataset.sure !== "1") {
+      clearBtn.dataset.sure = "1"; clearBtn.textContent = "Click again to stop and clear everything";
+      setTimeout(() => { clearBtn.dataset.sure = ""; clearBtn.textContent = "Stop & clear"; }, 5000);
+      return;
+    }
+    clearBtn.disabled = true; clearBtn.textContent = "Stopping…";
+    try {
+      await api("/api/live/clear", {});
+      put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; chosen.clear();
+      put(msg, el("div", { class: "msg ok" }, "Stopped and cleared. Pick the attacks for a new session."));
+    } catch (e) { put(msg, errBox(e)); }
+    clearBtn.disabled = false; clearBtn.dataset.sure = ""; clearBtn.textContent = "Stop & clear";
+  } }, "Stop & clear");
   const replayBtn = el("button", { class: "btn primary", type: "button", onclick: async () => { try { await api("/api/live/replay", {}); put(msg); } catch (e) { put(msg, errBox(e)); } } }, "Replay the attack with the approved playbooks");
   speed.addEventListener("change", () => ctl({ delay: Number(speed.value) }));
 
@@ -565,7 +582,7 @@ PAGE.live = async () => {
     if (!document.body.contains(feed)) return;
     try { const d = await api(`/api/live?after=${seen}`); add(d.events); seen = d.total; drawSide(d); } catch (e) { /* restarting */ }
   });
-  return [band("Step 1 of the loop · two or three attacks, 500 transactions, one at a time through the real RUKO engine", "Live red / blue session", { acts: [startBtn] }),
+  return [band("Step 1 of the loop · two or three attacks, 500 transactions, one at a time through the real RUKO engine", "Live red / blue session", { acts: [clearBtn, startBtn] }),
     el("main", { class: "content" },
       first.mode ? null : el("div", { class: "msg err" }, "Start the console in demo mode for the live test: python -m blue_team app --scenario"),
       el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:14px" },
