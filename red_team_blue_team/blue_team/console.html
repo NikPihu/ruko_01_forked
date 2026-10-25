@@ -819,7 +819,8 @@ PAGE.investigate = async (p) => {
   const eyebrowAgents = (runs.find(x => x.run_id === run) || {}).agents;
   const newRun = el("button", { class: "btn primary big", type: "button", onclick: () => newRunPanel() }, "New blue-team run");
   const logBtn = el("button", { class: "btn ghost big", type: "button", onclick: () => runLogPanel() }, "Run log");
-  const head = band(`Step 2 of the loop · blue team${eyebrowAgents ? " · agents " + eyebrowAgents : ""}`, "Investigate", { acts: [run ? logBtn : null, newRun] });
+  // a live session starts its own blue-team run; a second run here would mix other complaints in
+  const head = band(`Step 2 of the loop · blue team${eyebrowAgents ? " · agents " + eyebrowAgents : ""}`, "Investigate", { acts: [run ? logBtn : null, live ? null : newRun] });
   if (!run) return [head, el("main", { class: "content" }, live, el("section", { class: "card pad empty" }, live ? "The session's groups appear here when the blue team has run." : "No blue-team run yet. Start one with New blue-team run."))];
   const r = runs.find(x => x.run_id === run) || {};
   if (r.state === "running") every(3000, async () => { await loadRuns(run); const s = runs.find(x => x.run_id === run); if (s && s.state !== "running") { cacheClear(); route(); } });

@@ -200,3 +200,14 @@ def test_the_clear_endpoint_resets_the_console(monkeypatch, tmp_path):
     assert d["events"] == [] and d["state"] in ("none", "idle")
     off = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r"))
     assert off.post("/api/live/clear", json={}).status_code == 400
+
+
+def test_no_other_blue_team_run_starts_while_a_live_session_owns_the_console(monkeypatch, tmp_path):
+    """A second run (the whole attack world) would mix other complaints and drafts into the session's."""
+    import json as _json
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "STATE", tmp_path / "scenario.json")
+    (tmp_path / "scenario.json").write_text(_json.dumps({"mode": "live", "run_id": "x"}), encoding="utf-8")
+    c = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r", scenario_mode=True))
+    r = c.post("/api/runs", json={"world": 0, "llm": "offline"})
+    assert r.status_code == 409 and "Stop & clear" in r.json()["detail"]

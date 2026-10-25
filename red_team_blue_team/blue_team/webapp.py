@@ -204,6 +204,11 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
 
     @app.post("/api/runs")
     def start_run(body: StartRun) -> dict:
+        if scenario_mode:
+            from blue_team import scenario as sc
+            if (sc.load_state() or {}).get("mode") == "live":
+                raise HTTPException(409, "a live session owns Investigate and Playbooks: its blue team runs by itself "
+                                         "when the attack is over. Press Stop & clear on Live to start something else.")
         if running["thread"] is not None and running["thread"].is_alive():
             raise HTTPException(409, f"run {running['run_id']} is still going")
         if building["thread"] is not None and building["thread"].is_alive():
