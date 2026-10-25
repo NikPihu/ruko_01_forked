@@ -43,9 +43,10 @@ sealed interface RukoDecision {
 object Ruko {
     const val VERSION: String = BuildConfig.SDK_VERSION
 
-    /** Notification extra naming the screen to open, and the value for "Message check". */
+    /** Notification extra naming the screen to open: "Message check" or the host's Alerts screen. */
     const val EXTRA_OPEN = "open"
     const val OPEN_MESSAGES = "messages"
+    const val OPEN_ALERTS = "alerts"
 
     @Volatile
     private var current: RukoConfig? = null

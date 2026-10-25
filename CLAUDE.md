@@ -67,10 +67,12 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    `Baselines.get(user, at=ts)`) use only payments before the one being judged; keep it that way.
    `eval/session_eval.py` still hides scam payments from the engine's ledger (an old workaround)
    until it is re-run without it.
-10. **Warn, never block, on the phone.** Phone-side alerts (watcher notifications, the Home card)
-    only warn. Interruptions at payment time come from the engine. They appear only once there is a
-    pattern (episode ACTIVE, or the server answered `high`); a WATCHING episode (one small credit
-    from a stranger) is recorded and reported, but not shown.
+10. **Warn, never block, on the phone.** Phone-side alerts (watcher notifications, the task-scam
+    card on the Alerts screen) only warn. Interruptions at payment time come from the engine. They
+    appear only once there is a pattern (episode ACTIVE, or the server answered `high`); a WATCHING
+    episode (one small credit from a stranger) is recorded and reported, but not shown. Every new
+    alert is listed on the Alerts screen and pops up as its own notification (no weekly cap; a
+    repeat of the same scam message within 10 minutes is one alert).
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.

@@ -45,7 +45,7 @@ object ShieldController {
 
     fun now(): Long = System.currentTimeMillis() + debugOffsetMs
 
-    /** The latest watcher data for the UI (Home card, debug panel). Null while the watcher is off. */
+    /** The latest watcher data for the UI (Alerts screen card, debug panel). Null while the watcher is off. */
     val live = mutableStateOf<ShieldData?>(null)
 
     private val io = Executors.newSingleThreadExecutor()
@@ -182,7 +182,7 @@ object ShieldController {
         Log.i(TAG, "processed ${txns.size} txns, state ${r.data.watcher.episode.state}")
     }
 
-    /** "I know them / it's a real job" on the Home card. */
+    /** "I know them / it's a real job" on the Alerts screen card. */
     fun dismiss(context: Context) {
         val accounts = AccountStore(context)
         val consents = accounts.loadConsents()

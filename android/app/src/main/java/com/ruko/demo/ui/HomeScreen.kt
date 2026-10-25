@@ -59,8 +59,6 @@ fun HomeScreen(
     vm: PaymentViewModel,
     firstName: String,
     consents: Consents,
-    trustedName: String?,
-    trustedMobile: String?,
     onPay: () -> Unit,
     onProfile: () -> Unit,
     onDebug: () -> Unit,
@@ -81,13 +79,12 @@ fun HomeScreen(
         if (vm.serverStatus !is ServerStatus.Connected) vm.checkServer()
     }
     LaunchedEffect(consents) { ShieldController.refresh(context.applicationContext, consents) }
-    val shield = ShieldController.live.value
 
     Column(Modifier.fillMaxSize().background(CacheColors.Background)) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Hero(vm, firstName, onProfile = onProfile, onDebug = onDebug)
             ShieldPermissionCard(consents, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
-            EpisodeCard(shield, trustedName, trustedMobile, Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
+            // The task-scam warning lives on the Alerts screen (badge on the Alerts tab, and a notification).
 
             Section(
                 title = stringResource(R.string.home_money_transfers),

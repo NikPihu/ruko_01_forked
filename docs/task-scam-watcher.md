@@ -164,9 +164,9 @@ and the Python test both run every vector. Include at least:
 | Moment | Action |
 |---|---|
 | NONE → WATCHING | ~~One notification~~ Nothing shown (see §12): the episode is recorded and the `watching` event still goes to the server. |
-| WATCHING → ACTIVE | Notification plus a Home banner: "You received ₹450 from 3 unknown accounts and then paid ₹9,500 to 4 new people, each time more. This is how task scams work. Stop before paying more." |
+| WATCHING → ACTIVE | Notification plus a card on the Alerts screen (the Home banner moved there, §12): "You received ₹450 from 3 unknown accounts and then paid ₹9,500 to 4 new people, each time more. This is how task scams work. Stop before paying more." |
 | A debit SMS from **another app** while ACTIVE | Notification after the fact: "You just paid ₹6,000. The next ask will be bigger. Don't pay more." |
-| Limit | At most one notification per state change, and at most 2 per week |
+| Limit | One notification per state change, and one per payment made in another app; ~~at most 2 per week~~ no weekly cap (§12) |
 
 ### 4.5 UI changes
 - **Home** (`ui/HomeScreen.kt`):
@@ -614,6 +614,13 @@ An attacker could send fake episodes to frame an honest shop.
   event, but shows the card and a notification only at ACTIVE (bait, then 2+ escalating payments
   to new payees), or when the server answers `high` for the accounts involved. The engine is
   unchanged: WATCHING was already at most T1 there.
+- **The task-scam card moved from Home to the Alerts screen, and every new alert notifies.** The
+  card (numbers, how the scam works, call 1930 or the trusted person, "I know them") is shown at
+  the top of Alerts only; the Alerts tab's badge counts it. The 2-a-week notification cap is gone:
+  each new alert is listed on Alerts and pops up as its own notification (high-importance channel
+  `scam_shield_warnings`, a fresh id per alert, tap opens Alerts). The same transaction read twice
+  is still one alert (`ShieldEngine`), and so is the same scam message within 10 minutes
+  (`AlertLog.isRepeat`).
 - **R7 tranche only for the run's own payees** (`rules-0.5`). After a few payments to new payees,
   a ₹100 payment to the user's usual kirana lit "several payments in a short time" and, with an
   old scam-looking SMS, reached T1. R7 now counts only when this payment goes to a new payee or to

@@ -3,7 +3,7 @@
     <!-- Hindi. Strings missing here fall back to English (values/). -->
     <string name="perm_receive_sms">नए बैंक SMS अलर्ट</string>
     <string name="perm_notifications">सूचनाएँ</string>
-    <string name="shield_channel_name">स्कैम शील्ड अलर्ट</string>
+    <string name="shield_channel_name">स्कैम शील्ड गतिविधि</string>
     <string name="shield_channel_desc">जब आपके पैसों के अलर्ट टास्क या नौकरी वाले स्कैम जैसे दिखें, तब चेतावनी।</string>
     <string name="shield_working">स्कैम शील्ड एक बैंक अलर्ट जाँच रहा है</string>
     <string name="shield_active_title">यह टास्क स्कैम लगता है</string>
