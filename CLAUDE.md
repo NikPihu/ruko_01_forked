@@ -221,11 +221,15 @@ into the address book (`python -m sim.contacts --data data --user <id> --adb`). 
 - Python: `PYTHONPATH=backend;ml;data` (PowerShell) or `backend:ml:data`; set
   `PYTHONIOENCODING=utf-8` on Windows (the simulator prints ₹).
 - Use `127.0.0.1`, not `localhost`, between services on Windows (IPv6 first adds ~200 ms).
+- Times: with `--demo-clock` the server stores every time on the simulated world's clock (the world's
+  history and features need it), so stored dates are ahead of the phone's. Screens show the real time:
+  `GET /health` `demo_clock_offset_s` (sim - wall) is subtracted by the console's `format.ts` `when()`,
+  and `/v1/me/payments` returns wall-clock times to the app. Never reformat a date outside `when()`.
 
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 373 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest backend/tests -q          # 375 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
 cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 151 tests (130 SDK, 21 app)
 ```

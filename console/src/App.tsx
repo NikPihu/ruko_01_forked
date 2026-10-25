@@ -10,6 +10,7 @@ import { Emerging } from "./pages/Emerging";
 import { RingDetail, Rings } from "./pages/Rings";
 import { Lab } from "./pages/Lab";
 import { Accuracy } from "./pages/Accuracy";
+import { setClockOffset } from "./format";
 
 // Short labels for the top bar; each page explains itself in its own header.
 const NAV = [
@@ -30,6 +31,7 @@ export function App() {
   const section = path[0] ?? "";
   const counts = useLoad(async () => {
     const [alerts, suspects, health] = await Promise.all([api.alerts("T2"), api.suspects("med"), api.health().catch(() => null)]);
+    setClockOffset(health?.demo_clock_offset_s);   // show real payment times, as on the phone
     return { alerts: alerts.length, suspects: suspects.suspects.filter((s) => !s.review.approved).length, health };
   }, [section]);
 
