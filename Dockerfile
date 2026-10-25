@@ -25,4 +25,5 @@ RUN python -m blue_team.testworld --out data/sim_v2_out/breach \
  && python -m dataset.replay --data data/sim_v2_out/breach --out ml/data/tables/breach.parquet --warmup-days 7
 
 EXPOSE 8765
-CMD ["sh", "-c", "python -m blue_team app --port ${PORT:-8765}"]
+# --scenario: the demo mode the Live tab needs (start, Stop & clear, replay); without it they answer 400.
+CMD ["sh", "-c", "python -m blue_team app --scenario --port ${PORT:-8765}"]
