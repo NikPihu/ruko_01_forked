@@ -456,6 +456,7 @@ PAGE.live = async () => {
   } }, "Start the attack");
   const replayBtn = el("button", { class: "btn primary", type: "button", onclick: async () => { try { await api("/api/live/replay", {}); put(msg); } catch (e) { put(msg, errBox(e)); } } }, "Replay the attack with the approved playbooks");
   speed.addEventListener("change", () => ctl({ delay: Number(speed.value) }));
+  pick.addEventListener("change", () => { pick.dataset.touched = "1"; });
   pauseBtn.addEventListener("click", () => ctl({ paused: pauseBtn.dataset.paused !== "1" }));
 
   const STAGES = [["world", "Build world"], ["attack", "Red team attacks"], ["blue", "Blue team"], ["review", "Your review"], ["replay", "Replay"], ["done", "Done"]];
@@ -515,7 +516,7 @@ PAGE.live = async () => {
     speed.value = String(c.delay ?? 1.2); if (!speed.value) speed.value = "1.2";
     startBtn.disabled = !d.mode || d.running;
     const live = (d.scenario || {}).mode === "live" ? (d.scenario.new || [])[0] : null;
-    if (live && d.running && pick.value !== live) pick.value = live;
+    if (live && (d.running || !pick.dataset.touched) && pick.value !== live) pick.value = live;
     pick.disabled = d.running;
     const st = d.scenario || {}, counts = rounds[latest];
     put(tally, el("h2", { class: "h", style: "font-size:16px" }, latest === "after" ? "Replay so far" : "Attack so far"),
