@@ -211,7 +211,7 @@ export interface Explanation {
 }
 
 export interface SpreadingHandle {
-  kind: "upi" | "link" | "phone";
+  kind: "upi" | "link" | "phone" | "caller";
   value: string | null;          // the UPI ID; null for links and numbers (only their pseudonyms are known)
   users: number;
   spreading: boolean;
@@ -223,6 +223,8 @@ export interface Spreading {
   as_of: string;
   window_minutes: number;
   min_users: number;
+  caller_window_hours?: number;  // c2-0.15: one unknown number calling many RUKO users
+  caller_min_users?: number;
   handles: SpreadingHandle[];
 }
 

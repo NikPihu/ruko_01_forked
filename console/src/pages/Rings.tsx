@@ -10,11 +10,17 @@ export function Rings() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Scam rings</h1>
+          <div className="eyebrow">Follow the money</div>
+          <h1 className="page-title">Scam rings<span className="accent">linked by money and victims.</span></h1>
           <p>Groups of accounts linked by money and by the people they took it from. Discovery starts from
             accounts with hard evidence (on a fraud list, flagged in a task scam, or the payee of a payment RUKO
             stopped) and follows the money from there. Open a ring to see, step by step, why each account is in it.
             Nothing here blocks a payment until two analysts approve a suspect.</p>
+          <ol className="howto">
+            <li>Rings start from accounts with hard evidence and follow the money.</li>
+            <li>Open a ring to see, step by step, why each account is in it.</li>
+            <li>Nothing is blocked until two analysts approve a suspect.</li>
+          </ol>
         </div>
       </div>
       {data.rings.length === 0 ? <Empty title="No rings yet">Rings appear once RUKO stops a payment to a mule-like account, or a listed or
@@ -51,10 +57,10 @@ export function RingDetail({ id }: { id: string }) {
   if (!r) return <Empty title="Ring not found">Ring ids change when the graph changes. <a href="#/rings">Back to rings</a></Empty>;
   return (
     <div className="stack">
-      <a href="#/rings">← Scam rings</a>
+      <a className="back" href="#/rings">← All scam rings</a>
       <div className="page-head">
         <div>
-          <h1>Ring {r.ring_id.replace(/^ring_/, "")}{r.automated && <span className="chip t3" style={{ marginLeft: 8 }}>Bot-scale</span>}</h1>
+          <h1 className="page-title" style={{ marginTop: 4, fontSize: 52 }}>Ring {r.ring_id.replace(/^ring_/, "")}{r.automated && <span className="chip t3" style={{ marginLeft: 8 }}>Bot-scale</span>}</h1>
           <p>{r.summary}</p>
         </div>
       </div>

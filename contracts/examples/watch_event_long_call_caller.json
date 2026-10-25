@@ -1,0 +1,9 @@
+{
+  "event_id": "9e4c1a72-3f8d-4b05-a1c6-7d2e5b9f0c13",
+  "user_id": "u_demo_meena",
+  "kind": "long_unknown_call",
+  "ts": "2026-11-07T10:17:00+05:30",
+  "call_kind": "sim",
+  "call_minutes": 12,
+  "caller_hash": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
+}

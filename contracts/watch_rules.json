@@ -1,7 +1,8 @@
 {
-  "version": "watch-0.2",
+  "version": "watch-0.3",
   "lure_min_conf": 0.6,
   "long_call_min": 5,
+  "otp_recent_min": 120,
   "lure_repeat_quiet_min": 30,
   "device_repeat_quiet_hours": 24,
   "device_recent_hours": 24,

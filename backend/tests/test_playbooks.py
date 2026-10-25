@@ -13,7 +13,7 @@ from api.playbooks import BUILTIN, PlaybookError, load, parse
 from api.rule_scorer import PLAYBOOK_RULES, PLAYBOOK_SOURCE, _playbook
 
 FLAGS = ["on_call", "outgoing_to_unknown", "remote_control", "video_call", "story_mismatch",
-         "session_dictated", "sideloaded_last_24h", "voip_call"]
+         "session_dictated", "sideloaded_last_24h", "voip_call", "otp_on_call"]
 
 
 def features(rng: random.Random) -> dict:

@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS decision_details (
     steps          TEXT,               -- JSON {seen: [step], unmeasured: [step]} (contracts/steps.json)
     playbook_search TEXT,              -- JSON [{name, similarity, matched, missing, unmeasured}], best first
     threat         TEXT,               -- JSON {lgbm, playbook, similarity, best_playbook}: the fused threat's parts
+    client         TEXT,               -- JSON {app, sdk}: which host app and RUKO SDK version asked (headers)
     explanation    TEXT                -- JSON, filled by the explainable layer
 );
 
@@ -140,7 +141,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 TIER_RANK = {"T0": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4}
 _JSON_PAYMENT = ("reasons",)
 _JSON_DETAILS = ("features", "family_scores", "lit_families", "policy_steps", "intel_status", "stage_path",
-                 "signals", "steps", "playbook_search", "threat", "explanation")
+                 "signals", "steps", "playbook_search", "threat", "client", "explanation")
 
 
 def _iso(ts: datetime | str | None) -> Optional[str]:
@@ -166,7 +167,7 @@ class TxnStore:
                 self.db.execute("ALTER TABLE received ADD COLUMN sender_name TEXT")
             # ... and one from before plan v3 steps 3 and 5 has no steps / playbook_search / threat columns.
             cols = {r["name"] for r in self.db.execute("PRAGMA table_info(decision_details)")}
-            for c in ("steps", "playbook_search", "threat"):
+            for c in ("steps", "playbook_search", "threat", "client"):
                 if c not in cols:
                     self.db.execute(f"ALTER TABLE decision_details ADD COLUMN {c} TEXT")
 
@@ -182,7 +183,7 @@ class TxnStore:
                 "evidence_id", "fail_open", "latency_ms", "status")
         d = {k: (_dumps(details.get(k)) if k in _JSON_DETAILS else details.get(k)) for k in
              ("features", "p_scam", "family_scores", "lit_families", "policy_steps", "intel_status", "stage_path",
-              "signals", "steps", "playbook_search", "threat", "explanation")}
+              "signals", "steps", "playbook_search", "threat", "client", "explanation")}
         if d["features"] is None or d["features"] == "null":
             d["features"] = "{}"
         with self.lock, self.db:
@@ -192,12 +193,12 @@ class TxnStore:
                 "ON CONFLICT(payment_id) DO NOTHING", [p.get(c) for c in cols])
             self.db.execute(
                 "INSERT INTO decision_details (payment_id, features, p_scam, family_scores, lit_families, "
-                "policy_steps, intel_status, stage_path, signals, steps, playbook_search, threat, explanation) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "policy_steps, intel_status, stage_path, signals, steps, playbook_search, threat, client, explanation) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(payment_id) DO NOTHING",
                 [p["payment_id"], d["features"], d["p_scam"], d["family_scores"], d["lit_families"],
                  d["policy_steps"], d["intel_status"], d["stage_path"], d["signals"], d["steps"],
-                 d["playbook_search"], d["threat"], d["explanation"]])
+                 d["playbook_search"], d["threat"], d["client"], d["explanation"]])
 
     def record_outcome(self, payment_id: str, status: str, ts: datetime | str) -> bool:
         """Completed or cancelled; the first final status wins (as in the payment graph)."""

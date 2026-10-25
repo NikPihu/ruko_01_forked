@@ -34,7 +34,7 @@
     "session": null,
     "payee_in_contacts": false,
     "device_verdict": {
-      "model_version": "device-0.1",
+      "model_version": "device-0.2",
       "fraud_class": "digital_arrest",
       "level": "high",
       "c": 0.99,

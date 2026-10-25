@@ -108,8 +108,9 @@ private fun ReceivedRow(r: ReceivedPayment, onClick: () -> Unit) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(CacheColors.Success))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(senderText(r), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (r.senderName != null && r.sender != null) {
-                Text(r.sender, style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary, maxLines = 1)
+            val sender = r.sender
+            if (r.senderName != null && sender != null) {
+                Text(sender, style = MaterialTheme.typography.bodySmall, color = CacheColors.TextSecondary, maxLines = 1)
             }
             Text(
                 "${whenText(r.ts)} · ${stringResource(R.string.history_received_source)}",
@@ -240,6 +241,7 @@ internal fun scamTypeText(playbook: String?): String? = when (playbook) {
     "fake_kyc_apk" -> stringResource(R.string.fraud_fake_kyc_apk)
     "refund_qr" -> stringResource(R.string.fraud_refund_qr)
     "fake_customer_care" -> stringResource(R.string.fraud_fake_customer_care)
+    "otp_takeover" -> stringResource(R.string.fraud_otp_takeover)
     else -> null
 }
 

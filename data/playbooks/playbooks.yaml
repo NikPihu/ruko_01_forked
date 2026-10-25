@@ -20,6 +20,12 @@ playbooks:
       outgoing_to_unknown: true
       any: [{remote_control: true}, {session_dictated: true}]
 
+  # c2-0.15: an OTP arrived during a call with an unknown number. The caller is taking over a bank or
+  # UPI account (often an AI voice posing as the bank), and now asks for a payment too.
+  - name: otp_takeover
+    why: "a one-time code (OTP) for UPI or a bank arrived during a call with an unknown number"
+    match: {otp_on_call: true}
+
   - name: digital_arrest
     why: "an arrest-threat message"
     match: {lure_tag: arrest_threat}

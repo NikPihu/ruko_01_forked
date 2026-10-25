@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ruko-android"
 include(":app")
+include(":ruko-sdk")

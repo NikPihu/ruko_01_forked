@@ -66,6 +66,8 @@
     <string name="reason_R11_ring_link">This account is linked to the group that sent small "reward" payments to many people</string>
     <string name="reason_R12_coached_session">It looks like someone is telling you what to type: the amount was entered slowly, digit by digit, or the UPI ID was pasted right after you switched apps</string>
     <string name="reason_R13_scam_campaign">This account is being sent to many people in scam messages right now</string>
+    <string name="reason_R14_caller_many_users">The number calling you has called many other people today</string>
+    <string name="reason_R15_otp_on_call">A one-time code (OTP) for UPI or your bank came while you were on a call with an unknown number</string>
     <string name="reason_R9_story_mismatch">This account belongs to a private person, not who you said you are paying</string>
 
     <!-- Who are you paying? (contract field payer_says) -->
@@ -333,6 +335,7 @@
     <string name="threat_type">Looks like: %1$s</string>
     <string name="fraud_digital_arrest">a \"digital arrest\" scam</string>
     <string name="fraud_fake_customer_care">a fake customer care scam</string>
+    <string name="fraud_otp_takeover">an OTP account takeover</string>
     <string name="fraud_fake_kyc_apk">a fake KYC app scam</string>
     <string name="fraud_trading_group">a fake trading or investment group</string>
     <string name="fraud_task_job">a part-time task or job scam</string>
@@ -373,6 +376,10 @@
     <string name="t2_fake_customer_care_body">Real customer care never asks you to pay or share your screen to fix a problem. Continue only if you are sure.</string>
     <string name="t3_fake_customer_care_title">Pause: this matches a fake customer care scam</string>
     <string name="t3_fake_customer_care_body">Real customer care never asks you to pay or share your screen to fix a problem. Talk to someone you trust before you pay.</string>
+    <string name="t2_otp_takeover_title">Check first: someone may be taking over your account</string>
+    <string name="t2_otp_takeover_body">An OTP for UPI or your bank came while you were on a call with an unknown number. A real bank never asks for an OTP or a payment on a call. Continue only if you are sure.</string>
+    <string name="t3_otp_takeover_title">Pause: someone may be taking over your account</string>
+    <string name="t3_otp_takeover_body">An OTP for UPI or your bank came while you were on a call with an unknown number. A real bank never asks for an OTP or a payment on a call. Hang up, and call your bank on the number on your card.</string>
     <string name="alert_counter_coaching">Police, CBI and RBI never ask you to move money to verify it. If the caller told you to ignore this screen, that is a scam sign.</string>
     <string name="alert_why">Why we are asking</string>
     <string name="alert_slide_to_pay">Slide to continue to PIN</string>

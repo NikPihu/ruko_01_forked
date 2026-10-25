@@ -12,7 +12,7 @@ import com.ruko.demo.R
 object AlertText {
 
     /** Scam types with their own words (`backend/features` playbooks). */
-    val PLAYBOOKS = listOf("digital_arrest", "trading_group", "task_job", "fake_kyc_apk", "refund_qr", "fake_customer_care")
+    val PLAYBOOKS = listOf("digital_arrest", "trading_group", "task_job", "fake_kyc_apk", "refund_qr", "fake_customer_care", "otp_takeover")
 
     data class Copy(@StringRes val title: Int, @StringRes val body: Int)
 
@@ -33,6 +33,8 @@ object AlertText {
         "t3_refund_qr" to Copy(R.string.t3_refund_qr_title, R.string.t3_refund_qr_body),
         "t2_fake_customer_care" to Copy(R.string.t2_fake_customer_care_title, R.string.t2_fake_customer_care_body),
         "t3_fake_customer_care" to Copy(R.string.t3_fake_customer_care_title, R.string.t3_fake_customer_care_body),
+        "t2_otp_takeover" to Copy(R.string.t2_otp_takeover_title, R.string.t2_otp_takeover_body),
+        "t3_otp_takeover" to Copy(R.string.t3_otp_takeover_title, R.string.t3_otp_takeover_body),
     )
 
     /** Every key with its own words. */

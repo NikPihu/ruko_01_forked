@@ -8,7 +8,7 @@ Start with `README.md` (owners, layout, run commands); this file is the rules an
 
 | Folder | Owner | What lives there |
 |---|---|---|
-| `android/` | Manjeet Singh | Cache Pay, the Kotlin + Compose app (`com.ruko.demo`) |
+| `android/` | Manjeet Singh | `ruko-sdk/` (the RUKO SDK: on-phone detection, watcher, server client) and `app/` (Cache Pay, its first host app, `com.ruko.demo`) |
 | `backend/` | Jagdeep Singh | Risk API, stage tracker, features, policy, evidence vault, mock intel, payment graph, shared schema |
 | `console/` | Jagdeep Singh | Analyst console (React + TypeScript), served by the API at `/console/` |
 | `ml/` | Diwansu Pilania | Training replay, the LightGBM server scorer (`model/predict.py`), the on-device model (`device_model.json`), the lure classifier (`lure.json`); plan and status in `ml/PLAN.md` |
@@ -46,7 +46,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    fallback; the families still name the reasons and the other guardrails all apply.
 6. **Thresholds live in config, not code.** Policy numbers in `backend/api/policy.yaml`; episode
    numbers in `contracts/episode_rules.json` (the phone copies it to
-   `android/app/src/main/assets/`, and `EpisodeTrackerTest` checks the copy); early-warning numbers
+   `android/ruko-sdk/src/main/assets/`, and `EpisodeTrackerTest` checks the copy); early-warning numbers
    in `contracts/watch_rules.json` (same copy, checked by `WatchPolicyTest`; the server's tracker
    reads it too).
 7. **Privacy by default.** Phone data is AES-256-GCM encrypted with an Android Keystore key in
@@ -89,7 +89,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.14)
+## Contract (current: c2-0.15)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -146,9 +146,14 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   `contracts/steps.json` (contact, lure, hook, control, coaching, payment, payee; definitions
   `backend/features/steps.py`, phone port `signals/Steps.kt`, cases `examples/steps_vectors.json`); `LureTag`
   gains `other_scam` and `unclear` (no class reached 0.6; never normal). Plan: `docs/plan-v3.md`.
-- Reason codes R1 to R13 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
-  `R13_scam_campaign`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
-  c2-0.3 to c2-0.13 requests still validate.
+- c2-0.15 (AI voice at scale, OTP takeover): `WatchKind` `otp_during_call` (an OTP SMS during a call with an
+  unknown number; stage S3; remembered `watch_rules.json otp_recent_min`) and `WatchEvent.caller_hash` (the
+  number's salted SHA-256, as a `phone` handle). `graph/campaigns.py` counts distinct users per caller
+  (`policy.yaml campaign: caller_*`): `caller_many_users` (C, `R14_caller_many_users`); `otp_on_call` (C,
+  `R15_otp_on_call`, playbook `otp_takeover`). See `docs/features/callers-and-otp.md`.
+- Reason codes R1 to R15 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
+  `R13_scam_campaign`, `R14_caller_many_users`, `R15_otp_on_call`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
+  c2-0.3 to c2-0.14 requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).
@@ -220,9 +225,9 @@ into the address book (`python -m sim.contacts --data data --user <id> --adb`). 
 ## Tests
 
 ```bash
-.venv/Scripts/python -m pytest backend/tests -q          # 166 tests (with PYTHONPATH set)
+.venv/Scripts/python -m pytest backend/tests -q          # 373 tests (with PYTHONPATH set)
 .venv/Scripts/python -m pytest ml/tests -q               # 50 tests (needs: pip install -r ml/requirements.txt)
-cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 101 tests
+cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" sh ./gradlew assembleDebug testDebugUnitTest   # 151 tests (130 SDK, 21 app)
 ```
 
 Android needs Android Studio's JBR (Java 25): AGP 9.4.1 with built-in Kotlin, Gradle 9.8.1,
@@ -304,7 +309,15 @@ mind. Offline episode features for training:
 - `schema/events.py` is the source of truth for the contract; `evidence/store.py` is the
   hash-chained vault.
 
-**Android** (`android/app/src/main/java/com/ruko/demo/`)
+**Android** — two modules. `android/ruko-sdk/` is the RUKO SDK (Android library, namespace
+`com.ruko.sdk`, version in its `build.gradle.kts`): `signals/`, `shield/`, `net/`, the storage in
+`data/` (`AccountStore`, `SecureStore`, `AlertLog`, `PaymentHistory`), the models and rules in its
+`assets/`, its own manifest (permissions, SMS receiver, chat listener) and the strings its
+notifications use. Its front door is `com.ruko.sdk.Ruko` (`init` with `RukoConfig`, `setUser`,
+`checkPayment`, `decideOrFailOpen`); every request carries `X-Ruko-App` / `X-Ruko-Sdk`, which the
+server stores with the payment (`decision_details.client`). The code keeps its `com.ruko.demo.*`
+packages. `android/app/` is Cache Pay: screens, alerts, demo users, `RukoApplication` (calls
+`Ruko.init`). Paths below are under `com/ruko/demo/` in whichever module holds them.
 - `net/`: models, request builder, Retrofit client. `signals/`: calls, device, lure scorer (`assets/lure.json`), bank
   SMS parser, `DeviceModel.kt` + `DeviceFeatures.kt` + `DeviceVerdict.kt` (on-device model,
   `assets/device_model.json`, c2-0.8; must match `ml/model/artifacts/`), `ContactBook.kt` (payee in contacts, c2-0.7), `SessionTracker.kt` (Pay-screen session, c2-0.5; tested by `SessionTrackerTest`). `shield/`: background task-scam watcher (SMS receiver, workers, episode, notifier,

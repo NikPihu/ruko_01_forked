@@ -89,8 +89,8 @@ than T3, check the server with the rules scorer before calling it a bug in the a
 | 3.1 | `adb emu sms send 9876543210 "Your KYC is pending, your account will be blocked today. Install the app from this link to update."` | Within a few seconds, a notification "This message may be a scam", which names the scam type |
 | 3.2 | Tap the notification | The app opens (after the passcode) on **Message check**, with that SMS at the top and a red "Matches a scam script" label |
 | 3.3 | `adb emu sms send 9876543210 "Mom, I reached the hostel safely. Will call after dinner."` | No notification; in Message check it shows "No warning signs" |
-| 3.4 | `adb emu sms send 9876543210 "482915 is your OTP for login. Do not share it with anyone."` (no call going on) | No pop-up; in Message check, a blue "OTP: never share this" label |
-| 3.5 | `adb emu gsm call 9812345670`, then `adb emu gsm accept 9812345670`. While the call is on, send the OTP SMS from 3.4. Then `adb emu gsm cancel 9812345670` | A notification "A code arrived while you are on a call"; in Message check, that OTP also has the red line "Someone on a call asking for this code is a scammer" |
+| 3.4 | `adb emu sms send 9876543210 "482915 is your OTP to log in to NetBanking at your bank. Do not share it with anyone."` (no call going on) | No pop-up; in Message check, a blue "OTP: never share this" label |
+| 3.5 | `adb emu gsm call 9812345670`, then `adb emu gsm accept 9812345670`. While the call is on, send the bank OTP SMS from 3.4 (only a UPI or bank OTP gets this warning; an order or delivery OTP does not). Then `adb emu gsm cancel 9812345670` | A notification "A code arrived while you are on a call"; in Message check, that OTP also has the red line "Someone on a call asking for this code is a scammer" |
 | 3.6 | Profile language Hindi, repeat 3.1 | Notification in Hindi |
 | 3.7 | Switch **SMS scam check** off and repeat 3.1 | Nothing happens; Message check asks you to turn the switch on |
 

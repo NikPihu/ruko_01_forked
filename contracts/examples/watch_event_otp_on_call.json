@@ -1,0 +1,9 @@
+{
+  "event_id": "5d2b8e41-7c3a-4f19-b6e0-2a8c9d1f4e77",
+  "user_id": "u_demo_meena",
+  "kind": "otp_during_call",
+  "ts": "2026-11-07T10:21:00+05:30",
+  "call_kind": "sim",
+  "caller_hash": "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63",
+  "otp_purpose": "upi"
+}

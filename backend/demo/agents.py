@@ -26,6 +26,8 @@ from typing import Callable, Protocol
 
 import pandas as pd
 
+from graph.campaigns import wire_value
+
 DEMO_MULE = "secure.settlement.desk@okaxis"
 KIRANA = "shreeganesh.kirana@okaxis"
 UNKNOWN = "+919812345670"
@@ -149,6 +151,31 @@ def fake_customer_care(c, w, now, user):
     return [r]
 
 
+def voice_clone_caller(c, w, now, user, called: int = 4):
+    """AI voice at scale (c2-0.15): one number (a cloned "bank officer" or relative) calls many RUKO
+    users. The first ones only report the long call (early warnings); the next one pays on the call."""
+    number = "+919811122233"
+    start = w.users.index(user)
+    for i, u in enumerate(w.users[start:start + called]):
+        _watch(c, u, "long_unknown_call", now - timedelta(minutes=40 - 5 * i), call_kind="sim", call_minutes=7,
+               caller_hash=wire_value("phone", number))
+    ctx = {"call": {"active": True, "kind": "sim", "caller_number": number, "caller_in_contacts": False,
+                    "started_min_ago": 9}, "lures": []}
+    r = _decide(c, w.users[start + called], w.persons[7], 30_000, ctx, now)
+    _after(c, r, now, "called_trusted", paid=False)
+    return [r]
+
+
+def otp_takeover(c, w, now, user):
+    """Account takeover (c2-0.15): a bank OTP arrives while an unknown "bank" caller is on the line; the
+    phone reports it (never the code). A payment to a new account follows after the call."""
+    _watch(c, user, "otp_during_call", now - timedelta(minutes=6), call_kind="sim", otp_purpose="bank",
+           caller_hash=wire_value("phone", "+919822233344"))
+    r = _decide(c, user, w.persons[8], 25_000, {"lures": []}, now)
+    _after(c, r, now, "cancelled_from_alert", paid=False)
+    return [r]
+
+
 def honest_users(c, w, now, user):
     out = [_decide(c, user, KIRANA, 180, None, now, entry="qr")]
     family = {"call": {"active": True, "kind": "sim", "caller_in_contacts": True, "started_min_ago": 4}, "lures": []}
@@ -192,6 +219,9 @@ SCENARIOS = [
     Scenario("task_job", "interrupt (T2+), task scam", "T2", "T4", "task_job", task_job),
     Scenario("refund_qr", "interrupt (T2+), refund QR", "T2", "T4", "refund_qr", refund_qr),
     Scenario("fake_customer_care", "interrupt (T2+), fake customer care", "T2", "T4", "fake_customer_care", fake_customer_care),
+    Scenario("voice_clone_caller", "interrupt (T2+): one unknown number called many RUKO users (R14)", "T2", "T4", None,
+             voice_clone_caller),
+    Scenario("otp_takeover", "interrupt (T2+), OTP account takeover (R15)", "T2", "T4", "otp_takeover", otp_takeover),
     Scenario("honest_users", "no interruption (T0/T1)", "T0", "T1", None, honest_users),
     Scenario("relative_emergency", "flagged (T1+) with NO known playbook -> Emerging patterns; mule bot-scale",
              "T1", "T4", "none", relative_emergency),
@@ -212,7 +242,7 @@ def run(c: Client, w: World, now: datetime, names: list[str] | None = None) -> l
         if names and s.name not in names:
             continue
         user = w.users[next_user]
-        next_user += 12 if s.name == "relative_emergency" else 1
+        next_user += {"relative_emergency": 12, "voice_clone_caller": 5}.get(s.name, 1)
         answers = s.run(c, w, now, user)
         tiers = [a.get("tier", "ERR") for a in answers]
         books = [a.get("playbook") for a in answers]
