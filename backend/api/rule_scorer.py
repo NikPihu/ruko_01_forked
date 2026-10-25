@@ -108,6 +108,11 @@ def _signals(f: dict) -> dict[str, list[tuple[float, str]]]:
         add("P", 0.75, "R13_scam_campaign")
     elif f.get("caller_in_campaign"):
         add("C", 0.6, "R13_scam_campaign")
+    # AI voice at scale and account takeover (c2-0.15): about the call, so the call family only.
+    if f.get("caller_many_users"):
+        add("C", 0.7, "R14_caller_many_users")
+    if f.get("otp_on_call"):
+        add("C", 0.85, "R15_otp_on_call")
 
     # Behaviour: is this payment unlike the payer's usual ones?
     ratio = f["amount_to_max_90d"]

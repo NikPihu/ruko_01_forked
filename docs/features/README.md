@@ -17,6 +17,7 @@ of events across features is in [`../flows.md`](../flows.md).
 | AI-written scam messages test | server, console | [ai-written-lures.md](ai-written-lures.md) |
 | Demo agents | server, console | [demo-agents.md](demo-agents.md) |
 | Scam campaigns across phones + new accounts spreading | app, server, console | [campaigns.md](campaigns.md) |
+| AI voice at scale (one number, many users) + OTP account takeover | app, server, console | [callers-and-otp.md](callers-and-otp.md) |
 | Scam lab: a judge plays the scammer against the emulator | server, console, emulator | [scam-lab.md](scam-lab.md) |
 | Accuracy page: held-out results, false alarms, misses, failure cases | server, console | [accuracy.md](accuracy.md) |
 

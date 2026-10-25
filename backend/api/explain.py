@@ -43,6 +43,8 @@ REASON_INPUTS = {
     "R11_ring_link": ["payee_money_loop", "payee_crowd", "payee_forwards_to_cashout", "payee_approved_suspect",
                       "payee_automated"],
     "R13_scam_campaign": ["payee_in_campaign", "caller_in_campaign"],
+    "R14_caller_many_users": ["caller_many_users"],
+    "R15_otp_on_call": ["otp_on_call"],
     "R12_coached_session": ["session_dictated", "session_pasted_after_switch", "session_app_switches",
                             "session_abandoned_30m", "session_hesitation"],
 }
@@ -60,6 +62,8 @@ REASON_TEXT = {
     "R11_ring_link": "the payee is linked to a scam ring in the payment graph",
     "R12_coached_session": "the Pay screen was used as if someone was guiding the user",
     "R13_scam_campaign": "the payee (or the caller's number) is being pushed in scam messages to many people",
+    "R14_caller_many_users": "the same unknown number has called several RUKO users (calling at machine scale)",
+    "R15_otp_on_call": "a one-time code (OTP) for UPI or a bank arrived during a call with an unknown number",
 }
 USER_MAX_REASONS = 3
 SOURCES = ("npci", "bank", "payee_registry", "caller_registry", "payee_fri", "caller_fri")
@@ -196,6 +200,8 @@ INPUT_WORDS: dict[str, Callable[[Any], Optional[str]]] = {
     "payee_new_and_spreading": lambda v: "new to RUKO in the last 2 days and already paid by several different people",
     "payee_in_campaign": lambda v: "this UPI ID appeared in scam messages that several different people got in the last hour",
     "caller_in_campaign": lambda v: "the caller's number is the call-back number in scam messages several people got in the last hour",
+    "caller_many_users": lambda v: "the same unknown number called several different RUKO users in the last day",
+    "otp_on_call": lambda v: "an OTP for UPI or a bank arrived while the user was on a call with an unknown number (someone may be taking over an account)",
     "amount_inr": lambda v: f"amount {_inr(v)}",
     "amount_to_max_90d": lambda v: f"{_times(v)} the user's biggest payment in 90 days" if v >= 1 else None,
     "amount_to_median_90d": lambda v: f"{_times(v)} the user's usual payment" if v >= 1.5 else None,

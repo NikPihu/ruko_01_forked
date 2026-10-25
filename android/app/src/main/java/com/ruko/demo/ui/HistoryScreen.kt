@@ -240,6 +240,7 @@ internal fun scamTypeText(playbook: String?): String? = when (playbook) {
     "fake_kyc_apk" -> stringResource(R.string.fraud_fake_kyc_apk)
     "refund_qr" -> stringResource(R.string.fraud_refund_qr)
     "fake_customer_care" -> stringResource(R.string.fraud_fake_customer_care)
+    "otp_takeover" -> stringResource(R.string.fraud_otp_takeover)
     else -> null
 }
 

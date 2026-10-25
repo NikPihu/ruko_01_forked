@@ -150,6 +150,9 @@ class EngineReplay:
         ring["in_campaign"] = self.campaigns.spreading("upi", upi, req.ts)
         caller = wire_value("phone", call.caller_number) if call and call.caller_number else None
         ring["caller_in_campaign"] = self.campaigns.spreading("phone", caller, req.ts) if caller else None
+        if caller and call.caller_in_contacts is False:
+            self.campaigns.record_call(req.user_id, caller, req.ts)
+        ring["caller_many_users"] = self.campaigns.calling_many(caller, req.ts)
         return state, res, build_features(req, state, res, base, trusted, ring=ring, paid_here=paid_here,
                                           micro_anchor=micro_anchor)
 

@@ -15,6 +15,8 @@ const TEXT: Record<string, { title: string; family: string }> = {
   R11_ring_link: { title: "Payee is linked to the account that sent the “rewards”", family: "Payee" },
   R12_coached_session: { title: "The Pay screen was used as if someone was guiding them (dictated amount, pasted ID)", family: "Behaviour" },
   R13_scam_campaign: { title: "This account (or the caller's number) is being pushed in scam messages to many people right now", family: "Payee" },
+  R14_caller_many_users: { title: "The same unknown number has called several RUKO users (AI voice at scale)", family: "Context" },
+  R15_otp_on_call: { title: "A one-time code (OTP) for UPI or a bank arrived during a call with an unknown number (account takeover)", family: "Context" },
   ruko_unavailable: { title: "RUKO could not decide in time; the payment went ahead", family: "System" },
 };
 

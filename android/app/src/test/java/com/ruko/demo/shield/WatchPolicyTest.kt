@@ -6,6 +6,7 @@ import com.ruko.demo.net.Handle
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.net.WatchEvent
 import com.ruko.demo.net.WatchKind
+import com.ruko.demo.signals.OtpPurpose
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -98,12 +99,13 @@ class WatchPolicyTest {
 
     @Test
     fun eventsCarryTagsAndCountsOnly() {
-        val allowed = setOf("event_id", "user_id", "kind", "ts", "lure_tag", "lure_conf", "source", "ai_written", "call_kind", "call_minutes", "handles")
+        val allowed = setOf("event_id", "user_id", "kind", "ts", "lure_tag", "lure_conf", "source", "ai_written", "call_kind", "call_minutes", "handles", "caller_hash", "otp_purpose")
         val sightings = listOf(
             Sighting.Lure("arrest_threat", 0.95, "sms", false),
             Sighting.LongCall(CallKind.VOIP, 40.0, null),
             Sighting.RemoteApp(5.0),
             Sighting.Sideload(true),
+            Sighting.OtpOnCall(CallKind.SIM, false, NUMBER_HASH, OtpPurpose.BANK),
         )
         for (s in sightings) {
             val e = WatchPolicy.event(s, rules, now, none)!!.first
@@ -125,5 +127,50 @@ class WatchPolicyTest {
         assertNotNull(WatchPolicy.event(Sighting.Lure("kyc", 0.9, "sms", null, other), rules, now + 1, mapOf(key to now)))
         // No handles: the event says nothing about them (null, not an empty list).
         assertNull(WatchPolicy.event(Sighting.Lure("refund", 0.9, "sms", null), rules, now, none)!!.first.handles)
+    }
+
+    @Test
+    fun anOtpOnACallIsReportedWithTheCallersPseudonymOnly() {
+        val e = WatchPolicy.event(Sighting.OtpOnCall(CallKind.SIM, false, NUMBER_HASH, OtpPurpose.UPI), rules, now, none)!!.first
+        assertEquals(WatchKind.OTP_DURING_CALL, e.kind)
+        assertEquals(NUMBER_HASH, e.callerHash)
+        assertEquals("upi", e.otpPurpose)
+        val wire = RukoJson.encodeToString(WatchEvent.serializer(), e)
+        assertFalse(wire, "9812345670" in wire)
+        // A saved contact asking for the code is not this warning; an unseen caller still counts (rule 1).
+        assertNull(WatchPolicy.event(Sighting.OtpOnCall(CallKind.SIM, true, purpose = OtpPurpose.BANK), rules, now, none))
+        assertNotNull(WatchPolicy.event(Sighting.OtpOnCall(null, null, purpose = OtpPurpose.BANK), rules, now, none))
+        // Every OTP on a call counts: no quiet period.
+        assertNotNull(WatchPolicy.event(Sighting.OtpOnCall(CallKind.VOIP, null, purpose = OtpPurpose.UPI), rules, now + 1, mapOf("otp" to now)))
+        // An OTP for an order, a social app, or one whose purpose is unclear is never reported.
+        for (p in listOf(OtpPurpose.OTHER, OtpPurpose.UNKNOWN)) {
+            assertNull(WatchPolicy.event(Sighting.OtpOnCall(CallKind.SIM, false, NUMBER_HASH, p), rules, now, none))
+        }
+    }
+
+    @Test
+    fun otpOnCallNeedsCallSignalsAndSmsScamCheck() {
+        val on = Consents(earlyWarnings = true, smsLure = true, callSignals = true)
+        val otp = Sighting.OtpOnCall(CallKind.SIM, false)
+        assertTrue(WatchPolicy.allowed(otp, on))
+        assertFalse(WatchPolicy.allowed(otp, on.copy(callSignals = false)))
+        assertFalse(WatchPolicy.allowed(otp, on.copy(smsLure = false)))
+        assertFalse(WatchPolicy.allowed(otp, on.copy(earlyWarnings = false)))
+    }
+
+    @Test
+    fun aLongCallFromAnUnknownNumberCarriesItsPseudonym() {
+        val e = WatchPolicy.event(Sighting.LongCall(CallKind.SIM, 12.0, false, NUMBER_HASH), rules, now, none)!!.first
+        assertEquals(NUMBER_HASH, e.callerHash)
+        // Only a non-contact SIM number is hashed; a contact or a VoIP call has none.
+        assertEquals(NUMBER_HASH, com.ruko.demo.signals.callerHash(false, "+91 98123 45670"))
+        assertNull(com.ruko.demo.signals.callerHash(true, "+91 98123 45670"))
+        assertNull(com.ruko.demo.signals.callerHash(null, "+91 98123 45670"))
+        assertNull(com.ruko.demo.signals.callerHash(false, null))
+    }
+
+    private companion object {
+        // contracts/examples/watch_event_otp_on_call.json: the server's pseudonym for +919812345670.
+        const val NUMBER_HASH = "sha256:3f37179d85d63e29ae717e9d95e991b1c2edd6dec24434d5b66af0b041604a63"
     }
 }

@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 // checks these classes against contracts/c2_decide.schema.json and the example files.
 // A null field means "unknown", never "safe".
 
-const val CONTRACT_VERSION = "c2-0.14"
+const val CONTRACT_VERSION = "c2-0.15"
 
 @Serializable
 enum class CallKind {
@@ -320,6 +320,8 @@ enum class WatchKind {
     @SerialName("remote_access_on") REMOTE_ACCESS_ON,
     @SerialName("long_unknown_call") LONG_UNKNOWN_CALL,
     @SerialName("sideload") SIDELOAD,
+    // c2-0.15: a one-time code arrived during a call with an unknown number (never the code or text).
+    @SerialName("otp_during_call") OTP_DURING_CALL,
 }
 
 /**
@@ -344,6 +346,11 @@ data class WatchEvent(
     @SerialName("call_kind") val callKind: CallKind? = null,
     @SerialName("call_minutes") val callMinutes: Double? = null,
     val handles: List<Handle>? = null, // c2-0.13, lure_seen only: money handles, never text
+    // c2-0.15, long_unknown_call and otp_during_call: the caller's number as its "sha256:<hex>"
+    // pseudonym (Handles.wireValue("phone", ...)); null when the phone cannot see it (VoIP).
+    @SerialName("caller_hash") val callerHash: String? = null,
+    // c2-0.15, otp_during_call only: what the OTP was for, "upi" or "bank" (an OTP for anything else is never sent).
+    @SerialName("otp_purpose") val otpPurpose: String? = null,
 )
 
 @Serializable

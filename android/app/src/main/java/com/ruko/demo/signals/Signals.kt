@@ -128,7 +128,9 @@ object Signals {
         sensor = ContextSensor(app)
         contacts = ContactBook(app)
         // Early warnings (Step 7): a long call with someone unknown is reported once it ends.
-        sensor.onCallEnded = { kind, minutes, known -> background.execute { WatchSender.report(app, Sighting.LongCall(kind, minutes, known)) } }
+        sensor.onCallEnded = { kind, minutes, known, number ->
+            background.execute { WatchSender.report(app, Sighting.LongCall(kind, minutes, known, callerHash(known, number))) }
+        }
         background.execute { models }
     }
 
@@ -315,3 +317,10 @@ object SmsScan {
         return Result(hits, txns)
     }
 }
+
+/**
+ * The caller's number as the server's pseudonym (c2-0.15), only for a number that is not a saved
+ * contact: one unknown number calling many RUKO users is counted by this, never by the raw number.
+ */
+fun callerHash(callerInContacts: Boolean?, number: String?): String? =
+    if (callerInContacts == false && number != null) Handles.wireValue("phone", number) else null

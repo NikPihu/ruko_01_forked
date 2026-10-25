@@ -21,6 +21,7 @@ import com.ruko.demo.net.RequestBuilder
 import com.ruko.demo.net.RukoJson
 import com.ruko.demo.net.WatchEvent
 import com.ruko.demo.net.WatchKind
+import com.ruko.demo.signals.OtpPurpose
 import com.ruko.demo.signals.isScamTag
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +67,18 @@ sealed class Sighting {
         val tag: String, val conf: Double, val source: String, val aiWritten: Boolean?,
         val handles: List<Handle> = emptyList(), // c2-0.13: money handles (UPI plain, link/number hashed)
     ) : Sighting()
-    data class LongCall(val kind: CallKind, val minutes: Double, val callerKnown: Boolean?) : Sighting()
+    data class LongCall(
+        val kind: CallKind, val minutes: Double, val callerKnown: Boolean?,
+        val callerHash: String? = null, // c2-0.15: the number's pseudonym, only for a non-contact SIM caller
+    ) : Sighting()
+    /**
+     * c2-0.15: a one-time code for UPI or a bank ([purpose]) arrived during a call; [kind] null when
+     * the call type was not seen. An OTP for anything else is never reported.
+     */
+    data class OtpOnCall(
+        val kind: CallKind?, val callerKnown: Boolean?, val callerHash: String? = null,
+        val purpose: OtpPurpose = OtpPurpose.UNKNOWN,
+    ) : Sighting()
     data class RemoteApp(val installedMinAgo: Double?) : Sighting()
     data class Sideload(val within24h: Boolean?) : Sighting()
 }
@@ -106,8 +118,23 @@ object WatchPolicy {
                 val unknown = s.callerKnown == false || (s.callerKnown == null && s.kind == CallKind.VOIP)
                 if (!unknown || s.minutes < rules.longCallMin) return null
                 Triple(
-                    WatchEvent(id, DemoConfig.USER_ID, WatchKind.LONG_UNKNOWN_CALL, ts, callKind = s.kind, callMinutes = round1(s.minutes)),
+                    WatchEvent(
+                        id, DemoConfig.USER_ID, WatchKind.LONG_UNKNOWN_CALL, ts, callKind = s.kind, callMinutes = round1(s.minutes),
+                        callerHash = s.callerHash,
+                    ),
                     "call", 0L, // every long call counts
+                )
+            }
+            is Sighting.OtpOnCall -> {
+                // Only an OTP for UPI or a bank; a contact asking for the code is not this warning;
+                // an unseen caller is not safe (rule 1).
+                if (!s.purpose.forMoney || s.callerKnown == true) return null
+                Triple(
+                    WatchEvent(
+                        id, DemoConfig.USER_ID, WatchKind.OTP_DURING_CALL, ts, callKind = s.kind, callerHash = s.callerHash,
+                        otpPurpose = s.purpose.wire,
+                    ),
+                    "otp", 0L, // every OTP on a call counts
                 )
             }
             is Sighting.RemoteApp -> {
@@ -129,6 +156,7 @@ object WatchPolicy {
     fun allowed(s: Sighting, c: Consents): Boolean = c.earlyWarnings && when (s) {
         is Sighting.Lure -> if (s.source == "sms") c.smsLure else c.chatLure
         is Sighting.LongCall -> c.callSignals
+        is Sighting.OtpOnCall -> c.callSignals && c.smsLure
         is Sighting.RemoteApp, is Sighting.Sideload -> c.appChecks
     }
 

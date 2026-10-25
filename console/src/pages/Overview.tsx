@@ -118,6 +118,7 @@ const ACTION_TEXT: Record<string, string> = {
 const WATCH_TEXT: Record<string, string> = {
   lure_seen: "scam messages seen", long_unknown_call: "long calls with unknown callers",
   remote_access_on: "screen-sharing apps installed", sideload: "apps from outside the store",
+  otp_during_call: "UPI or bank OTPs that arrived during an unknown call",
 };
 
 function AlertHealthCard({ h }: { h: AlertHealth }) {
@@ -196,7 +197,7 @@ function DemoCard() {
   );
 }
 
-const HANDLE_KIND: Record<string, string> = { upi: "UPI ID", link: "Link", phone: "Call-back number" };
+const HANDLE_KIND: Record<string, string> = { upi: "UPI ID", link: "Link", phone: "Call-back number", caller: "Caller (calls)" };
 
 /**
  * Same scam, many phones (c2-0.13): money handles going around in scam messages right now. AI crews
@@ -210,6 +211,9 @@ function SpreadingCard({ s }: { s: Spreading }) {
         The same UPI ID, link or call-back number in scam messages on different phones in the last {s.window_minutes} minutes.
         At {s.min_users}+ people, paying it gets the reason "this account is being sent to many people in scam messages" (R13),
         before any registry knows it.
+        {s.caller_min_users != null && <> An unknown number that called {s.caller_min_users}+ different RUKO users
+        in {s.caller_window_hours} hours (an AI voice dialling at scale) is listed as a caller; a payment on a call
+        from it gets "this number has called many other people today" (R14).</>}
       </p>
       {s.handles.length === 0 ? (
         <div style={{ padding: 16 }}><Empty title="Nothing spreading right now">Handles appear here when two or more phones report the same one.</Empty></div>
