@@ -112,7 +112,7 @@ def tiny_world(root):
     pd.DataFrame(rows).to_parquet(root / "ledger.parquet")
     pd.DataFrame(jr).to_parquet(root / "journeys.parquet")
     pd.DataFrame(rep).to_parquet(root / "reports.parquet")
-    pd.DataFrame({"upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
+    pd.DataFrame({"user_id": [f"u{i}" for i in range(5)], "upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
     (root / "manifest.json").write_text(_json.dumps({"config": {"end": (t0 + pd.Timedelta(days=10)).isoformat(), "n_days": 10}}))
     return root
 
@@ -123,6 +123,7 @@ def test_the_session_takes_whole_journeys_of_every_attack_and_fills_to_the_total
     assert len(sel["tx_ids"]) == 20 and sel["scam_payments"] + sel["honest_payments"] == 20
     assert sel["per_attack"] == {"shop": {"journeys": 2, "payments": 4}, "relative": {"journeys": 2, "payments": 4}}
     assert "shop_0" not in sel["journeys"]                                        # started in the warm-up
+    assert {"u1", "u2"} <= set(sel["users"])                                      # the victims' records are streamed
     small = sc.select_live(w, ["shop", "relative"], total=10, scam_share=0.5, warmup_days=3, seed=0)
     assert small["scam_payments"] == 4 and small["per_attack"]["shop"]["journeys"] == 1   # a fair share each
 
@@ -145,3 +146,57 @@ def test_the_start_endpoint_takes_one_to_three_different_attacks(monkeypatch, tm
     assert c.post("/api/live/start", json={"attacks": names}).status_code == 400            # four
     assert c.post("/api/live/start", json={"attacks": [names[0], names[0]]}).status_code == 400
     assert c.post("/api/live/start", json={"attacks": []}).status_code == 400
+
+
+def test_a_world_of_only_the_picked_attacks_builds(tmp_path):
+    """No known scam picked: the simulator's scripted demo journeys still need their crew (KeyError
+    'crew_digital_arrest_0' before), so that playbook stays at weight 0."""
+    import shutil
+
+    import pandas as pd
+    from blue_team import redteam
+    pb = redteam.load()[0]
+    (tmp_path / "red").mkdir()
+    shutil.copy(redteam.RED_DIR / pb["file"], tmp_path / "red" / pb["file"])
+    redteam.build_world(tmp_path / "w", 120, 7, 51, 1.0, 15.0, red_dir=tmp_path / "red", log=lambda *a: None, known=[])
+    j = pd.read_parquet(tmp_path / "w" / "journeys.parquet")
+    assert pb["name"] in set(j["playbook"])
+    assert set(j.loc[j["playbook"] != pb["name"], "journey_id"]) <= {f"j_demo_{k}" for k in range(10)}   # only the scripted ones
+
+
+def test_stop_and_clear_ends_the_sessions_processes_and_empties_the_demo(monkeypatch, tmp_path):
+    import sys
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    (tmp_path / "world").mkdir()
+    (tmp_path / "feed.jsonl").write_text("{}\n", encoding="utf-8")
+    proc = sc._start_child([sys.executable, "-c", "import time; time.sleep(60)"], tmp_path / "child.log", {**__import__("os").environ})
+    assert sc._children() == [proc.pid]
+    out = sc.stop_and_clear()
+    assert out["stopped_processes"] == 1
+    proc.wait(timeout=10)                                   # it was really ended
+    assert proc.returncode != 0 and list(tmp_path.iterdir()) == []
+
+
+def test_after_stop_nothing_new_starts(monkeypatch, tmp_path):
+    import sys
+
+    import pytest
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    sc.control(cancel=True)
+    with pytest.raises(sc.Cancelled):
+        sc._start_child([sys.executable, "-c", "pass"], tmp_path / "x.log", {})
+
+
+def test_the_clear_endpoint_resets_the_console(monkeypatch, tmp_path):
+    use_home(monkeypatch, tmp_path)
+    monkeypatch.setattr(sc, "CHILDREN", tmp_path / "children.json")
+    monkeypatch.setattr(sc, "STATE", tmp_path / "scenario.json")
+    sc.emit({"kind": "stage", "text": "old"})
+    c = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r", scenario_mode=True))
+    assert c.post("/api/live/clear", json={}).status_code == 200
+    d = c.get("/api/live").json()
+    assert d["events"] == [] and d["state"] in ("none", "idle")
+    off = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r"))
+    assert off.post("/api/live/clear", json={}).status_code == 400

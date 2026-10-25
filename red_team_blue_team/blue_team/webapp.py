@@ -706,6 +706,8 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
             try:
                 fn()
                 demo.update(state="done", error=None)
+            except sc.Cancelled:
+                demo.update(state="idle", error=None)
             except Exception as e:  # noqa: BLE001 (shown on the page)
                 demo.update(state="failed", error=f"{type(e).__name__}: {e}")
 
@@ -764,6 +766,19 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         if body.delay is not None and not 0 <= body.delay <= 10:
             raise HTTPException(400, "delay 0-10 s")
         return sc.control(paused=body.paused, delay=body.delay, step=body.step)
+
+    @app.post("/api/live/clear")
+    def live_clear() -> dict:
+        """Stop & clear: end the session wherever it is (attack, blue team, replay) and empty the demo folder."""
+        from blue_team import scenario as sc
+        if not scenario_mode:
+            raise HTTPException(400, "start the console with --scenario: python -m blue_team app --scenario")
+        try:
+            out = sc.stop_and_clear(wait_for=lambda: demo["thread"] is not None and demo["thread"].is_alive())
+        except sc.Busy as e:
+            raise HTTPException(409, str(e)) from None
+        demo.update(state="idle", error=None)
+        return out
 
     @app.post("/api/live/replay")
     def live_replay() -> dict:

@@ -66,6 +66,7 @@
   .btn.big { height: 40px; padding: 0 18px; border-radius: 10px; font-size: 14px; }
   .band .btn.ghost { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); color: #fff; }
   .btn.danger { color: var(--bad-ink); }
+  .band .btn.danger { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); color: #ffb3ad; }
 
   /* cards */
   .card { background: var(--card); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); min-width: 0; }
@@ -277,7 +278,8 @@ async function loadRuns(select) {
 document.getElementById("runsel").addEventListener("change", e => { run = e.target.value; cacheClear(); route(); });
 
 // ---------------------------------------------------------------- shell
-const TABS = [["overview", "Overview", ""], ["live", "Live", ""], ["attack", "Attack", "1"], ["investigate", "Investigate", "2"], ["playbooks", "Playbooks", "3"]];
+// The loop is Live -> Investigate -> Playbooks; Attack (the red team's own runner) is a showcase at the end.
+const TABS = [["overview", "Overview", ""], ["live", "Live", "1"], ["investigate", "Investigate", "2"], ["playbooks", "Playbooks", "3"], ["attack", "Attack", ""]];
 let waitingCount = null;
 function renderTabs(tab) {
   put(document.getElementById("tabs"), TABS.map(([k, t, n]) => el("a", { href: "#/" + k, class: k === tab ? "on" : "", "aria-current": k === tab ? "page" : null },
@@ -358,14 +360,13 @@ PAGE.overview = async (p) => {
     el("div", { class: "row", style: "gap:10px" }, el("span", { class: "dot" }, n), el("span", { style: "font-weight:600;font-size:15px" }, title), chip(state, kind)),
     el("div", { class: "big" }, big), el("div", { class: "sub" }, sub));
   const loop = el("nav", { class: "grid4", "aria-label": "The loop" },
-    step("1", "Attack", "#/attack", judged ? `${through} of ${judged} got through` : "Not run", "Red-team playbooks against the real engine",
-      rr && rr.state === "running" ? "Running" : judged ? "Done" : "To do", rr && rr.state === "running" ? "wait" : judged ? "good" : "", false),
+    step("1", "Live", "#/live", live ? `${pct(live.b)} → ${live.a !== null ? pct(live.a) : "?"}` : "Not run", "the attacks' payments interrupted, before → after the blue team",
+      sc && sc.running ? "Running" : live ? (live.a !== null ? "Done" : "Round 1 done") : "To do", sc && sc.running ? "wait" : live ? "good" : "", false),
     step("2", "Investigate", "#/investigate", sm.clusters !== undefined ? `${(sm.clusters || []).length} groups` : "No run", sm.cases !== undefined ? `from ${sm.cases} victim complaints` : "Start a blue-team run",
       r.state === "running" ? "Running" : r.state === "done" ? "Done" : "To do", r.state === "running" ? "wait" : r.state === "done" ? "good" : "", false),
     step("3", "Playbooks", "#/playbooks", `${ready.length} waiting`, "Two analysts must approve each", ready.length ? "Your turn" : "Clear", ready.length ? "wait" : "good", ready.length > 0),
-    el("a", { class: "step", href: "#/overview", onclick: e => { e.preventDefault(); openLive(); } },
-      el("div", { class: "row", style: "gap:10px" }, el("span", { class: "dot" }, "4"), el("span", { style: "font-weight:600;font-size:15px" }, "Live check"), chip(live ? (live.a !== null ? "Last run" : "Round 1 done") : "Not run")),
-      el("div", { class: "big" }, live ? `${pct(live.b)} → ${live.a !== null ? pct(live.a) : "?"}` : "–"), el("div", { class: "sub" }, "new scams' payments interrupted, before → after")));
+    step("◆", "Attack", "#/attack", judged ? `${through} of ${judged} got through` : "Not run", "the red team's runner, each playbook alone (showcase)",
+      rr && rr.state === "running" ? "Running" : judged ? "Done" : "Not run", rr && rr.state === "running" ? "wait" : "", false));
 
   let filter = p.f || "all";
   const grid = el("div", { class: "grid4", style: "padding:18px 22px 22px" });
@@ -416,7 +417,7 @@ PAGE.overview = async (p) => {
   } }, el("summary", {}, "Scorecard: every attack playbook in this run's world, graded with the answer key"), scoreBox)) : null;
 
   return [band(`Run ${run || "–"}${r.world ? " · " + String(r.world).split(/[\\/]/).pop() + " world" : ""}${r.agents ? " · agents " + r.agents : ""}`, "How is the shield holding?",
-    { acts: el("a", { class: "btn primary big", href: "#/live" }, "Run a live test") }),
+    { acts: el("a", { class: "btn primary big", href: "#/live" }, "Start a live session") }),
     el("main", { class: "content" }, loop, groupsCard, waiting, scorecardCard)];
 };
 const effectText = s => s.warns ? el("span", { style: "color:var(--good-ink);font-weight:600" }, "Warns · " + (s.families || []).join(" + "))
@@ -473,6 +474,22 @@ PAGE.live = async () => {
     try { await api("/api/live/start", { attacks: [...chosen], llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
     catch (e) { put(msg, errBox(e)); }
   } }, "Start the attack");
+  // Stop & clear: ends the session wherever it is (attack, blue team, replay) and empties the demo, so a
+  // new one can start with other attacks. A second click confirms.
+  const clearBtn = el("button", { class: "btn danger big", type: "button", onclick: async () => {
+    if (clearBtn.dataset.sure !== "1") {
+      clearBtn.dataset.sure = "1"; clearBtn.textContent = "Click again to stop and clear everything";
+      setTimeout(() => { clearBtn.dataset.sure = ""; clearBtn.textContent = "Stop & clear"; }, 5000);
+      return;
+    }
+    clearBtn.disabled = true; clearBtn.textContent = "Stopping…";
+    try {
+      await api("/api/live/clear", {});
+      put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; chosen.clear();
+      put(msg, el("div", { class: "msg ok" }, "Stopped and cleared. Pick the attacks for a new session."));
+    } catch (e) { put(msg, errBox(e)); }
+    clearBtn.disabled = false; clearBtn.dataset.sure = ""; clearBtn.textContent = "Stop & clear";
+  } }, "Stop & clear");
   const replayBtn = el("button", { class: "btn primary", type: "button", onclick: async () => { try { await api("/api/live/replay", {}); put(msg); } catch (e) { put(msg, errBox(e)); } } }, "Replay the attack with the approved playbooks");
   speed.addEventListener("change", () => ctl({ delay: Number(speed.value) }));
 
@@ -565,7 +582,7 @@ PAGE.live = async () => {
     if (!document.body.contains(feed)) return;
     try { const d = await api(`/api/live?after=${seen}`); add(d.events); seen = d.total; drawSide(d); } catch (e) { /* restarting */ }
   });
-  return [band("One attack, one payment at a time, through the real RUKO engine", "Live red / blue test", { acts: [startBtn] }),
+  return [band("Step 1 of the loop · two or three attacks, 500 transactions, one at a time through the real RUKO engine", "Live red / blue session", { acts: [clearBtn, startBtn] }),
     el("main", { class: "content" },
       first.mode ? null : el("div", { class: "msg err" }, "Start the console in demo mode for the live test: python -m blue_team app --scenario"),
       el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:14px" },
@@ -700,7 +717,7 @@ PAGE.attack = async (p) => {
 
   const search = el("input", { class: "in", "aria-label": "Search playbooks", placeholder: "Search", style: "width:180px", oninput: e => { q = e.target.value.toLowerCase(); drawList(); } });
   const genBtn = el("button", { class: "btn ghost big", type: "button", onclick: () => generatePanel(gen) }, "Generate new playbooks");
-  return [band("Step 1 of the loop · red team", "Attack", { acts: [genBtn, startRunner] }),
+  return [band("Red team showcase · every attack playbook alone against the real engine", "Attack", { acts: [genBtn, startRunner] }),
     el("main", { class: "content" }, runBar,
       el("div", { class: "split" },
         el("section", { class: "card flush", "aria-label": "Attacks by group", style: "flex:999 1 640px;min-width:0" },

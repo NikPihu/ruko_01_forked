@@ -45,6 +45,7 @@ FEED = HOME / "feed.jsonl"              # the live loop's timeline: one JSON lin
 CONTROL = HOME / "control.json"         # the live loop's pacing: {"paused": bool, "delay": s, "steps": n}
 SELECTION = HOME / "live_selection.json"  # the live session's transactions: tx ids, journeys, window start
 WORLD_LIVE = HOME / "world_live"        # the world as the blue team sees it in a live session: its complaints only
+CHILDREN = HOME / "children.json"       # the processes a session started, so Stop can end them
 LOG = HOME / "log.txt"                  # every step's line, for the console's Demo page
 INTERRUPT = ("T2", "T3", "T4")
 
@@ -54,6 +55,83 @@ LOCK = config.HERE / "scenario.lock"    # outside HOME, which start() deletes
 
 class Busy(RuntimeError):
     pass
+
+
+class Cancelled(RuntimeError):
+    """The console's Stop & clear ended the session."""
+
+
+def cancelled() -> bool:
+    return bool(control().get("cancel"))
+
+
+def _children() -> list[int]:
+    try:
+        return [int(p) for p in json.loads(CHILDREN.read_text(encoding="utf-8"))]
+    except (OSError, ValueError):
+        return []
+
+
+def _remember(pid: int, add: bool) -> None:
+    pids = set(_children())
+    pids.add(pid) if add else pids.discard(pid)
+    HOME.mkdir(parents=True, exist_ok=True)
+    CHILDREN.write_text(json.dumps(sorted(pids)), encoding="utf-8")
+
+
+def _start_child(cmd: list[str], log_path: Path, env: dict) -> subprocess.Popen:
+    """A session's process, remembered so Stop can end it; refused once Stop was pressed."""
+    if cancelled():
+        raise Cancelled("stopped")
+    fh = open(log_path, "w", encoding="utf-8")
+    proc = subprocess.Popen(cmd, cwd=config.REPO, env=env, stdout=fh, stderr=subprocess.STDOUT)
+    fh.close()                                      # the child has its own handle
+    _remember(proc.pid, True)
+    return proc
+
+
+def _wait_child(proc: subprocess.Popen, what: str, log_path: Path) -> None:
+    import time
+    while proc.poll() is None:
+        time.sleep(0.5)
+    _remember(proc.pid, False)
+    if cancelled():
+        raise Cancelled("stopped")
+    if proc.returncode:
+        raise RuntimeError(f"{what} failed (exit {proc.returncode}); see {log_path}")
+
+
+def stop_children() -> int:
+    """End every process the session started, with their own children (Stop & clear)."""
+    n = 0
+    for pid in _children():
+        try:
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
+            else:
+                import signal
+                os.killpg(os.getpgid(pid), signal.SIGKILL)
+            n += 1
+        except (OSError, ProcessLookupError):
+            pass
+    return n
+
+
+def stop_and_clear(wait_for=None, timeout: float = 60.0) -> dict:
+    """Stop & clear: refuse new steps, end the session's processes, wait for its thread (`wait_for`,
+    the console's job) to notice, then empty the demo folder."""
+    import time
+    control(cancel=True)
+    killed = stop_children()
+    if wait_for is not None:
+        t0 = time.time()
+        while wait_for() and time.time() - t0 < timeout:
+            stop_children()
+            time.sleep(0.5)
+        if wait_for():
+            raise Busy("the session is still stopping (the world builder cannot be interrupted); try again in a few seconds")
+    _clear_home()
+    return {"stopped_processes": killed}
 
 
 class _Lock:
@@ -168,7 +246,8 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
                       f"playbooks {'with the approved ones' if os.environ.get('RUKO_PLAYBOOKS') else 'as shipped'}. "
                       "The first days build each user's history; the attack follows."}, feed)
     try:
-        for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0):
+        for rec in records.stream(world, seed=s["seed"], warmup_days=s["warmup_days"], normal_sample=1.0,
+                                  only_users=set(sel["users"]) if sel and sel.get("users") else None):
             if rec["body"].get("ts"):
                 srv.clock(rec["body"]["ts"])         # the mock services answer as of this message's time
             if rec["kind"] == "episode":
@@ -381,12 +460,10 @@ def live_round(name: str, playbooks_file: Path | None, log=print, feed: Path | N
     env = _env(extra)
     log(f"round '{name}': every payment of the world through the engine"
         + (f" with {playbooks_file.name}" if playbooks_file else " as it is"))
-    with open(HOME / f"{name}.log", "w", encoding="utf-8") as fh:
-        rc = subprocess.run([sys.executable, "-m", "blue_team.scenario", "stream", str(WORLD), str(out), name]
-                            + ([str(feed)] if feed else []),
-                            cwd=config.REPO, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
-    if rc:
-        raise RuntimeError(f"round {name} failed (exit {rc}); see {HOME / f'{name}.log'}")
+    log_path = HOME / f"{name}.log"
+    proc = _start_child([sys.executable, "-m", "blue_team.scenario", "stream", str(WORLD), str(out), name]
+                        + ([str(feed)] if feed else []), log_path, env)
+    _wait_child(proc, f"round {name}", log_path)
     return summarise(out / "payments.csv")
 
 
@@ -569,8 +646,9 @@ def select_live(world: Path, attacks: list[str], total: int, scam_share: float, 
 
     from dataset.replay import world_start
     led = pd.read_parquet(world / "ledger.parquet", columns=["tx_id", "ts", "from_upi", "journey_id", "label_is_scam"])
-    jr = pd.read_parquet(world / "journeys.parquet", columns=["journey_id", "playbook"])
-    users = set(pd.read_parquet(world / "users.parquet", columns=["upi_id"])["upi_id"])
+    jr = pd.read_parquet(world / "journeys.parquet", columns=["journey_id", "playbook", "user_id"])
+    who = pd.read_parquet(world / "users.parquet", columns=["user_id", "upi_id"])
+    users = set(who["upi_id"])
     start = world_start(json.loads((world / "manifest.json").read_text(encoding="utf-8")))
     window = pd.Timestamp(start) + pd.Timedelta(days=warmup_days)
     led = led[led["from_upi"].isin(users)]
@@ -591,13 +669,29 @@ def select_live(world: Path, attacks: list[str], total: int, scam_share: float, 
             elif queues[a]:
                 queues[a] = []                       # the next journey would not fit: this attack is done
     scam_tx = scam.loc[scam["journey_id"].isin(chosen), "tx_id"].tolist()
-    honest = led[~led["label_is_scam"].astype(bool) & (led["ts"] >= window)]
-    k = min(len(honest), total - len(scam_tx))
-    idx = np.sort(np.random.default_rng(seed).choice(len(honest), size=k, replace=False)) if k > 0 else []
-    honest_tx = honest.iloc[idx]["tx_id"].tolist()
+    # Honest payments from as few users as will do: the victims' own first, then random others until
+    # there are twice as many as needed. Only these users' records are streamed (their whole history,
+    # so the engine knows them), which keeps the warm-up to a fraction of the world.
+    need = max(0, total - len(scam_tx))
+    honest = led[~led["label_is_scam"].astype(bool) & (led["ts"] >= window)].merge(who, left_on="from_upi", right_on="upi_id")
+    victims = set(jr.loc[jr["journey_id"].isin(chosen), "user_id"])
+    rng = np.random.default_rng(seed)
+    others = [u for u in rng.permutation(sorted(set(who["user_id"]) - victims))]
+    per_user = honest.groupby("user_id").size()
+    keep, have = list(victims), int(per_user.reindex(list(victims)).fillna(0).sum())
+    for u in others:
+        if have >= 2 * need:
+            break
+        keep.append(u)
+        have += int(per_user.get(u, 0))
+    pool = honest[honest["user_id"].isin(set(keep))]
+    k = min(len(pool), need)
+    idx = np.sort(rng.choice(len(pool), size=k, replace=False)) if k > 0 else []
+    honest_tx = pool.iloc[idx]["tx_id"].tolist()
     per = scam.loc[scam["journey_id"].isin(chosen)].groupby("playbook").agg(journeys=("journey_id", "nunique"),
                                                                           payments=("tx_id", "size"))
     return {"window_start": window.isoformat(), "tx_ids": sorted(map(str, scam_tx + honest_tx)), "journeys": sorted(chosen),
+            "users": sorted(map(str, keep)),
             "scam_payments": len(scam_tx), "honest_payments": len(honest_tx),
             "per_attack": {a: {"journeys": int(per.loc[a, "journeys"]) if a in per.index else 0,
                                "payments": int(per.loc[a, "payments"]) if a in per.index else 0} for a in attacks}}
@@ -640,7 +734,7 @@ def _start_live(attacks: list[str], provider: str | None, log) -> dict:
     for a in attacks:
         shutil.copy(redteam.RED_DIR / by_name[a]["file"], HOME / "red" / by_name[a]["file"])
     shutil.copytree(config.PLAYBOOKS / "known", DB / "known")
-    control(paused=False)
+    control(paused=False, cancel=False)
     log = _logger(log)
     known = lv["known"]
     run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")      # the blue team's run, known from the start
@@ -654,16 +748,17 @@ def _start_live(attacks: list[str], provider: str | None, log) -> dict:
                         red_dir=HOME / "red", log=log, known=known, known_boost=s["known_boost"])
     sel = select_live(WORLD, attacks + known, lv["transactions"], lv["scam_share"], s["warmup_days"], s["seed"])
     SELECTION.write_text(json.dumps(sel), encoding="utf-8")
-    state.update(selection={k: v for k, v in sel.items() if k not in ("tx_ids", "journeys")})
+    state.update(selection={**{k: v for k, v in sel.items() if k not in ("tx_ids", "journeys", "users")},
+                            "people": len(sel["users"])})
     _save(state)
     emit({"kind": "stage", "stage": "world", "text": f"{len(sel['tx_ids'])} transactions picked for the session: "
           f"{sel['scam_payments']} from {len(sel['journeys'])} victims of the attacks ("
           + ", ".join(f"{a} {v['payments']}" for a, v in sel["per_attack"].items()) + f") and {sel['honest_payments']} "
-          "honest ones. The first days (each user's history) go to the engine quietly first."})
+          f"honest ones, from {len(sel['users'])} of the {s['users']} people. Their first {s['warmup_days']} days "
+          "(each one's history) go to the engine quietly first."})
     # the replayed table is only for the blue team: build it while the attack plays
-    replay = subprocess.Popen([sys.executable, "-m", "dataset.replay", "--data", str(WORLD), "--out", str(TABLE),
-                               "--warmup-days", str(s["warmup_days"])], cwd=config.REPO, env=_env(),
-                              stdout=open(HOME / "replay.log", "w", encoding="utf-8"), stderr=subprocess.STDOUT)
+    replay = _start_child([sys.executable, "-m", "dataset.replay", "--data", str(WORLD), "--out", str(TABLE),
+                           "--warmup-days", str(s["warmup_days"])], HOME / "replay.log", _env())
     state.update(step="round1")
     _save(state)
     state.update(before=live_round("before", None, log, feed=FEED))
@@ -676,7 +771,7 @@ def _start_live(attacks: list[str], provider: str | None, log) -> dict:
                                               f"{types.get(a, {}).get('payments', 0)} interrupted" for a in attacks)
                   + f". {through} scam payments got through."})
     if not through:
-        replay.wait()
+        _wait_child(replay, "replay", HOME / "replay.log")
         state.update(step="done")
         _save(state)
         emit({"kind": "stage", "stage": "done", "text": "RUKO stopped every payment of these attacks: nothing for the "
@@ -685,22 +780,21 @@ def _start_live(attacks: list[str], provider: str | None, log) -> dict:
 
     emit({"kind": "blue", "text": f"{through} payments got through, so victims complain (1930 / NCRP). "
           "The blue team activates on the complaints."}, FEED)
-    while replay.poll() is None:
-        time.sleep(2)
-    if replay.returncode:
-        raise RuntimeError(f"replay failed (exit {replay.returncode}); see {HOME / 'replay.log'}")
+    _wait_child(replay, "replay", HOME / "replay.log")
     state.update(step="review")
     _save(state)
 
-    def blue(line: str) -> None:
-        log(line)
-        emit({"kind": "blue", "text": line})
+    # the blue team in its own process (its agents can take minutes; Stop must be able to end them),
+    # writing its steps to the same feed
     live_world = world_for_blue_team(WORLD, json.loads(SELECTION.read_text(encoding="utf-8"))["journeys"], WORLD_LIVE)
-    r = pipeline.run(TABLE, live_world, provider=provider, out_root=RUNS, playbook_root=DB, log=blue, run_id=run_id)
-    state.update(run_id=r["run_id"], agents=r.get("agents"))
+    blue = _start_child([sys.executable, "-m", "blue_team.scenario", "bluerun", str(TABLE), str(live_world),
+                         provider or "auto", run_id], HOME / "blue.log", _env())
+    _wait_child(blue, "the blue team", HOME / "blue.log")
+    summary = json.loads((RUNS / run_id / "summary.json").read_text(encoding="utf-8"))
+    state.update(run_id=run_id, agents=summary.get("agents"))
     _save(state)
     queued = sorted(p.stem for p in (DB / "review").glob("*.yaml"))
-    emit({"kind": "stage", "stage": "review", "run_id": r["run_id"], "drafts": queued,
+    emit({"kind": "stage", "stage": "review", "run_id": run_id, "drafts": queued,
           "text": f"{len(queued)} playbook(s) drafted and checked; two different analysts must approve before "
                   "RUKO uses them." if queued else "The blue team drafted nothing it could check: not enough complaints "
                   "in one group yet."})
@@ -717,7 +811,7 @@ def rerun_live(log=print) -> dict:
         if not approved:
             raise RuntimeError("no approved playbook yet: two analysts approve on the Playbooks tab")
         path, skipped = playbooks_file(approved, HOME)
-        control(paused=False)
+        control(paused=False, cancel=False)
         emit({"kind": "stage", "stage": "replay", "text": f"Replaying the same attack with {len(approved) - len(skipped)} "
               f"approved playbook(s) in the engine's file: {', '.join(c['name'] for c in approved)}"
               + (f". Not expressible yet: {'; '.join(skipped)}" if skipped else "")})
@@ -753,7 +847,17 @@ def report(before: dict, after: dict | None, new: list[str]) -> str:
     return "\n".join(lines)
 
 
+def _blue_run(table: Path, world: Path, provider: str, run_id: str) -> None:
+    """The live session's blue team, in its own process: every step to the feed."""
+    from blue_team import pipeline
+    pipeline.run(table, world, provider=None if provider == "auto" else provider, out_root=RUNS, playbook_root=DB,
+                 log=lambda line: emit({"kind": "blue", "text": line}), run_id=run_id)
+
+
 def main() -> None:
+    if len(sys.argv) == 6 and sys.argv[1] == "bluerun":
+        _blue_run(Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4], sys.argv[5])
+        return
     if len(sys.argv) in (4, 5, 6) and sys.argv[1] == "stream":
         stream(Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[5]) if len(sys.argv) == 6 else None,
                sys.argv[4] if len(sys.argv) >= 5 else "before")
