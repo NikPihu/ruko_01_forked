@@ -173,8 +173,47 @@ class Workspace:
         from blue_team import engine_file
         fam = sorted(engine_file.rule_families(rule))
         res["families"], res["warns"] = fam, len(fam) >= 2   # two families: approved, it raises payments to T2
+        res["conditions"] = self.condition_stats(rule, c.case_ids)
         res["gate_failures"] = gate_failures(res, gates)
         return res
+
+    def condition_stats(self, rule: dict, case_ids) -> dict:
+        """The rule's top-level conditions one at a time (the branches of an `any`): the share of the
+        group's complaints with a payment that meets it, and honest payments per 1,000 that do. Each
+        alone is usually common; the point of the rule is that together they are rare."""
+        from blue_team import engine_file
+        mode = "all" if "all" in rule else "any" if "any" in rule else "one"
+        parts = rule.get("all") or rule.get("any") or [rule]
+        legit_w = max(self.weight[self.legit].sum(), 1e-9)
+        out = []
+        for part in parts:
+            hit = np.array([matcher.matches(part, f) for f in self.scored.feats])
+            share = np.mean([bool(hit[self.case_by_id.at[cid, "rows"]].any()) for cid in case_ids]) if case_ids else 0.0
+            out.append({"rule": part, "in_words": matcher.describe(part),
+                        "families": sorted(engine_file.rule_families(part)),
+                        "case_share": round(float(share), 3),
+                        "legit_per_1000": round(float(1000 * self.weight[self.legit & hit].sum() / legit_w), 3)})
+        return {"mode": mode, "parts": out}
+
+    def nearest_signals(self, cluster_id: str, n_tokens: int = 6) -> dict:
+        """This group against its two closest known playbooks, signal by signal: the share of its
+        complaints with each of its most distinctive signals, and the share of each playbook's own
+        complaints with it. Why it is (or is not) one of them, in numbers."""
+        c = self._cluster(cluster_id)
+        top = c.nearest_top or ([[c.nearest_playbook, c.similarity]] if c.nearest_playbook else [])
+        own = set(c.case_ids)
+        here = self._token_share(c.case_ids)
+        dist = [d["token"] for d in self.overview(cluster_id)["distinctive_tokens"]][:n_tokens]
+        pbs = []
+        for name, sim in top[:2]:
+            ref = [i for i in self.cases.loc[self.cases["named_main"] == name, "case_id"] if i not in own]
+            pbs.append({"playbook": name, "similarity": sim, "reference_cases": len(ref),
+                        "share": self._token_share(ref) if ref else {}})
+        return {"known_similarity": config.load()["cluster"]["known_similarity"],
+                "playbooks": [{k: v for k, v in p.items() if k != "share"} for p in pbs],
+                "signals": [{"token": t, "here": round(here.get(t, 0.0), 2),
+                             "there": [round(p["share"].get(t, 0.0), 2) if p["reference_cases"] else None for p in pbs]}
+                            for t in dist]}
 
     def mules(self, cluster_id: str) -> list[dict]:
         g = self.case_by_id.loc[self._cluster(cluster_id).case_ids]

@@ -33,16 +33,19 @@ def test_a_fix_may_take_its_own_payments_but_not_the_real_arrests(ws):
 
 
 def test_an_approved_fix_runs_just_before_the_playbook_it_corrects(tmp_db, tmp_path):
-    assert playbook_db.priority_before("digital_arrest", tmp_db) == 39
+    # just below digital_arrest's first rule in the engine's file (its place moves when entries are added)
+    first = min(pr for pb in playbook_db.load(("known",), tmp_db) if pb.name == "digital_arrest" for pr, _ in pb.rules)
+    before = playbook_db.priority_before("digital_arrest", tmp_db)
+    assert before == first - 1
     card = {"name": "relative_voice_clone", "title": "t", "status": "review", "summary": "s", "steps": ["a", "b"],
             "misnamed_as": "digital_arrest", "evidence": {"cases": 8, "cluster_id": "m"}, "gate_failures": [],
-            "match": [{"priority": 39, "rule": {"all": [{"token": "CALL_ON"}, {"token": "SAYS_FAMILY"}]}}],
+            "match": [{"priority": before, "rule": {"all": [{"token": "CALL_ON"}, {"token": "SAYS_FAMILY"}]}}],
             "mule_accounts": [], "label_tx_ids": [], "reviews": []}
     card["match"][0]["rule"] = __import__("blue_team.matcher", fromlist=["x"]).normalize(card["match"][0]["rule"])
     playbook_db.write(card, "review", tmp_db)
     review.decide("relative_voice_clone", "asha", "approve", root=tmp_db, exports=tmp_path / "x")
     out = review.decide("relative_voice_clone", "ravi", "approve", root=tmp_db, exports=tmp_path / "x")
-    assert out["priority"] == 39
+    assert out["priority"] == before
     pbs = playbook_db.load(root=tmp_db)
     r = random.Random(3)
     assert playbook_db.name_scam(voice_clone_named_arrest(r), pbs) == "relative_voice_clone"
