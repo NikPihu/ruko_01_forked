@@ -9,6 +9,7 @@ export interface Health {
   policy_version: string;
   contract_version: string;
   demo_clock: boolean;
+  demo_clock_offset_s?: number | null;   // sim time - wall time; screens subtract it (format.ts)
 }
 
 export interface Alert {
