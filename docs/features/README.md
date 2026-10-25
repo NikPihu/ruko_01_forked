@@ -9,6 +9,7 @@ of events across features is in [`../flows.md`](../flows.md).
 | Explanations (user vs analyst) | server, console, app | [explanations.md](explanations.md) |
 | Alert screens T1 to T4 and feedback | app, server, console | [alert-screens-and-feedback.md](alert-screens-and-feedback.md) |
 | Playbooks file (scam types) | server, data | [playbooks.md](playbooks.md) |
+| Fused threat (model + playbook search → tier) | server | [threat.md](threat.md) |
 | Early warnings and chat check | app, server | [early-warnings.md](early-warnings.md) |
 | Message check (scam script, AI-written, OTP) | app | [message-check.md](message-check.md) |
 | Video call while paying | app, server | [video-call.md](video-call.md) |

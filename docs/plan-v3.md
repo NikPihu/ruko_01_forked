@@ -1,6 +1,7 @@
 # Plan v3: lure classifier with "unclear", step-based verdicts, playbook search, one fused threat score, lgbm-0.3 on large data
 
-Status: proposal. Contract target: c2-0.14. Nothing here is built yet.
+Status: steps 0-5 built and live (contract c2-0.14, now c2-0.15); step 6 in progress, step 7's
+report is the Results section below. See "Results (25 Oct 2026)" for what changed from this plan.
 
 ## Why
 - **The lure classifier must answer from six fixed classes.** A message that is neither a known scam
