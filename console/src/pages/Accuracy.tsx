@@ -24,10 +24,16 @@ export function Accuracy() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Accuracy</h1>
+          <div className="eyebrow">Measured, not claimed</div>
+          <h1 className="page-title">Accuracy<span className="accent">on data RUKO never trained on.</span></h1>
           <p>Measured on data RUKO never trained on: a held-out simulated world for payments, held-out message
             templates for the phone's scam-message check, and 50 new scams the red team wrote to beat it. False
             alarms and misses are shown next to the catches, and the weak spots are named.</p>
+          <ol className="howto">
+            <li>Catches are shown next to false alarms and misses.</li>
+            <li>The failure cases name RUKO's weak spots.</li>
+            <li>The simulated world is easier than real fraud: read the numbers with that in mind.</li>
+          </ol>
         </div>
       </div>
 

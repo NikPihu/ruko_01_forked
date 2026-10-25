@@ -119,3 +119,34 @@ export function Check({ ok, label }: { ok: boolean; label: string }) {
     </span>
   );
 }
+
+/**
+ * The top of every list page, in plain words: what the page shows (title, accent line, intro) and
+ * what the analyst can do here (`howTo`, numbered). `aside` sits on the right, e.g. a few big numbers.
+ */
+export function PageHead({ eyebrow, title, accent, intro, howTo, aside }: {
+  eyebrow: string; title: ReactNode; accent?: ReactNode; intro?: ReactNode; howTo?: ReactNode[]; aside?: ReactNode;
+}) {
+  return (
+    <div className="page-head">
+      <div>
+        <div className="eyebrow">{eyebrow}</div>
+        <h1 className="page-title">{title}{accent && <span className="accent">{accent}</span>}</h1>
+        {intro && <p>{intro}</p>}
+        {howTo && howTo.length > 0 && <ol className="howto">{howTo.map((h, i) => <li key={i}>{h}</li>)}</ol>}
+      </div>
+      {aside && <div className="head-stats">{aside}</div>}
+    </div>
+  );
+}
+
+/** Big numbers as rows under a rule: label on the left, number on the right. */
+export function StatRows({ rows }: { rows: { label: string; value: ReactNode }[] }) {
+  return (
+    <div className="stat-rows">
+      {rows.map((r) => (
+        <div key={r.label}><span className="label">{r.label}</span><span className="value">{r.value}</span></div>
+      ))}
+    </div>
+  );
+}

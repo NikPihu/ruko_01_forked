@@ -74,11 +74,11 @@ export function PaymentCase({ id }: { id: string }) {
 
   return (
     <div className="stack">
-      <a href="#/alerts">← Alerts</a>
+      <a className="back" href="#/alerts">← All alerts</a>
       <div className="page-head">
         <div>
-          <div className="row"><TierChip tier={a.tier} />{a.playbook && <span className="chip">{PLAYBOOKS[a.playbook] ?? a.playbook}</span>}</div>
-          <h1 style={{ marginTop: 8 }}>{inr(a.amount_inr)} to <span className="mono">{a.payee}</span></h1>
+          <div className="row" style={{ marginTop: 4 }}><TierChip tier={a.tier} />{a.playbook && <span className="chip">{PLAYBOOKS[a.playbook] ?? a.playbook}</span>}</div>
+          <h1 className="page-title" style={{ marginTop: 10, fontSize: 44 }}>{inr(a.amount_inr)} to <span className="mono">{a.payee}</span></h1>
           <p>{userLabel(a.user_hash)} · {when(a.ts)} · UPI ID {a.entry_method === "typed" ? "typed by hand" : `entered by ${a.entry_method}`}</p>
           {a.payment_id && (
             <p>Payment ID <a className="mono" href={exploreHref(a.payee, a.payment_id)}>{a.payment_id}</a> · What the user did:{" "}
@@ -128,11 +128,11 @@ export function EpisodeCaseView({ id }: { id: string }) {
 
   return (
     <div className="stack">
-      <a href="#/alerts/cases">← Task-scam cases</a>
+      <a className="back" href="#/alerts/cases">← All task-scam cases</a>
       <div className="page-head">
         <div>
-          <span className="chip t4"><span className="dot" />High risk episode</span>
-          <h1 style={{ marginTop: 8 }}>Task-scam case <span className="mono">{c.case_id}</span></h1>
+          <div className="row" style={{ marginTop: 4 }}><span className="chip t4"><span className="dot" />High risk episode</span></div>
+          <h1 className="page-title" style={{ marginTop: 10, fontSize: 44 }}>Task-scam case <span className="mono">{c.case_id}</span></h1>
           <p>Reported by {userLabel(c.user_hash)}'s phone · {when(c.opened_at)}</p>
         </div>
       </div>

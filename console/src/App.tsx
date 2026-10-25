@@ -11,28 +11,26 @@ import { RingDetail, Rings } from "./pages/Rings";
 import { Lab } from "./pages/Lab";
 import { Accuracy } from "./pages/Accuracy";
 
+// Short labels for the top bar; each page explains itself in its own header.
 const NAV = [
-  { key: "", label: "Overview", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
-  { key: "alerts", label: "Alerts & cases", icon: "M12 2 1 21h22zm0 5 7.5 12h-15zm-1 4v4h2v-4zm0 5v2h2v-2z" },
-  { key: "transactions", label: "Transactions", icon: "M3 5h18v2H3zm0 6h18v2H3zm0 6h12v2H3z" },
-  { key: "emerging", label: "Emerging patterns", icon: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.6-6.2 4.6 2.4-7.4L2 9.4h7.6z" },
-  { key: "rings", label: "Scam rings", icon: "M12 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM5 14a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm14 0a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM11 8h2v3l4.5 3.3-1.2 1.6L12 12.8l-4.3 3.1-1.2-1.6L11 11z" },
-  { key: "suspects", label: "Mule suspects", icon: "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" },
-  { key: "explore", label: "Account explorer", icon: "M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" },
-  { key: "accuracy", label: "Accuracy", icon: "M4 20h16v2H4zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z" },
-  { key: "lab", label: "AI scammer", icon: "M12 2a7 7 0 0 0-7 7v3l-2 4h18l-2-4V9a7 7 0 0 0-7-7zm-3 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM9 18h6v2a3 3 0 0 1-6 0z" },
+  { key: "", label: "Overview" },
+  { key: "alerts", label: "Alerts" },
+  { key: "transactions", label: "Payments" },
+  { key: "emerging", label: "New patterns" },
+  { key: "rings", label: "Rings" },
+  { key: "suspects", label: "Suspects" },
+  { key: "explore", label: "Explorer" },
+  { key: "accuracy", label: "Accuracy" },
+  { key: "lab", label: "AI scammer" },
 ];
 
-function Icon({ d }: { d: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d={d} fill="currentColor" /></svg>;
-}
 
 export function App() {
   const { path, query } = useRoute();
   const section = path[0] ?? "";
   const counts = useLoad(async () => {
-    const [alerts, suspects] = await Promise.all([api.alerts("T2"), api.suspects("med")]);
-    return { alerts: alerts.length, suspects: suspects.suspects.filter((s) => !s.review.approved).length };
+    const [alerts, suspects, health] = await Promise.all([api.alerts("T2"), api.suspects("med"), api.health().catch(() => null)]);
+    return { alerts: alerts.length, suspects: suspects.suspects.filter((s) => !s.review.approved).length, health };
   }, [section]);
 
   let page;
@@ -51,26 +49,33 @@ export function App() {
   else page = <Overview />;
 
   const active = section === "case" ? "alerts" : section;
+  const h = counts.data?.health;
   return (
     <div className="shell">
-      <aside className="side">
-        <div className="brand">
-          <div className="brand-mark">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M12 2 4 5.5v6c0 5 3.4 9.4 8 10.5 4.6-1.1 8-5.5 8-10.5v-6z" fill="#fff" /></svg>
-          </div>
-          <div><b>RUKO</b><small>Analyst console</small></div>
-        </div>
-        <nav className="nav">
+      <div className="banner">
+        <span className="tag">DEMO</span>
+        <span>Synthetic data from the simulator. People appear as pseudonyms, never names.</span>
+        {h && <span>Engine {h.model_version} · contract {h.contract_version}{h.demo_clock ? " · demo clock" : ""}</span>}
+      </div>
+      <header className="side">
+        <a className="brand" href="#/">
+          <span className="brand-mark" aria-hidden>
+            <svg width="20" height="26" viewBox="0 0 20 26"><rect x="1" y="1" width="2.5" height="24" fill="#ede6d8" /><path d="M3.5 2h15l-4 5.5 4 5.5h-15z" fill="#e8673f" /></svg>
+          </span>
+          <span><b>RUKO</b><small>Analyst console</small></span>
+        </a>
+        <nav className="nav" aria-label="Pages">
           {NAV.map((n) => (
-            <a key={n.key} href={`#/${n.key}`} className={active === n.key ? "on" : ""}>
-              <Icon d={n.icon} />{n.label}
-              {n.key === "alerts" && counts.data ? <span className="count">{counts.data.alerts}</span> : null}
-              {n.key === "suspects" && counts.data ? <span className="count">{counts.data.suspects}</span> : null}
+            <a key={n.key} href={`#/${n.key}`} className={active === n.key ? "on" : ""} aria-current={active === n.key ? "page" : undefined}
+              title={n.label}>
+              {n.label}
+              {n.key === "alerts" && counts.data ? <span className="count" title="Payments interrupted (T2 or higher)">{counts.data.alerts}</span> : null}
+              {n.key === "suspects" && counts.data ? <span className="count" title="Suspects waiting for review">{counts.data.suspects}</span> : null}
             </a>
           ))}
         </nav>
-        <div className="side-foot">Synthetic data · users shown without identities</div>
-      </aside>
+        <div className="side-foot"><span className="who">AN</span><span>Analyst</span><span className="badge">Fraud team</span></div>
+      </header>
       <main className="main">{page}</main>
     </div>
   );

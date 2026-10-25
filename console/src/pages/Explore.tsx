@@ -130,10 +130,16 @@ export function Explore({ upi, payment = "" }: { upi: string; payment?: string }
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Account explorer</h1>
+          <div className="eyebrow">Look anything up</div>
+          <h1 className="page-title">Account explorer<span className="accent">one picture per account.</span></h1>
           <p>Look up any UPI ID to see, in one picture, who sent it money, who it paid, and whether money comes back
             to the account that paid the “rewards”. Or paste a payment ID from the app to trace one payment.
             Built only from what RUKO itself sees.</p>
+          <ol className="howto">
+            <li>Type a UPI ID, or paste a payment ID from the app.</li>
+            <li>Read the picture left to right: who paid in, who it paid out to.</li>
+            <li>A red loop means money comes back to the account that sent the “rewards”.</li>
+          </ol>
         </div>
       </div>
 

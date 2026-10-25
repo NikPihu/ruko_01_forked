@@ -27,10 +27,16 @@ function Head() {
   return (
     <div className="page-head">
       <div>
-        <h1>AI scammer</h1>
+        <div className="eyebrow">Red team</div>
+        <h1 className="page-title">AI scammer<span className="accent">you play the scammer.</span></h1>
         <p>You are the scammer. Your victim is on the emulator using <b>Cache Pay</b>. Send messages, ring the phone,
           or run a ready-made scam, then tell the victim who to pay. Messages land in the emulator's Messages app and
           calls really ring. RUKO never sees what you write: only what the phone measures.</p>
+        <ol className="howto">
+          <li>Pick a victim and a ready-made scam, or write your own message.</li>
+          <li>Watch the emulator: messages arrive and calls really ring.</li>
+          <li>Have the victim pay, and see whether RUKO stops it.</li>
+        </ol>
       </div>
     </div>
   );
