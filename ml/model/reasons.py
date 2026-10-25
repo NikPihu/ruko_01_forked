@@ -82,6 +82,7 @@ _STEP_REASON = {
     "call_out_to_unknown": "R1_live_unknown_call", "long_call": "R1_live_unknown_call",
     "foreign_call": "R1_live_unknown_call", "paid_after_call": "R1_live_unknown_call",
     "caller_in_campaign": "R13_scam_campaign", "in_campaign": "R13_scam_campaign",
+    "caller_many_users": "R14_caller_many_users", "otp_on_call": "R15_otp_on_call",   # c2-0.15
     "bait_credit": "R10_bait_then_pay", "episode_watching": "R10_bait_then_pay", "episode_active": "R10_bait_then_pay",
     "escalating_payments": "R10_bait_then_pay",
     "remote_control": "R2_remote_control", "untrusted_accessibility": "R2_remote_control", "sideload_24h": "R2_remote_control",
