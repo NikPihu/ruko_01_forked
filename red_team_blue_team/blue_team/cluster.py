@@ -28,6 +28,9 @@ from sklearn.preprocessing import normalize
 from blue_team import config
 
 SIGNATURE_IGNORE = ("LURE_", "EPISODE_", "BAIT_", "GAP_")   # what a missed lure / episode would remove
+# A live session (scenario._blue_run, its own process) sets this: its few breakthroughs, fewer than
+# min_cluster_size, are investigated together as one group instead of all left as one-offs.
+SMALL_SET_ONE_GROUP = False
 
 
 @dataclass
@@ -63,6 +66,15 @@ def _embed(docs: pd.Series, cfg: dict):
     hd = HDBSCAN(min_cluster_size=cfg["min_cluster_size"], min_samples=cfg["min_samples"],
                  cluster_selection_method=cfg["selection"], copy=True, allow_single_cluster=cfg.get("allow_single_cluster", False)).fit(z)
     return vec, x, hd.labels_, z, hd.probabilities_
+
+
+def _one_group(docs: pd.Series, cfg: dict):
+    """_embed for a set too small for HDBSCAN: every case in group 0 (no max_df: with one or two
+    documents every token would be dropped)."""
+    vec = TfidfVectorizer(token_pattern=r"\S+", lowercase=False, ngram_range=tuple(cfg["ngram_range"]), sublinear_tf=True)
+    x = normalize(vec.fit_transform(docs))
+    n = x.shape[0]
+    return vec, x, np.zeros(n, dtype=int), x.toarray(), np.ones(n)
 
 
 def map_2d(z: np.ndarray) -> np.ndarray:
@@ -105,8 +117,9 @@ def run(case_df: pd.DataFrame) -> Result:
     doubtful = {i for c in suspects for i in c.case_ids}
     ref = case_df[case_df["named_main"].notna() & ~case_df["case_id"].isin(doubtful)]
     clusters: list[Cluster] = []
-    if len(br) >= cfg["min_cluster_size"]:
-        vec, x_br, labels, z, probs = _embed(br["document"], cfg)
+    small = SMALL_SET_ONE_GROUP and 0 < len(br) < cfg["min_cluster_size"]
+    if len(br) >= cfg["min_cluster_size"] or small:
+        vec, x_br, labels, z, probs = (_one_group if small else _embed)(br["document"], cfg)
         br = br.assign(cluster=labels)
         maps["breach"] = _points(br["case_id"], map_2d(z), labels, probs, lambda l: f"c{l:02d}")
         known = {pb: np.asarray(normalize(vec.transform(g["document"])).mean(axis=0)).ravel()
@@ -133,6 +146,9 @@ def run(case_df: pd.DataFrame) -> Result:
                 kind = "new"
                 reason = (f"new: only {named_share:.0%} of its cases were named (< {cfg['known_named_share']:.0%}) and the "
                           f"closest playbook, {nearest}, is {sim:.2f} similar (< {cfg['known_similarity']})")
+            if small:
+                reason = (f"{len(g)} breakthrough(s), fewer than cluster.min_cluster_size {cfg['min_cluster_size']}: "
+                          "investigated together as one group; " + reason)
             top2 = [[pb, round(float(s), 3)] for pb, s in sorted(sims.items(), key=lambda kv: -kv[1])[:2]]
             clusters.append(Cluster(f"c{lab:02d}", g["case_id"].tolist(), kind, nearest, round(float(sim), 3),
                                     round(named_share, 3), _top_tokens(x_br, labels == lab, vocab), reason=reason,

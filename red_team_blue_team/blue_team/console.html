@@ -466,12 +466,13 @@ PAGE.live = async () => {
   };
   pickSearch.addEventListener("input", () => drawPick());
   const llm = el("select", { id: "lagents", class: "in" }, el("option", { value: "auto" }, "Bedrock if available, else offline"), el("option", { value: "bedrock" }, "Bedrock only"), el("option", { value: "offline" }, "Offline"));
+  const ntx = el("input", { id: "ntx", class: "in", type: "number", min: "100", max: "5000", step: "100", value: "500", style: "width:110px" });
   const speed = el("select", { id: "speed", class: "in" }, [["2.5", "Slow"], ["1.2", "Normal"], ["0.4", "Fast"], ["0", "As fast as it goes"]].map(([v, t]) => el("option", { value: v }, t)));
   const msg = el("div");
   const ctl = b => api("/api/live/control", b).catch(e => put(msg, errBox(e)));
   const pauseBtn = el("button", { class: "btn", type: "button" }, "Pause"), stepBtn = el("button", { class: "btn", type: "button", onclick: () => ctl({ step: true }) }, "Next payment");
   const startBtn = el("button", { class: "btn primary big", type: "button", onclick: async () => {
-    try { await api("/api/live/start", { attacks: [...chosen], llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
+    try { await api("/api/live/start", { attacks: [...chosen], llm: llm.value, transactions: Number(ntx.value) }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
     catch (e) { put(msg, errBox(e)); }
   } }, "Start the attack");
   // Stop & clear: ends the session wherever it is (attack, blue team, replay) and empties the demo, so a
@@ -511,7 +512,7 @@ PAGE.live = async () => {
     if (e.kind === "complaint") return el("article", { class: "ev missed" }, el("span", { class: "rail" }), el("div", { class: "bd" },
       el("div", { class: "meta" }, el("span", {}, String(e.filed_at).slice(5, 16).replace("T", " ")), chip("Victim complaint · " + (e.source === "1930" ? "1930 helpline" : "NCRP report"), "bad"),
         el("span", { style: "margin-left:auto" }, el("a", { href: "#/investigate" }, "Investigate"))),
-      el("div", { style: "font-size:13.5px" }, "A victim reports being scammed; accounts named: ", (e.accounts || []).map((x, i) => [i ? ", " : "", el("span", { class: "mono" }, x)]))));
+      el("div", { style: "font-size:13.5px" }, "This scam payment got through: the victim reports it, and the blue team gets it. Account named: ", (e.accounts || []).map((x, i) => [i ? ", " : "", el("span", { class: "mono" }, x)]))));
     if (e.kind === "payment") {
       const r = e.red, g = e.engine, ph = e.phone;
       const sig = [ph.call ? `on a ${ph.call_kind || ""} call` + (ph.unknown_caller ? " · unknown caller" : "") : null, ph.remote ? "screen control" : null,
@@ -582,13 +583,13 @@ PAGE.live = async () => {
     if (!document.body.contains(feed)) return;
     try { const d = await api(`/api/live?after=${seen}`); add(d.events); seen = d.total; drawSide(d); } catch (e) { /* restarting */ }
   });
-  return [band("Step 1 of the loop · two or three attacks, 500 transactions, one at a time through the real RUKO engine", "Live red / blue session", { acts: [clearBtn, startBtn] }),
+  return [band("Step 1 of the loop · two or three attacks, the transactions you choose, one at a time through the real RUKO engine", "Live red / blue session", { acts: [clearBtn, startBtn] }),
     el("main", { class: "content" },
       first.mode ? null : el("div", { class: "msg err" }, "Start the console in demo mode for the live test: python -m blue_team app --scenario"),
       el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:14px" },
-        el("div", { class: "field", style: "gap:6px" }, el("label", { for: "attack" }, "Red team attacks (two or three run at once, 500 transactions)"), pickSearch, pickBox, pickNote),
+        el("div", { class: "field", style: "gap:6px" }, el("label", { for: "attack" }, "Red team attacks (two or three run at once)"), pickSearch, pickBox, pickNote),
         el("div", { class: "row", style: "gap:14px" },
-          el("div", { class: "field" }, el("label", { for: "lagents" }, "Blue-team agents"), llm), el("div", { class: "field" }, el("label", { for: "speed" }, "Speed"), speed),
+          el("div", { class: "field" }, el("label", { for: "lagents" }, "Blue-team agents"), llm), el("div", { class: "field" }, el("label", { for: "ntx" }, "Transactions (100–5,000)"), ntx), el("div", { class: "field" }, el("label", { for: "speed" }, "Speed"), speed),
           el("div", { class: "row", style: "align-self:flex-end" }, pauseBtn, stepBtn), bar2), msg, stages),
       el("div", { class: "split" },
         el("div", { class: "main" }, el("div", { class: "legend", style: "border:0;padding:0" }, sq("var(--info)", "caught (T2+)"), sq("var(--bad)", "got through"), sq("#f0b429", "tip only"),
@@ -793,14 +794,14 @@ async function liveSessionCard() {
   const draw = (d) => {
     const st = d.scenario || {};
     const stage = { world: "Building the world", round1: "Red team attacking", review: (d.queued.length || d.approved.length) ? "Waiting for your review" : "Blue team investigating", round2: "Replaying", done: "Done" }[st.step] || st.step;
-    const comps = items.filter(e => e.kind === "complaint");
+    const comps = items.filter(e => e.kind === "complaint" && e.round !== "after");
     const shown = items.filter(e => e.kind === "payment" && e.round !== "after").length;
     put(box, el("div", { class: "row" }, el("h2", { class: "h", style: "font-size:16px" }, "Live session"), chip(stage, d.running ? "wait" : "good"),
         el("span", { class: "muted", style: "font-size:12.5px" }, (st.new || []).join(" · ")), el("a", { class: "btn", href: "#/live", style: "margin-left:auto" }, "Open Live")),
-      el("div", { class: "muted", style: "font-size:13px" }, st.selection ? `${shown} of ${st.selection.scam_payments + st.selection.honest_payments} session transactions through the engine · ${comps.length} victim complaints so far. The blue team works on these complaints only.` : "Starting…"),
+      el("div", { class: "muted", style: "font-size:13px" }, st.selection ? `${shown} of ${st.selection.scam_payments + st.selection.honest_payments} session transactions through the engine · ${comps.length} breakthroughs reported so far. The blue team works on these only: scam payments RUKO did not interrupt.` : "Starting…"),
       comps.length ? el("div", { style: "display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto" }, comps.slice().reverse().map(c =>
         el("div", { class: "row", style: "gap:8px;font-size:12.5px" }, el("span", { class: "muted" }, String(c.filed_at).slice(5, 16).replace("T", " ")), chip(c.source === "1930" ? "1930" : "NCRP", "bad"),
-          el("span", { class: "mono" }, (c.accounts || []).join(", "))))) : el("div", { class: "muted", style: "font-size:12.5px" }, "No complaint yet: victims report a few days after paying."),
+          el("span", { class: "mono" }, (c.accounts || []).join(", "))))) : el("div", { class: "muted", style: "font-size:12.5px" }, "Nothing has got through yet: every scam payment so far was interrupted."),
       st.run_id && !runs.some(r => r.run_id === st.run_id) ? el("div", { class: "muted", style: "font-size:12.5px" }, `The blue team starts run ${st.run_id} when the attack is over.`) : null);
   };
   const pull = async () => {
@@ -819,7 +820,8 @@ PAGE.investigate = async (p) => {
   const eyebrowAgents = (runs.find(x => x.run_id === run) || {}).agents;
   const newRun = el("button", { class: "btn primary big", type: "button", onclick: () => newRunPanel() }, "New blue-team run");
   const logBtn = el("button", { class: "btn ghost big", type: "button", onclick: () => runLogPanel() }, "Run log");
-  const head = band(`Step 2 of the loop · blue team${eyebrowAgents ? " · agents " + eyebrowAgents : ""}`, "Investigate", { acts: [run ? logBtn : null, newRun] });
+  // a live session starts its own blue-team run; a second run here would mix other complaints in
+  const head = band(`Step 2 of the loop · blue team${eyebrowAgents ? " · agents " + eyebrowAgents : ""}`, "Investigate", { acts: [run ? logBtn : null, live ? null : newRun] });
   if (!run) return [head, el("main", { class: "content" }, live, el("section", { class: "card pad empty" }, live ? "The session's groups appear here when the blue team has run." : "No blue-team run yet. Start one with New blue-team run."))];
   const r = runs.find(x => x.run_id === run) || {};
   if (r.state === "running") every(3000, async () => { await loadRuns(run); const s = runs.find(x => x.run_id === run); if (s && s.state !== "running") { cacheClear(); route(); } });
