@@ -444,22 +444,42 @@ PAGE.live = async () => {
   const fresh = () => ({ caught: 0, "warned only": 0, missed: 0, ok: 0, "false alarm": 0, processed: 0 });
   const rounds = { before: fresh(), after: fresh() };
   let latest = "before";
-  const pick = el("select", { id: "attack", class: "in", style: "width:min(420px, 100%)" }, rt.playbooks.map(p => el("option", { value: p.name }, `${p.name} · ${p.title.slice(0, 60)}`)));
+  const chosen = new Set();
+  const pickBox = el("div", { style: "display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff" });
+  const pickSearch = el("input", { id: "attack", class: "in", placeholder: "Search attacks", style: "width:min(420px, 100%)" });
+  const pickNote = el("div", { class: "muted", style: "font-size:12px" });
+  let pickLocked = false;
+  const drawPick = (locked = pickLocked) => {
+    pickLocked = locked;
+    const q = pickSearch.value.toLowerCase();
+    put(pickBox, rt.playbooks.filter(p => !q || p.name.includes(q) || p.title.toLowerCase().includes(q)).map(p => {
+      const box = el("input", { type: "checkbox", id: "pk_" + p.name, checked: chosen.has(p.name) ? "checked" : null,
+        disabled: locked || (!chosen.has(p.name) && chosen.size >= 3) ? "disabled" : null,
+        onchange: e => { e.target.checked ? chosen.add(p.name) : chosen.delete(p.name); drawPick(); } });
+      return el("label", { for: "pk_" + p.name, style: "display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px" }, box,
+        el("span", { style: "min-width:0" }, el("span", { class: "mono" }, p.name), el("span", { class: "muted", style: "display:block;font-size:12px" }, p.title.slice(0, 110)),
+          el("span", { class: "tags", style: "margin-top:3px" }, p.techniques.map(x => el("span", { class: "tag" }, TRICK[x] || x)))));
+    }));
+    put(pickNote, `${chosen.size} of 3 picked`, chosen.size ? ": " + [...chosen].join(", ") : ". Pick two or three attacks to run at once.");
+    startBtn.disabled = locked || chosen.size < 1;
+  };
+  pickSearch.addEventListener("input", () => drawPick());
   const llm = el("select", { id: "lagents", class: "in" }, el("option", { value: "auto" }, "Bedrock if available, else offline"), el("option", { value: "bedrock" }, "Bedrock only"), el("option", { value: "offline" }, "Offline"));
   const speed = el("select", { id: "speed", class: "in" }, [["2.5", "Slow"], ["1.2", "Normal"], ["0.4", "Fast"], ["0", "As fast as it goes"]].map(([v, t]) => el("option", { value: v }, t)));
   const msg = el("div");
   const ctl = b => api("/api/live/control", b).catch(e => put(msg, errBox(e)));
   const pauseBtn = el("button", { class: "btn", type: "button" }, "Pause"), stepBtn = el("button", { class: "btn", type: "button", onclick: () => ctl({ step: true }) }, "Next payment");
   const startBtn = el("button", { class: "btn primary big", type: "button", onclick: async () => {
-    try { await api("/api/live/start", { attack: pick.value, llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
+    try { await api("/api/live/start", { attacks: [...chosen], llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
     catch (e) { put(msg, errBox(e)); }
   } }, "Start the attack");
   const replayBtn = el("button", { class: "btn primary", type: "button", onclick: async () => { try { await api("/api/live/replay", {}); put(msg); } catch (e) { put(msg, errBox(e)); } } }, "Replay the attack with the approved playbooks");
   speed.addEventListener("change", () => ctl({ delay: Number(speed.value) }));
-  pick.addEventListener("change", () => { pick.dataset.touched = "1"; });
+
   pauseBtn.addEventListener("click", () => ctl({ paused: pauseBtn.dataset.paused !== "1" }));
 
   const STAGES = [["world", "Build world"], ["attack", "Red team attacks"], ["blue", "Blue team"], ["review", "Your review"], ["replay", "Replay"], ["done", "Done"]];
+  const shownNote = el("span", { class: "muted", style: "font-size:12.5px" });
   const stageOf = d => { const s = (d.scenario || {}).step; return s === "world" ? 0 : s === "round1" ? 1 : s === "review" ? (d.queued.length || d.approved.length ? 3 : 2) : s === "round2" ? 4 : s === "done" ? 5 : -1; };
   const drawStages = d => { const at = stageOf(d); put(stages, el("ol", { "aria-label": "Stages", style: "list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px" },
     STAGES.map(([k, t], i) => el("li", { style: "display:flex;flex-direction:column;gap:6px" },
@@ -471,12 +491,16 @@ PAGE.live = async () => {
   const evClass = v => ({ caught: "caught", missed: "missed", "warned only": "warned", "false alarm": "alarm", ok: "ok" })[v] || "";
   const card = e => {
     if (e.kind === "progress") return el("div", { class: "progress-line" }, `${e.at} · ${e.text}`);
+    if (e.kind === "complaint") return el("article", { class: "ev missed" }, el("span", { class: "rail" }), el("div", { class: "bd" },
+      el("div", { class: "meta" }, el("span", {}, String(e.filed_at).slice(5, 16).replace("T", " ")), chip("Victim complaint · " + (e.source === "1930" ? "1930 helpline" : "NCRP report"), "bad"),
+        el("span", { style: "margin-left:auto" }, el("a", { href: "#/investigate" }, "Investigate"))),
+      el("div", { style: "font-size:13.5px" }, "A victim reports being scammed; accounts named: ", (e.accounts || []).map((x, i) => [i ? ", " : "", el("span", { class: "mono" }, x)]))));
     if (e.kind === "payment") {
       const r = e.red, g = e.engine, ph = e.phone;
       const sig = [ph.call ? `on a ${ph.call_kind || ""} call` + (ph.unknown_caller ? " · unknown caller" : "") : null, ph.remote ? "screen control" : null,
         ...(ph.lures || []).map(l => "lure: " + human(l)), ph.verdict ? "phone says " + ph.verdict : null].filter(Boolean);
       return el("article", { class: "ev " + evClass(e.verdict) }, el("span", { class: "rail" }), el("div", { class: "bd" },
-        el("div", { class: "meta" }, el("span", { class: "mono" }, `#${e.n}`), el("span", {}, String(e.ts).slice(5, 16).replace("T", " ")),
+        el("div", { class: "meta" }, el("span", { class: "mono" }, e.shown ? `${e.shown} of ${e.of}` : `#${e.n}`), el("span", {}, String(e.ts).slice(5, 16).replace("T", " ")),
           el("span", {}, e.round === "after" ? "replay" : "attack"), el("span", { style: "margin-left:auto" }, verdictChip(e.verdict))),
         el("div", { class: "row", style: "gap:10px;align-items:baseline" }, el("span", { class: "money num" }, inr(e.amount)), el("span", { class: "ink2" }, "to"),
           el("span", { class: "mono" }, e.payee), el("span", { class: "muted", style: "font-size:12px" }, `${e.entry || ""}${e.payer_says ? " · says '" + e.payer_says + "'" : ""} · from ${e.user}`)),
@@ -514,18 +538,18 @@ PAGE.live = async () => {
     pauseBtn.textContent = c.paused ? "Resume" : "Pause"; pauseBtn.dataset.paused = c.paused ? "1" : "0";
     stepBtn.disabled = !c.paused || !d.running; pauseBtn.disabled = !d.running;
     speed.value = String(c.delay ?? 1.2); if (!speed.value) speed.value = "1.2";
-    startBtn.disabled = !d.mode || d.running;
-    const live = (d.scenario || {}).mode === "live" ? (d.scenario.new || [])[0] : null;
-    if (live && (d.running || !pick.dataset.touched) && pick.value !== live) pick.value = live;
-    pick.disabled = d.running;
-    const st = d.scenario || {}, counts = rounds[latest];
+    const live = (d.scenario || {}).mode === "live" ? (d.scenario.new || []) : [];
+    if (live.length && (d.running || !chosen.size) && live.join() !== [...chosen].join()) { chosen.clear(); live.forEach(a => chosen.add(a)); }
+    drawPick(d.running || !d.mode);
+    const st = d.scenario || {}, counts = rounds[latest], sel = st.mode === "live" ? st.selection : null;
     put(tally, el("h2", { class: "h", style: "font-size:16px" }, latest === "after" ? "Replay so far" : "Attack so far"),
       el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px" },
         el("div", { class: "stat" }, el("b", { class: "num", style: "color:var(--info-ink)" }, counts.caught), el("span", {}, "scam payments caught")),
         el("div", { class: "stat" }, el("b", { class: "num", style: "color:var(--bad-ink)" }, counts.missed + counts["warned only"]), el("span", {}, `got through${counts["warned only"] ? ` (${counts["warned only"]} with a tip)` : ""}`)),
         el("div", { class: "stat" }, el("b", { class: "num" }, counts.ok), el("span", {}, "honest payments shown, OK")),
         el("div", { class: "stat" }, el("b", { class: "num", style: counts["false alarm"] ? "color:var(--wait-ink)" : "" }, counts["false alarm"]), el("span", {}, "false alarms"))),
-      el("div", { class: "muted", style: "font-size:12px;margin-top:8px" }, `${counts.processed.toLocaleString()} payments through the engine; one honest payment in ${30} and every scam payment and false alarm are shown.`));
+      el("div", { class: "muted", style: "font-size:12px;margin-top:8px" }, sel ? `${counts.caught + counts.missed + counts["warned only"] + counts.ok + counts["false alarm"]} of ${sel.scam_payments + sel.honest_payments} session transactions shown (${sel.scam_payments} from the attacks' victims, ${sel.honest_payments} honest). The warm-up days went to the engine first, unshown.`
+        : `${counts.processed.toLocaleString()} payments through the engine.`));
     const inReview = st.mode === "live" && st.step === "review";
     put(turn, inReview || d.approved.length ? el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:10px;border-color:rgba(255,153,0,0.7)" },
       el("div", { class: "row" }, el("h2", { class: "h", style: "font-size:16px" }, "Your turn"), chip(`${d.approved.length} approved · ${d.queued.length} waiting`, d.approved.length ? "good" : "wait")),
@@ -545,7 +569,8 @@ PAGE.live = async () => {
     el("main", { class: "content" },
       first.mode ? null : el("div", { class: "msg err" }, "Start the console in demo mode for the live test: python -m blue_team app --scenario"),
       el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:14px" },
-        el("div", { class: "row", style: "gap:14px" }, el("div", { class: "field" }, el("label", { for: "attack" }, "Red team attack playbook"), pick),
+        el("div", { class: "field", style: "gap:6px" }, el("label", { for: "attack" }, "Red team attacks (two or three run at once, 500 transactions)"), pickSearch, pickBox, pickNote),
+        el("div", { class: "row", style: "gap:14px" },
           el("div", { class: "field" }, el("label", { for: "lagents" }, "Blue-team agents"), llm), el("div", { class: "field" }, el("label", { for: "speed" }, "Speed"), speed),
           el("div", { class: "row", style: "align-self:flex-end" }, pauseBtn, stepBtn), bar2), msg, stages),
       el("div", { class: "split" },
@@ -740,16 +765,49 @@ function buildPanel(rt, rr) {
 }
 
 // ---------------------------------------------------------------- 2 Investigate
+async function liveSessionCard() {
+  // In demo mode, a live session drives this tab: its complaints arrive here as the attack plays, and
+  // its blue-team run is selected as soon as it exists.
+  let d; try { d = await api("/api/live?after=0"); } catch (e) { return null; }
+  const st = d.scenario || {};
+  if (!d.mode || st.mode !== "live") return null;
+  const box = el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:12px;border-color:rgba(255,153,0,0.6)" });
+  let n = 0; const items = [];
+  const draw = (d) => {
+    const st = d.scenario || {};
+    const stage = { world: "Building the world", round1: "Red team attacking", review: (d.queued.length || d.approved.length) ? "Waiting for your review" : "Blue team investigating", round2: "Replaying", done: "Done" }[st.step] || st.step;
+    const comps = items.filter(e => e.kind === "complaint");
+    const shown = items.filter(e => e.kind === "payment" && e.round !== "after").length;
+    put(box, el("div", { class: "row" }, el("h2", { class: "h", style: "font-size:16px" }, "Live session"), chip(stage, d.running ? "wait" : "good"),
+        el("span", { class: "muted", style: "font-size:12.5px" }, (st.new || []).join(" · ")), el("a", { class: "btn", href: "#/live", style: "margin-left:auto" }, "Open Live")),
+      el("div", { class: "muted", style: "font-size:13px" }, st.selection ? `${shown} of ${st.selection.scam_payments + st.selection.honest_payments} session transactions through the engine · ${comps.length} victim complaints so far. The blue team works on these complaints only.` : "Starting…"),
+      comps.length ? el("div", { style: "display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto" }, comps.slice().reverse().map(c =>
+        el("div", { class: "row", style: "gap:8px;font-size:12.5px" }, el("span", { class: "muted" }, String(c.filed_at).slice(5, 16).replace("T", " ")), chip(c.source === "1930" ? "1930" : "NCRP", "bad"),
+          el("span", { class: "mono" }, (c.accounts || []).join(", "))))) : el("div", { class: "muted", style: "font-size:12.5px" }, "No complaint yet: victims report a few days after paying."),
+      st.run_id && !runs.some(r => r.run_id === st.run_id) ? el("div", { class: "muted", style: "font-size:12.5px" }, `The blue team starts run ${st.run_id} when the attack is over.`) : null);
+  };
+  const pull = async () => {
+    const r = await api(`/api/live?after=${n}`); items.push(...r.events); n = r.total; draw(r);
+    const st = r.scenario || {};
+    if (st.run_id && run !== st.run_id) { await loadRuns(); if (runs.some(x => x.run_id === st.run_id)) { run = st.run_id; cacheClear(); route(); return false; } }
+    return r.running;
+  };
+  await pull();
+  every(2000, async () => { if (!document.body.contains(box)) return; try { const r = await pull(); if (r === false) return; } catch (e) { /* restarting */ } });
+  return box;
+}
+
 PAGE.investigate = async (p) => {
+  const live = await liveSessionCard();
   const eyebrowAgents = (runs.find(x => x.run_id === run) || {}).agents;
   const newRun = el("button", { class: "btn primary big", type: "button", onclick: () => newRunPanel() }, "New blue-team run");
   const logBtn = el("button", { class: "btn ghost big", type: "button", onclick: () => runLogPanel() }, "Run log");
   const head = band(`Step 2 of the loop · blue team${eyebrowAgents ? " · agents " + eyebrowAgents : ""}`, "Investigate", { acts: [run ? logBtn : null, newRun] });
-  if (!run) return [head, el("main", { class: "content" }, el("section", { class: "card pad empty" }, "No blue-team run yet. Start one with New blue-team run."))];
+  if (!run) return [head, el("main", { class: "content" }, live, el("section", { class: "card pad empty" }, live ? "The session's groups appear here when the blue team has run." : "No blue-team run yet. Start one with New blue-team run."))];
   const r = runs.find(x => x.run_id === run) || {};
   if (r.state === "running") every(3000, async () => { await loadRuns(run); const s = runs.find(x => x.run_id === run); if (s && s.state !== "running") { cacheClear(); route(); } });
   const [cl, cands, cs, cards] = await Promise.all([data("clusters").catch(() => null), data("candidates").catch(() => []), data("cases").catch(() => []), api("/api/cards")]);
-  if (!cl || !cl.summary || !cl.summary.clusters) return [head, el("main", { class: "content" }, el("section", { class: "card pad empty" }, r.state === "running" ? "The run is going; groups appear when it finishes. Open the run log to watch." : "This run has no groups."))];
+  if (!cl || !cl.summary || !cl.summary.clusters) return [head, el("main", { class: "content" }, live, el("section", { class: "card pad empty" }, r.state === "running" ? "The run is going; groups appear when it finishes. Open the run log to watch." : "This run has no groups."))];
   const sm = cl.summary, st = sm.status || {};
   const caseById = Object.fromEntries(cs.map(c => [c.case_id, c]));
   const cand = Object.fromEntries(cands.map(c => [c.cluster_id, c]));
@@ -819,7 +877,7 @@ PAGE.investigate = async (p) => {
   };
   drawList(); drawGroup();
   const allBtn = el("a", { style: "font-size:12.5px", onclick: () => { put(right, complaintsCard(cs, cs.length, true)); } }, "All complaints");
-  return [head, el("main", { class: "content" }, strip,
+  return [head, el("main", { class: "content" }, live, strip,
     el("div", { class: "split" },
       el("section", { class: "card flush list", "aria-label": "Groups", style: "flex:1 1 320px" },
         el("div", { class: "hd" }, el("h2", { style: "font-size:16px" }, "Groups"), el("span", { class: "muted", style: "font-size:12.5px" }, `${groups.length} · plus ${sm.noise ?? 0} one-offs`), el("div", { class: "right" }, allBtn)),
@@ -947,14 +1005,21 @@ async function newRunPanel() {
 
 // ---------------------------------------------------------------- 3 Playbooks
 PAGE.playbooks = async (p) => {
-  const [cards, db, g] = await Promise.all([api("/api/cards"), api("/api/database"), api("/api/groups" + (run ? "?run=" + run : "")).catch(() => ({ groups: [] }))]);
+  const [cards, db, g, lv] = await Promise.all([api("/api/cards"), api("/api/database"), api("/api/groups" + (run ? "?run=" + run : "")).catch(() => ({ groups: [] })),
+    api("/api/live?after=999999").catch(() => null)]);
+  const session = lv && lv.mode && (lv.scenario || {}).mode === "live" ? lv.scenario : null;
+  if (session && !p.group && session.run_id) p.group = session.run_id;
+  if (session && lv.running) {   // the session's drafts appear as soon as the blue team queues them
+    const sig = JSON.stringify([cards.review.length, cards.approved.length, cards.rejected.length]);
+    every(3000, async () => { try { const c = await api("/api/cards"); if (JSON.stringify([c.review.length, c.approved.length, c.rejected.length]) !== sig) route(); } catch (e) { /* restarting */ } });
+  }
   const all = [...cards.review, ...cards.approved, ...cards.rejected];
   const groupOf = {}; for (const x of g.groups) if (x.kind === "new") groupOf[x.group] = x.title;
   let f = p.f || "waiting", grp = p.group || "", q = "";
   const counts = { waiting: cards.review.length, live: cards.approved.length, rejected: cards.rejected.length, all: all.length };
   const seg = el("div", { class: "seg", role: "group", "aria-label": "Status" }), box = el("div", { class: "scroll" });
   const groupSel = el("select", { class: "in", "aria-label": "Group", onchange: e => { grp = e.target.value; draw(); } }, el("option", { value: "" }, "All runs"),
-    [...new Set(all.map(s => s.run_id).filter(Boolean))].sort().reverse().map(r => el("option", { value: r }, "Run " + r)));
+    [...new Set(all.map(s => s.run_id).filter(Boolean))].sort().reverse().map(r => el("option", { value: r, selected: r === grp ? "selected" : null }, "Run " + r + (session && r === session.run_id ? " · live session" : ""))));
   const draw = () => {
     put(seg, [["waiting", "Waiting"], ["live", "Live"], ["rejected", "Rejected"], ["all", "All"]].map(([k, t]) => el("button", { type: "button", class: k === f ? "on" : "", "aria-pressed": String(k === f), onclick: () => { f = k; draw(); } }, `${t} · ${counts[k]}`)));
     const rows = all.filter(s => (f === "all" || (f === "waiting" ? s.state === "review" : f === "live" ? s.state === "approved" : s.state === "rejected"))
@@ -974,8 +1039,12 @@ PAGE.playbooks = async (p) => {
   const search = el("input", { class: "in", "aria-label": "Search playbooks", placeholder: "Search", style: "width:200px", oninput: e => { q = e.target.value.toLowerCase(); draw(); } });
   let n = 0;
   const live = [...db.known.map(k => ({ name: k.name, from: "built-in" })), ...db.approved.map(a => ({ name: a.name, from: "blue team", ready: a.engine.ready }))];
+  const sessionNote = session ? el("section", { class: "card pad", style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:rgba(255,153,0,0.6)" },
+    el("b", {}, "Live session"), chip((session.new || []).join(" · "), "new"),
+    el("span", { class: "muted", style: "font-size:13px" }, lv.running && !all.some(s => s.run_id === session.run_id) ? "The blue team's drafts from this session appear here when it finishes; the list refreshes by itself." : `Showing the drafts from this session (run ${session.run_id}).`),
+    el("a", { class: "btn", href: "#/live", style: "margin-left:auto" }, "Open Live")) : null;
   return [band("Step 3 of the loop · two different analysts approve each new playbook", "Playbooks"),
-    el("main", { class: "content" },
+    el("main", { class: "content" }, sessionNote,
       el("section", { class: "card flush", "aria-label": "Playbooks" }, el("div", { class: "hd" }, seg, groupSel, el("div", { class: "right" }, search)),
         el("div", { class: "legend" }, el("span", {}, el("b", { class: "ink2" }, "Catches"), " share of its group's complaints the rule matches"),
           el("span", {}, el("b", { class: "ink2" }, "Honest / 1k"), " honest payments it would match per 1,000"),

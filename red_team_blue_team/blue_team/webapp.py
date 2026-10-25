@@ -127,7 +127,8 @@ def _summary(card: dict, state: str) -> dict:
 
 
 class LiveStart(BaseModel):
-    attack: str                      # a red-team playbook (red_team/playbooks)
+    attacks: list[str] = []          # one to three red-team playbooks (red_team/playbooks)
+    attack: str | None = None        # older consoles send one
     llm: str | None = None           # bedrock | offline | auto
 
 
@@ -748,9 +749,14 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     @app.post("/api/live/start")
     def live_start(body: LiveStart) -> dict:
         from blue_team import redteam, scenario as sc
-        if body.attack not in {p["name"] for p in redteam.load()}:
-            raise HTTPException(400, f"{body.attack} is not a red-team playbook")
-        return scenario_job(lambda: sc.start_live(body.attack, body.llm, log=lambda *_: None))
+        attacks = body.attacks or ([body.attack] if body.attack else [])
+        names = {p["name"] for p in redteam.load()}
+        bad = [a for a in attacks if a not in names]
+        if bad:
+            raise HTTPException(400, f"not red-team playbooks: {', '.join(bad)}")
+        if not 1 <= len(attacks) <= 3 or len(set(attacks)) != len(attacks):
+            raise HTTPException(400, "pick one to three different attacks")
+        return scenario_job(lambda: sc.start_live(attacks, body.llm, log=lambda *_: None))
 
     @app.post("/api/live/control")
     def live_control(body: LiveControl) -> dict:

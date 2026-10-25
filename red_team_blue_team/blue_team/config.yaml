@@ -99,9 +99,11 @@ scenario:                            # python -m blue_team scenario start / reru
   new_boost: 15.0                    # red-team weights x this: enough victims complain to form a group (8 each was too few)
   known_boost: 1.0
   warmup_days: 7
-  live:                              # the live loop (scenario.start_live, the console's Live tab)
-    known: [digital_arrest]          # a scam RUKO knows, attacking next to the red team's pick
-    honest_every: 30                 # show one honest payment in this many (every false alarm is shown)
+  live:                              # the live session (scenario.start_live, the console's Live tab)
+    known: []                        # scams RUKO knows, attacking next to the picked ones (none: only the picks)
+    transactions: 500                # the session's transactions after the warm-up, all shown one at a time
+    scam_share: 0.6                  # at most this share of them from the attacks' victims (whole journeys)
+    honest_every: 30                 # without a selection: one honest payment in this many is shown
     delay_s: 1.2                     # seconds between shown payments (the console changes it)
 
 console:                             # python -m blue_team app: worlds a run can start from (paths from the repo root)

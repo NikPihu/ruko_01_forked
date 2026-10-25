@@ -43,6 +43,8 @@ WORLD, TABLE, RUNS, DB, EXPORTS, LIVE = (HOME / "world", HOME / "table.parquet",
 STATE = HOME / "scenario.json"
 FEED = HOME / "feed.jsonl"              # the live loop's timeline: one JSON line per payment shown or step
 CONTROL = HOME / "control.json"         # the live loop's pacing: {"paused": bool, "delay": s, "steps": n}
+SELECTION = HOME / "live_selection.json"  # the live session's transactions: tx ids, journeys, window start
+WORLD_LIVE = HOME / "world_live"        # the world as the blue team sees it in a live session: its complaints only
 LOG = HOME / "log.txt"                  # every step's line, for the console's Demo page
 INTERRUPT = ("T2", "T3", "T4")
 
@@ -153,7 +155,12 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
     rows = []
     pace = _Pacer() if feed else None
     every = s.get("live", {}).get("honest_every", 30)
-    n_pay = n_honest = 0
+    n_pay = n_honest = shown = 0
+    sel = json.loads(Path(os.environ["RUKO_LIVE_SELECTION"]).read_text(encoding="utf-8")) \
+        if feed and os.environ.get("RUKO_LIVE_SELECTION") else None
+    picked = set(sel["tx_ids"]) if sel else set()
+    window = datetime.fromisoformat(sel["window_start"]) if sel else None
+    complaints = _complaints(world, sel["journeys"]) if sel else []
     if feed:
         app = srv._c.app
         emit({"kind": "stage", "stage": "attack" if round_name == "before" else "replay",
@@ -170,6 +177,15 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
             if rec["kind"] != "pay":
                 continue
             body, label = rec["body"], rec["label"]
+            in_window = sel is not None and datetime.fromisoformat(label["ts"]) >= window
+            if in_window and str(label["tx_id"]) not in picked:
+                continue                                 # only the session's transactions after the warm-up
+            if in_window:
+                label = {**label, "judge": True}
+                while complaints and complaints[0]["filed_at"] <= label["ts"]:
+                    emit({"kind": "complaint", "round": round_name, **complaints.pop(0)}, feed)
+            elif sel is not None:
+                label = {**label, "judge": False}        # the warm-up: history, not shown, not scored
             status, reply = srv.post("/v1/decide", body)
             threat = (reply or {}).get("threat") or {}
             if feed:
@@ -179,10 +195,12 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
                 honest = not label["is_scam"]
                 if label["judge"] and honest:
                     n_honest += 1
-                show = label["judge"] and (label["is_scam"] or tier in INTERRUPT or n_honest % every == 1)
+                show = label["judge"] and (sel is not None or label["is_scam"] or tier in INTERRUPT or n_honest % every == 1)
                 if show:
                     pace.wait()
-                    emit(_payment_event(round_name, body, label, reply, inner, n_pay), feed)
+                    shown += 1
+                    emit({**_payment_event(round_name, body, label, reply, inner, n_pay), "shown": shown,
+                          "of": len(picked) if sel else None}, feed)
                 elif n_pay % 2000 == 0:
                     emit({"kind": "progress", "round": round_name, "payments": n_pay,
                           "text": f"{n_pay:,} payments through the engine so far"}, feed)
@@ -197,10 +215,26 @@ def stream(world: Path, out: Path, feed: Path | None = None, round_name: str = "
                                              "status": "completed", "ts": body["ts"]})
     finally:
         srv.close()
+    if feed:
+        for c in complaints:                             # filed after the session's last transaction
+            emit({"kind": "complaint", "round": round_name, **c}, feed)
     out.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(out / "payments.csv", index=False)
     (out / "health.json").write_text(json.dumps({"playbooks": os.environ.get("RUKO_PLAYBOOKS", "engine default")}),
                                      encoding="utf-8")
+
+
+def _complaints(world: Path, journeys: list[str]) -> list[dict]:
+    """The session victims' complaints (1930 / NCRP) in filing order, as the console shows them: when,
+    where, the accounts named. Not the scam type: that is the blue team's to find."""
+    import pandas as pd
+    rep = pd.read_parquet(world / "reports.parquet")
+    rep = rep[rep["journey_id"].isin(set(journeys))]
+    out = []
+    for rid, g in rep.sort_values("filed_at").groupby("report_id", sort=False):
+        out.append({"report_id": rid, "filed_at": g["filed_at"].iloc[0].isoformat(), "source": g["source"].iloc[0],
+                    "accounts": sorted(g.loc[g["identifier_type"] == "upi_id", "identifier"].astype(str))})
+    return sorted(out, key=lambda c: c["filed_at"])
 
 
 def _watch_policy() -> dict:
@@ -341,7 +375,10 @@ def why_missed(r) -> str:
 
 def live_round(name: str, playbooks_file: Path | None, log=print, feed: Path | None = None) -> dict:
     out = LIVE / name
-    env = _env({"RUKO_PLAYBOOKS": str(playbooks_file)} if playbooks_file else None)
+    extra = {"RUKO_PLAYBOOKS": str(playbooks_file)} if playbooks_file else {}
+    if feed and SELECTION.exists():
+        extra["RUKO_LIVE_SELECTION"] = str(SELECTION)
+    env = _env(extra)
     log(f"round '{name}': every payment of the world through the engine"
         + (f" with {playbooks_file.name}" if playbooks_file else " as it is"))
     with open(HOME / f"{name}.log", "w", encoding="utf-8") as fh:
@@ -520,36 +557,109 @@ def _rerun(log) -> dict:
     return state
 
 
-# ---- the live loop: one attack, one payment at a time ---------------------------------------------
+# ---- the live loop: two or three attacks, a fixed set of transactions, one at a time --------------
 
-def start_live(attack: str, provider: str | None = None, log=print) -> dict:
+def select_live(world: Path, attacks: list[str], total: int, scam_share: float, warmup_days: float, seed: int) -> dict:
+    """The live session's transactions, chosen before anything is sent: whole victim journeys of the
+    chosen attacks (round robin, so each attack gets its share) up to `scam_share` of `total`, then
+    honest payments by RUKO users spread over the same days, to `total` in all. Only journeys that start
+    after the warm-up are taken; the warm-up days are the users' history, sent quietly before."""
+    import numpy as np
+    import pandas as pd
+
+    from dataset.replay import world_start
+    led = pd.read_parquet(world / "ledger.parquet", columns=["tx_id", "ts", "from_upi", "journey_id", "label_is_scam"])
+    jr = pd.read_parquet(world / "journeys.parquet", columns=["journey_id", "playbook"])
+    users = set(pd.read_parquet(world / "users.parquet", columns=["upi_id"])["upi_id"])
+    start = world_start(json.loads((world / "manifest.json").read_text(encoding="utf-8")))
+    window = pd.Timestamp(start) + pd.Timedelta(days=warmup_days)
+    led = led[led["from_upi"].isin(users)]
+    scam = led[led["label_is_scam"].astype(bool) & led["journey_id"].notna()].merge(jr, on="journey_id")
+    first = scam.groupby("journey_id")["ts"].min()
+    scam = scam[scam["journey_id"].isin(first[first >= window].index) & scam["playbook"].isin(attacks)]
+    cap = int(total * scam_share)
+    queues = {a: [j for j, _ in sorted(((j, first[j]) for j in scam.loc[scam["playbook"] == a, "journey_id"].unique()),
+                                        key=lambda x: x[1])] for a in attacks}
+    size = scam.groupby("journey_id").size()
+    chosen, n = [], 0
+    while any(queues.values()):
+        for a in attacks:
+            if queues[a] and n + size[queues[a][0]] <= cap:
+                j = queues[a].pop(0)
+                chosen.append(j)
+                n += int(size[j])
+            elif queues[a]:
+                queues[a] = []                       # the next journey would not fit: this attack is done
+    scam_tx = scam.loc[scam["journey_id"].isin(chosen), "tx_id"].tolist()
+    honest = led[~led["label_is_scam"].astype(bool) & (led["ts"] >= window)]
+    k = min(len(honest), total - len(scam_tx))
+    idx = np.sort(np.random.default_rng(seed).choice(len(honest), size=k, replace=False)) if k > 0 else []
+    honest_tx = honest.iloc[idx]["tx_id"].tolist()
+    per = scam.loc[scam["journey_id"].isin(chosen)].groupby("playbook").agg(journeys=("journey_id", "nunique"),
+                                                                          payments=("tx_id", "size"))
+    return {"window_start": window.isoformat(), "tx_ids": sorted(map(str, scam_tx + honest_tx)), "journeys": sorted(chosen),
+            "scam_payments": len(scam_tx), "honest_payments": len(honest_tx),
+            "per_attack": {a: {"journeys": int(per.loc[a, "journeys"]) if a in per.index else 0,
+                               "payments": int(per.loc[a, "payments"]) if a in per.index else 0} for a in attacks}}
+
+
+def world_for_blue_team(world: Path, journeys: list[str], out: Path) -> Path:
+    """A copy of the world whose complaints are only those of the live session's victims, so the blue
+    team works on what the session showed. The honest payments it measures false alarms on stay the
+    whole world's: a few hundred are too few to tell 0.5 per 1,000 apart."""
+    import shutil
+
+    import pandas as pd
+    if out.exists():
+        shutil.rmtree(out)
+    shutil.copytree(world, out)
+    rep = pd.read_parquet(world / "reports.parquet")
+    rep[rep["journey_id"].isin(set(journeys))].to_parquet(out / "reports.parquet", index=False)
+    return out
+
+
+
+
+def start_live(attacks: list[str] | str, provider: str | None = None, log=print) -> dict:
     with _Lock():
-        return _start_live(attack, provider, log)
+        return _start_live([attacks] if isinstance(attacks, str) else list(attacks), provider, log)
 
 
-def _start_live(attack: str, provider: str | None, log) -> dict:
+def _start_live(attacks: list[str], provider: str | None, log) -> dict:
     import shutil
     import time
 
     from blue_team import pipeline, redteam
     s, lv = settings(), settings()["live"]
+    by_name = {pb["name"]: pb for pb in redteam.load()}
+    bad = [a for a in attacks if a not in by_name]
+    if bad or not 1 <= len(attacks) <= 3 or len(set(attacks)) != len(attacks):
+        raise ValueError(f"pick one to three different red-team playbooks (unknown: {', '.join(bad) or 'none'})")
     _clear_home()
     (HOME / "red").mkdir(parents=True)
-    by_name = {pb["name"]: pb for pb in redteam.load()}
-    if attack not in by_name:
-        raise ValueError(f"{attack} is not a red-team playbook (red_team/playbooks)")
-    shutil.copy(redteam.RED_DIR / by_name[attack]["file"], HOME / "red" / by_name[attack]["file"])
+    for a in attacks:
+        shutil.copy(redteam.RED_DIR / by_name[a]["file"], HOME / "red" / by_name[a]["file"])
     shutil.copytree(config.PLAYBOOKS / "known", DB / "known")
     control(paused=False)
     log = _logger(log)
     known = lv["known"]
-    state = {"started": _now(), "mode": "live", "new": [attack], "known": known, "step": "world"}
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")      # the blue team's run, known from the start
+    state = {"started": _now(), "mode": "live", "new": attacks, "known": known, "step": "world", "run_id": run_id}
     _save(state)
-    emit({"kind": "stage", "stage": "world", "text": f"Red team picked '{attack}': {by_name[attack]['title']}. "
-          f"Building a world of {s['users']} people over {s['days']} days where it attacks, next to "
-          f"{', '.join(known)} (a scam RUKO knows) and honest payments."})
+    emit({"kind": "stage", "stage": "world", "text": f"Red team picked {len(attacks)} attacks: "
+          + "; ".join(f"'{a}' ({by_name[a]['title']})" for a in attacks)
+          + f". Building a world of {s['users']} people over {s['days']} days where they attack"
+          + (f", next to {', '.join(known)} (known to RUKO)" if known else "") + "."})
     redteam.build_world(WORLD, s["users"], s["days"], s["seed"], s["victim_rate"], s["new_boost"],
                         red_dir=HOME / "red", log=log, known=known, known_boost=s["known_boost"])
+    sel = select_live(WORLD, attacks + known, lv["transactions"], lv["scam_share"], s["warmup_days"], s["seed"])
+    SELECTION.write_text(json.dumps(sel), encoding="utf-8")
+    state.update(selection={k: v for k, v in sel.items() if k not in ("tx_ids", "journeys")})
+    _save(state)
+    emit({"kind": "stage", "stage": "world", "text": f"{len(sel['tx_ids'])} transactions picked for the session: "
+          f"{sel['scam_payments']} from {len(sel['journeys'])} victims of the attacks ("
+          + ", ".join(f"{a} {v['payments']}" for a, v in sel["per_attack"].items()) + f") and {sel['honest_payments']} "
+          "honest ones. The first days (each user's history) go to the engine quietly first."})
     # the replayed table is only for the blue team: build it while the attack plays
     replay = subprocess.Popen([sys.executable, "-m", "dataset.replay", "--data", str(WORLD), "--out", str(TABLE),
                                "--warmup-days", str(s["warmup_days"])], cwd=config.REPO, env=_env(),
@@ -558,18 +668,19 @@ def _start_live(attack: str, provider: str | None, log) -> dict:
     _save(state)
     state.update(before=live_round("before", None, log, feed=FEED))
     _save(state)
-    a = state["before"]["types"].get(attack) or {"payments": 0, "interrupted": 0}
-    through = a["payments"] - a["interrupted"]
-    emit({"kind": "summary", "round": "before", "attack": attack, "types": state["before"]["types"],
+    types = state["before"]["types"]
+    through = sum(types.get(a, {}).get("payments", 0) - types.get(a, {}).get("interrupted", 0) for a in attacks)
+    emit({"kind": "summary", "round": "before", "attack": ", ".join(attacks), "types": types,
           "honest_per_1000": state["before"]["honest_interrupted_per_1000"],
-          "text": f"Attack over: RUKO interrupted {a['interrupted']} of {a['payments']} of '{attack}''s scam payments; "
-                  f"{through} got through."})
-    if not a["payments"] or not through:
+          "text": "Attack over: " + "; ".join(f"'{a}' {types.get(a, {}).get('interrupted', 0)} of "
+                                              f"{types.get(a, {}).get('payments', 0)} interrupted" for a in attacks)
+                  + f". {through} scam payments got through."})
+    if not through:
         replay.wait()
         state.update(step="done")
         _save(state)
-        emit({"kind": "stage", "stage": "done", "text": "RUKO stopped every payment of this attack: nothing for the "
-              "blue team to learn. Pick another attack."})
+        emit({"kind": "stage", "stage": "done", "text": "RUKO stopped every payment of these attacks: nothing for the "
+              "blue team to learn. Pick others."})
         return state
 
     emit({"kind": "blue", "text": f"{through} payments got through, so victims complain (1930 / NCRP). "
@@ -584,7 +695,8 @@ def _start_live(attack: str, provider: str | None, log) -> dict:
     def blue(line: str) -> None:
         log(line)
         emit({"kind": "blue", "text": line})
-    r = pipeline.run(TABLE, WORLD, provider=provider, out_root=RUNS, playbook_root=DB, log=blue)
+    live_world = world_for_blue_team(WORLD, json.loads(SELECTION.read_text(encoding="utf-8"))["journeys"], WORLD_LIVE)
+    r = pipeline.run(TABLE, live_world, provider=provider, out_root=RUNS, playbook_root=DB, log=blue, run_id=run_id)
     state.update(run_id=r["run_id"], agents=r.get("agents"))
     _save(state)
     queued = sorted(p.stem for p in (DB / "review").glob("*.yaml"))
@@ -614,13 +726,14 @@ def rerun_live(log=print) -> dict:
         state.update(step="done", approved=[c["name"] for c in approved], skipped=skipped,
                      after=live_round("after", path, log, feed=FEED), rerun_at=_now())
         _save(state)
-        attack = state["new"][0]
-        b, a = state["before"]["types"].get(attack, {}), state["after"]["types"].get(attack, {})
-        emit({"kind": "summary", "round": "after", "attack": attack, "types": state["after"]["types"],
+        bt, at = state["before"]["types"], state["after"]["types"]
+        emit({"kind": "summary", "round": "after", "attack": ", ".join(state["new"]), "types": at,
               "honest_per_1000": state["after"]["honest_interrupted_per_1000"],
-              "text": f"'{attack}': {b.get('interrupted', 0)} of {b.get('payments', 0)} interrupted before the blue team, "
-                      f"{a.get('interrupted', 0)} of {a.get('payments', 0)} after. Honest interruptions per 1,000: "
-                      f"{state['before']['honest_interrupted_per_1000']} → {state['after']['honest_interrupted_per_1000']}."})
+              "text": "; ".join(f"'{x}' {bt.get(x, {}).get('interrupted', 0)} of {bt.get(x, {}).get('payments', 0)} interrupted "
+                                f"before the blue team, {at.get(x, {}).get('interrupted', 0)} of {at.get(x, {}).get('payments', 0)} after"
+                                for x in state["new"])
+                      + f". Honest interruptions per 1,000: {state['before']['honest_interrupted_per_1000']} → "
+                        f"{state['after']['honest_interrupted_per_1000']}."})
         emit({"kind": "stage", "stage": "done", "text": "Loop complete."})
         return state
 

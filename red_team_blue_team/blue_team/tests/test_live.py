@@ -85,3 +85,63 @@ def test_endpoints_need_demo_mode_a_real_attack_and_an_approval(monkeypatch, tmp
     from blue_team import redteam
     name = redteam.load()[0]["name"]
     assert off.post("/api/live/start", json={"attack": name}).status_code == 400   # not in demo mode
+
+
+def tiny_world(root):
+    """Two attacks with three journeys each (two payments a journey), one journey inside the warm-up,
+    and 800 honest payments, over 10 days from 2026-10-01."""
+    import json as _json
+
+    import pandas as pd
+    root.mkdir(parents=True)
+    t0 = pd.Timestamp("2026-10-01", tz="Asia/Kolkata")
+    rows, jr, rep = [], [], []
+    for a in ("shop", "relative"):
+        for k in range(3):
+            j = f"{a}_{k}"
+            start = t0 + pd.Timedelta(days=(1 if k == 0 else 5 + k))       # k == 0 starts in the warm-up
+            jr.append({"journey_id": j, "playbook": a, "user_id": f"u{k}"})
+            for i in range(2):
+                rows.append({"tx_id": f"{j}_{i}", "ts": start + pd.Timedelta(hours=i), "from_upi": f"u{k}@ybl",
+                             "journey_id": j, "label_is_scam": True})
+            rep.append({"report_id": f"r_{j}", "identifier_type": "upi_id", "identifier": f"mule_{j}@ybl", "journey_id": j,
+                        "filed_at": start + pd.Timedelta(days=1), "source": "1930"})
+    for i in range(800):
+        rows.append({"tx_id": f"h{i}", "ts": t0 + pd.Timedelta(minutes=17 * i), "from_upi": f"u{i % 5}@ybl",
+                     "journey_id": None, "label_is_scam": False})
+    pd.DataFrame(rows).to_parquet(root / "ledger.parquet")
+    pd.DataFrame(jr).to_parquet(root / "journeys.parquet")
+    pd.DataFrame(rep).to_parquet(root / "reports.parquet")
+    pd.DataFrame({"upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
+    (root / "manifest.json").write_text(_json.dumps({"config": {"end": (t0 + pd.Timedelta(days=10)).isoformat(), "n_days": 10}}))
+    return root
+
+
+def test_the_session_takes_whole_journeys_of_every_attack_and_fills_to_the_total_with_honest_ones(tmp_path):
+    w = tiny_world(tmp_path / "w")
+    sel = sc.select_live(w, ["shop", "relative"], total=20, scam_share=0.5, warmup_days=3, seed=0)
+    assert len(sel["tx_ids"]) == 20 and sel["scam_payments"] + sel["honest_payments"] == 20
+    assert sel["per_attack"] == {"shop": {"journeys": 2, "payments": 4}, "relative": {"journeys": 2, "payments": 4}}
+    assert "shop_0" not in sel["journeys"]                                        # started in the warm-up
+    small = sc.select_live(w, ["shop", "relative"], total=10, scam_share=0.5, warmup_days=3, seed=0)
+    assert small["scam_payments"] == 4 and small["per_attack"]["shop"]["journeys"] == 1   # a fair share each
+
+
+def test_the_blue_team_sees_only_the_session_victims_complaints(tmp_path):
+    import pandas as pd
+    w = tiny_world(tmp_path / "w")
+    out = sc.world_for_blue_team(w, ["shop_1", "relative_2"], tmp_path / "live")
+    assert sorted(pd.read_parquet(out / "reports.parquet")["journey_id"]) == ["relative_2", "shop_1"]
+    assert (out / "ledger.parquet").exists() and len(pd.read_parquet(w / "reports.parquet")) == 6
+    c = sc._complaints(w, ["shop_1", "relative_2"])
+    assert [x["accounts"] for x in c] == [["mule_shop_1@ybl"], ["mule_relative_2@ybl"]] and c[0]["filed_at"] < c[1]["filed_at"]
+
+
+def test_the_start_endpoint_takes_one_to_three_different_attacks(monkeypatch, tmp_path):
+    use_home(monkeypatch, tmp_path)
+    from blue_team import redteam
+    names = [p["name"] for p in redteam.load()][:4]
+    c = TestClient(webapp.create_app(root=tmp_path / "db", exports=tmp_path / "e", runs=tmp_path / "r", scenario_mode=True))
+    assert c.post("/api/live/start", json={"attacks": names}).status_code == 400            # four
+    assert c.post("/api/live/start", json={"attacks": [names[0], names[0]]}).status_code == 400
+    assert c.post("/api/live/start", json={"attacks": []}).status_code == 400
