@@ -32,8 +32,11 @@ import com.ruko.demo.R
 import com.ruko.demo.data.AlertEntry
 import com.ruko.demo.data.AlertKind
 import com.ruko.demo.data.AlertLogFile
+import com.ruko.demo.data.Consents
 import com.ruko.demo.data.PaymentRecord
 import com.ruko.demo.shield.AlertRecorder
+import com.ruko.demo.shield.EpisodeState
+import com.ruko.demo.shield.ShieldController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -46,16 +49,32 @@ private val STOPPED = setOf("T2", "T3", "T4")
  * it stepped in on. Never a score (rule 4) and never a message's text (rule 2).
  */
 @Composable
-fun AlertsScreen(history: List<PaymentRecord>, onMessages: () -> Unit, onHistory: () -> Unit, onBack: () -> Unit) {
+fun AlertsScreen(
+    history: List<PaymentRecord>,
+    consents: Consents,
+    trustedName: String?,
+    trustedMobile: String?,
+    onMessages: () -> Unit,
+    onHistory: () -> Unit,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current.applicationContext
     val version by AlertRecorder.version.collectAsState()
     val log by produceState(AlertLogFile(), version) { value = withContext(Dispatchers.IO) { AlertRecorder.load(context) } }
     LaunchedEffect(version) { withContext(Dispatchers.IO) { AlertRecorder.markSeen(context) } }
+    // The background watcher may have changed the task-scam episode while this screen was closed.
+    LaunchedEffect(consents, version) { ShieldController.refresh(context, consents) }
+    val shield = ShieldController.live.value
+    val episodeShown = shield?.watcher?.episode?.let { ep ->
+        ep.state == EpisodeState.ACTIVE || (ep.state.live && shield.serverRisk == "high")
+    } == true
     val stopped = history.filter { it.tier in STOPPED }.sortedByDescending { it.ts }
 
     Screen {
         CacheTopBar(stringResource(R.string.alerts_title), onBack)
-        if (log.entries.isEmpty() && stopped.isEmpty()) {
+        // An ongoing task scam, with what to do about it (the only place it is shown in the app).
+        EpisodeCard(shield, trustedName, trustedMobile)
+        if (log.entries.isEmpty() && stopped.isEmpty() && !episodeShown) {
             Column(Modifier.fillMaxWidth().cacheCard().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.alerts_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(stringResource(R.string.alerts_empty_body), style = MaterialTheme.typography.bodyMedium, color = CacheColors.TextSecondary)

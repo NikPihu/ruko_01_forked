@@ -130,7 +130,7 @@ This needs a chat app that gets real messages, so it is easiest on a **real phon
 
 | # | Do | You should see |
 |---|---|---|
-| 6.1 | Debug panel → **Simulate bait credit** twice, then **Simulate outgoing debit** three times (₹1,000, ₹2,400, ₹5,800: each bigger than the last) | The Home card warns about a task-scam pattern; a notification appears |
+| 6.1 | Debug panel → **Simulate bait credit** twice, then **Simulate outgoing debit** three times (₹1,000, ₹2,400, ₹5,800: each bigger than the last) | A notification pops up; the Alerts screen (tab badge) shows the task-scam card on top |
 | 6.2 | Then pay a new UPI ID | Interrupted, task scam; the console shows the episode |
 
 ## 7. If something does not work

@@ -142,7 +142,7 @@ object EventSender {
                 )
             }
             ShieldController.live.value = data
-            // §8.4: "high" upgrades the Home card and sends a stronger warning. It still never blocks.
+            // §8.4: "high" upgrades the Alerts card and sends a stronger warning. It still never blocks.
             if (reply.episodeRisk == "high" && data.watcher.episode.state.live) {
                 ShieldNotifier.showConfirmed(context, accounts.loadProfile()?.language)
             }

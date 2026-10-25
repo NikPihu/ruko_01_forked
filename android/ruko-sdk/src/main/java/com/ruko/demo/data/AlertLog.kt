@@ -40,11 +40,20 @@ object AlertLog {
     // The same warning again within this window (a long SMS in parts, a chat that re-posts) is one alert.
     const val REPEAT_MS = 10L * 60_000
 
+    /**
+     * Kinds that can arrive twice for one event: a scam SMS in parts or a chat that re-posts, and the
+     * server confirming the same ring again. Every task-scam step, payment in another app and OTP on a
+     * call is its own event (the watcher already drops a repeat of the same transaction).
+     */
+    private val MERGE_REPEATS = setOf(AlertKind.SCAM_MESSAGE, AlertKind.RING_CONFIRMED)
+
+    /** The same warning again within [REPEAT_MS]: not a new alert (no new row, no new notification). */
+    fun isRepeat(file: AlertLogFile, entry: AlertEntry): Boolean = entry.kind in MERGE_REPEATS && file.entries.any {
+        it.kind == entry.kind && it.tag == entry.tag && it.source == entry.source && entry.ts - it.ts in 0..REPEAT_MS
+    }
+
     fun add(file: AlertLogFile, entry: AlertEntry, now: Long = entry.ts): AlertLogFile {
-        val repeat = file.entries.any {
-            it.kind == entry.kind && it.tag == entry.tag && it.source == entry.source && entry.ts - it.ts in 0..REPEAT_MS
-        }
-        val entries = if (repeat) file.entries else listOf(entry) + file.entries
+        val entries = if (isRepeat(file, entry)) file.entries else listOf(entry) + file.entries
         return file.copy(entries = trim(entries, now))
     }
 

@@ -35,13 +35,15 @@ class ShieldEngineTest {
     }
 
     @Test
-    fun atMostTwoNotificationsAWeek() {
+    fun everyNewAlertNotifiesWithNoWeeklyCap() {
         var d = run(ShieldData(), listOf(bait(0.0, "r1@ybl")), 0.1).data
         d = run(d, listOf(appOut(1.0, "u1@ybl", 1_000.0), appOut(2.0, "u2@ybl", 2_500.0), appOut(3.0, "u3@ybl", 6_000.0)), 3.1).data
         d = run(d, listOf(smsOut(4.0, "u4@ybl", 15_000.0)), 4.1).data // second alert of the week
         val third = run(d, listOf(smsOut(5.0, "u5@ybl", 36_000.0)), 5.1)
-        assertTrue("third alert in a week is held back", third.alerts.isEmpty())
-        assertEquals(listOf("out_payment"), third.transitions.map { it.trigger }) // the server still hears of it
+        assertEquals("a third alert in a week still pops up", listOf(ShieldEngine.AlertKind.OUT_OTHER_APP), third.alerts.map { it.kind })
+        assertEquals(listOf("out_payment"), third.transitions.map { it.trigger })
+        val again = run(third.data, listOf(smsOut(5.0, "u5@ybl", 36_000.0)), 5.2) // the same SMS read again
+        assertTrue("the same alert is not repeated", again.alerts.isEmpty())
     }
 
     @Test

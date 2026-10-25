@@ -58,7 +58,7 @@ fun ShieldStatusChip(watching: Boolean) {
 }
 
 /**
- * The background watcher's episode on Home, once there is a pattern to show: ACTIVE (bait, then
+ * The background watcher's episode on the Alerts screen, once there is a pattern to show: ACTIVE (bait, then
  * escalating payments to new payees) or confirmed "high" by the server. A WATCHING episode (small
  * money from a stranger, nothing more) stays off Home. The numbers in words, how the scam works,
  * and three ways out. It only warns; payments are never blocked here.
