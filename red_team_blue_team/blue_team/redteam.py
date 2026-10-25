@@ -134,8 +134,11 @@ def build_world(out: Path, users: int, days: int, seed: int, victim_rate: float,
         missing = set(known) - set(cfg.playbooks)
         if missing:
             raise ValueError(f"not known sim_v2 playbooks: {sorted(missing)}")
-        cfg.playbooks = {k: {**v, "weight": float(v.get("weight", 0.07)) * known_boost}
-                         for k, v in cfg.playbooks.items() if k in known}
+        # The simulator always plants its scripted demo journeys, which need their playbook's crew:
+        # keep that playbook at weight 0 (its crew exists, no random victims) when it was not picked.
+        demo_pb = (cfg.demo.get("demo_journeys") or {}).get("playbook")
+        cfg.playbooks = {k: {**v, "weight": float(v.get("weight", 0.07)) * known_boost if k in known else 0.0}
+                         for k, v in cfg.playbooks.items() if k in known or k == demo_pb}
     red = {}
     for p in sorted(Path(red_dir).glob("*.yaml")):
         pb = yaml.safe_load(p.read_text(encoding="utf-8"))

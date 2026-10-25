@@ -145,3 +145,19 @@ def test_the_start_endpoint_takes_one_to_three_different_attacks(monkeypatch, tm
     assert c.post("/api/live/start", json={"attacks": names}).status_code == 400            # four
     assert c.post("/api/live/start", json={"attacks": [names[0], names[0]]}).status_code == 400
     assert c.post("/api/live/start", json={"attacks": []}).status_code == 400
+
+
+def test_a_world_of_only_the_picked_attacks_builds(tmp_path):
+    """No known scam picked: the simulator's scripted demo journeys still need their crew (KeyError
+    'crew_digital_arrest_0' before), so that playbook stays at weight 0."""
+    import shutil
+
+    import pandas as pd
+    from blue_team import redteam
+    pb = redteam.load()[0]
+    (tmp_path / "red").mkdir()
+    shutil.copy(redteam.RED_DIR / pb["file"], tmp_path / "red" / pb["file"])
+    redteam.build_world(tmp_path / "w", 120, 7, 51, 1.0, 15.0, red_dir=tmp_path / "red", log=lambda *a: None, known=[])
+    j = pd.read_parquet(tmp_path / "w" / "journeys.parquet")
+    assert pb["name"] in set(j["playbook"])
+    assert set(j.loc[j["playbook"] != pb["name"], "journey_id"]) <= {f"j_demo_{k}" for k in range(10)}   # only the scripted ones
