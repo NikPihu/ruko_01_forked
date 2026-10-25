@@ -40,6 +40,10 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
    B behaviour. T2 or higher needs at least two lit families (`api/policy.yaml`
    `corroboration_min_families`). One source of evidence must never light two families: the whole
    phone episode (`context.episode`) is one L signal, and graph / crowd signals are P only.
+   Since plan v3 step 5, with the trained model and its fusion file the tier comes from the **fused
+   threat** (`api/threat.py`: the family models' p_scam and the step-based playbook search, two
+   independent kinds of evidence, calibrated together) and this gate applies only to the rules
+   fallback; the families still name the reasons and the other guardrails all apply.
 6. **Thresholds live in config, not code.** Policy numbers in `backend/api/policy.yaml`; episode
    numbers in `contracts/episode_rules.json` (the phone copies it to
    `android/app/src/main/assets/`, and `EpisodeTrackerTest` checks the copy); early-warning numbers
@@ -70,7 +74,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 11. **Humans approve discovered mules.** A graph-discovered suspect affects live scoring only after
     two different analysts approve it (`graph/discover.py`).
 12. **Commits and PRs carry only the human author.** No AI co-author or attribution lines.
-13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.2+pg1`) decide tiers. An LLM may only draft
+13. **No LLM in the decision path.** Rules (`rules-0.7`) or the LightGBM scorer (`lgbm-0.3+pg1`) with the fused threat decide tiers. An LLM may only draft
     analyst summaries or playbook descriptions from structured evidence.
 14. **Age, gender and language are never model or rule inputs.** They are used only to audit
     outcomes (e.g. false alarms per age band in `eval/session_eval.py`).
@@ -162,25 +166,34 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Console pages (`console/src/pages/`): Overview (alert health card, "Run scenario" demo card),
   Alerts, Cases, Transactions + Payment explanation (linking graph), Suspects (two-analyst review,
   bot-scale tag), Scam rings (members, hubs, victims, money, speed), Emerging patterns (name or
-  dismiss), Evaluation (episode, graph, AI-written messages), Explore, AI scammer (scam lab, `--lab`).
+  dismiss), Explore, AI scammer (scam lab, `--lab`), Accuracy (held-out confusion table, false alarms,
+  misses, red-team results, named failure cases; `GET /v1/accuracy` from `python -m evalsuite.accuracy`,
+  see `docs/features/accuracy.md`). Older eval results stay in `data/eval/*_results.json` and `GET /v1/eval`.
 - `docs/ml-asks.md`: what each ML model must take in, return and pass.
 
 ## Which scorer runs
 `api/main.py` scores with the trained model by default (`--scorer ml`): `ml/model/predict.py`
-(`lgbm-0.2+pg1`) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on that
-family's `build_features` inputs, including the phone's verdict scores `device_c/l/b`; isotonic
-calibration; a logistic combiner; reasons taken in turns from the lit families; the rules engine's
-playbook matcher). Payee guardrail (`+pg1`): with hard payee evidence (registry listed, an approved
+(`lgbm-0.3+pg1`, plan v3) loads `ml/model/artifacts/v0/server_model.json` (one LightGBM per family on
+that family's `build_features` inputs plus the journey's scam steps of its stage, including the phone's
+verdict scores `device_c/l/b`; isotonic calibration on separate calibration shards; a combiner whose
+weights are all >= 0 over the families, the stage and the verdict's level; reasons taken in turns from
+the lit families; the rules engine's playbook matcher). `ml/model/artifacts/v0/fusion.json` (same model
+version) turns the best playbook-search match into p_playbook and fuses it with p_scam
+(`api/threat.py`); the tier bars are `policy.yaml` `fused.tiers`. Trained on 40 simulated worlds
+(about 200,000 users, `ml/dataset/shards.py`) with the phone's verdicts from `device-0.2`; the two
+models are trained as a pair (the server reads the phone's scores), so retrain both together. Payee guardrail (`+pg1`): with hard payee evidence (registry listed, an approved
 suspect, or a money loop plus a crowd signal) the payee family is at least the rules engine's payee
-score, because the simulated worlds' mules are all small and the model reads 35+ payers a week as a shop. If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
+score; kept from lgbm-0.2, whose worlds' mules were all small (lgbm-0.3 lights the demo mule on its own). If it cannot load (e.g. LightGBM missing) the API logs it and falls back to
 `api/rule_scorer.py` (`rules-0.7`); `--scorer rules` forces the rules. `GET /health` and evidence
 records report the active scorer's version. `scripts/dev.ps1` / `dev.sh` install LightGBM from
 `ml/requirements.txt`, so the demo runs the trained model. `python -m serve` (`ml/serve.py`) still
 works and does the same.
 
-Held-out world (`dev_test`) through the real policy: 96.8% of scam payments interrupted (93.7%
-without the guardrail) vs 85.3% for `rules-0.7`, 0 vs 6.3 legit interruptions per 1,000 (inflated: the simulated world is too easy,
-see `data/eval/realism/FINDINGS.md`). Details in `ml/PLAN.md` §0.
+Held-out test shards through the real policy (`docs/plan-v3.md`, Results): the 25 attack playbooks
+never trained on 93.4% of scam payments interrupted (lgbm-0.2: 4.3%), known scams 100% / 94.3%
+(98.1% / 66.3%), 1.46 / 0.41 honest interruptions per 1,000 (0 / 0.42). The "unseen" playbooks come from
+the same simulator as the training half, so real-world gains will be smaller (the simulated worlds are
+too easy, `data/eval/realism/FINDINGS.md`).
 
 ## Run it (Windows)
 
@@ -191,9 +204,11 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop
 
 The script makes `.venv`, generates `data/*.parquet` if missing (`-Regenerate` to rebuild), builds
 the console if `console/dist/` is missing (`-BuildConsole` to rebuild; needs Node 18+), starts mock
-intel on 8001 and the API with `--demo-clock --lab`, pumps the demo mule (and with `-BaitPump` the bait
-account), runs `adb reverse` (8000, and 8001 for the mock NPCI's UPI number mapper) and seeds
-Meena's contacts into the phone's address book (`python -m sim.contacts --data data --adb`). If laptop port 8000 is taken, the API moves to the next free port
+intel on 8001 and the API with `--demo-clock --lab --seed-demo` (the demo agents fill the console once
+at startup), pumps the demo mule and the bait account (`-NoBait` skips it), rebuilds the console when
+its source is newer than `console/dist` (so run it after every pull), runs `adb reverse` (8000, and
+8001 for the mock NPCI's UPI number mapper) and, on an emulator, seeds Meena's and Rahul's contacts
+into the address book (`python -m sim.contacts --data data --user <id> --adb`). If laptop port 8000 is taken, the API moves to the next free port
 (8002 on one teammate's laptop) and the phone's 8000 is mapped to it. macOS / Linux: `sh scripts/dev.sh`.
 
 - Analyst console: `http://127.0.0.1:<api port>/console/` (dev server: `cd console && npm run dev`,
@@ -256,6 +271,10 @@ mind. Offline episode features for training:
   Naming an emerging pattern in the console drafts an entry in this format. A new name needs app
   words for `<tier>_<name>`, else the app shows the tier's generic text. Not the same as the
   simulator's journey scripts in `data/sim_v2/config/playbooks/`.
+  The same file's `search:` section (playbooks-0.3) writes each scam as weighted steps;
+  `api/playbook_search.py` scores every payment's merged steps (server + phone) against them and the
+  top 3 go to the transaction database and evidence. No effect on the tier until plan v3 step 5
+  (`docs/features/playbooks.md`).
 - `api/policy.py` + `policy.yaml` (incl. the `session:` thresholds; the alert budget never
   applies when the payee family is lit), `api/intel.py` (a slow lookup finishes in the background
   and its answer is reused for 30 min as `cached:<status>`, so a slow source never flips the tier),
@@ -313,10 +332,10 @@ mind. Offline episode features for training:
 - `dataset/` replays the simulated world into point-in-time training rows as the phone and engine
   would have seen them (`phone_view.py` sends the c2-0.8 context, including the phone's
   `device_verdict`, and replays the payment graph).
-- `model/train.py`, `predict.py` (`lgbm-0.2+pg1`, payee guardrail), `reasons.py`, `evaluate.py`, `experiments.py`,
+- `model/train.py`, `predict.py` (`lgbm-0.3+pg1`, payee guardrail), `fusion.py`, `steps_table.py`, `search_eval.py`, `reasons.py`, `evaluate.py`, `experiments.py`,
   `metrics.py`, `tune.py`; `lure_train.py` + `lure_corpus.py` train the on-phone lure classifier;
   `model/device/` trains, scores and names the verdict of the on-device model.
-- Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/device_model.json`
+- Artifacts: `model/artifacts/v0/server_model.json` (server scorer), `v0/fusion.json` (its fused threat), `v0/device_model.json`
   (+ `device_vectors.json`, `device_feature_vectors.json`, copied to the app's assets),
   `v0/policy_proposal_*.yaml`, `model/artifacts/lure.json` (+ `lure_metrics.json`,
   `lure_vectors.json`); `v1/` is empty.

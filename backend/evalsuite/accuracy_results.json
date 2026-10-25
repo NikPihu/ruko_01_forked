@@ -1,0 +1,309 @@
+{
+  "built_at": "2026-10-24T19:42:05+00:00",
+  "command": "python -m evalsuite.accuracy --table ml/data/tables/dev_test.parquet",
+  "payments": {
+    "world": "dev_test (seed 12, 5,000 users, 60 days; never used in training)",
+    "rows": 61566,
+    "scam_payments": 475,
+    "legit_payments": 244364,
+    "scorers": {
+      "rules-0.7": {
+        "confusion": {
+          "scam_interrupted": 405,
+          "scam_missed": 70,
+          "legit_interrupted": 1544,
+          "legit_not_interrupted": 242820
+        },
+        "scam_caught_rate": 0.8526,
+        "scam_rupees_caught_rate": 0.9063,
+        "false_alarms_per_1000": 6.32,
+        "legit_tips_per_1000": 21.95,
+        "precision": 0.2078,
+        "tiers": {
+          "T0": 59375,
+          "T1": 1400,
+          "T2": 392,
+          "T3": 111,
+          "T4": 288
+        },
+        "by_scam_type": {
+          "digital_arrest": 0.941,
+          "fake_customer_care": 0.839,
+          "fake_kyc_apk": 0.984,
+          "refund_qr": 0.828,
+          "task_job": 0.877,
+          "trading_group": 0.633
+        },
+        "missed_by_type": [
+          {
+            "scam_type": "trading_group",
+            "missed": 40,
+            "of": 109,
+            "median_inr": 11157.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 0.975,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.0
+          },
+          {
+            "scam_type": "digital_arrest",
+            "missed": 10,
+            "of": 170,
+            "median_inr": 15300.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 0.7,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.1
+          },
+          {
+            "scam_type": "task_job",
+            "missed": 9,
+            "of": 73,
+            "median_inr": 7326.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.222
+          },
+          {
+            "scam_type": "fake_customer_care",
+            "missed": 5,
+            "of": 31,
+            "median_inr": 43700.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 0.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.2
+          },
+          {
+            "scam_type": "refund_qr",
+            "missed": 5,
+            "of": 29,
+            "median_inr": 14037.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.0
+          },
+          {
+            "scam_type": "fake_kyc_apk",
+            "missed": 1,
+            "of": 63,
+            "median_inr": 12800.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.0
+          }
+        ]
+      },
+      "lgbm-0.2+pg1": {
+        "confusion": {
+          "scam_interrupted": 460,
+          "scam_missed": 15,
+          "legit_interrupted": 0,
+          "legit_not_interrupted": 244364
+        },
+        "scam_caught_rate": 0.9684,
+        "scam_rupees_caught_rate": 0.9913,
+        "false_alarms_per_1000": 0.0,
+        "legit_tips_per_1000": 0.0,
+        "precision": 1.0,
+        "tiers": {
+          "T0": 61102,
+          "T1": 4,
+          "T2": 2,
+          "T3": 165,
+          "T4": 293
+        },
+        "by_scam_type": {
+          "digital_arrest": 0.971,
+          "fake_customer_care": 0.968,
+          "fake_kyc_apk": 1.0,
+          "refund_qr": 0.966,
+          "task_job": 0.918,
+          "trading_group": 0.982
+        },
+        "missed_by_type": [
+          {
+            "scam_type": "task_job",
+            "missed": 6,
+            "of": 73,
+            "median_inr": 2114.0,
+            "no_scam_message": 0.5,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.5
+          },
+          {
+            "scam_type": "digital_arrest",
+            "missed": 5,
+            "of": 170,
+            "median_inr": 9600.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 0.6,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.2
+          },
+          {
+            "scam_type": "trading_group",
+            "missed": 2,
+            "of": 109,
+            "median_inr": 3197.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.0
+          },
+          {
+            "scam_type": "fake_customer_care",
+            "missed": 1,
+            "of": 31,
+            "median_inr": 600.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 0.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 1.0
+          },
+          {
+            "scam_type": "refund_qr",
+            "missed": 1,
+            "of": 29,
+            "median_inr": 14037.0,
+            "no_scam_message": 1.0,
+            "no_call_during_payment": 1.0,
+            "payee_older_than_90d": 0.0,
+            "under_2000_inr": 0.0
+          }
+        ]
+      }
+    },
+    "live_scorer": "lgbm-0.2+pg1",
+    "rules_scorer": "rules-0.7"
+  },
+  "messages": {
+    "model": "lure-0.2",
+    "held_out": "message templates never used in training",
+    "messages": 6753,
+    "scam_caught": 0.8523,
+    "scam_right_type": 0.6485,
+    "scam_unclear": 0.1808,
+    "scam_called_normal": 0.1477,
+    "normal_false_alarm": 0.0353,
+    "normal_unclear": 0.0105,
+    "per_type_f1": {
+      "arrest_threat": 0.738,
+      "kyc": 0.879,
+      "task_job": 0.792,
+      "trading_tip": 0.79,
+      "refund": 0.856,
+      "other_scam": 0.501,
+      "normal": 0.936
+    },
+    "by_language": {
+      "en": {
+        "messages": 2920.0,
+        "scam_caught": 0.8721,
+        "scam_called_normal": 0.1279,
+        "scam_unclear": 0.1654,
+        "normal_false_alarm": 0.0271
+      },
+      "hi": {
+        "messages": 1867.0,
+        "scam_caught": 0.73,
+        "scam_called_normal": 0.27,
+        "scam_unclear": 0.3038,
+        "normal_false_alarm": 0.0675
+      },
+      "hinglish": {
+        "messages": 1966.0,
+        "scam_caught": 0.9445,
+        "scam_called_normal": 0.0555,
+        "scam_unclear": 0.0818,
+        "normal_false_alarm": 0.0177
+      }
+    }
+  },
+  "new_scams": {
+    "source": "red team: 50 scams RUKO had never seen, written to evade it (attack_manifest.csv)",
+    "playbooks": 50,
+    "scam_payments": 1624,
+    "missed": 0.972,
+    "rules_missed": 0.978,
+    "by_shape": {
+      "call now, pay later (cool-off)": {
+        "playbooks": 5,
+        "missed": 0.993
+      },
+      "small first payment, then a big one": {
+        "playbooks": 8,
+        "missed": 0.939
+      }
+    },
+    "examples": [
+      {
+        "name": "tra_sim_block_delayed",
+        "title": "Fake TRAI/DoT SIM-deactivation call: instructs user to disconnect call and pay KYC verification fee after 1 hour",
+        "missed": 1.0
+      },
+      {
+        "name": "hospital_icu_friend_delayed",
+        "title": "Impersonated family friend calls about hospital billing desk, hangs up, sends pharmacy/clinic QR 45 min later",
+        "missed": 1.0
+      },
+      {
+        "name": "income_tax_scrutiny_cooloff",
+        "title": "Fake Income Tax / CA scrutiny call: advises taxpayer to pay challan QR after checking email 1 hour later",
+        "missed": 1.0
+      },
+      {
+        "name": "airline_reschedule_desk_cooloff",
+        "title": "Victim calls fake airline helpline, ends call to check boarding details, pays fare difference via QR 40 min later",
+        "missed": 1.0
+      },
+      {
+        "name": "whatsapp_grocery_flash_sale",
+        "title": "WhatsApp catalog 'D-Mart / JioMart 60% flash sale': victim scans merchant-disguised QR from chat",
+        "missed": 1.0
+      }
+    ]
+  },
+  "failure_cases": [
+    {
+      "name": "New scams it has never seen",
+      "measured": "97% of the red team's 1624 payments from 50 invented scams were not interrupted",
+      "why": "they avoid the signals RUKO weighs most: the call ends long before the payment, the first payment is small and genuine-looking, the payee is not yet known as a mule",
+      "fix": "the blue team groups the 1930 complaints these scams cause, drafts a playbook, two analysts approve it; cross-user signals (same UPI ID in many scam messages, new account paid by many) catch the money end without knowing the script"
+    },
+    {
+      "name": "Scam messages in Hindi",
+      "measured": "73% of Hindi scam messages caught vs 85% overall; 6.8% of normal Hindi messages flagged",
+      "why": "fewer Hindi training templates, and Devanagari word forms vary more",
+      "fix": "more Hindi templates in the lure corpus; never let a message alone interrupt (it never does: rule 5)"
+    },
+    {
+      "name": "A call over WhatsApp or another app",
+      "measured": "not measured on the simulator (it only has phone-network calls)",
+      "why": "the phone sees that a VoIP call is on, not who is calling, so 'unknown caller' and the fraud-list check of the number are unknown (rule 1: unknown is never treated as safe)",
+      "fix": "a VoIP call during a payment already counts for the call signal; add the chat app's contact check"
+    },
+    {
+      "name": "Many small payments over days",
+      "measured": "salami and anchor patterns were added after the audit (R7); not yet re-measured on a held-out world",
+      "why": "each payment alone looks ordinary and stays under the amount caps",
+      "fix": "24-hour outflow to new payees against the user's usual maximum (in the engine now)"
+    },
+    {
+      "name": "The weakest known scam type: task job",
+      "measured": "92% of its payments interrupted on the held-out world",
+      "why": "see 'Scams it missed' for what those payments had in common",
+      "fix": "retrain with the new cross-user features (ML owner)"
+    },
+    {
+      "name": "The simulated world is too easy",
+      "measured": "mule account age alone separates mules almost perfectly (data/eval/realism/FINDINGS.md)",
+      "why": "so the payment numbers mostly show that the pipeline works end to end; real numbers will be lower",
+      "fix": "a more realistic simulator; then retrain and re-measure with the same commands"
+    }
+  ]
+}

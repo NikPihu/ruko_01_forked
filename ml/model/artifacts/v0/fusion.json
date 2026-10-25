@@ -1,0 +1,122 @@
+{
+ "model_version": "lgbm-0.3+pg1",
+ "playbooks": "file:playbooks-0.3",
+ "playbook_iso": {
+  "x": [
+   0.3102,
+   0.319,
+   0.6674,
+   0.6685,
+   0.677,
+   0.6786,
+   0.82,
+   0.8204,
+   0.822,
+   0.9145,
+   0.9153,
+   0.9715,
+   0.9718,
+   1.0
+  ],
+  "y": [
+   0.0,
+   0.011052174751663613,
+   0.011052174751663613,
+   0.013755158184319119,
+   0.013755158184319119,
+   0.028785111748847726,
+   0.028785111748847726,
+   0.031578947368421054,
+   0.04070750422681753,
+   0.04070750422681753,
+   0.10882956878850103,
+   0.10882956878850103,
+   0.6814159292035398,
+   0.6814159292035398
+  ]
+ },
+ "form": "noisy_or",
+ "calib": {
+  "log_loss": {
+   "noisy_or": 0.0023788594302903746,
+   "logistic": 0.002390288804470756,
+   "lgbm_only": 0.0013381092318706185
+  },
+  "rows": 333529,
+  "scam_payments": 3003,
+  "with_a_match": {
+   "scam": 0.4805194805194805,
+   "honest": 0.055735403568856916
+  },
+  "best_playbook_on_scam": {
+   "-": 1560,
+   "fake_customer_care": 493,
+   "digital_arrest": 414,
+   "task_job": 234,
+   "fake_kyc_apk": 182,
+   "trading_group": 65,
+   "refund_qr": 55
+  },
+  "policy": {
+   "scam_payments_interrupted": 0.9244089244089244,
+   "scam_payments_paused": 0.9157509157509157,
+   "scam_rupees_interrupted": 0.9855877690179525,
+   "pre_loss_catch_T2": 0.864575908766928,
+   "legit_interruptions_per_1000": 1.2313706032203215,
+   "T3_precision": 0.8503401360544217,
+   "by_playbook_interrupted": {
+    "ai_voice_dubbing_microtask": 0.98,
+    "ayushman_card_hospital_upgrade_sms": 0.9583333333333334,
+    "campus_alumni_emergency_contact_pay": 0.9387755102040817,
+    "court_echallan_lok_adalat_delay": 0.9655172413793104,
+    "digital_arrest": 0.9873817034700315,
+    "domestic_help_agency_replacement_fee": 1.0,
+    "epfo_pf_claim_settlement_delay": 0.9777777777777777,
+    "fake_customer_care": 0.9714285714285714,
+    "fake_kyc_apk": 0.9900990099009901,
+    "fastag_blacklist_lowconf_sms": 0.9772727272727273,
+    "gig_rider_uniform_kit_onboarding": 0.9761904761904762,
+    "gym_cult_membership_transfer_chat": 1.0,
+    "hospital_cashless_tpa_preauth_anchor": 0.76,
+    "hr_background_verification_contact": 0.9682539682539683,
+    "indiapost_address_update_sms": 0.828125,
+    "irctc_tatkal_agent_wallet_anchor": 0.723404255319149,
+    "lpg_gas_subsidy_aadhaar_sms": 0.94,
+    "mudra_udyam_msme_certificate_qr": 1.0,
+    "passport_police_verification_hangup": 1.0,
+    "pilgrimage_darshan_helicopter_anchor": 0.6027397260273972,
+    "refund_qr": 1.0,
+    "rental_flat_visit_token_anchor": 0.6025641025641025,
+    "school_tuition_portal_whatsapp": 1.0,
+    "task_job": 0.9488272921108742,
+    "telegram_cloud_mining_subscription": 0.9210526315789473,
+    "tiffin_catering_bulk_order_anchor": 0.43137254901960786,
+    "trading_group": 0.9338842975206612,
+    "used_two_wheeler_rc_transfer_anchor": 0.6333333333333333,
+    "wedding_banquet_decorator_advance": 1.0,
+    "whatsapp_society_maintenance_clone": 0.9444444444444444,
+    "youtube_creator_sponsorship_escrow": 1.0
+   },
+   "legit_interruption_rate_by_age_band": {
+    "18-29": 0.001010734153412207,
+    "30-44": 0.0012680766057237157,
+    "45-59": 0.0013571931235548406,
+    "60+": 0.001816303999430179
+   },
+   "age_band_gap": 1.7970145693587114,
+   "tiers": {
+    "T0": 323949,
+    "T1": 6397,
+    "T2": 312,
+    "T3": 1270,
+    "T4": 1601
+   }
+  }
+ },
+ "proposed_tiers": {
+  "T1": 0.0121,
+  "T2": 0.1088,
+  "T3": 0.4478,
+  "T4": 0.4478
+ }
+}

@@ -1,15 +1,17 @@
 # Start the whole RUKO demo stack on Windows and connect the phone to it.
 #
-#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1            # start everything
+#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1            # start everything (after every git pull too)
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Regenerate # rebuild data first
 #   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Stop       # stop the services
-#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BaitPump   # also pump the task-scam bait account
-#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BuildConsole # rebuild the analyst console
+#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -NoBait     # skip the task-scam bait account
+#   powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -BuildConsole # force a console rebuild
 #
-# Steps: venv + requirements, synthetic data (if missing), mock intel on 8001,
-# risk API with --demo-clock, mule pump, adb reverse so the phone's
-# http://127.0.0.1:8000/ reaches the API. If port 8000 is taken on the laptop,
-# the API moves to the next free port and adb reverse maps phone 8000 to it.
+# Steps: venv + requirements, synthetic data (if missing), the analyst console (rebuilt when its
+# source changed), mock intel on 8001, risk API (--demo-clock --lab --seed-demo: the demo agents
+# fill the console once at startup), mule pump, bait pump, adb reverse so the phone's
+# http://127.0.0.1:8000/ reaches the API, and the demo users' contacts on the emulator.
+# If port 8000 is taken on the laptop, the API moves to the next free port and adb reverse maps
+# phone 8000 to it.
 
 param(
     [int]$ApiPort = 8000,
@@ -17,7 +19,8 @@ param(
     [int]$Payers = 40,
     [switch]$Regenerate,
     [switch]$NoPump,
-    [switch]$BaitPump,
+    [switch]$BaitPump,   # kept for old commands: the bait pump now runs by default
+    [switch]$NoBait,
     [switch]$BuildConsole,
     [switch]$Stop
 )
@@ -63,11 +66,10 @@ if (-not (Test-Path $Py)) {
 }
 # The API scores with the trained model (ml/model/predict.py), which needs LightGBM; without it the
 # API falls back to the rules. ml\requirements.txt includes backend\requirements.txt.
-& $Py -c "import lightgbm" 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "installing ml/requirements.txt (LightGBM for the trained scorer)"
-    & $Py -m pip install -q -r ml\requirements.txt
-}
+# Run every time (quick when nothing changed), so a pull that adds a package just works.
+Write-Host "checking Python packages"
+& $Py -m pip install -q --disable-pip-version-check -r ml\requirements.txt
+if ($LASTEXITCODE -ne 0) { throw "pip install -r ml\requirements.txt failed" }
 $env:PYTHONPATH = "backend;ml;data"
 $env:PYTHONIOENCODING = "utf-8"
 
@@ -79,12 +81,22 @@ if ($Regenerate -or -not (Test-Path "data\ledger.parquet")) {
 }
 
 # 2b. Analyst console (console\dist is git ignored; the API serves it at /console/)
-if ($BuildConsole -or -not (Test-Path "console\dist\index.html")) {
+# console\dist is not in git, so after a pull it is rebuilt whenever any console source is newer.
+$consoleStale = -not (Test-Path "console\dist\index.html")
+if (-not $consoleStale) {
+    $built = (Get-Item "console\dist\index.html").LastWriteTime
+    $newer = Get-ChildItem console\src, console\index.html, console\package.json -Recurse -File |
+        Where-Object { $_.LastWriteTime -gt $built } | Select-Object -First 1
+    $consoleStale = [bool]$newer
+}
+if ($BuildConsole -or $consoleStale) {
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Write-Host "building the analyst console"
         Push-Location console
         try {
-            if (-not (Test-Path "node_modules")) { npm install --no-audit --no-fund | Out-Null }
+            $lockNewer = (Test-Path "node_modules") -and (Test-Path "package-lock.json") -and
+                ((Get-Item "package-lock.json").LastWriteTime -gt (Get-Item "node_modules").LastWriteTime)
+            if (-not (Test-Path "node_modules") -or $lockNewer) { npm install --no-audit --no-fund | Out-Null }
             npm run build | Out-Null
             if ($LASTEXITCODE -ne 0) { Write-Host "console build failed; the API still runs without it" }
         } finally { Pop-Location }
@@ -110,7 +122,7 @@ Write-Host "mock intel up on $IntelPort"
 
 $api = Start-Process -FilePath $Py -PassThru -WindowStyle Hidden `
     -ArgumentList "-m", "api.main", "--data", "data", "--port", "$ApiPort", `
-                  "--intel", "http://127.0.0.1:$IntelPort", "--demo-clock", "--lab" `
+                  "--intel", "http://127.0.0.1:$IntelPort", "--demo-clock", "--lab", "--seed-demo" `
     -RedirectStandardOutput "$Logs\api.log" -RedirectStandardError "$Logs\api.err.log"
 $api.Id | Out-File $PidFile -Append -Encoding ascii
 $health = Wait-Health "http://127.0.0.1:$ApiPort/health"
@@ -123,7 +135,7 @@ if (-not $NoPump) {
 }
 
 # 5b. Task-scam bait account fanning out to 40 users, for the payment graph demo (/console/graph)
-if ($BaitPump) {
+if (-not $NoBait) {
     & $Py -m sim.bait_pump --api "http://127.0.0.1:$ApiPort" --intel "http://127.0.0.1:$IntelPort"
     if ($LASTEXITCODE -ne 0) { throw "sim.bait_pump failed" }
 }
@@ -139,9 +151,14 @@ if ($Adb) {
         # The mock NPCI's UPI number mapper (mobile -> UPI ID), as a real PSP app would call it.
         & $Adb reverse "tcp:8001" "tcp:$IntelPort" | Out-Null
         Write-Host "phone: adb reverse tcp:8001 -> laptop tcp:$IntelPort (UPI number mapper)"
-        # The demo user's address book (people really paid in the world, plus a few never paid).
-        & $Py -m sim.contacts --data data --adb | Out-Null
-        if ($LASTEXITCODE -eq 0) { Write-Host "phone: Meena's contacts are in the phone's Contacts" }
+        # The demo users' address books (people really paid in the world, plus a few never paid),
+        # on emulators only: never write into a real phone's contacts.
+        if ($devices -match "emulator-") {
+            foreach ($u in @("u_demo_meena", "u_001435")) {
+                & $Py -m sim.contacts --data data --user $u --adb | Out-Null
+            }
+            Write-Host "phone: Meena's and Rahul's contacts are in the emulator's Contacts"
+        }
     } else {
         Write-Host "no phone or emulator connected; run later: adb reverse tcp:$phonePort tcp:$ApiPort"
     }
@@ -151,5 +168,8 @@ if ($Adb) {
 
 Write-Host ""
 Write-Host "Ready. In Cache Pay tap 'Check Scam Shield' or long press the title for the debug panel."
-if (Test-Path "console\dist\index.html") { Write-Host "Analyst console: http://127.0.0.1:$ApiPort/console/" }
+if (Test-Path "console\dist\index.html") {
+    Write-Host "Analyst console: http://127.0.0.1:$ApiPort/console/  (demo data fills it within ~30 s)"
+    Write-Host "AI scammer page: http://127.0.0.1:$ApiPort/console/#/lab"
+}
 Write-Host "Logs: logs\api.log, logs\intel.log. Stop: scripts\dev.ps1 -Stop"

@@ -143,52 +143,6 @@ export interface Verify {
   first_bad_id: string | null;
 }
 
-export interface EvalCondition {
-  label: string;
-  share_inr_interrupted: number;
-  journeys_alerted: number;
-  journeys: number;
-  median_first_alert_payment: number | null;
-  false_interruption_rate: number;
-}
-
-export interface EvalVisibility {
-  mules_flagged: number;
-  share_of_mules_flagged_before_registry: number;
-  median_days_before_listing: number | null;
-  analyst_list: number;
-  analyst_list_precision: number;
-  rings: number;
-}
-
-export interface AiLures {
-  model_version: string | null;
-  messages: number;
-  scam_messages: number;
-  honest_messages: number;
-  caught: number | null;
-  right_scam_type: number | null;
-  false_alarms: number | null;
-  baseline_caught_unseen_templates: number;
-  by_scam_type: Record<string, number>;
-  by_language: Record<string, { messages: number; flagged: number }>;
-  missed: { tag: string; lang: string; got: string; conf: number; text: string }[];
-}
-
-export interface EvalResults {
-  ai_lures?: AiLures | null;
-  episode: {
-    world: { users: number; task_journeys: number; task_inr: number };
-    conditions: Record<"known_mules" | "fresh_mules", Record<"A" | "B" | "C", EvalCondition>>;
-  } | null;
-  graph: {
-    world: { users: number; mules: number; episode_events: number };
-    visibility: Record<"none" | "partner" | "dpip", EvalVisibility>;
-  } | null;
-}
-
-// ---------- transaction database (every payment check) and explanations ----------
-
 export interface Transaction {
   payment_id: string;
   user_hash: string;
@@ -298,6 +252,8 @@ export interface RingAccount {
   automation_why: string | null;
   registry_listed: boolean;
   approved: boolean;
+  /** How a suspect is tied to the ring, in words (null for the accounts discovery started from). */
+  linked_by: string | null;
 }
 
 export interface Ring {
@@ -313,6 +269,7 @@ export interface Ring {
   links: { from: string; to: string; inr: number; n: number; hold_min: number | null; sources: string[] }[];
   victims_per_account: Record<string, number>;
   summary: string;
+  explanation: { started_from: { upi_id: string; why: string }[]; linked_by: Record<string, string | null>; steps: string[] };
 }
 
 export interface EmergingPattern {
@@ -340,11 +297,19 @@ async function get<T>(path: string): Promise<T> {
 
 
 /** Scam lab (/v1/lab/*, only when the API runs with --lab): the judge plays the scammer. */
-export interface LabStatus { lab: boolean; adb: string | null; emulator: string | null; victim: string }
+export interface LabStatus {
+  lab: boolean; adb: string | null; emulator: string | null;
+  /** The demo account that paid most recently (the one signed in on the phone). */
+  victim: string; victims: { user_id: string; name: string }[];
+}
 export interface LabWorkflow {
   id: string; title: string; flagged: boolean; story: string; expect: string; expect_tiers: Tier[];
   sms: { from: string; text: string } | null; call: string | null; victim_steps: string[];
   payee: string; amount: number; prepare: string;
+  /** Ring first; the message goes only after the victim answers (an OTP during a call). */
+  sms_after_call: boolean;
+  /** The phone warns on its own; nothing reaches the server, so there is no result to show. */
+  on_phone_only: boolean;
 }
 export interface LabPresets {
   scam: { tag: string; lang: string; text: string }[];
@@ -357,6 +322,7 @@ export interface LabLatest {
   reasons?: { code: string; text: string }[];
   headline?: string; lit?: string[]; result?: string; words?: string;
   expected?: { workflow: string; words: string; met: boolean; same_payee: boolean };
+  victim?: string;
 }
 export interface LabSent { ts: string; kind: string; from?: string; number?: string; action?: string; chars?: number; workflow?: string }
 
@@ -370,6 +336,28 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
     throw new Error(typeof detail === "string" ? detail : `${path}: ${r.status}`);
   }
   return r.json() as Promise<T>;
+}
+
+/** The Accuracy page (GET /v1/accuracy, written by python -m evalsuite.accuracy). */
+export interface AccuracyScorer {
+  confusion: { scam_interrupted: number; scam_missed: number; legit_interrupted: number; legit_not_interrupted: number };
+  scam_caught_rate: number; scam_rupees_caught_rate: number; false_alarms_per_1000: number;
+  legit_tips_per_1000: number; precision: number | null; tiers: Record<string, number>;
+  by_scam_type: Record<string, number>;
+  missed_by_type: { scam_type: string; missed: number; of: number; median_inr: number | null; no_scam_message: number | null;
+    no_call_during_payment: number | null; payee_older_than_90d: number | null; under_2000_inr: number | null }[];
+}
+export interface Accuracy {
+  built_at: string; command: string;
+  payments: { world: string; rows: number; scam_payments: number; legit_payments: number; live_scorer: string;
+    rules_scorer: string; scorers: Record<string, AccuracyScorer> };
+  messages: { model: string; held_out: string; messages: number; scam_caught: number; scam_right_type: number;
+    scam_unclear: number; scam_called_normal: number; normal_false_alarm: number; normal_unclear: number;
+    per_type_f1: Record<string, number>;
+    by_language: Record<string, { messages: number; scam_caught: number; scam_called_normal: number; scam_unclear: number; normal_false_alarm: number }> };
+  new_scams: { source: string; playbooks: number; scam_payments: number; missed: number; rules_missed: number;
+    by_shape: Record<string, { playbooks: number; missed: number }>; examples: { name: string; title: string; missed: number }[] };
+  failure_cases: { name: string; measured: string; why: string; fix: string }[];
 }
 
 export const api = {
@@ -387,7 +375,6 @@ export const api = {
     if (!r.ok) throw new Error(`payment: ${r.status}`);
     return r.json() as Promise<Payment>;
   },
-  evaluation: () => get<EvalResults>("/v1/eval"),
   transactions: (params: { min_tier?: Tier | "T0"; status?: string; payee?: string; user_hash?: string; limit?: number } = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
     return get<{ count: number; transactions: Transaction[] }>(`/v1/transactions?${q}`);
@@ -413,15 +400,32 @@ export const api = {
     if (!r.ok) throw new Error(`lab: ${r.status}`);
     return r.json() as Promise<LabStatus>;
   },
-  labPresets: () => get<LabPresets>("/v1/lab/presets"),
-  labWorkflows: () => get<{ victim: string; workflows: LabWorkflow[]; app_switches: string[] }>("/v1/lab/workflows"),
+  labPresets: (victim?: string) => get<LabPresets>(`/v1/lab/presets${victim ? `?victim=${victim}` : ""}`),
+  labWorkflows: (victim?: string) => get<{ victim: string; workflows: LabWorkflow[]; app_switches: string[] }>(
+    `/v1/lab/workflows${victim ? `?victim=${victim}` : ""}`),
   labSms: (from: string, text: string) => post<{ sent: boolean }>("/v1/lab/sms", { from, text }),
   labCall: (number: string, action: "ring" | "answer" | "hangup") => post<{ done: boolean }>("/v1/lab/call", { number, action }),
-  labPrepare: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare`),
-  labSend: (id: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send`),
-  labLatest: (workflow?: string) => get<LabLatest>(`/v1/lab/latest${workflow ? `?workflow=${workflow}` : ""}`),
+  labPrepare: (id: string, victim?: string) => post<Record<string, unknown>>(`/v1/lab/workflows/${id}/prepare${victim ? `?victim=${victim}` : ""}`),
+  labSend: (id: string, victim?: string, part: "all" | "sms" | "call" = "all") => {
+    const q = new URLSearchParams({ part });
+    if (victim) q.set("victim", victim);
+    return post<Record<string, unknown>>(`/v1/lab/workflows/${id}/send?${q}`);
+  },
+  labLatest: (workflow?: string, victim?: string) => {
+    const q = new URLSearchParams();
+    if (workflow) q.set("workflow", workflow);
+    if (victim) q.set("user_id", victim);
+    return get<LabLatest>(`/v1/lab/latest?${q}`);
+  },
   labSent: () => get<{ sent: LabSent[] }>("/v1/lab/sent"),
   labReset: () => post<{ ok: boolean }>("/v1/lab/reset"),
+  /** null until python -m evalsuite.accuracy has been run. */
+  accuracy: async () => {
+    const r = await fetch("/v1/accuracy");
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`accuracy: ${r.status}`);
+    return r.json() as Promise<Accuracy>;
+  },
   rings: () => get<{ as_of: string; rings: Ring[] }>("/v1/graph/rings"),
   emerging: () => get<{ as_of: string; patterns: EmergingPattern[] }>("/v1/patterns/emerging"),
   reviewPattern: async (id: string, analyst: string, action: "name" | "dismiss", name?: string) => {

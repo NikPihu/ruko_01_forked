@@ -244,6 +244,47 @@ The app still shows only words (rule 4).
 
   Each PR has its tests green (backend, ml, interface_script, blue team, Android unit tests).
 
+## Results (25 Oct 2026)
+
+Steps 0-5 are built; lgbm-0.3+pg1, its fusion and device-0.2 are live in `ml/model/artifacts/v0/`.
+Step 6 (console and blue team on steps) is the red / blue console redesign (`feature/rb-console`);
+the blue team's approved playbooks are not yet written as steps.
+
+**Data:** 40 world shards (`ml/dataset/shards.py`), 3.35 M payments, 28,831 scam payments: 32 train,
+4 calibration, 4 test; the test shards hold the 25 attack playbooks no training shard has.
+
+**Held-out test shards, through the real policy** (`model.evaluate --fusion`):
+
+| | lgbm-0.2 + device-0.1 | lgbm-0.3 + device-0.2 + fusion |
+|---|---|---|
+| 25 unseen attack playbooks, scam payments interrupted (mean) | 4.3% | **93.4%** (lowest 52%) |
+| Known scams, sim / sim_v2 world | 98.1% / 66.3% | 100% / 94.3% |
+| Honest interruptions per 1,000, sim / sim_v2 | 0 / 0.42 | 1.46 / 0.41 (limit 2) |
+| Age-band gap in honest interruptions (rule 14 audit) | – | 1.42 / 1.73 |
+| On-device warnings on honest payments per 1,000, sim_v2 | 0.77 | 0.03-0.05 |
+
+Where the gain comes from (sim_v2 test world): lgbm-0.3 alone, under the old two-families gate,
+interrupts 71% at 0.00 honest per 1,000; the fused playbook search adds about 20 points for 0.4 honest
+per 1,000.
+
+**Decisions made on the data:**
+- **Four family models, not one.** A single LightGBM over every input (the first design) took a
+  shortcut in these worlds: a dictated amount plus a mule-like payee separate nearly every scam, so it
+  gave a call with screen control almost no weight (a Meena-like payment without session data scored
+  0.0003). It also failed the honest budget (2.9-3.9 per 1,000). Each family model must learn from its
+  own evidence; `ml/tests/test_train_v3.py` keeps the comparison.
+- **Combiner weights >= 0.** An unconstrained fit weighed the call family negatively.
+- **The two models ship as a pair.** lgbm-0.3 trained on device-0.1's verdicts gave 4.8 honest per
+  1,000 when the phone sent device-0.2's; it was retrained on the shards re-verdicted with device-0.2
+  (a pure function of the stored phone features, so equal to a re-replay).
+- **Playbook search:** every required step must be seen (one seen required step matched 76% of honest
+  payments to refund_qr); a stranger's credit cannot anchor task_job (29% of honest payments have one).
+
+**Read with care:** the "unseen" playbooks are new scripts from the same simulator as the training
+half; lgbm-0.2 had never seen that simulator. Real-world gains will be smaller
+(`data/eval/realism/FINDINGS.md`). Known gap: `features/build.py` sets `outgoing_to_unknown` to false
+when the caller's contact status is unknown (rule 1); fix it with the next retrain.
+
 ## Order and dependencies
 ```
 0 groundwork ──► 1 lure-0.2 ──┐
