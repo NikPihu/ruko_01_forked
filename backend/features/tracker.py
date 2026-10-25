@@ -20,6 +20,8 @@ CONTROL_AFTER_CONTACT = timedelta(hours=2)
 WATCH_RULES = json.loads((Path(__file__).resolve().parents[2] / "contracts" / "watch_rules.json").read_text(encoding="utf-8"))
 LURE_MIN_CONF: float = WATCH_RULES["lure_min_conf"]
 LONG_CALL_MIN: float = WATCH_RULES["long_call_min"]
+# c2-0.15: an OTP that arrived during an unknown call counts for this long (account takeover in progress).
+OTP_MEMORY = timedelta(minutes=WATCH_RULES.get("otp_recent_min", 120))
 STAGES = ("S0", "S1", "S2", "S3", "S4", "S5")
 
 
@@ -38,6 +40,7 @@ class Session:
     lure_ts: datetime | None = None
     episode_hooked: bool = False   # the phone's task-scam episode is ACTIVE
     long_call: bool = False        # the phone reported a long call with an unknown caller (watch event)
+    otp_ts: datetime | None = None # c2-0.15: an OTP arrived during a call with an unknown number (watch event)
     attempts: list[Attempt] = field(default_factory=list)
     recent_out: list[tuple[datetime, float]] = field(default_factory=list)  # new-payee payments, for 24h cumulative outflow
     stage_path: list[tuple[str, datetime]] = field(default_factory=list)
@@ -54,6 +57,7 @@ class TrackerState:
     outflow_24h: float         # payments to new/unknown payees in the last 24h, any entry method (incl. this one)
     payee_in_run: bool         # this payee is new, or one of those earlier new payees
     minutes_since_first_contact: float | None
+    otp_on_call: bool | None = None  # c2-0.15: an OTP arrived during an unknown call within OTP_MEMORY; None = not reported
 
 
 class StageTracker:
@@ -123,6 +127,9 @@ class StageTracker:
             outflow_24h=outflow_24h,
             payee_in_run=new_payee or any(a.payee == req.payee_upi_id for a in earlier_new),
             minutes_since_first_contact=(now - first).total_seconds() / 60 if first else None,
+            # True or unknown, never False: the phone reports only when it saw one, and only with
+            # "Early warnings" on, so no report is not proof of no OTP (rule 1).
+            otp_on_call=True if s.otp_ts is not None and timedelta(0) <= now - s.otp_ts <= OTP_MEMORY else None,
         )
 
     def observe(self, user_id: str, kind: str, ts: datetime, *, lure_conf: float | None = None,
@@ -139,6 +146,13 @@ class StageTracker:
             if not any(abs((c - started).total_seconds()) < 60 for c in s.contacts):
                 s.contacts.append(started)
             s.long_call = True
+        elif kind == "otp_during_call":
+            # Someone on an unknown call is after a one-time code: that is contact and an attempt to
+            # take control of an account (S3), whether or not a payment follows in RUKO.
+            if not any(abs((c - ts).total_seconds()) < 60 for c in s.contacts):
+                s.contacts.append(ts)
+            s.otp_ts = max(s.otp_ts or ts, ts)
+            s.control_ts = s.control_ts or ts
         stage = self._stage(s, None, False, [])
         if not s.stage_path or s.stage_path[-1][0] != stage:
             s.stage_path.append((stage, ts))
@@ -165,6 +179,8 @@ class StageTracker:
     @staticmethod
     def _expire(s: Session, now: datetime) -> None:
         cutoff = now - WINDOW
+        if s.otp_ts is not None and s.otp_ts <= cutoff:
+            s.otp_ts = None
         s.contacts = [c for c in s.contacts if c > cutoff]
         s.long_call = s.long_call and bool(s.contacts)
         s.attempts = [a for a in s.attempts if a.ts > cutoff]

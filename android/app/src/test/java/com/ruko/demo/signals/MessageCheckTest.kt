@@ -138,4 +138,40 @@ class MessageCheckTest {
             assertEquals(text, o.getValue("probability").jsonPrimitive.double, scorer.probability(text), 1e-6)
         }
     }
+
+    @Test
+    fun anOtpIsActedOnOnlyWhenItIsForUpiOrABank() {
+        fun purpose(sender: String?, body: String) = MessageCheck.otpPurpose(sender, body)
+        // The sender header of a bank or a UPI app decides.
+        assertEquals(OtpPurpose.BANK, purpose("VM-HDFCBK", "482915 is your OTP for login. Do not share it."))
+        assertEquals(OtpPurpose.BANK, purpose("JD-SBIOTP", "Your OTP is 7731 for the transaction."))
+        assertEquals(OtpPurpose.UPI, purpose("AX-PHONPE", "OTP 552901 to verify your device. Do not share."))
+        // Otherwise the words.
+        assertEquals(OtpPurpose.UPI, purpose("5676780", "Use OTP 482913 to set your UPI PIN. Never share it."))
+        assertEquals(OtpPurpose.UPI, purpose("AD-NOTIFY", "OTP 119922 to link your bank account to Google Pay."))
+        assertEquals(OtpPurpose.BANK, purpose("5676780", "482913 is your OTP to log in to HDFC Bank NetBanking."))
+        assertEquals(OtpPurpose.BANK, purpose("AD-NOTIFY", "OTP 4410 to add a beneficiary to your a/c XX4821."))
+        assertEquals(OtpPurpose.BANK, purpose(null, "आपका ओटीपी 482915 है। बैंक खाते से लेनदेन के लिए।"))
+        // Orders, deliveries and social apps are not money: "your Instagram account" is not a bank account.
+        assertEquals(OtpPurpose.OTHER, purpose("AX-SWIGGY", "Your OTP for order delivery is 4821."))
+        assertEquals(OtpPurpose.OTHER, purpose("VK-AMAZON", "482915 is your Amazon OTP. Do not share it."))
+        assertEquals(OtpPurpose.OTHER, purpose("JM-INSTAG", "Use 123456 as your Instagram account verification code."))
+        assertEquals(OtpPurpose.UNKNOWN, purpose("5676780", "Your OTP is 482915. Do not share it with anyone."))
+        assertNull(purpose("VM-HDFCBK", "Rs.500.00 credited to A/c XX4821"))   // not an OTP at all
+        assertTrue(OtpPurpose.UPI.forMoney && OtpPurpose.BANK.forMoney)
+        assertFalse(OtpPurpose.OTHER.forMoney || OtpPurpose.UNKNOWN.forMoney)
+    }
+
+    @Test
+    fun aNonMoneyOtpOnACallGetsNoTakeoverWarning() {
+        val ts = 1_000_000L
+        val call = listOf(CallWindow(ts - 60_000, ts + 60_000, callerKnown = false))
+        val swiggy = MessageCheck.check("AX-SWIGGY", "Your OTP for order delivery is 4821.", ts, lure, null, call)
+        assertTrue(swiggy.otp)                     // still "never share this"
+        assertFalse(swiggy.otpDuringCall)          // but no takeover warning
+        assertEquals(OtpPurpose.OTHER, swiggy.otpPurpose)
+        val bank = MessageCheck.check("5676780", "Use OTP 482913 to set your UPI PIN.", ts, lure, null, call)
+        assertTrue(bank.otpDuringCall)
+        assertEquals(OtpPurpose.UPI, bank.otpPurpose)
+    }
 }

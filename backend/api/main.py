@@ -226,6 +226,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ring["in_campaign"] = campaigns.spreading("upi", upi, req.ts)
         caller = wire_value("phone", call.caller_number) if call and call.caller_number else None
         ring["caller_in_campaign"] = campaigns.spreading("phone", caller, req.ts) if caller else None
+        # One unknown number calling many RUKO users (c2-0.15): this call counts too.
+        if caller and call.caller_in_contacts is False:
+            campaigns.record_call(req.user_id, caller, req.ts)
+        ring["caller_many_users"] = campaigns.calling_many(caller, req.ts)
         feats = build_features(req, state, res, base, is_trusted, ring=ring, paid_here=paid_here,
                                micro_anchor=micro_anchor)
         ms["features"] = (time.perf_counter() - t) * 1000
@@ -399,12 +403,18 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         ts = server_ts(ev.ts)
         stage = tracker.observe(ev.user_id, ev.kind, ts, lure_conf=ev.lure_conf, call_minutes=ev.call_minutes)
         detail = {k: v for k, v in ev.model_dump(include={"lure_tag", "lure_conf", "source", "ai_written",
-                                                           "call_kind", "call_minutes"}).items() if v is not None}
+                                                           "call_kind", "call_minutes", "caller_hash",
+                                                           "otp_purpose"}).items()
+                  if v is not None}
         # Money handles from the flagged message (c2-0.13): UPI plain, link/number pseudonyms, no text.
         if ev.kind == "lure_seen" and ev.handles:
             campaigns.record(ev.user_id, [(h.kind, h.value) for h in ev.handles], ts)
             campaigns.expire(ts)
             detail["handles"] = [h.model_dump() for h in ev.handles]
+        # The number behind a long unknown call or an OTP-on-call (c2-0.15), as its pseudonym only.
+        if ev.kind in ("long_unknown_call", "otp_during_call") and ev.caller_hash:
+            campaigns.record_call(ev.user_id, ev.caller_hash, ts)
+            campaigns.expire(ts)
         persist(store.record_watch, ev.event_id, ev.user_id, ev.kind, detail, ts)
         return WatchEventResponse(event_id=ev.event_id, recorded=True, stage=stage)
 
@@ -580,7 +590,10 @@ def create_app(data_dir: str | Path, intel_client: httpx.AsyncClient | None = No
         plain; links and numbers stay hidden (only their pseudonyms are known). Analyst view only."""
         now = max(patterns_now(), campaigns.latest() or patterns_now())
         return {"as_of": now.isoformat(), "window_minutes": campaigns.window.total_seconds() / 60,
-                "min_users": campaigns.min_users, "handles": campaigns.top(now, limit=max(1, min(limit, 100)))}
+                "min_users": campaigns.min_users,
+                "caller_window_hours": campaigns.caller_window.total_seconds() / 3600,   # c2-0.15
+                "caller_min_users": campaigns.caller_min_users,
+                "handles": campaigns.top(now, limit=max(1, min(limit, 100)))}
 
     @app.get("/v1/patterns/emerging")
     def emerging_patterns() -> dict:

@@ -56,6 +56,8 @@
     <string name="reason_R11_ring_link">यह खाता उस गिरोह से जुड़ा है जिसने कई लोगों को छोटे ‘इनाम’ भेजे</string>
     <string name="reason_R12_coached_session">लगता है कोई आपको बता रहा है कि क्या टाइप करना है: रकम धीरे-धीरे, एक-एक अंक करके डाली गई, या ऐप बदलते ही UPI ID पेस्ट की गई</string>
     <string name="reason_R13_scam_campaign">यह खाता अभी स्कैम मैसेज में कई लोगों को भेजा जा रहा है</string>
+    <string name="reason_R14_caller_many_users">जो नंबर आपको कॉल कर रहा है, उसने आज कई और लोगों को भी कॉल किया है</string>
+    <string name="reason_R15_otp_on_call">अनजान नंबर से कॉल के दौरान UPI या बैंक का एक OTP आया</string>
     <string name="consent_session">भुगतान स्क्रीन की जाँच</string>
     <string name="consent_session_desc">आप भुगतान स्क्रीन कैसे इस्तेमाल करते हैं: टाइप करने की रफ़्तार, पेस्ट करना, ऐप बदलना। फ़ोन से सिर्फ़ गिनती और समय जाता है, आप क्या टाइप करते हैं वह कभी नहीं।</string>
 
@@ -115,6 +117,7 @@
     <string name="threat_type">यह ऐसा लगता है: %1$s</string>
     <string name="fraud_digital_arrest">\"डिजिटल अरेस्ट\" धोखाधड़ी</string>
     <string name="fraud_fake_customer_care">नकली कस्टमर केयर धोखाधड़ी</string>
+    <string name="fraud_otp_takeover">OTP लेकर खाते पर कब्ज़ा</string>
     <string name="fraud_fake_kyc_apk">नकली केवाईसी ऐप धोखाधड़ी</string>
     <string name="fraud_trading_group">नकली ट्रेडिंग या निवेश ग्रुप</string>
     <string name="fraud_task_job">पार्ट-टाइम टास्क या जॉब धोखाधड़ी</string>
@@ -157,6 +160,10 @@
     <string name="t2_fake_customer_care_body">असली कस्टमर केयर समस्या ठीक करने के लिए कभी पैसे नहीं माँगता, न ही आपकी स्क्रीन। पक्का हो तभी आगे बढ़ें।</string>
     <string name="t3_fake_customer_care_title">रुकिए: यह नकली कस्टमर केयर वाले स्कैम जैसा है</string>
     <string name="t3_fake_customer_care_body">असली कस्टमर केयर समस्या ठीक करने के लिए कभी पैसे नहीं माँगता, न ही आपकी स्क्रीन। पैसे भेजने से पहले किसी भरोसेमंद व्यक्ति से बात करें।</string>
+    <string name="t2_otp_takeover_title">पहले जाँच लें: कोई आपके खाते पर कब्ज़ा कर सकता है</string>
+    <string name="t2_otp_takeover_body">अनजान नंबर से कॉल के दौरान UPI या बैंक का एक OTP आया। असली बैंक कॉल पर कभी OTP या पैसे नहीं माँगता। पक्का हो तभी आगे बढ़ें।</string>
+    <string name="t3_otp_takeover_title">रुकिए: कोई आपके खाते पर कब्ज़ा कर सकता है</string>
+    <string name="t3_otp_takeover_body">अनजान नंबर से कॉल के दौरान UPI या बैंक का एक OTP आया। असली बैंक कॉल पर कभी OTP या पैसे नहीं माँगता। कॉल काटें और अपने कार्ड पर लिखे नंबर पर बैंक को कॉल करें।</string>
     <string name="alert_counter_coaching">पुलिस, CBI और RBI कभी जाँच के नाम पर पैसे भेजने को नहीं कहते। अगर कॉल करने वाले ने यह स्क्रीन अनदेखी करने को कहा है, तो यह स्कैम का संकेत है।</string>
     <string name="alert_why">हम क्यों पूछ रहे हैं</string>
     <string name="alert_slide_to_pay">PIN के लिए आगे स्लाइड करें</string>

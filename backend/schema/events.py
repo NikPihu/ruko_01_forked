@@ -9,10 +9,10 @@ import json
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 # Bump on any shape change, and re-export contracts/ (python -m schema.export).
-CONTRACT_VERSION = "c2-0.14"
+CONTRACT_VERSION = "c2-0.15"
 
 Tier =Literal["T0", "T1", "T2", "T3", "T4"]
 ReasonCode = Literal[
@@ -20,6 +20,8 @@ ReasonCode = Literal[
     "R5_lure_message", "R6_new_payee_typed", "R7_tranche_pattern", "R8_intel_hit",
     "R9_story_mismatch", "R10_bait_then_pay", "R11_ring_link", "R12_coached_session",
     "R13_scam_campaign",  # c2-0.13: the payee or caller is being pushed in scam messages to many people
+    "R14_caller_many_users",  # c2-0.15: the same unknown number called several RUKO users (AI voice at scale)
+    "R15_otp_on_call",    # c2-0.15: a one-time code arrived during a call with an unknown number
     "ruko_unavailable",
 ]
 # c2-0.14: other_scam (a scam outside the five kinds) and unclear (no class reached the 0.6 bar: never
@@ -283,6 +285,8 @@ WatchKind = Literal[
     "remote_access_on",      # screen sharing / remote control started
     "long_unknown_call",     # a call with an unknown or non-contact caller passed N minutes
     "sideload",              # an app was installed from outside the store
+    "otp_during_call",       # c2-0.15: a one-time code (OTP) for UPI or a bank arrived during a call with an
+                             # unknown number: the caller is after an account (takeover). Never the code.
 ]
 
 
@@ -309,6 +313,18 @@ class WatchEvent(_M):
     handles: Optional[list[Handle]] = Field(None, max_length=10)  # lure_seen only (c2-0.13): money handles
     call_kind: Optional[Literal["sim", "voip"]] = None        # long_unknown_call only
     call_minutes: Optional[float] = Field(None, ge=0)         # long_unknown_call only
+    # c2-0.15, long_unknown_call and otp_during_call only: the caller's number as the same salted SHA-256
+    # pseudonym as a "phone" Handle (graph/campaigns.py). Null when the phone cannot see it (VoIP, rule 1).
+    caller_hash: Optional[str] = Field(None, pattern=r"^sha256:[0-9a-f]{64}$")
+    # c2-0.15, otp_during_call only (required there): what the OTP was for, read on the phone from the
+    # sender and the words. Only a UPI or bank OTP is reported; one for an order or a social app never is.
+    otp_purpose: Optional[Literal["upi", "bank"]] = None
+
+    @model_validator(mode="after")
+    def _otp_purpose_only_for_otp(self) -> "WatchEvent":
+        if (self.kind == "otp_during_call") != (self.otp_purpose is not None):
+            raise ValueError("otp_purpose is required for otp_during_call and allowed only there")
+        return self
 
 
 class WatchEventResponse(_M):

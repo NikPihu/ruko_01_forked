@@ -11,13 +11,15 @@ import com.ruko.demo.signals.BankSms
 import com.ruko.demo.signals.MessageCheck
 import com.ruko.demo.signals.MessageScan
 import com.ruko.demo.signals.MoneyTxn
+import com.ruko.demo.signals.OtpPurpose
 import com.ruko.demo.signals.Signals
+import com.ruko.demo.signals.callerHash
 
 /**
  * SMS_RECEIVED wakes the app even when it is not running (the broadcast is on Android's exempt
  * list). Every message is scam-checked first; a bank alert that does not read like a scam is parsed
  * and handed to EpisodeWorker; the text is never stored.
- * Also: a one-time code (OTP) that arrives during a call gets a full warning, with "SMS scam
+ * Also: a one-time code (OTP) for UPI or a bank that arrives during a call gets a full warning, with "SMS scam
  * check" and "Call signals" on (A5). Ships disabled; ShieldController enables it when "Watch my
  * money alerts" or "SMS scam check" is switched on.
  */
@@ -29,18 +31,23 @@ class SmsReceiver : BroadcastReceiver() {
         val bySender = messages.groupBy { it.originatingAddress }
         // If the consents cannot be read, bank alerts go on as before and no OTP warning is shown.
         val consents = runCatching { AccountStore(context).loadConsents() }.getOrNull()
+        var otpOnCall: OtpPurpose? = null
         if (consents != null && consents.smsLure && consents.callSignals) {
-            val now = System.currentTimeMillis()
-            val otpOnCall = bySender.values.any { parts -> MessageCheck.isOtp(parts.joinToString("") { it.messageBody.orEmpty() }) } &&
-                MessageScan.callNow(context, now) != null
-            if (otpOnCall) ShieldNotifier.showOtpOnCall(context, runCatching { AccountStore(context).loadProfile()?.language }.getOrNull())
+            // Only an OTP for UPI or a bank is a takeover warning; one for an order or a social app is not.
+            val purpose = bySender.entries.mapNotNull { (sender, parts) ->
+                MessageCheck.otpPurpose(sender, parts.joinToString("") { it.messageBody.orEmpty() })?.takeIf { it.forMoney }
+            }.minOrNull() // UPI before BANK
+            if (purpose != null && MessageScan.callNow(context, System.currentTimeMillis()) != null) {
+                otpOnCall = purpose
+                ShieldNotifier.showOtpOnCall(context, runCatching { AccountStore(context).loadProfile()?.language }.getOrNull())
+            }
         }
         val warn = consents != null && consents.smsLure
         val count = consents == null || consents.moneyWatch
         if (!warn && !count) return
         triageMessages(context, bySender.mapValues { (_, parts) ->
             parts.joinToString("") { it.messageBody.orEmpty() } to parts.first().timestampMillis + ShieldController.debugOffsetMs
-        }, warn, count)
+        }, warn, count, otpOnCall)
     }
 
     /**
@@ -48,11 +55,20 @@ class SmsReceiver : BroadcastReceiver() {
      * scam script gets a "may be a scam" notification when [warn] (A5), and is never counted as a
      * bank alert; the rest go to EpisodeWorker when [count].
      */
-    private fun triageMessages(context: Context, messages: Map<String?, Pair<String, Long>>, warn: Boolean, count: Boolean) {
+    private fun triageMessages(
+        context: Context, messages: Map<String?, Pair<String, Long>>, warn: Boolean, count: Boolean, otpOnCall: OtpPurpose?,
+    ) {
         val pending = goAsync()
         Thread {
             try {
                 Signals.init(context.applicationContext)
+                // The OTP-on-call early warning (c2-0.15): an account takeover in progress. Only the
+                // call type and the caller's pseudonym, never the code, the sender or the text (rule 2).
+                if (otpOnCall != null) {
+                    val call = runCatching { Signals.sensor.readCall() }.getOrNull()
+                    WatchSender.report(context, Sighting.OtpOnCall(call?.kind, call?.callerInContacts,
+                        callerHash(call?.callerInContacts, call?.callerNumber), otpOnCall))
+                }
                 val language = if (warn) runCatching { AccountStore(context).loadProfile()?.language }.getOrNull() else null
                 val txns = ArrayList<MoneyTxn>()
                 for ((sender, message) in messages) {

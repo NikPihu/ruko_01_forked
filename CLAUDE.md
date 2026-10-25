@@ -85,7 +85,7 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
 - Add a test with every rule, feature or reason code.
 - Python: type hints; Pydantic models mirror `contracts/`.
 
-## Contract (current: c2-0.14)
+## Contract (current: c2-0.15)
 - `POST /v1/decide`: request `request_id, user_id, payee_upi_id (plain), amount_inr, entry_method,
   payer_says?, ts (+05:30), context {call, device, lures, episode, session, payee_in_contacts, device_verdict}`; response tier T0 to
   T4, reasons, `message_key`, `pause_minutes`, `playbook`, `stage`, `evidence_id`, `fail_open`,
@@ -142,9 +142,14 @@ The rule numbers are cited elsewhere (`docs/`, `contracts/README.md`); keep them
   `contracts/steps.json` (contact, lure, hook, control, coaching, payment, payee; definitions
   `backend/features/steps.py`, phone port `signals/Steps.kt`, cases `examples/steps_vectors.json`); `LureTag`
   gains `other_scam` and `unclear` (no class reached 0.6; never normal). Plan: `docs/plan-v3.md`.
-- Reason codes R1 to R13 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
-  `R13_scam_campaign`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
-  c2-0.3 to c2-0.13 requests still validate.
+- c2-0.15 (AI voice at scale, OTP takeover): `WatchKind` `otp_during_call` (an OTP SMS during a call with an
+  unknown number; stage S3; remembered `watch_rules.json otp_recent_min`) and `WatchEvent.caller_hash` (the
+  number's salted SHA-256, as a `phone` handle). `graph/campaigns.py` counts distinct users per caller
+  (`policy.yaml campaign: caller_*`): `caller_many_users` (C, `R14_caller_many_users`); `otp_on_call` (C,
+  `R15_otp_on_call`, playbook `otp_takeover`). See `docs/features/callers-and-otp.md`.
+- Reason codes R1 to R15 (`R10_bait_then_pay`, `R11_ring_link`, `R12_coached_session`,
+  `R13_scam_campaign`, `R14_caller_many_users`, `R15_otp_on_call`). `context.money` (c2-0.2) was removed in c2-0.4 and now gets 422; c2-0.1 and
+  c2-0.3 to c2-0.14 requests still validate.
 - Schemas: `contracts/c2_decide.schema.json`, `contracts/c2_episode.schema.json`,
   `contracts/c2_payment_outcome.schema.json`, `contracts/c2_app_events.schema.json` (c2-0.9). Shared episode
   test cases: `contracts/examples/episode_vectors.json` (run by Python and Kotlin tests).

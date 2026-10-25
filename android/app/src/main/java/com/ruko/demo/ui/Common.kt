@@ -230,6 +230,8 @@ fun reasonText(code: String): String? = when (code) {
     "R11_ring_link" -> stringResource(R.string.reason_R11_ring_link)
     "R12_coached_session" -> stringResource(R.string.reason_R12_coached_session)
     "R13_scam_campaign" -> stringResource(R.string.reason_R13_scam_campaign)
+    "R14_caller_many_users" -> stringResource(R.string.reason_R14_caller_many_users)
+    "R15_otp_on_call" -> stringResource(R.string.reason_R15_otp_on_call)
     else -> null // includes ruko_unavailable, which is not shown as a reason
 }
 

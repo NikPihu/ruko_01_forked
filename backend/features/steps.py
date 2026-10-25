@@ -164,6 +164,7 @@ def server_steps(f: dict, req=None) -> dict[str, bool | None]:
     out["call_out_to_unknown"] = _on(g("outgoing_to_unknown"))
     out["foreign_call"] = _and(on_call, _on(g("foreign_caller")))
     out["caller_in_campaign"] = _on(g("caller_in_campaign"))
+    out["caller_many_users"] = _on(g("caller_many_users"))
 
     lures = None
     if req is not None and req.context is not None:
@@ -179,6 +180,7 @@ def server_steps(f: dict, req=None) -> dict[str, bool | None]:
     out["remote_control"] = _on(g("remote_control"))
     out["untrusted_accessibility"] = _on(g("untrusted_accessibility"))
     out["sideload_24h"] = _on(g("sideloaded_last_24h"))
+    out["otp_on_call"] = _on(g("otp_on_call"))
 
     out["dictated_amount"] = _on(g("session_dictated"))
     out["paste_after_switch"] = _on(g("session_pasted_after_switch"))

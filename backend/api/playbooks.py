@@ -76,6 +76,8 @@ BUILTIN: list[Rule] = [
      lambda f: bool(f["sideloaded_last_24h"]) and f["lure_tag"] == "kyc"),
     ("fake_customer_care", "the user called an unknown number + screen control or dictated typing",
      lambda f: bool(f["outgoing_to_unknown"]) and bool(f["remote_control"] or f["session_dictated"])),
+    ("otp_takeover", "a one-time code (OTP) for UPI or a bank arrived during a call with an unknown number",
+     lambda f: bool(f.get("otp_on_call"))),
     ("digital_arrest", "an arrest-threat message",
      lambda f: f["lure_tag"] == "arrest_threat"),
     ("digital_arrest", "an unknown caller on the line + screen control, a video call, a story mismatch or dictated typing",

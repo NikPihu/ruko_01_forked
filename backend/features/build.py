@@ -40,6 +40,8 @@ FAMILY = {
     "payee_new_and_spreading": "P",  # new to RUKO and already paid by several users (fresh AI-crew mule)
     "payee_in_campaign": "P",        # c2-0.13: this UPI ID is in scam messages several users got
     "caller_in_campaign": "C",       # c2-0.13: the caller's number is a call-back number in those messages
+    "caller_many_users": "C",        # c2-0.15: the same unknown number called several RUKO users
+    "otp_on_call": "C",              # c2-0.15: an OTP arrived during a call with an unknown number
     "amount_inr": "B", "amount_to_max_90d": "B", "amount_to_median_90d": "B",
     "first_time_payee": "B", "entry_typed": "B", "attempts_72h": "B", "payee_in_run": "B",
     "payee_micro_anchor": "B",
@@ -143,6 +145,9 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     # and the overlay light at most one family from these two (rule 5).
     f["payee_in_campaign"] = ring.get("in_campaign") if ring else None
     f["caller_in_campaign"] = ring.get("caller_in_campaign") if ring else None
+    # AI voice at scale and account takeover (c2-0.15). The same call, so the same family as the call.
+    f["caller_many_users"] = ring.get("caller_many_users") if ring else None
+    f["otp_on_call"] = st.otp_on_call
 
     # B — behaviour (the payer's own history)
     f["amount_inr"] = req.amount_inr

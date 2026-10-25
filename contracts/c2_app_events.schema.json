@@ -1,6 +1,6 @@
 {
   "title": "RUKO C2: POST /v1/feedback, POST /v1/watch, GET /v1/me/payments, POST /v1/payment/received",
-  "contract_version": "c2-0.14",
+  "contract_version": "c2-0.15",
   "feedback": {
     "request": {
       "additionalProperties": false,
@@ -118,7 +118,7 @@
           "title": "Message Key"
         },
         "contract_version": {
-          "default": "c2-0.14",
+          "default": "c2-0.15",
           "title": "Contract Version",
           "type": "string"
         }
@@ -178,7 +178,8 @@
             "lure_seen",
             "remote_access_on",
             "long_unknown_call",
-            "sideload"
+            "sideload",
+            "otp_during_call"
           ],
           "title": "Kind",
           "type": "string"
@@ -296,6 +297,35 @@
           ],
           "default": null,
           "title": "Call Minutes"
+        },
+        "caller_hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caller Hash"
+        },
+        "otp_purpose": {
+          "anyOf": [
+            {
+              "enum": [
+                "upi",
+                "bank"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Otp Purpose"
         }
       },
       "required": [
@@ -331,7 +361,7 @@
           "title": "Stage"
         },
         "contract_version": {
-          "default": "c2-0.14",
+          "default": "c2-0.15",
           "title": "Contract Version",
           "type": "string"
         }
@@ -395,6 +425,8 @@
                   "R11_ring_link",
                   "R12_coached_session",
                   "R13_scam_campaign",
+                  "R14_caller_many_users",
+                  "R15_otp_on_call",
                   "ruko_unavailable"
                 ],
                 "type": "string"
@@ -472,7 +504,7 @@
           "type": "array"
         },
         "contract_version": {
-          "default": "c2-0.14",
+          "default": "c2-0.15",
           "title": "Contract Version",
           "type": "string"
         }
@@ -560,7 +592,7 @@
           "type": "boolean"
         },
         "contract_version": {
-          "default": "c2-0.14",
+          "default": "c2-0.15",
           "title": "Contract Version",
           "type": "string"
         }

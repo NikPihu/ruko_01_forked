@@ -1,5 +1,5 @@
 {
-  "version": "steps-0.1",
+  "version": "steps-0.2",
   "about": "The steps a scam can show, in one vocabulary shared by the phone's verdict (c2-0.14 steps_seen), the engine, the playbooks and the blue team. Definitions: backend/features/steps.py (Python reference) and android/.../signals/Steps.kt (port), checked by contracts/examples/steps_vectors.json. A step is true, false, or unknown (not measured); unknown is never false (CLAUDE.md rule 1). seen_by: phone = only the phone can measure it, server = only the server, both = both measure it (the server's own reading and the phone's verdict are merged).",
   "params": {
     "recent_call_min": 180,
@@ -37,6 +37,7 @@
     {"id": "long_call", "stage": "contact", "seen_by": "phone", "means": "the call has lasted at least long_call_min minutes"},
     {"id": "foreign_call", "stage": "contact", "seen_by": "both", "means": "the caller's number is foreign"},
     {"id": "caller_in_campaign", "stage": "contact", "seen_by": "server", "means": "the caller's number is in a spreading scam campaign (c2-0.13)"},
+    {"id": "caller_many_users", "stage": "contact", "seen_by": "server", "means": "the same unknown number called at least campaign.caller_min_users different RUKO users within campaign.caller_window_hours (c2-0.15, AI voice at scale)"},
     {"id": "lure:arrest_threat", "stage": "lure", "seen_by": "both", "means": "an arrest / police / customs threat message (lure model >= lure_min_conf)"},
     {"id": "lure:kyc", "stage": "lure", "seen_by": "both", "means": "a KYC / account-block message"},
     {"id": "lure:task_job", "stage": "lure", "seen_by": "both", "means": "a task or part-time job message"},
@@ -51,6 +52,7 @@
     {"id": "remote_control", "stage": "control", "seen_by": "both", "means": "the screen is being shared, or a remote-access app was installed within remote_recent_min"},
     {"id": "untrusted_accessibility", "stage": "control", "seen_by": "both", "means": "an untrusted accessibility service is on"},
     {"id": "sideload_24h", "stage": "control", "seen_by": "both", "means": "an app from outside the store was installed in the last 24 h"},
+    {"id": "otp_on_call", "stage": "control", "seen_by": "server", "means": "a one-time code (OTP) for UPI or a bank arrived during a call with an unknown number, within watch_rules otp_recent_min (c2-0.15 otp_during_call early warning: account takeover)"},
     {"id": "dictated_amount", "stage": "coaching", "seen_by": "both", "means": "the amount was typed in the slow, broken rhythm of someone reading it out (features/session.py dictated)"},
     {"id": "paste_after_switch", "stage": "coaching", "seen_by": "both", "means": "the UPI ID was pasted right after coming back from another app"},
     {"id": "many_app_switches", "stage": "coaching", "seen_by": "both", "means": "the user left the Pay screen at least many_app_switches times"},
