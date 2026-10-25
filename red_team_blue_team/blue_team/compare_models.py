@@ -66,7 +66,7 @@ def one(ws, cid: str, rt, model: str, expect: str | None) -> dict:
 
 
 def summary(rows: list[dict]) -> dict:
-    ok = [r for r in rows if not r.get("error", "").startswith("generator")] if rows else []
+    ok = [r for r in rows if not (r.get("error") or "").startswith("generator")]
     n = len(rows) or 1
     graded = [r for r in ok if r.get("verdict_right") is not None]
     return {"groups": len(rows), "errors": sum(1 for r in rows if r.get("error")),
@@ -111,8 +111,8 @@ def main() -> None:
                   f"{r.get('seconds')} · {r.get('error') or ''}", flush=True)
         res[m] = {"summary": summary(rows), "groups": rows}
         print(f"== {m}: {json.dumps(res[m]['summary'])}", flush=True)
-    a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+        a.out.parent.mkdir(parents=True, exist_ok=True)       # after each model, so a later failure loses nothing
+        a.out.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
     print(f"-> {a.out}")
 
 

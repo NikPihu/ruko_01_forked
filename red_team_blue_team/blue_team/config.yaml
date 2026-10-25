@@ -41,17 +41,13 @@ gates:                               # code checks every drafted matcher before 
 agents:
   provider: auto                     # bedrock | offline (deterministic drafts, no network) | auto (Bedrock if it answers)
   region: ap-southeast-2             # AWS_REGION overrides
-  # Tried in order until one answers *with a tool call*; the first that does is used for the run.
-  # No Anthropic models: on Bedrock they need a use-case form that asks for an organisation.
-  # Open-weight models first (stronger tool use, no content filter of their own), then Amazon Nova,
-  # which worked on the first runs but whose own filter blocked many replies about scams.
-  # Which exist depends on the region: `python -m blue_team probe --all --region <r>` shows them.
+  # The agents' model. gpt-oss-120b only (team decision, 25 Oct 2026): it drafted the Bedrock runs so
+  # far, and one model keeps runs comparable. No fallback: if it does not answer with a tool call, a
+  # run in auto mode goes offline, one in bedrock mode stops. Others to try: `candidates` below and
+  # `python -m blue_team.compare_models`. No Anthropic models: on Bedrock they need a use-case form
+  # that asks for an organisation.
   models:
     - openai.gpt-oss-120b-1:0
-    - qwen.qwen3-235b-a22b-2507-v1:0
-    - deepseek.v3-v1:0
-    - apac.amazon.nova-pro-v1:0
-    - apac.amazon.nova-lite-v1:0
   # Everything `probe --all` tries (ids differ by region; a missing one just reports an error).
   candidates:
     - openai.gpt-oss-120b-1:0
