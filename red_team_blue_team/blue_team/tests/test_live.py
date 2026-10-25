@@ -103,16 +103,16 @@ def tiny_world(root):
             jr.append({"journey_id": j, "playbook": a, "user_id": f"u{k}"})
             for i in range(2):
                 rows.append({"tx_id": f"{j}_{i}", "ts": start + pd.Timedelta(hours=i), "from_upi": f"u{k}@ybl",
-                             "journey_id": j, "label_is_scam": True})
+                             "to_upi": f"mule_{j}@ybl", "journey_id": j, "label_is_scam": True})
             rep.append({"report_id": f"r_{j}", "identifier_type": "upi_id", "identifier": f"mule_{j}@ybl", "journey_id": j,
                         "filed_at": start + pd.Timedelta(days=1), "source": "1930"})
     for i in range(800):
         rows.append({"tx_id": f"h{i}", "ts": t0 + pd.Timedelta(minutes=17 * i), "from_upi": f"u{i % 5}@ybl",
-                     "journey_id": None, "label_is_scam": False})
+                     "to_upi": "shop@ybl", "journey_id": None, "label_is_scam": False})
     pd.DataFrame(rows).to_parquet(root / "ledger.parquet")
     pd.DataFrame(jr).to_parquet(root / "journeys.parquet")
     pd.DataFrame(rep).to_parquet(root / "reports.parquet")
-    pd.DataFrame({"user_id": [f"u{i}" for i in range(5)], "upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
+    pd.DataFrame({"upi_id": [f"u{i}@ybl" for i in range(5)]}).to_parquet(root / "users.parquet")
     (root / "manifest.json").write_text(_json.dumps({"config": {"end": (t0 + pd.Timedelta(days=10)).isoformat(), "n_days": 10}}))
     return root
 
@@ -123,19 +123,40 @@ def test_the_session_takes_whole_journeys_of_every_attack_and_fills_to_the_total
     assert len(sel["tx_ids"]) == 20 and sel["scam_payments"] + sel["honest_payments"] == 20
     assert sel["per_attack"] == {"shop": {"journeys": 2, "payments": 4}, "relative": {"journeys": 2, "payments": 4}}
     assert "shop_0" not in sel["journeys"]                                        # started in the warm-up
-    assert {"u1", "u2"} <= set(sel["users"])                                      # the victims' records are streamed
     small = sc.select_live(w, ["shop", "relative"], total=10, scam_share=0.5, warmup_days=3, seed=0)
     assert small["scam_payments"] == 4 and small["per_attack"]["shop"]["journeys"] == 1   # a fair share each
 
 
-def test_the_blue_team_sees_only_the_session_victims_complaints(tmp_path):
+def test_the_blue_team_gets_only_the_breakthroughs(tmp_path):
+    """One complaint per victim and account a payment got through to (below T2); the world's own
+    complaints (warned and paid anyway, or never reported) are left out."""
     import pandas as pd
     w = tiny_world(tmp_path / "w")
-    out = sc.world_for_blue_team(w, ["shop_1", "relative_2"], tmp_path / "live")
-    assert sorted(pd.read_parquet(out / "reports.parquet")["journey_id"]) == ["relative_2", "shop_1"]
-    assert (out / "ledger.parquet").exists() and len(pd.read_parquet(w / "reports.parquet")) == 6
-    c = sc._complaints(w, ["shop_1", "relative_2"])
-    assert [x["accounts"] for x in c] == [["mule_shop_1@ybl"], ["mule_relative_2@ybl"]] and c[0]["filed_at"] < c[1]["filed_at"]
+    pay = pd.DataFrame([
+        {"tx_id": "shop_1_0", "journey_id": "shop_1", "is_scam": True, "judged": True, "tier": "T0"},
+        {"tx_id": "shop_1_1", "journey_id": "shop_1", "is_scam": True, "judged": True, "tier": "T1"},     # a tip is no interruption
+        {"tx_id": "shop_2_0", "journey_id": "shop_2", "is_scam": True, "judged": True, "tier": "T3"},     # interrupted
+        {"tx_id": "relative_0_0", "journey_id": "relative_0", "is_scam": True, "judged": False, "tier": "T0"},   # warm-up
+        {"tx_id": "h1", "journey_id": None, "is_scam": False, "judged": True, "tier": "T0"}])
+    pay.to_csv(tmp_path / "payments.csv", index=False)
+    broke = sc.breakthroughs(tmp_path / "payments.csv")
+    assert broke == [{"journey_id": "shop_1", "tx_ids": ["shop_1_0", "shop_1_1"]}]
+    out = sc.world_for_blue_team(w, broke, tmp_path / "live")
+    rep = pd.read_parquet(out / "reports.parquet")
+    assert len(rep) == 1 and rep["identifier"].iloc[0] == "mule_shop_1@ybl" and rep["source"].iloc[0] == "1930"
+    assert len(pd.read_parquet(w / "reports.parquet")) == 6 and (out / "ledger.parquet").exists()
+
+
+def test_a_few_breakthroughs_are_one_group_in_a_live_session(monkeypatch):
+    import pandas as pd
+    from blue_team import cluster
+    cases = pd.DataFrame({"case_id": ["a", "b"], "status": ["missed", "missed"], "named_main": [None, None],
+                          "document": ["PAY NEW_PAYEE AMT_LOW ENTRY_QR", "PAY NEW_PAYEE AMT_LOW ENTRY_QR CALL"]})
+    monkeypatch.setattr(cluster, "SMALL_SET_ONE_GROUP", False)
+    assert [c for c in cluster.run(cases).clusters if c.kind != "misnamed"] == []
+    monkeypatch.setattr(cluster, "SMALL_SET_ONE_GROUP", True)
+    got = [c for c in cluster.run(cases).clusters if c.kind != "misnamed"]
+    assert len(got) == 1 and got[0].case_ids == ["a", "b"] and got[0].kind == "new"
 
 
 def test_the_start_endpoint_takes_one_to_three_different_attacks(monkeypatch, tmp_path):
@@ -146,6 +167,8 @@ def test_the_start_endpoint_takes_one_to_three_different_attacks(monkeypatch, tm
     assert c.post("/api/live/start", json={"attacks": names}).status_code == 400            # four
     assert c.post("/api/live/start", json={"attacks": [names[0], names[0]]}).status_code == 400
     assert c.post("/api/live/start", json={"attacks": []}).status_code == 400
+    assert c.post("/api/live/start", json={"attacks": names[:2], "transactions": 50}).status_code == 400     # 100 to 5,000
+    assert c.post("/api/live/start", json={"attacks": names[:2], "transactions": 9000}).status_code == 400
 
 
 def test_a_world_of_only_the_picked_attacks_builds(tmp_path):

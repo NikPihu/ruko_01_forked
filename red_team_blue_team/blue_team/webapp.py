@@ -130,6 +130,7 @@ class LiveStart(BaseModel):
     attacks: list[str] = []          # one to three red-team playbooks (red_team/playbooks)
     attack: str | None = None        # older consoles send one
     llm: str | None = None           # bedrock | offline | auto
+    transactions: int | None = None  # the session's size (config scenario.live.transactions when not given)
 
 
 class LiveControl(BaseModel):
@@ -763,7 +764,9 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
             raise HTTPException(400, f"not red-team playbooks: {', '.join(bad)}")
         if not 1 <= len(attacks) <= 3 or len(set(attacks)) != len(attacks):
             raise HTTPException(400, "pick one to three different attacks")
-        return scenario_job(lambda: sc.start_live(attacks, body.llm, log=lambda *_: None))
+        if body.transactions is not None and not sc.MIN_TX <= body.transactions <= sc.MAX_TX:
+            raise HTTPException(400, f"transactions: {sc.MIN_TX:,} to {sc.MAX_TX:,}")
+        return scenario_job(lambda: sc.start_live(attacks, body.llm, log=lambda *_: None, transactions=body.transactions))
 
     @app.post("/api/live/control")
     def live_control(body: LiveControl) -> dict:
