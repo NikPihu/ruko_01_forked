@@ -20,10 +20,16 @@ export function Transactions() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Transactions</h1>
+          <div className="eyebrow">Every payment check</div>
+          <h1 className="page-title">Payments<span className="accent">and why each was decided.</span></h1>
           <p>{direction === "sent"
             ? "Every payment check RUKO made, with its decision and what the user did. Open one to see exactly why."
             : "Money users received, as their phone read it from a bank SMS (only with “Share money I receive” on in the app)."}</p>
+          <ol className="howto">
+            <li>Filter by tier or outcome with the boxes on the right.</li>
+            <li>Switch to <b>Received</b> for money people got, read from bank SMS.</li>
+            <li>Open a payment for every signal, score and rule behind it.</li>
+          </ol>
         </div>
         <div className="row">
           <select className="input" value={direction} onChange={(e) => setDirection(e.target.value as "sent" | "received")}>
@@ -110,11 +116,11 @@ export function PaymentExplain({ id }: { id: string }) {
   const u = x.user_view;
   return (
     <div className="stack">
-      <a href="#/transactions">← Transactions</a>
+      <a className="back" href="#/transactions">← All payments</a>
       <div className="page-head">
         <div>
-          <div className="row"><TierChip tier={u.tier} />{u.playbook && <span className="chip">{PLAYBOOKS[u.playbook] ?? u.playbook}</span>}</div>
-          <h1 style={{ marginTop: 8 }}>{t ? <>{inr(t.amount_inr)} to <span className="mono">{t.payee_upi}</span></> : x.payment_id}</h1>
+          <div className="row" style={{ marginTop: 4 }}><TierChip tier={u.tier} />{u.playbook && <span className="chip">{PLAYBOOKS[u.playbook] ?? u.playbook}</span>}</div>
+          <h1 className="page-title" style={{ marginTop: 10, fontSize: 44 }}>{t ? <>{inr(t.amount_inr)} to <span className="mono">{t.payee_upi}</span></> : x.payment_id}</h1>
           {t && <p>{userLabel(t.user_hash)} · {when(t.ts)} · {PAYMENT_STATUS[t.status]} · scorer {x.scorer_version ?? "—"} · {t.latency_ms != null ? `${Math.round(t.latency_ms)} ms` : ""}</p>}
         </div>
       </div>

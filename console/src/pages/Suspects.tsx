@@ -47,11 +47,17 @@ export function Suspects() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Mule suspects</h1>
+          <div className="eyebrow">Human review</div>
+          <h1 className="page-title">Mule suspects<span className="accent">waiting for two analysts.</span></h1>
           <p>
             Accounts that RUKO's payment graph links to known scam accounts, often before anyone has reported them.
             A suspect only affects live payment checks after <b>{needed} different analysts approve it</b>.
           </p>
+          <ol className="howto">
+            <li>Read why each account is suspected and who it touched.</li>
+            <li><b>Approve</b> or <b>reject</b> in your own name.</li>
+            <li>Only after two different analysts approve does it affect live payments.</li>
+          </ol>
         </div>
       </div>
 

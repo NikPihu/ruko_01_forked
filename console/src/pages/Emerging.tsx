@@ -12,10 +12,16 @@ export function Emerging() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Emerging patterns</h1>
+          <div className="eyebrow">Scams with no name yet</div>
+          <h1 className="page-title">New patterns<span className="accent">spotted before they have a name.</span></h1>
           <p>Flagged and near-miss payments that match <b>no known scam type</b>, grouped by how they happened.
             A group from several different people that keeps growing is a new scam workflow: name it to draft a
             playbook, or dismiss it. Nothing here changes any payment.</p>
+          <ol className="howto">
+            <li>Each card groups payments that happened the same way.</li>
+            <li>A growing group from several people is likely a new scam.</li>
+            <li><b>Name it</b> to draft a playbook, or <b>Dismiss</b>. Nothing here changes a payment.</li>
+          </ol>
         </div>
       </div>
       {data.patterns.length === 0 ? (

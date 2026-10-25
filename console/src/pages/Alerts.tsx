@@ -14,12 +14,24 @@ export function Alerts({ tab }: { tab: string }) {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Alerts &amp; cases</h1>
+          <div className="eyebrow">Respond</div>
+          <h1 className="page-title">Alerts<span className="accent">payments RUKO stepped in on.</span></h1>
           <p>
             <b>Payment alerts</b> are payments RUKO stepped in on at the moment of paying.{" "}
             <b>Task-scam cases</b> are opened when a phone reports a “rewards, then pay more” episode and RUKO
             confirms a payee is part of it.
           </p>
+          <ol className="howto">
+            <li>Pick <b>Payment alerts</b> or <b>Task-scam cases</b> below.</li>
+            <li>Use <b>Show</b> to add tips (T1) or keep only pauses (T3+).</li>
+            <li>Open a row for the full story and what the person did next.</li>
+          </ol>
+          <div className="tier-key">
+            <span><TierChip tier="T1" /> a tip on the PIN screen</span>
+            <span><TierChip tier="T2" /> a warning card, slide to pay</span>
+            <span><TierChip tier="T3" /> a 30-minute pause</span>
+            <span><TierChip tier="T4" /> held for analyst review</span>
+          </div>
         </div>
       </div>
 

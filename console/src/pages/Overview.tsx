@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type AlertHealth, type Spreading } from "../api";
 import { inr, pct, PLAYBOOKS, userLabel, when } from "../format";
 import { reasonText } from "../reasons";
-import { BandChip, Card, Check, Empty, Loading, Stat, TierChip, exploreHref, go, useLoad } from "../components/ui";
+import { BandChip, Card, Check, Empty, Loading, PageHead, Stat, StatRows, TierChip, exploreHref, go, useLoad } from "../components/ui";
 
 export function Overview() {
   const { data, error, loading } = useLoad(async () => {
@@ -23,21 +23,25 @@ export function Overview() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Overview</h1>
-          <p>Payments RUKO stepped in on, scam rings it found, and whether its evidence log is intact.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-4">
-        <Stat label="Payments interrupted" value={interrupted.length}
-          sub={`${paused.length} paused for 30 min or held`} />
-        <Stat label="Money at stake in those payments" value={inr(held)} sub={`${users} ${users === 1 ? "person" : "people"}`} />
-        <Stat label="Task-scam cases" value={data.cases.length} sub="opened from phones' episode reports" />
-        <Stat label="Mule suspects to review" value={pending.length}
-          sub={rings ? `in ${rings} ring${rings > 1 ? "s" : ""}` : "none grouped yet"} />
-      </div>
+      <PageHead eyebrow="Today at a glance"
+        title="Pause the scam," accent="not the payment."
+        intro={<>RUKO checks every payment in about a tenth of a second. Here you see the payments it stepped in on,
+          the mule accounts it wants a human to confirm, and whether its evidence log is intact.</>}
+        howTo={[
+          <>Open a <b>latest interrupted payment</b> to see, in words, why RUKO stepped in.</>,
+          <>Review <a href="#/suspects">mule suspects</a>: two analysts must approve one before it counts.</>,
+          <>Press <b>Run demo scenarios</b> below to fill the console with every scam type.</>,
+        ]}
+        aside={<StatRows rows={[
+          { label: "Payments interrupted", value: interrupted.length },
+          { label: "Paused or held", value: paused.length },
+          { label: "Money at stake", value: inr(held) },
+          { label: "Suspects to review", value: pending.length },
+        ]} />} />
+      <p className="muted" style={{ margin: "-12px 0 0" }}>
+        {users} {users === 1 ? "person" : "people"} protected · {data.cases.length} task-scam case{data.cases.length === 1 ? "" : "s"} from
+        phones' episode reports{rings ? ` · suspects grouped in ${rings} ring${rings > 1 ? "s" : ""}` : ""}
+      </p>
 
       {data.alertHealth && <AlertHealthCard h={data.alertHealth} />}
       {data.spreading && <SpreadingCard s={data.spreading} />}

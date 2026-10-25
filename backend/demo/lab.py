@@ -39,7 +39,8 @@ DEMO_MULE = "secure.settlement.desk@okaxis"
 KIRANA = "shreeganesh.kirana@okaxis"
 CAMPAIGN_UPI = "kyc.refund.desk@ybl"     # a fresh mule no bank or registry knows
 # docs/testing-on-device.md's OTP test message (a made-up code).
-OTP_TEXT = "482915 is your OTP for login. Do not share it with anyone."
+# A bank OTP: the phone acts only on an OTP for UPI or a bank (c2-0.15, MessageCheck.otpPurpose).
+OTP_TEXT = "482915 is your OTP to log in to NetBanking at your bank. Do not share it with anyone."
 
 Runner = Callable[[list[str]], "tuple[int, str]"]
 
@@ -219,8 +220,9 @@ def workflows(contacts: list[dict], fresh_mule: str) -> list[Workflow]:
             id="otp_call", title="OTP while on a call", flagged=True,
             story="A fake 'bank officer' calls, keeps the victim talking, and triggers a one-time code to be "
                   "read out to him.",
-            expect="The phone shows a full warning at once: someone on the call may ask for this code. "
-                   "Checked on the phone only; nothing is sent to the server",
+            expect="The phone shows a full warning at once: someone on the call may ask for this code. With "
+                   "Early warnings on it also tells RUKO (a bank OTP on an unknown call, never the code), and a "
+                   "payment in the next 2 hours is flagged as an OTP takeover (R15)",
             expect_tiers=[],
             sms={"from": UNKNOWN_NUMBERS[1], "text": OTP_TEXT}, call=UNKNOWN_NUMBERS[0],
             victim_steps=["Answer the incoming call and keep it on.",
