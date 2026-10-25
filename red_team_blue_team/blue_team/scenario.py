@@ -84,6 +84,30 @@ class _Lock:
             self.fh.close()
 
 
+def _clear_home() -> None:
+    """Empty HOME for a new demo, keeping the folder itself: on Windows a folder that any process has
+    open (a terminal or Explorer sitting in it) cannot be deleted, but its contents can. Busy files are
+    retried for a few seconds, then named."""
+    import shutil
+    import time
+    HOME.mkdir(parents=True, exist_ok=True)
+    for child in list(HOME.iterdir()):
+        for attempt in range(10):
+            try:
+                if child.is_dir() and not child.is_symlink():
+                    shutil.rmtree(child)
+                else:
+                    child.unlink()
+                break
+            except FileNotFoundError:
+                break
+            except PermissionError as e:
+                if attempt == 9:
+                    raise RuntimeError(f"cannot clear the old demo: {e.filename or child} is open in another program "
+                                       "(close it, e.g. an editor, a terminal or Explorer window in that folder, and start again)") from None
+                time.sleep(0.5)
+
+
 def busy() -> bool:
     try:
         with _Lock():
@@ -363,8 +387,7 @@ def _start(new: list[str], known: list[str], provider: str | None, log) -> dict:
 
     from blue_team import pipeline, redteam
     s = settings()
-    if HOME.exists():
-        shutil.rmtree(HOME)
+    _clear_home()
     (HOME / "red").mkdir(parents=True)
     by_name = {pb["name"]: pb for pb in redteam.load()}
     for n in new:
@@ -510,8 +533,7 @@ def _start_live(attack: str, provider: str | None, log) -> dict:
 
     from blue_team import pipeline, redteam
     s, lv = settings(), settings()["live"]
-    if HOME.exists():
-        shutil.rmtree(HOME)
+    _clear_home()
     (HOME / "red").mkdir(parents=True)
     by_name = {pb["name"]: pb for pb in redteam.load()}
     if attack not in by_name:
