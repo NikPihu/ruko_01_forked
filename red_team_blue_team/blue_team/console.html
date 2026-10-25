@@ -87,6 +87,7 @@
   .field { display: flex; flex-direction: column; gap: 4px; } .field label { font-size: 12px; color: var(--muted); }
   .field input, .field select, .field textarea, input.in, select.in { height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(15,23,42,0.16); background: #fff; }
   .field textarea { height: auto; padding: 8px 10px; resize: vertical; }
+  .field { min-width: 0; max-width: 100%; } .field select, select.in { max-width: 100%; text-overflow: ellipsis; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   @media (max-width: 1100px) { .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -174,7 +175,25 @@
   ul.tl { list-style: none; margin: 0; padding: 0; } ul.tl li { display: grid; grid-template-columns: 40px 86px 1fr; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--rowline); font-size: 13px; }
   ul.tl li.decision .body { color: var(--ink); font-weight: 500; } ul.tl li.error .stage { color: var(--bad-ink); } ul.tl .seq, ul.tl .stage { color: var(--muted); font-size: 12px; }
   ul.tl .refs { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 400; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  /* live loop */
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  .ev { display: grid; grid-template-columns: 6px minmax(0, 1fr); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,0.92);
+    border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(15,23,42,0.05); animation: rise .35s ease-out; }
+  .ev > .rail { background: var(--track); } .ev.caught > .rail { background: var(--info); } .ev.missed > .rail { background: var(--bad); }
+  .ev.warned > .rail { background: #f0b429; } .ev.alarm > .rail { background: var(--accent); } .ev.ok > .rail { background: #b6bfca; }
+  .ev.blue > .rail { background: var(--new); } .ev.stage > .rail { background: var(--navy); } .ev.summary > .rail { background: var(--good-ink); }
+  .ev > .bd { padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .ev.blue { background: rgba(246,241,253,0.92); } .ev.stage { background: rgba(15,22,32,0.04); }
+  .ev .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .ev .money { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+  .ev .cols2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .ev .cols2 { grid-template-columns: 1fr; } }
+  .ev .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 3px; }
+  .tierchip { font-weight: 700; font-family: var(--mono); font-size: 12px; border-radius: 6px; padding: 2px 7px; background: var(--plain-bg); color: var(--ink2); }
+  .tierchip.t2, .tierchip.t3, .tierchip.t4 { background: var(--info-bg); color: var(--info-ink); } .tierchip.t1 { background: var(--wait-bg); color: var(--wait-ink); }
+  .progress-line { font-size: 12px; color: var(--muted); padding: 2px 6px; }
+  @keyframes rise { from { transform: translateY(-8px); box-shadow: 0 0 0 3px rgba(255,153,0,0.35); } to { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -258,7 +277,7 @@ async function loadRuns(select) {
 document.getElementById("runsel").addEventListener("change", e => { run = e.target.value; cacheClear(); route(); });
 
 // ---------------------------------------------------------------- shell
-const TABS = [["overview", "Overview", ""], ["attack", "Attack", "1"], ["investigate", "Investigate", "2"], ["playbooks", "Playbooks", "3"]];
+const TABS = [["overview", "Overview", ""], ["live", "Live", ""], ["attack", "Attack", "1"], ["investigate", "Investigate", "2"], ["playbooks", "Playbooks", "3"]];
 let waitingCount = null;
 function renderTabs(tab) {
   put(document.getElementById("tabs"), TABS.map(([k, t, n]) => el("a", { href: "#/" + k, class: k === tab ? "on" : "", "aria-current": k === tab ? "page" : null },
@@ -397,7 +416,7 @@ PAGE.overview = async (p) => {
   } }, el("summary", {}, "Scorecard: every attack playbook in this run's world, graded with the answer key"), scoreBox)) : null;
 
   return [band(`Run ${run || "–"}${r.world ? " · " + String(r.world).split(/[\\/]/).pop() + " world" : ""}${r.agents ? " · agents " + r.agents : ""}`, "How is the shield holding?",
-    { acts: el("a", { class: "btn primary big", href: "#/attack" }, "Run the loop again") }),
+    { acts: el("a", { class: "btn primary big", href: "#/live" }, "Run a live test") }),
     el("main", { class: "content" }, loop, groupsCard, waiting, scorecardCard)];
 };
 const effectText = s => s.warns ? el("span", { style: "color:var(--good-ink);font-weight:600" }, "Warns · " + (s.families || []).join(" + "))
@@ -415,6 +434,124 @@ function scorecardTable(s) {
         el("td", {}, r.groups.slice(0, 3).map((g, i) => [i ? ", " : "", link(g.group, "investigate", { g: g.group }), ` (${g.complaints})`]), r.groups.length ? null : el("span", { class: "muted" }, r.blue_team)),
         el("td", {}, r.drafted.length ? r.drafted.map(d => el("div", {}, link(d.playbook, "playbook", { name: d.playbook }), " ", verdictChip(d.verdict))) : "–")))));
 }
+
+// ---------------------------------------------------------------- Live: one attack, one payment at a time
+const STEP_WORD = s => human(s).replace(/^lure /, "lure: ");
+PAGE.live = async () => {
+  const [rt, first] = await Promise.all([api("/api/redteam"), api("/api/live?after=0")]);
+  let seen = 0;
+  const feed = el("div", { class: "feed", "aria-live": "polite" }), tally = el("div"), turn = el("div"), stages = el("div"), bar2 = el("div");
+  const fresh = () => ({ caught: 0, "warned only": 0, missed: 0, ok: 0, "false alarm": 0, processed: 0 });
+  const rounds = { before: fresh(), after: fresh() };
+  let latest = "before";
+  const pick = el("select", { id: "attack", class: "in", style: "width:min(420px, 100%)" }, rt.playbooks.map(p => el("option", { value: p.name }, `${p.name} · ${p.title.slice(0, 60)}`)));
+  const llm = el("select", { id: "lagents", class: "in" }, el("option", { value: "auto" }, "Bedrock if available, else offline"), el("option", { value: "bedrock" }, "Bedrock only"), el("option", { value: "offline" }, "Offline"));
+  const speed = el("select", { id: "speed", class: "in" }, [["2.5", "Slow"], ["1.2", "Normal"], ["0.4", "Fast"], ["0", "As fast as it goes"]].map(([v, t]) => el("option", { value: v }, t)));
+  const msg = el("div");
+  const ctl = b => api("/api/live/control", b).catch(e => put(msg, errBox(e)));
+  const pauseBtn = el("button", { class: "btn", type: "button" }, "Pause"), stepBtn = el("button", { class: "btn", type: "button", onclick: () => ctl({ step: true }) }, "Next payment");
+  const startBtn = el("button", { class: "btn primary big", type: "button", onclick: async () => {
+    try { await api("/api/live/start", { attack: pick.value, llm: llm.value }); put(feed); seen = 0; rounds.before = fresh(); rounds.after = fresh(); latest = "before"; put(msg); }
+    catch (e) { put(msg, errBox(e)); }
+  } }, "Start the attack");
+  const replayBtn = el("button", { class: "btn primary", type: "button", onclick: async () => { try { await api("/api/live/replay", {}); put(msg); } catch (e) { put(msg, errBox(e)); } } }, "Replay the attack with the approved playbooks");
+  speed.addEventListener("change", () => ctl({ delay: Number(speed.value) }));
+  pauseBtn.addEventListener("click", () => ctl({ paused: pauseBtn.dataset.paused !== "1" }));
+
+  const STAGES = [["world", "Build world"], ["attack", "Red team attacks"], ["blue", "Blue team"], ["review", "Your review"], ["replay", "Replay"], ["done", "Done"]];
+  const stageOf = d => { const s = (d.scenario || {}).step; return s === "world" ? 0 : s === "round1" ? 1 : s === "review" ? (d.queued.length || d.approved.length ? 3 : 2) : s === "round2" ? 4 : s === "done" ? 5 : -1; };
+  const drawStages = d => { const at = stageOf(d); put(stages, el("ol", { "aria-label": "Stages", style: "list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px" },
+    STAGES.map(([k, t], i) => el("li", { style: "display:flex;flex-direction:column;gap:6px" },
+      el("span", { style: `display:block;height:4px;border-radius:999px;background:${i < at || (i === at && at === 5) ? "var(--info)" : i === at ? "var(--accent)" : "#dfe4ea"}` }),
+      el("span", { style: `font-size:12.5px;font-weight:${i === at ? 700 : 500}` }, t))))); };
+
+  const verdictChip = v => v === "caught" ? chip("Caught", "info") : v === "missed" ? chip("Got through", "bad") : v === "warned only" ? chip("Tip only (T1)", "wait")
+    : v === "false alarm" ? chip("False alarm", "wait") : chip("OK", "good");
+  const evClass = v => ({ caught: "caught", missed: "missed", "warned only": "warned", "false alarm": "alarm", ok: "ok" })[v] || "";
+  const card = e => {
+    if (e.kind === "progress") return el("div", { class: "progress-line" }, `${e.at} · ${e.text}`);
+    if (e.kind === "payment") {
+      const r = e.red, g = e.engine, ph = e.phone;
+      const sig = [ph.call ? `on a ${ph.call_kind || ""} call` + (ph.unknown_caller ? " · unknown caller" : "") : null, ph.remote ? "screen control" : null,
+        ...(ph.lures || []).map(l => "lure: " + human(l)), ph.verdict ? "phone says " + ph.verdict : null].filter(Boolean);
+      return el("article", { class: "ev " + evClass(e.verdict) }, el("span", { class: "rail" }), el("div", { class: "bd" },
+        el("div", { class: "meta" }, el("span", { class: "mono" }, `#${e.n}`), el("span", {}, String(e.ts).slice(5, 16).replace("T", " ")),
+          el("span", {}, e.round === "after" ? "replay" : "attack"), el("span", { style: "margin-left:auto" }, verdictChip(e.verdict))),
+        el("div", { class: "row", style: "gap:10px;align-items:baseline" }, el("span", { class: "money num" }, inr(e.amount)), el("span", { class: "ink2" }, "to"),
+          el("span", { class: "mono" }, e.payee), el("span", { class: "muted", style: "font-size:12px" }, `${e.entry || ""}${e.payer_says ? " · says '" + e.payer_says + "'" : ""} · from ${e.user}`)),
+        el("div", { class: "cols2" },
+          el("div", {}, el("div", { class: "lbl" }, "Red team"), r.scam ? el("div", {}, chip("Scam", "bad"), " ", el("span", { class: "mono", style: "font-size:12px" }, r.playbook),
+              el("span", { class: "muted", style: "font-size:12px" }, ` · payment ${(r.step ?? 0) + 1} of this victim`)) : el("div", { class: "muted" }, "Honest payment"),
+            sig.length ? el("div", { class: "tags", style: "margin-top:6px" }, sig.map(s => el("span", { class: "tag" }, s))) : null),
+          el("div", {}, el("div", { class: "lbl" }, "RUKO engine"),
+            el("div", { class: "row", style: "gap:8px" }, el("span", { class: "tierchip " + String(g.tier || "").toLowerCase() }, g.tier || "–"),
+              el("span", { class: "ink2" }, `threat ${g.score ?? "–"}`), g.named ? el("span", { class: "mono", style: "font-size:12px" }, g.named) : null, g.fail_open ? chip("fail open", "bad") : null),
+            g.parts ? el("div", { class: "muted", style: "font-size:12px" }, `model ${pct(g.parts.lgbm)} · playbook search ${pct(g.parts.playbook)}` + (g.match ? ` (${g.match.name} ${Number(g.match.similarity).toFixed(2)})` : "")) : null,
+            (g.reasons || []).length ? el("div", { class: "tags" }, g.reasons.slice(0, 4).map(x => el("span", { class: "tag" }, x.replace(/^R\d+_/, "").replaceAll("_", " ")))) : null)),
+        (g.steps || []).length ? el("details", {}, el("summary", {}, `Scam steps the engine saw (${g.steps.length})`), el("div", { class: "tags", style: "margin-top:6px" }, g.steps.map(s => el("span", { class: "pill" }, STEP_WORD(s))))) : null));
+    }
+    const k = e.kind === "blue" ? "blue" : e.kind === "summary" ? "summary" : "stage";
+    return el("article", { class: "ev " + k }, el("span", { class: "rail" }), el("div", { class: "bd" },
+      el("div", { class: "meta" }, el("span", {}, e.at), e.kind === "blue" ? chip("Blue team", "new") : e.kind === "summary" ? chip("Result", "good") : chip(STAGES.find(s => s[0] === e.stage)?.[1] || "Step")),
+      el("div", { style: `font-size:14px;${e.kind === "stage" ? "font-weight:600" : ""}` }, e.text),
+      e.drafts && e.drafts.length ? el("div", { class: "row" }, e.drafts.map(n => el("a", { class: "btn", href: "#/playbook?name=" + encodeURIComponent(n) }, "Review " + n))) : null,
+      e.run_id ? el("a", { style: "font-size:12.5px", onclick: () => { run = e.run_id; go("investigate"); } }, "See the groups and complaints in Investigate") : null));
+  };
+  const add = evs => {
+    for (const e of evs) {
+      if (e.kind === "payment" || e.kind === "progress") {
+        const c = rounds[e.round === "after" ? "after" : "before"];
+        latest = e.round === "after" ? "after" : "before";
+        c.processed = Math.max(c.processed, e.n || e.payments || 0);
+        if (e.kind === "payment") c[e.verdict] += 1;
+      }
+      feed.prepend(card(e));
+    }
+  };
+  const drawSide = d => {
+    const c = d.control || {};
+    pauseBtn.textContent = c.paused ? "Resume" : "Pause"; pauseBtn.dataset.paused = c.paused ? "1" : "0";
+    stepBtn.disabled = !c.paused || !d.running; pauseBtn.disabled = !d.running;
+    speed.value = String(c.delay ?? 1.2); if (!speed.value) speed.value = "1.2";
+    startBtn.disabled = !d.mode || d.running;
+    const live = (d.scenario || {}).mode === "live" ? (d.scenario.new || [])[0] : null;
+    if (live && d.running && pick.value !== live) pick.value = live;
+    pick.disabled = d.running;
+    const st = d.scenario || {}, counts = rounds[latest];
+    put(tally, el("h2", { class: "h", style: "font-size:16px" }, latest === "after" ? "Replay so far" : "Attack so far"),
+      el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px" },
+        el("div", { class: "stat" }, el("b", { class: "num", style: "color:var(--info-ink)" }, counts.caught), el("span", {}, "scam payments caught")),
+        el("div", { class: "stat" }, el("b", { class: "num", style: "color:var(--bad-ink)" }, counts.missed + counts["warned only"]), el("span", {}, `got through${counts["warned only"] ? ` (${counts["warned only"]} with a tip)` : ""}`)),
+        el("div", { class: "stat" }, el("b", { class: "num" }, counts.ok), el("span", {}, "honest payments shown, OK")),
+        el("div", { class: "stat" }, el("b", { class: "num", style: counts["false alarm"] ? "color:var(--wait-ink)" : "" }, counts["false alarm"]), el("span", {}, "false alarms"))),
+      el("div", { class: "muted", style: "font-size:12px;margin-top:8px" }, `${counts.processed.toLocaleString()} payments through the engine; one honest payment in ${30} and every scam payment and false alarm are shown.`));
+    const inReview = st.mode === "live" && st.step === "review";
+    put(turn, inReview || d.approved.length ? el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:10px;border-color:rgba(255,153,0,0.7)" },
+      el("div", { class: "row" }, el("h2", { class: "h", style: "font-size:16px" }, "Your turn"), chip(`${d.approved.length} approved · ${d.queued.length} waiting`, d.approved.length ? "good" : "wait")),
+      el("div", { class: "ink2", style: "font-size:13px" }, "Open each drafted playbook, read why it was chosen, and approve it with two different analyst names."),
+      [...d.queued.map(n => el("a", { class: "mono", href: "#/playbook?name=" + encodeURIComponent(n) }, n + " · waiting")), ...d.approved.map(n => el("a", { class: "mono", href: "#/playbook?name=" + encodeURIComponent(n) }, n + " · approved"))],
+      d.approved.length ? replayBtn : null) : null);
+    replayBtn.disabled = d.running;
+    put(bar2, d.running ? chip("running", "wait") : null, d.error ? errBox(d.error) : null);
+    drawStages(d);
+  };
+  add(first.events); seen = first.total; drawSide(first);
+  every(1000, async () => {
+    if (!document.body.contains(feed)) return;
+    try { const d = await api(`/api/live?after=${seen}`); add(d.events); seen = d.total; drawSide(d); } catch (e) { /* restarting */ }
+  });
+  return [band("One attack, one payment at a time, through the real RUKO engine", "Live red / blue test", { acts: [startBtn] }),
+    el("main", { class: "content" },
+      first.mode ? null : el("div", { class: "msg err" }, "Start the console in demo mode for the live test: python -m blue_team app --scenario"),
+      el("section", { class: "card pad", style: "display:flex;flex-direction:column;gap:14px" },
+        el("div", { class: "row", style: "gap:14px" }, el("div", { class: "field" }, el("label", { for: "attack" }, "Red team attack playbook"), pick),
+          el("div", { class: "field" }, el("label", { for: "lagents" }, "Blue-team agents"), llm), el("div", { class: "field" }, el("label", { for: "speed" }, "Speed"), speed),
+          el("div", { class: "row", style: "align-self:flex-end" }, pauseBtn, stepBtn), bar2), msg, stages),
+      el("div", { class: "split" },
+        el("div", { class: "main" }, el("div", { class: "legend", style: "border:0;padding:0" }, sq("var(--info)", "caught (T2+)"), sq("var(--bad)", "got through"), sq("#f0b429", "tip only"),
+          sq("var(--accent)", "false alarm"), sq("var(--new)", "blue team"), el("span", {}, "newest on top")), feed),
+        el("aside", { class: "side" }, el("section", { class: "card pad" }, tally), turn)))];
+};
 
 // ---------------------------------------------------------------- 1 Attack
 PAGE.attack = async (p) => {

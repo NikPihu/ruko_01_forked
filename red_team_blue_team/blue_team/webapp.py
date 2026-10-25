@@ -126,6 +126,17 @@ def _summary(card: dict, state: str) -> dict:
             "families": fam or [], "warns": len(fam or []) >= 2, "approved_at": card.get("approved_at")}
 
 
+class LiveStart(BaseModel):
+    attack: str                      # a red-team playbook (red_team/playbooks)
+    llm: str | None = None           # bedrock | offline | auto
+
+
+class LiveControl(BaseModel):
+    paused: bool | None = None
+    delay: float | None = None       # seconds between shown payments
+    step: bool = False               # while paused: show one more
+
+
 class ScenarioStart(BaseModel):
     llm: str | None = None           # bedrock | offline | auto (config agents.provider when None)
 
@@ -723,6 +734,40 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         if not scenario_status()["approved"]:
             raise HTTPException(400, "no approved playbook yet: two analysts approve on the Playbooks page")
         return scenario_job(lambda: sc.rerun(log=lambda *_: None))
+
+    # ---- the live loop: one attack, one payment at a time (scenario.start_live) --------------------
+    @app.get("/api/live")
+    def live_get(after: int = 0) -> dict:
+        from blue_team import scenario as sc
+        events, total = sc.feed_since(after)
+        st = scenario_status()
+        return {"events": events, "total": total, "control": sc.control(), "running": st["running"],
+                "state": st["state"], "error": st["error"], "mode": scenario_mode, "scenario": st["scenario"],
+                "queued": st["queued"], "approved": st["approved"], "rejected": st["rejected"]}
+
+    @app.post("/api/live/start")
+    def live_start(body: LiveStart) -> dict:
+        from blue_team import redteam, scenario as sc
+        if body.attack not in {p["name"] for p in redteam.load()}:
+            raise HTTPException(400, f"{body.attack} is not a red-team playbook")
+        return scenario_job(lambda: sc.start_live(body.attack, body.llm, log=lambda *_: None))
+
+    @app.post("/api/live/control")
+    def live_control(body: LiveControl) -> dict:
+        from blue_team import scenario as sc
+        if body.delay is not None and not 0 <= body.delay <= 10:
+            raise HTTPException(400, "delay 0-10 s")
+        return sc.control(paused=body.paused, delay=body.delay, step=body.step)
+
+    @app.post("/api/live/replay")
+    def live_replay() -> dict:
+        from blue_team import scenario as sc
+        st = sc.load_state()
+        if st.get("mode") != "live" or not st.get("before"):
+            raise HTTPException(400, "no live attack yet: start one")
+        if not scenario_status()["approved"]:
+            raise HTTPException(400, "no approved playbook yet: two analysts approve on the Playbooks tab")
+        return scenario_job(lambda: sc.rerun_live(log=lambda *_: None))
 
     @app.post("/api/reset")
     def reset(body: Reset) -> dict:
