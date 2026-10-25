@@ -29,7 +29,7 @@ class WatchPolicyTest {
     fun assetIsTheContractCopy() {
         assertEquals(
             File(repo, "contracts/watch_rules.json").readText(),
-            File(repo, "android/app/src/main/assets/watch_rules.json").readText(),
+            File(repo, "android/ruko-sdk/src/main/assets/watch_rules.json").readText(),
         )
     }
 

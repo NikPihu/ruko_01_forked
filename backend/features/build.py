@@ -54,6 +54,16 @@ FAMILY = {
 }
 
 
+
+def _accepted_device_versions() -> frozenset[str]:
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load((Path(__file__).resolve().parents[1] / "api" / "policy.yaml").read_text()) or {}
+    return frozenset((cfg.get("device_verdict") or {}).get("accepted_versions") or [])
+
+
+ACCEPTED_DEVICE_VERSIONS = _accepted_device_versions()
+
 def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
                    base: UserBaseline, trusted: bool, ring: dict | None = None,
                    paid_here: bool = False, micro_anchor: bool = False) -> dict:
@@ -78,6 +88,8 @@ def build_features(req: DecideRequest, st: TrackerState, intel: IntelResult,
     f["video_call"] = call.video if call is not None and st.on_call else None
     # The phone's verdict on what only it can see (c2-0.8); null when its model did not run.
     dv = ctx.device_verdict if ctx else None
+    if dv is not None and dv.model_version not in ACCEPTED_DEVICE_VERSIONS:
+        dv = None  # an on-device model the server was not trained with: unknown, not mixed in
     f["device_c"] = dv.c if dv else None
     f["device_l"] = dv.l if dv else None
     f["device_b"] = dv.b if dv else None

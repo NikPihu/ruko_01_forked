@@ -163,3 +163,9 @@ emerging:
   min_payments: 5
   min_users: 3
   near_miss_families: 1
+
+# The phone's own verdict (c2-0.8) counts only from on-device model versions the server model was
+# trained with. Phones run old RUKO SDK versions for months; any other version's c/l/b scores are
+# unknown (null, rule 1), never mixed in. Add the new version here when both models are retrained.
+device_verdict:
+  accepted_versions: [device-0.2]

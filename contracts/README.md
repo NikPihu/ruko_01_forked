@@ -11,7 +11,7 @@ The source of truth is `backend/schema/events.py`. This folder is the published 
 | `c2_payment_outcome.schema.json` | JSON Schema of `POST /v1/payment/outcome` (c2-0.6), from `python -m schema.export` |
 | `c2_app_events.schema.json` | JSON Schema of `POST /v1/feedback`, `POST /v1/watch` and `GET /v1/me/payments` (c2-0.9) |
 | `examples/feedback_*.json`, `watch_event_*.json`, `me_payments.json` | Alert feedback ("waited", "I know this person" + its refusal), watch events (scam message seen, long unknown call) and the app's own payment list (c2-0.9) |
-| `episode_rules.json` | Every episode threshold; the phone copies it into `android/app/src/main/assets/` |
+| `episode_rules.json` | Every episode threshold; the phone copies it into `android/ruko-sdk/src/main/assets/` |
 | `examples/episode_vectors.json` | Timelines the phone and the server must agree on (run by both test suites) |
 | `examples/episode_event_*.json` | Episode events (watching, active) and a `high` reply |
 | `examples/decide_request_coached.json` | Meena being talked through the payment: slow dictated amount, UPI ID pasted right after switching apps, call on speaker (c2-0.5) |

@@ -1,5 +1,6 @@
 package com.ruko.demo.shield
 
+import com.ruko.sdk.Ruko
 import android.Manifest.permission.READ_SMS
 import android.content.Context
 import android.content.pm.PackageManager
@@ -7,7 +8,6 @@ import android.provider.Telephony
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ruko.demo.BuildConfig
 import com.ruko.demo.data.AccountStore
 import com.ruko.demo.signals.BankSms
 import com.ruko.demo.signals.MoneyTxn
@@ -48,7 +48,7 @@ class CatchUpWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 "${Telephony.Sms.DATE} ASC",
             )?.use { c ->
                 while (c.moveToNext() && out.size < MAX_MESSAGES) {
-                    if (!BankSms.trustedSender(c.getString(2), allowNumbers = BuildConfig.DEBUG)) continue
+                    if (!BankSms.trustedSender(c.getString(2), allowNumbers = Ruko.config.debugSenders)) continue
                     BankSms.parse(c.getString(0) ?: continue, c.getLong(1))?.let(out::add)
                 }
             }

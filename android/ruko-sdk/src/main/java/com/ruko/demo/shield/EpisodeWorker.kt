@@ -7,7 +7,8 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import com.ruko.demo.R
+import com.ruko.sdk.R
+import com.ruko.sdk.Ruko
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -26,7 +27,7 @@ class EpisodeWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun getForegroundInfo(): ForegroundInfo {
         ShieldNotifier.ensureChannel(applicationContext)
         val n = NotificationCompat.Builder(applicationContext, ShieldNotifier.CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(Ruko.config.smallIcon)
             .setContentTitle(applicationContext.getString(R.string.shield_working))
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()

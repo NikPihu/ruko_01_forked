@@ -21,11 +21,13 @@ object DemoConfig {
     /** Read the chosen user. Called from [RukoApplication], so receivers and workers see it too. */
     fun load(context: Context) {
         USER_ID = prefs(context).getString(KEY_USER, null) ?: DEFAULT_USER_ID
+        com.ruko.sdk.Ruko.setUser(USER_ID)
     }
 
     fun select(context: Context, userId: String) {
         prefs(context).edit().putString(KEY_USER, userId).apply()
         USER_ID = userId
+        com.ruko.sdk.Ruko.setUser(userId) // the RUKO SDK sends this id with every request
     }
 
     fun reset(context: Context) = select(context, DEFAULT_USER_ID)

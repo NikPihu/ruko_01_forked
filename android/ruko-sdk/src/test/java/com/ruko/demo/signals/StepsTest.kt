@@ -25,7 +25,7 @@ class StepsTest {
 
     @Test
     fun theAppsCopyIsTheContractsVocabulary() {
-        val asset = File(repo, "android/app/src/main/assets/steps.json").readText()
+        val asset = File(repo, "android/ruko-sdk/src/main/assets/steps.json").readText()
         assertEquals(Json.parseToJsonElement(contractText), Json.parseToJsonElement(asset))
     }
 
