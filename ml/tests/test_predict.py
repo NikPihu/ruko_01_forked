@@ -213,3 +213,13 @@ def test_batch_scoring_applies_the_same_guardrail():
     for i, f in enumerate(rows):
         assert fam["P"][i] == pytest.approx(predict.score(f)["family_scores"]["P"], abs=1e-3)
     assert p[0] >= p0[0] and p[2] > p0[2] and p[1] == p0[1]   # an approved suspect is lifted; a floor never lowers
+
+
+def test_every_scam_step_has_a_contract_reason_code():
+    """A new step in contracts/steps.json needs its reason in model/reasons.py, or importing it fails."""
+    from features.steps import STEP_IDS
+    from model.data import step_col
+    from model.reasons import STEP_REASON
+    codes = set(typing.get_args(ReasonCode))
+    assert {step_col(s) for s in STEP_IDS} == set(STEP_REASON)
+    assert set(STEP_REASON.values()) <= codes

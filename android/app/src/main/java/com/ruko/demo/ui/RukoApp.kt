@@ -109,11 +109,17 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
             .map { PastPayment(it.ts / 1000.0, it.payee.trim().lowercase(), it.amountInr) }
     }
 
-    // A tapped "may be a scam" notification opens Message check.
+    // A tapped "may be a scam" notification opens Message check; any other warning opens Alerts.
     LaunchedEffect(Signals.openScreen) {
-        if (Signals.openScreen == MainActivity.OPEN_MESSAGES) {
-            Signals.openScreen = null
-            nav.navigate(Routes.MESSAGES) { launchSingleTop = true }
+        when (Signals.openScreen) {
+            MainActivity.OPEN_MESSAGES -> {
+                Signals.openScreen = null
+                nav.navigate(Routes.MESSAGES) { launchSingleTop = true }
+            }
+            com.ruko.sdk.Ruko.OPEN_ALERTS -> {
+                Signals.openScreen = null
+                nav.navigate(Routes.ALERTS) { launchSingleTop = true }
+            }
         }
     }
 
@@ -123,8 +129,6 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
                 vm = vm,
                 firstName = auth.profile?.firstName.orEmpty(),
                 consents = auth.consents,
-                trustedName = auth.profile?.trustedName,
-                trustedMobile = auth.profile?.trustedMobile,
                 onPay = {
                     auth.closeAbandonedPayments()
                     vm.reset()
@@ -208,6 +212,9 @@ private fun PaymentApp(auth: AuthViewModel, vm: PaymentViewModel) {
         composable(Routes.ALERTS) {
             AlertsScreen(
                 history = auth.history,
+                consents = auth.consents,
+                trustedName = auth.profile?.trustedName,
+                trustedMobile = auth.profile?.trustedMobile,
                 onMessages = { nav.navigate(Routes.MESSAGES) },
                 onHistory = { nav.navigate(Routes.HISTORY) },
                 onBack = { nav.popBackStack() },

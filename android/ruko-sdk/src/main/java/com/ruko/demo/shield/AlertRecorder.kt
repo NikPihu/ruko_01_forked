@@ -21,17 +21,27 @@ object AlertRecorder {
     /** Bumped on every change, so an open Alerts screen or badge reloads. */
     val version: StateFlow<Int> = _version
 
-    fun record(context: Context, entry: AlertEntry) {
-        try {
+    /**
+     * Adds the warning to the Alerts list. True when it is a new alert, so the caller notifies; false
+     * for a repeat of the same warning within [AlertLog.REPEAT_MS], or when there is no account here.
+     * If the list cannot be written the warning is still shown (true).
+     */
+    fun record(context: Context, entry: AlertEntry): Boolean {
+        val added = try {
             synchronized(lock) {
                 val store = AccountStore(context.applicationContext)
-                if (store.loadProfile() == null) return // no account on this phone: nothing to show it to
-                store.saveAlerts(AlertLog.add(store.loadAlerts(), entry, System.currentTimeMillis()))
+                if (store.loadProfile() == null) return false // no account on this phone: nothing to show it to
+                val file = store.loadAlerts()
+                if (AlertLog.isRepeat(file, entry)) return false
+                store.saveAlerts(AlertLog.add(file, entry, System.currentTimeMillis()))
+                true
             }
-            _version.value += 1
         } catch (e: Exception) {
             Log.w(TAG, "alert not recorded", e)
+            true
         }
+        _version.value += 1
+        return added
     }
 
     fun load(context: Context): AlertLogFile = synchronized(lock) {

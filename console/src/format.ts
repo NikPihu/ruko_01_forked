@@ -21,10 +21,21 @@ const DT = new Intl.DateTimeFormat("en-IN", {
   day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata",
 });
 
+/**
+ * The server stores times on the simulated world's clock (demo clock, GET /health
+ * `demo_clock_offset_s` = sim - wall). Screens show the wall-clock time the user really paid, the same
+ * time the phone shows, so the offset is subtracted here, the one place every page formats a time.
+ */
+let clockOffsetMs = 0;
+
+export function setClockOffset(seconds: number | null | undefined) {
+  clockOffsetMs = seconds ? seconds * 1000 : 0;
+}
+
 export function when(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : DT.format(d);
+  return Number.isNaN(d.getTime()) ? iso : DT.format(new Date(d.getTime() - clockOffsetMs));
 }
 
 /** What the user did after the check, as reported by the phone (c2-0.6). */

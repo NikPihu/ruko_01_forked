@@ -42,6 +42,7 @@ class Cluster:
     top_tokens: list[tuple[str, float]] = field(default_factory=list)   # (token n-gram, lift)
     baseline_ids: list[str] | None = None   # misnamed: the playbook's other held cases, to compare with
     reason: str = ""              # why this kind, with the numbers and the config thresholds used
+    nearest_top: list = field(default_factory=list)   # [[playbook, similarity], ...] the two closest known
 
 
 @dataclass
@@ -132,8 +133,10 @@ def run(case_df: pd.DataFrame) -> Result:
                 kind = "new"
                 reason = (f"new: only {named_share:.0%} of its cases were named (< {cfg['known_named_share']:.0%}) and the "
                           f"closest playbook, {nearest}, is {sim:.2f} similar (< {cfg['known_similarity']})")
+            top2 = [[pb, round(float(s), 3)] for pb, s in sorted(sims.items(), key=lambda kv: -kv[1])[:2]]
             clusters.append(Cluster(f"c{lab:02d}", g["case_id"].tolist(), kind, nearest, round(float(sim), 3),
-                                    round(named_share, 3), _top_tokens(x_br, labels == lab, vocab), reason=reason))
+                                    round(named_share, 3), _top_tokens(x_br, labels == lab, vocab), reason=reason,
+                                    nearest_top=top2))
     else:
         br = br.assign(cluster=-1)
     clusters += suspects

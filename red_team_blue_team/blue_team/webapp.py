@@ -3,8 +3,10 @@ evidence, and do the human review, in one page with a sidebar.
 
     PYTHONPATH=backend;ml;data;red_team_blue_team python -m blue_team app      # -> http://127.0.0.1:8765
 
-Pages: Run (start one, live timeline) · Complaints · HDBSCAN · Generator agent · Analyst agent ·
-Playbooks (minimal card, exactly what is stored, approve / reject) · Playbook database.
+Four tabs that follow the loop (docs/design/red-blue-console/README.md): Overview (scam groups,
+waiting list) · 1 Attack (red-team runner, per-attack detail, attack world, generator) · 2 Investigate
+(run progress, HDBSCAN groups, complaints) · 3 Playbooks (review queue, library, the "why it was
+chosen" page with sign-off), plus the Live check panel (the demo, scenario.py).
 
 Local only (bound to 127.0.0.1). Every review action goes through blue_team/review.py, so the rules
 are the same as on the command line: two different analysts approve, a rejection needs a reason, a
@@ -64,6 +66,10 @@ class RunnerStart(BaseModel):
     rerun: bool = False              # judge again playbooks the inbox already has a verdict for
 
 
+class Generate(BaseModel):
+    count: int = 10                  # red-team playbooks to generate (red_team/generator.py)
+
+
 class VerifyStart(BaseModel):
     live: bool = True                # check 2: the attack runner before / after on a fresh world
     retrain: bool = False            # check 3: LightGBM retrained with the card's labels
@@ -106,12 +112,30 @@ def backtest_summary(draft: dict) -> dict:
 
 def _summary(card: dict, state: str) -> dict:
     approvals = sorted({r["analyst"] for r in card.get("reviews", []) if r["decision"] == "approve"})
+    bt = card.get("backtest") or {}
+    fam = bt.get("families")
+    if fam is None and (card.get("match") or [{}])[0].get("rule"):
+        fam = sorted(engine_file.rule_families(card["match"][0]["rule"]))
     return {"name": card["name"], "title": card.get("title"), "state": state,
             "kind": "misnamed" if card.get("misnamed_as") else "new", "misnamed_as": card.get("misnamed_as"),
             "cases": (card.get("evidence") or {}).get("cases"), "verdict": (card.get("analyst") or {}).get("verdict"),
             "run_id": (card.get("evidence") or {}).get("run_id"), "cluster_id": (card.get("evidence") or {}).get("cluster_id"),
             "gates_pass": not card.get("gate_failures"), "approvals": approvals,
-            "needed": config.load()["review"]["approvals_needed"]}
+            "needed": config.load()["review"]["approvals_needed"],
+            "catches": bt.get("cluster_case_recall"), "legit_per_1000": bt.get("legit_payments_named_per_1000"),
+            "families": fam or [], "warns": len(fam or []) >= 2, "approved_at": card.get("approved_at")}
+
+
+class LiveStart(BaseModel):
+    attacks: list[str] = []          # one to three red-team playbooks (red_team/playbooks)
+    attack: str | None = None        # older consoles send one
+    llm: str | None = None           # bedrock | offline | auto
+
+
+class LiveControl(BaseModel):
+    paused: bool | None = None
+    delay: float | None = None       # seconds between shown payments
+    step: bool = False               # while paused: show one more
 
 
 class ScenarioStart(BaseModel):
@@ -130,6 +154,7 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
                     "running": [], "set": None}
     verifying: dict = {"thread": None, "state": "idle", "name": None, "log": [], "stop": False}
     demo: dict = {"thread": None, "state": "idle", "error": None}
+    generating: dict = {"thread": None, "state": "idle"}
 
     def load(name: str) -> tuple[dict, str]:
         try:
@@ -394,6 +419,92 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         runner["stop"] = True
         return runner_status()
 
+    # ---- red team: one attack in detail, the generator, scam groups ---------------------------
+    @app.get("/api/redteam/playbooks/{name}/detail")
+    def redteam_detail(name: str) -> dict:
+        """Where RUKO lost one attack, from the runner's per-payment results (results.csv)."""
+        import pandas as pd
+        from blue_team import inbox as inbox_mod
+        if not RUN_ID.match(name):
+            raise HTTPException(404, "no such playbook")
+        v = inbox_mod.verdicts().get(name)
+        if not v:
+            raise HTTPException(404, f"{name} has not been run by the attack runner yet")
+        f = Path(v.get("runner_out", "")) / "results.csv"
+        out = {"verdict": v, "histogram": [], "by_step": [], "reasons": {}, "normal_max_score": v.get("normal_max_score", 70)}
+        if not f.exists():
+            return {**out, "note": "the runner's per-payment results are gone (results.csv)"}
+        r = pd.read_csv(f)
+        for col in ("judged", "is_scam", "called_normal"):   # empty on fail-open rows, so read as text
+            r[col] = r[col].map({True: True, False: False, "True": True, "False": False}).fillna(False).astype(bool)
+        scam = r[r.judged & r.is_scam]
+        bins = (scam["threat_score"].clip(0, 99) // 5).astype(int).value_counts()
+        out["histogram"] = [int(bins.get(i, 0)) for i in range(20)]
+        out["by_step"] = [{"step": int(k), "payments": int(len(g)), "called_normal": int(g.called_normal.sum())}
+                          for k, g in scam.assign(step=scam.journey_pay_index.fillna(-1).astype(int)).groupby("step")]
+        caught = scam[~scam.called_normal].reasons.dropna()
+        out["reasons"] = pd.Series([x for line in caught for x in str(line).split("|") if x],
+                                   dtype=object).value_counts().to_dict()
+        return out
+
+    def generate_status() -> dict:
+        g = config.load()["console"]
+        log_p = repo / g["red_team_generate"]["log"]
+        tail = log_p.read_text(encoding="utf-8", errors="replace").splitlines()[-20:] if log_p.exists() else []
+        alive = generating["thread"] is not None and generating["thread"].is_alive()
+        out_dir = repo / g["red_team_runner"]["sets"]["generated"]
+        return {"state": "running" if alive else generating["state"], "log": tail,
+                "generated": len(list(out_dir.glob("*.yaml"))) if out_dir.is_dir() else 0,
+                "bedrock": bool(os.environ.get("BEDROCK_MODEL_ID"))}
+
+    @app.get("/api/redteam/generate")
+    def redteam_generate_status() -> dict:
+        return generate_status()
+
+    @app.post("/api/redteam/generate")
+    def redteam_generate(body: Generate) -> dict:
+        """New attack playbooks from the red team's generator (red_team/cli.py) into the `generated` set."""
+        import subprocess
+        import sys
+        if generating["thread"] is not None and generating["thread"].is_alive():
+            raise HTTPException(409, "the generator is already running")
+        if not 1 <= body.count <= 50:
+            raise HTTPException(400, "count 1-50")
+        g = config.load()["console"]
+        log_p = repo / g["red_team_generate"]["log"]
+        log_p.parent.mkdir(parents=True, exist_ok=True)
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(["backend", "ml", "data", "red_team_blue_team"]),
+               "PYTHONIOENCODING": "utf-8"}
+        cmd = [sys.executable, "-m", "red_team.cli", "--out-dir", g["red_team_runner"]["sets"]["generated"],
+               "--target-count", str(body.count)]
+
+        def go():
+            with open(log_p, "w", encoding="utf-8") as fh:
+                rc = subprocess.run(cmd, cwd=repo, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
+            generating["state"] = "failed" if rc else "done"
+
+        t = threading.Thread(target=go, daemon=True, name="red-team-generate")
+        generating.update(thread=t, state="running")
+        t.start()
+        return generate_status()
+
+    @app.get("/api/groups")
+    def scam_groups(run: str | None = None) -> dict:
+        """The red team's attacks per scam group (blue_team/groups.py), graded with a run's scorecard."""
+        from blue_team import groups as groups_mod, inbox as inbox_mod, redteam
+        rid = run or next((r["run_id"] for r in list_runs() if r.get("state") == "done"), None)
+        sc, cl = None, []
+        if rid:
+            try:
+                sc = scorecard(rid)
+                sc = sc if sc.get("is_red_world") else None
+                cl = clusters(rid)["clusters"]
+            except HTTPException:
+                sc = None
+        titles = {pb.name: pb.title for pb in playbook_db.load(("known",), root)}
+        out = groups_mod.build(redteam.load(), inbox_mod.verdicts(), sc, cl, cards(), titles)
+        return {"run_id": rid, "graded": sc is not None, "groups": out}
+
     @app.get("/api/runs/{run_id}/scorecard")
     def scorecard(run_id: str) -> dict:
         from blue_team import redteam
@@ -490,8 +601,10 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
     @app.get("/api/cards/{name}")
     def card(name: str) -> dict:
         c, state = load(name)
+        cfg = config.load()
         return {"state": state, "card": {k: v for k, v in c.items() if k != "label_tx_ids"},
-                "summary": _summary(c, state), "engine": engine_status(c), "editable": list(review.EDITABLE)}
+                "summary": _summary(c, state), "engine": engine_status(c), "editable": list(review.EDITABLE),
+                "limits": {**cfg["gates"], "known_similarity": cfg["cluster"]["known_similarity"]}}
 
     @app.get("/api/cards/{name}/yaml", response_class=PlainTextResponse)
     def card_yaml(name: str) -> str:
@@ -622,6 +735,45 @@ def create_app(root: Path | None = None, exports: Path | None = None, runs: Path
         if not scenario_status()["approved"]:
             raise HTTPException(400, "no approved playbook yet: two analysts approve on the Playbooks page")
         return scenario_job(lambda: sc.rerun(log=lambda *_: None))
+
+    # ---- the live loop: one attack, one payment at a time (scenario.start_live) --------------------
+    @app.get("/api/live")
+    def live_get(after: int = 0) -> dict:
+        from blue_team import scenario as sc
+        events, total = sc.feed_since(after)
+        st = scenario_status()
+        return {"events": events, "total": total, "control": sc.control(), "running": st["running"],
+                "state": st["state"], "error": st["error"], "mode": scenario_mode, "scenario": st["scenario"],
+                "queued": st["queued"], "approved": st["approved"], "rejected": st["rejected"]}
+
+    @app.post("/api/live/start")
+    def live_start(body: LiveStart) -> dict:
+        from blue_team import redteam, scenario as sc
+        attacks = body.attacks or ([body.attack] if body.attack else [])
+        names = {p["name"] for p in redteam.load()}
+        bad = [a for a in attacks if a not in names]
+        if bad:
+            raise HTTPException(400, f"not red-team playbooks: {', '.join(bad)}")
+        if not 1 <= len(attacks) <= 3 or len(set(attacks)) != len(attacks):
+            raise HTTPException(400, "pick one to three different attacks")
+        return scenario_job(lambda: sc.start_live(attacks, body.llm, log=lambda *_: None))
+
+    @app.post("/api/live/control")
+    def live_control(body: LiveControl) -> dict:
+        from blue_team import scenario as sc
+        if body.delay is not None and not 0 <= body.delay <= 10:
+            raise HTTPException(400, "delay 0-10 s")
+        return sc.control(paused=body.paused, delay=body.delay, step=body.step)
+
+    @app.post("/api/live/replay")
+    def live_replay() -> dict:
+        from blue_team import scenario as sc
+        st = sc.load_state()
+        if st.get("mode") != "live" or not st.get("before"):
+            raise HTTPException(400, "no live attack yet: start one")
+        if not scenario_status()["approved"]:
+            raise HTTPException(400, "no approved playbook yet: two analysts approve on the Playbooks tab")
+        return scenario_job(lambda: sc.rerun_live(log=lambda *_: None))
 
     @app.post("/api/reset")
     def reset(body: Reset) -> dict:

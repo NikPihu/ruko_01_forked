@@ -11,19 +11,21 @@ export AWS_BEARER_TOKEN_BEDROCK=...        # optional: without it runs are offli
 .venv/Scripts/python -m blue_team app      # -> http://127.0.0.1:8765
 ```
 
-One page with a sidebar, every decision with its reason and its references:
+Four tabs that follow the loop, left to right, plus a Live check panel (design and data sources:
+`docs/design/red-blue-console/README.md`). Every decision keeps its reason and its references; the
+long views (agent turns, run log, a playbook's script) open in a side drawer.
 
-| Page | What you see |
+| Tab | What you see |
 |---|---|
-| Red team | **1** run the attack runner (`synthetic_playbook/interface_script`) over the 50 attack playbooks against the real engine, several at a time (resumable); **2** the blue-team inbox (`inbox.py`), filled by his `blue_team` sink with every verdict and each breakthrough (75% of scam payments called normal); **3** build the attack world from the breakthroughs (sim_v2 + replay, live log). Also each playbook's evasion tricks, read from its script |
-| Run & timeline | start a run (world, LLM or offline, Reset everything) and watch each step as it happens: every line of `runs/<id>/events.jsonl`, decisions highlighted, with links to the complaints, groups, tool calls and config keys they rest on |
-| Complaints | every complaint, its status (missed / unnamed / held) and why, and each payment with RUKO's tier, name, p(scam) and the signals the server saw |
-| HDBSCAN | a **map** of the complaints (t-SNE of the same vectors HDBSCAN grouped; colour = new / known / misnamed?, an outline per group, its id at the centre, shape = missed / unnamed; hover for the complaint, click to open it), a second map per playbook for the misnamed check, then every group with the reason for its kind (numbers and thresholds) and the one-offs |
-| Generator agent | per group: the task, every turn (its words, each tool call and what the tool returned: the proof), the card, the evidence it cites (each source checked against its real tool calls), the backtest and gates |
-| Analyst agent | the same for the second opinion: turns, verdict, rationale and the facts it rests on |
-| Playbooks | the minimal card (title, steps, rule, warnings in English and Hindi, verdict, references), exactly what is stored (the YAML), whether the engine can take it yet, and approve / reject / edit |
-| Playbook database | the engine's known playbooks (its live file) and the ones analysts approved |
-| Scorecard | red team vs blue team per playbook: RUKO's interruption rate in the shared attack world next to the runner's verdict for the playbook alone, complaints and where they went, drafted playbooks and verdicts. The only page that uses the simulator's answer key |
+| Overview | the loop (Attack, Investigate, Playbooks, Live check: one number and a state each; the step waiting for a person is orange), **scam groups** (`GET /api/groups`, `groups.py`: the red team's attacks per kind of scam, never one total: got through, called normal, complaints, the group's playbook and its sign-off), what is waiting for you, and the scorecard (the only view that uses the simulator's answer key) |
+| Live | the live red / blue session (`scenario.start_live`, console started with `--scenario`): pick **two or three attack playbooks**; a world is built where they attack, and **500 transactions** are picked before anything is sent (`select_live`: whole victim journeys of the attacks, a fair share each, up to 60%, then honest payments over the same days). The warm-up days go to the engine first, unshown (each user's history); then the 500 go through the real engine **one at a time**, all shown (pause, next payment, speed), with victims' complaints appearing as the simulated clock reaches them. From the moment you press Start, **Investigate** shows the session (complaints arriving) and switches to its blue-team run, and **Playbooks** shows its drafts as they are queued. The blue team works on the session victims' complaints only (`world_for_blue_team`); the honest payments its rules are checked against stay the whole world's (a few hundred are too few to measure 0.5 per 1,000). Two analysts approve; **Replay** sends the same 500 again with the approved playbooks |
+| 1 Attack | run the attack runner (`synthetic_playbook/interface_script`) over a playbook set against the real engine (resumable), **Generate** new playbooks (`red_team/cli.py` into the `generated` set), attacks by group with their tricks, and one attack in detail (`GET /api/redteam/playbooks/{name}/detail`: called normal, where in the scam RUKO lost it, the threat-score histogram, why the caught ones were flagged, its script). "Hand N breakthroughs to the blue team" builds the attack world (sim_v2 + replay) |
+| 2 Investigate | start a blue-team run (world, Bedrock or offline, Reset everything) and its log; the run's progress (complaints → got past RUKO → grouped → drafted → checked → people); the HDBSCAN groups and misnamed? groups; the selected group's map, shared signals, money lost, two closest known playbooks, the agents' turns, and its complaints with every payment as RUKO saw it |
+| 3 Playbooks | the review queue and the library in one table (waiting / live / rejected; catches, honest per 1,000, warns or names only, sign-off), the engine's live list; each playbook's page says **why it was chosen**: the trail from the complaints to the sign-off, the rule condition by condition (share of the group's complaints and honest payments per 1,000 for each), the group against the two closest known playbooks signal by signal, the warning in English and Hindi, the stored YAML, sign-off (two different analysts, a note to reject, edit text) and, once approved, Verify |
+| Live check | the demo (`scenario.py`, console started with `--scenario`): build world → round 1 → review → round 2, scam payments interrupted and honest interruptions per 1,000 before → after, per scam type with why the rest got through |
+
+Old links (`#/complaints`, `#/hdbscan`, `#/run`, `#/scorecard`, `#/generator`, `#/analyst`, `#/database`,
+`#/demo`, `#/redteam`) open their new place.
 
 ## The flow
 
